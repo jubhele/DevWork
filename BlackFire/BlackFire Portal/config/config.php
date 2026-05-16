@@ -8,6 +8,14 @@
  * before this script runs. See .env.example for required keys.
  */
 
+// Load secrets file stored above public_html (not web-accessible).
+// Path: ~/blackfire_secrets.php  (one level above public_html)
+// This is where BF_APP_KEY lives on the server — never committed to git.
+$secretsFile = dirname(__DIR__, 3) . '/blackfire_secrets.php';
+if (file_exists($secretsFile)) {
+    require_once $secretsFile;
+}
+
 // Load .env file if present (no Composer dependency — plain key=value parser)
 $envFile = __DIR__ . '/../.env';
 if (file_exists($envFile)) {
