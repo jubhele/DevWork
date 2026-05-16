@@ -167,7 +167,19 @@ and any data objects before transformation.
 
 ---
 
-## 7b. Work Artifact Organization
+## 7b. Temp Files
+
+Any file generated to investigate, test, or experiment goes in `c:\DevWork\temp\`.
+This includes:
+- Test scripts, scratch files, debug output
+- Downloaded samples, one-off data extracts
+- Generated files not yet promoted to a project folder
+
+`temp/` is gitignored. Clean it up periodically.
+
+---
+
+## 7c. Work Artifact Organization
 
 All work artifacts belong in named folders, not loose at the repo root.
 
