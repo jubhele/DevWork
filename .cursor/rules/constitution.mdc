@@ -1,0 +1,48 @@
+---
+description: DevWork Workspace Constitution — applies to all files in this workspace
+globs: ["**/*"]
+alwaysApply: true
+---
+
+# DevWork Workspace Constitution (Cursor)
+
+This mirrors CLAUDE.md for Cursor. Full constitution in `CLAUDE.md`.
+
+## Session Logging (Mandatory)
+
+Create or update a log in `c:\DevWork\sessions\` at session start and end.
+Format: `YYYY-MM-DD_<topic-slug>.md`
+Sections: Goal, Provider, Model, Decisions, Work Done, Blockers/Next Steps.
+
+## Memory
+
+Read `C:\Users\Jughele Shange\.claude\projects\c--DevWork\memory\MEMORY.md` before working.
+Write back decisions and learnings at session end.
+
+## Sprint Workflow
+
+Think → Plan → Build → Review → Test → Ship → Reflect
+
+## Cross-Provider Handoff
+
+1. Commit WIP with `WIP:` prefix.
+2. Update session log.
+3. Next provider reads session log before continuing.
+
+## Code Principles
+
+- No speculative abstractions beyond the task.
+- Comments only for non-obvious WHY.
+- Validate at system boundaries only.
+- PowerShell 5.1 syntax.
+
+## Projects
+
+- BlackFire/AECI: `c:\DevWork\BlackFire\`
+- Astute: `c:\DevWork\Astute\`
+
+## Sensitive Files (never commit)
+
+- `chatsessions/*.jsonl`
+- `BlackFire/BlackFire Portal/install/blackfire_aeci_seed.sql`
+- `*.env`, `config.local.*`

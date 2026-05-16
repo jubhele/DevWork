@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NonInteractive -ExecutionPolicy Bypass -File \"c:\\DevWork\\.claude\\scripts\\session-log-update.ps1\"",
+            "shell": "powershell",
+            "timeout": 15,
+            "statusMessage": "Updating session log..."
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,40 @@
+# Sensitive data — never commit
+chatsessions/*.jsonl
+sessions/system_chatsessions/*.jsonl
+BlackFire/BlackFire Portal/install/blackfire_aeci_seed.sql
+BlackFire/BlackFire Portal/install/generate_bcrypt_hashes.*
+*.env
+*.env.local
+config.local.*
+
+# OS artifacts
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# Editor artifacts
+.vscode/settings.json
+*.code-workspace
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Build artifacts
+dist/
+build/
+*.min.js
+*.min.css
+
+# Temporary files
+/tmp/
+/temp/
+*.tmp
+*.bak
+*.swp
+
+# Windows PowerShell
+*.ps1.bak
+
+# gstack temp
+/tmp/gstack-*
