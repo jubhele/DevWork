@@ -30,17 +30,29 @@ if (file_exists($envFile)) {
  * Decrypt a value encrypted by install/encrypt_config.php.
  * Requires BF_APP_KEY env var (set in cPanel Environment Variables — never in a file).
  * Format: base64( IV[16 bytes] || AES-256-CBC ciphertext )
+ * Falls back to plaintext BF_DB_PASS for local development.
  */
 function bf_decrypt(string $encoded): string {
     $keyHex = getenv('BF_APP_KEY');
     if (!$keyHex) {
-        error_log('BlackFire: BF_APP_KEY is not set — check cPanel Environment Variables');
+        // Fallback for local development: try plaintext password from env
+        $plainPass = getenv('BF_DB_PASS');
+        if ($plainPass) {
+            error_log('BlackFire: Using plaintext BF_DB_PASS (local dev mode)');
+            return $plainPass;
+        }
+        error_log('BlackFire: BF_APP_KEY is not set and BF_DB_PASS is missing — decryption failed');
         return '';
     }
     $raw  = base64_decode($encoded);
+    if (!$raw || strlen($raw) < 17) {
+        error_log('BlackFire: Invalid encrypted value format');
+        return '';
+    }
     $iv   = substr($raw, 0, 16);
     $data = substr($raw, 16);
-    return openssl_decrypt($data, 'AES-256-CBC', hex2bin($keyHex), OPENSSL_RAW_DATA, $iv);
+    $decrypted = openssl_decrypt($data, 'AES-256-CBC', hex2bin($keyHex), OPENSSL_RAW_DATA, $iv);
+    return $decrypted ?: '';
 }
 
 return [

@@ -16,8 +16,8 @@ $base = rtrim($cfg['base_url'] ?? '', '/');
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; img-src 'self' data:; script-src 'self' 'unsafe-inline'; connect-src 'self'; object-src 'none';">
 <title>BlackFire Solutions</title>
-<link rel="icon" type="image/png" href="../blackfire-logo-pack/blackfire_icon_transparent.png">
-<link rel="shortcut icon" type="image/png" href="../blackfire-logo-pack/blackfire_icon_transparent.png">
+<link rel="icon" type="image/png" href="./blackfire_icon_transparent.png">
+<link rel="shortcut icon" type="image/png" href="./blackfire_icon_transparent.png">
 <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@400;600;700;900&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 /* ═══════════════════════════════════════════════════════

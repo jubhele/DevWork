@@ -43,7 +43,13 @@
       "PowerShell(Remove-Item \"C:\\\\DevWork\\\\BlackFire\\\\Clients\\\\AECI\\\\SESSION_LOG.md\" -Confirm:$false)",
       "PowerShell($ts = Get-Date -Format 'yyyyMMdd_HHmmss'; $backup = \"c:\\\\DevWork\\\\_backups\\\\CLAUDE_backup_$ts.md\"; New-Item -ItemType Directory -Force \"c:\\\\DevWork\\\\_backups\" | Out-Null; Copy-Item \"c:\\\\DevWork\\\\CLAUDE.md\" $backup; Write-Output \"Backed up to $backup\")",
       "PowerShell($ts = Get-Date -Format 'yyyyMMdd_HHmmss'; Write-Output \"session-log-naming-convention_$ts.md\")",
-      "PowerShell([System.IO.Directory]::GetFiles\\(\"c:\\\\DevWork\\\\BlackFire\\\\Clients\\\\AECI\\\\_backups\"\\) | ForEach-Object { $fi = [System.IO.FileInfo]$_; \"$\\($fi.Name\\) \\($\\($fi.Length\\) bytes\\)\" })"
+      "PowerShell([System.IO.Directory]::GetFiles\\(\"c:\\\\DevWork\\\\BlackFire\\\\Clients\\\\AECI\\\\_backups\"\\) | ForEach-Object { $fi = [System.IO.FileInfo]$_; \"$\\($fi.Name\\) \\($\\($fi.Length\\) bytes\\)\" })",
+      "Bash(ssh-keygen -t ed25519 -f ~/.ssh/blackfire_deploy -N \"\" -C \"blackfire-deploy-$\\(date +%Y%m%d\\)\")",
+      "Read(//c/Users/Jughele Shange/.ssh/**)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(ssh -i ~/.ssh/blackfire_deploy -o StrictHostKeyChecking=no -o ConnectTimeout=10 blackfm6w9f9@ibis.aserv.co.za \"echo 'Connected as $\\(whoami\\)'\")"
     ]
   }
 }
