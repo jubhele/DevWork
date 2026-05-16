@@ -5,11 +5,21 @@
 Options -Indexes
 Options -MultiViews
 
-# ── Protect config and includes from direct web access ──
+# ── Protect config, env, and sensitive files from direct web access ──
 <Files "config.php">
     Order allow,deny
     Deny from all
 </Files>
+
+<FilesMatch "^\.env(\.example)?$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+<FilesMatch "\.(sql|log|md|txt|json|bak)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
 
 # ── PHP error handling ──
 php_flag display_errors Off

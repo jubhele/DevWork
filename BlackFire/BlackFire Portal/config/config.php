@@ -18,6 +18,23 @@ if (file_exists($envFile)) {
     }
 }
 
+/**
+ * Decrypt a value encrypted by install/encrypt_config.php.
+ * Requires BF_APP_KEY env var (set in cPanel Environment Variables — never in a file).
+ * Format: base64( IV[16 bytes] || AES-256-CBC ciphertext )
+ */
+function bf_decrypt(string $encoded): string {
+    $keyHex = getenv('BF_APP_KEY');
+    if (!$keyHex) {
+        error_log('BlackFire: BF_APP_KEY is not set — check cPanel Environment Variables');
+        return '';
+    }
+    $raw  = base64_decode($encoded);
+    $iv   = substr($raw, 0, 16);
+    $data = substr($raw, 16);
+    return openssl_decrypt($data, 'AES-256-CBC', hex2bin($keyHex), OPENSSL_RAW_DATA, $iv);
+}
+
 return [
     // ═══════════════════════════════════════════════════════
     // DATABASE CONNECTION
@@ -26,7 +43,7 @@ return [
     'db_port'    => (int)(getenv('BF_DB_PORT') ?: 3306),
     'db_name'    => getenv('BF_DB_NAME') ?: 'blackfm6w9f9_portal',
     'db_user'    => getenv('BF_DB_USER') ?: 'blackfm6w9f9_izilo',
-    'db_pass'    => getenv('BF_DB_PASS'),
+    'db_pass'    => bf_decrypt(getenv('BF_DB_PASS_ENC')),
     'db_charset' => 'utf8mb4',
     'db_options' => [
         PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,

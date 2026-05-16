@@ -12,21 +12,22 @@ WHAT'S INCLUDED
 ✅ Database schema (install/schema.sql)
 ✅ .htaccess security rules
 
-DATABASE CREDENTIALS (Pre-configured in config.php)
+DATABASE CREDENTIALS
 
 Host: localhost (Afrihost)
 Database: blackfm6w9f9_portal
 User: blackfm6w9f9_izilo
-Password: Impum3l3l0@2021
+Password: stored encrypted — see install/encrypt_config.php to generate/rotate
 
 QUICK DEPLOYMENT
 
 1. Delete old /portal/ folder on server
 2. Upload this entire blackfire-portal/ folder to /public_html/portal/
-3. Navigate to: https://blackfiresolutions.co.za/portal/install/
-4. Click "Install & Create Tables"
-5. Create admin user: jubhele / Impum3l3l0@2021
-6. All buttons now work!
+3. Set BF_APP_KEY in cPanel Environment Variables (generate via install/encrypt_config.php)
+4. Upload .env with BF_DB_PASS_ENC set (generate via install/encrypt_config.php)
+5. Navigate to: https://blackfiresolutions.co.za/portal/install/
+6. Click "Install & Create Tables" — create admin user
+7. Delete install/encrypt_config.php from the server
 
 DEPLOYMENT TIME: ~10 minutes
 
@@ -65,10 +66,10 @@ BEFORE (broken):
   'db_user' => 'YOUR_DB_USER'        ❌
   'db_pass' => 'YOUR_DB_PASS'        ❌
 
-AFTER (fixed):
-  'db_name' => 'blackfm6w9f9_portal' ✅
-  'db_user' => 'blackfm6w9f9_izilo'  ✅
-  'db_pass' => 'Impum3l3l0@2021'     ✅
+AFTER (fixed + encrypted):
+  'db_name' => 'blackfm6w9f9_portal'         ✅
+  'db_user' => 'blackfm6w9f9_izilo'          ✅
+  'db_pass' => bf_decrypt(getenv('...'))     ✅ (AES-256-CBC, key in cPanel)
 
 RESULT: All buttons now work — contact form submits, login validates, 
 callouts/invoices/quotes save to database.
@@ -96,22 +97,22 @@ Step 3: Set Permissions
 Step 4: Initialize Database
   - Navigate to: https://blackfiresolutions.co.za/portal/install/
   - Follow wizard → Create tables
-  - OR via SSH: mysql -u blackfm6w9f9_izilo -p'Impum3l3l0@2021' blackfm6w9f9_portal < install/schema.sql
+  - OR via SSH: mysql -u blackfm6w9f9_izilo -p blackfm6w9f9_portal < install/schema.sql
 
 Step 5: Create Admin User
-  - Via installer (Step 4) OR via SSH:
+  - Via installer (Step 4) OR via SSH (replace YOUR_PORTAL_PASSWORD with your chosen password):
     php << 'EOFPHP'
     require 'includes/db.php';
     $cfg = require 'config/config.php';
     $pdo = new PDO("mysql:host={$cfg['db_host']};dbname={$cfg['db_name']}",$cfg['db_user'],$cfg['db_pass']);
-    $pwd = password_hash('Impum3l3l0@2021', PASSWORD_BCRYPT);
+    $pwd = password_hash('YOUR_PORTAL_PASSWORD', PASSWORD_BCRYPT);
     $pdo->prepare('INSERT INTO users (username,name,email,password_hash,role,active) VALUES(?,?,?,?,?,1) ON DUPLICATE KEY UPDATE password_hash=VALUES(password_hash)')->execute(['jubhele','Jubhele','jubhele@astuteinsights.co.za',$pwd,'admin']);
     echo "✓ Admin created\n";
     EOFPHP
 
 Step 6: Test
   - Go to: https://blackfiresolutions.co.za/portal/
-  - Click "Staff Portal" → login: jubhele / Impum3l3l0@2021
+  - Click "Staff Portal" → login with the credentials you created in Step 5
   - Test buttons: + New Callout, + New Invoice, etc.
   - All should work without errors
 
