@@ -1,25 +1,43 @@
 # session-log-update.ps1
-# Called by the Claude Code Stop hook to timestamp session end.
-# Creates today's session log if it doesn't exist.
+# Called by the Claude Code Stop hook to close out the session log.
+# 1. Timestamps the session end.
+# 2. Checks for a mandatory ## Learnings section.
+# 3. Warns if /learn was not run (no ## Learnings section found).
 
 $sessionsDir = "c:\DevWork\sessions"
 $today = Get-Date -Format "yyyy-MM-dd"
 $ts = Get-Date -Format "HH:mm:ss"
 
-# Find any session log created today
-$todayLogs = Get-ChildItem $sessionsDir -Filter "$today*.md" -ErrorAction SilentlyContinue |
-    Where-Object { $_.Name -ne "_template.md" }
+$todayLogs = Get-ChildItem $sessionsDir -Filter "*.md" -ErrorAction SilentlyContinue |
+    Where-Object { $_.Name -ne "_template.md" -and $_.LastWriteTime.Date -eq (Get-Date).Date } |
+    Sort-Object LastWriteTime -Descending
 
 if ($todayLogs) {
-    # Append session-ended marker to the most recent log
-    $logFile = ($todayLogs | Sort-Object LastWriteTime -Descending | Select-Object -First 1).FullName
-    $marker = "`n---`n_Session ended: $today $ts (Claude Code / claude-sonnet-4-6)_"
+    $logFile = $todayLogs[0].FullName
+    $content = Get-Content $logFile -Raw -Encoding utf8
+
+    $hasLearnings = $content -match '##\s+Learnings'
+
+    if (-not $hasLearnings) {
+        $warning = @"
+
+## Learnings
+⚠ /learn was not run before this session ended.
+Action required at next session start: review this log and run /learn (Claude Code)
+or manually update memory/ files (all other providers) before new work begins.
+
+"@
+        Add-Content -Path $logFile -Value $warning -Encoding utf8
+    }
+
+    $marker = "_Session ended: $today $ts (Claude Code / claude-sonnet-4-6)_"
     Add-Content -Path $logFile -Value $marker -Encoding utf8
+
 } else {
-    # Create a minimal session log so no session goes unrecorded
-    $logFile = Join-Path $sessionsDir "$today_session.md"
+    # No log created today — make a minimal one so nothing goes unrecorded
+    $logFile = Join-Path $sessionsDir "${today}_session.md"
     $content = @"
-# Session: $(Get-Date -Format "yyyy-MM-dd")
+# Session: $today
 Date: $today
 Provider: Claude Code
 Model: claude-sonnet-4-6
@@ -35,6 +53,11 @@ Model: claude-sonnet-4-6
 
 ## Blockers / Next Steps
 -
+
+## Learnings
+⚠ /learn was not run before this session ended.
+Action required at next session start: review this log and run /learn (Claude Code)
+or manually update memory/ files (all other providers) before new work begins.
 
 _Session ended: $today $ts_
 "@

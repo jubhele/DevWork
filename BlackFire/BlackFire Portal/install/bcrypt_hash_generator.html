@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BlackFire bcrypt Hash Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-sha256/0.9.0/sha256.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bcryptjs@2.4.3/dist/bcrypt.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            color: #e0e0e0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: #1f1f1f;
+            border: 1px solid #444;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+        
+        .header {
+            background: linear-gradient(90deg, #d4af37 0%, #f0d070 100%);
+            color: #000;
+            padding: 30px;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+        }
+        
+        .section h2 {
+            color: #d4af37;
+            margin-bottom: 15px;
+            font-size: 18px;
+            border-bottom: 2px solid #444;
+            padding-bottom: 10px;
+        }
+        
+        .user-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+        }
+        
+        .user-card {
+            background: #2a2a2a;
+            border: 1px solid #3a3a3a;
+            border-radius: 6px;
+            padding: 15px;
+            transition: all 0.3s ease;
+        }
+        
+        .user-card:hover {
+            border-color: #d4af37;
+            box-shadow: 0 0 10px rgba(212, 175, 55, 0.1);
+        }
+        
+        .user-card .row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+            align-items: flex-start;
+        }
+        
+        .user-card .label {
+            color: #d4af37;
+            font-weight: 600;
+            min-width: 100px;
+        }
+        
+        .user-card .value {
+            color: #b0b0b0;
+            font-family: 'Courier New', monospace;
+            word-break: break-all;
+            flex: 1;
+        }
+        
+        .sql-output {
+            background: #1a1a1a;
+            border: 1px solid #444;
+            border-radius: 6px;
+            padding: 20px;
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .sql-output code {
+            color: #a8d957;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            display: block;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            background: #d4af37;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        button:hover {
+            background: #f0d070;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .secondary {
+            background: #444;
+            color: #fff;
+        }
+        
+        .secondary:hover {
+            background: #555;
+        }
+        
+        .status {
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            display: none;
+        }
+        
+        .status.show {
+            display: block;
+        }
+        
+        .status.success {
+            background: #2d4a2d;
+            border: 1px solid #5a8a5a;
+            color: #a8d957;
+        }
+        
+        .status.error {
+            background: #4a2d2d;
+            border: 1px solid #8a5a5a;
+            color: #ff6b6b;
+        }
+        
+        .instructions {
+            background: #2a2a2a;
+            border-left: 4px solid #d4af37;
+            padding: 20px;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+        
+        .instructions ol {
+            margin-left: 20px;
+        }
+        
+        .instructions li {
+            margin-bottom: 10px;
+            color: #b0b0b0;
+        }
+        
+        .instructions code {
+            background: #1a1a1a;
+            padding: 2px 6px;
+            border-radius: 3px;
+            color: #a8d957;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .loader {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid #d4af37;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔐 BlackFire bcrypt Hash Generator</h1>
+            <p>Generate secure password hashes for AECI Chempark Portal</p>
+        </div>
+        
+        <div class="content">
+            <div id="status" class="status"></div>
+            
+            <div class="section">
+                <h2>Generate Hashes</h2>
+                <button onclick="generateHashes()">
+                    <span id="generateBtn">Generate All Hashes</span>
+                </button>
+                <p style="margin-top: 10px; color: #888; font-size: 14px;">
+                    Note: This uses bcryptjs (cost 10) for browser compatibility. 
+                    For maximum security, consider using cost 12 on the server.
+                </p>
+            </div>
+            
+            <div class="section">
+                <h2>User Credentials & Hashes</h2>
+                <div class="user-grid" id="userGrid">
+                    <!-- Generated by JavaScript -->
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>SQL Update Statements</h2>
+                <div class="button-group">
+                    <button onclick="copySQLToClipboard()">📋 Copy SQL to Clipboard</button>
+                    <button class="secondary" onclick="downloadSQL()">⬇️ Download SQL File</button>
+                </div>
+                <div class="sql-output" id="sqlOutput">
+                    <p style="color: #888;">Click "Generate All Hashes" to create SQL statements</p>
+                </div>
+            </div>
+            
+            <div class="instructions">
+                <h3 style="color: #d4af37; margin-bottom: 15px;">📋 Instructions</h3>
+                <ol>
+                    <li>Click <strong>Generate All Hashes</strong> above</li>
+                    <li>Review the generated hashes for each user</li>
+                    <li>Copy the SQL statements using the <strong>Copy SQL to Clipboard</strong> button</li>
+                    <li>Execute the SQL in your MySQL client:
+                        <div style="margin: 10px 0; padding: 10px; background: #1a1a1a; border-radius: 4px; border-left: 3px solid #d4af37;">
+                            <code>mysql -u root -p blackfire_aeci &lt; update_passwords.sql</code><br>
+                            or paste into MySQL Workbench / phpMyAdmin
+                        </div>
+                    </li>
+                    <li>After updating, drop the <code>password_plain</code> column (DEV ONLY):
+                        <div style="margin: 10px 0; padding: 10px; background: #1a1a1a; border-radius: 4px; border-left: 3px solid #d4af37;">
+                            <code>ALTER TABLE users DROP COLUMN password_plain;</code>
+                        </div>
+                    </li>
+                    <li>Update the seed script to exclude <code>password_plain</code> from future INSERTs</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // User credentials from blackfire_aeci_seed.sql
+        const users = [
+            { username: 'admin',   password: 'BlackFire2026!' },
+            { username: 'manager', password: 'BlackFire2026!' },
+            { username: 'calllog', password: 'CallLog2026!' },
+            { username: 'jtech',   password: 'JTech2026!' },
+            { username: 'stech',   password: 'STech2026!' },
+            { username: 'support', password: 'Support2026!' },
+            { username: 'clerk',   password: 'Clerk2026!' },
+            { username: 'viewer',  password: 'view2026' },
+        ];
+        
+        let generatedHashes = [];
+        
+        async function generateHashes() {
+            const btn = document.getElementById('generateBtn');
+            const originalText = btn.textContent;
+            btn.innerHTML = '<span class="loader"></span>Generating...';
+            btn.parentElement.disabled = true;
+            
+            try {
+                generatedHashes = [];
+                
+                for (const user of users) {
+                    const hash = await bcrypt.hash(user.password, 10);
+                    generatedHashes.push({
+                        username: user.username,
+                        password: user.password,
+                        hash: hash
+                    });
+                }
+                
+                displayHashes();
+                displaySQL();
+                showStatus('✓ Hashes generated successfully!', 'success');
+                
+            } catch (error) {
+                showStatus('✗ Error generating hashes: ' + error.message, 'error');
+            } finally {
+                btn.innerHTML = originalText;
+                btn.parentElement.disabled = false;
+            }
+        }
+        
+        function displayHashes() {
+            const grid = document.getElementById('userGrid');
+            grid.innerHTML = '';
+            
+            for (const user of generatedHashes) {
+                const card = document.createElement('div');
+                card.className = 'user-card';
+                card.innerHTML = `
+                    <div class="row">
+                        <span class="label">Username:</span>
+                        <span class="value">${user.username}</span>
+                    </div>
+                    <div class="row">
+                        <span class="label">Password:</span>
+                        <span class="value">${user.password}</span>
+                    </div>
+                    <div class="row">
+                        <span class="label">bcrypt Hash:</span>
+                        <span class="value">${user.hash}</span>
+                    </div>
+                `;
+                grid.appendChild(card);
+            }
+        }
+        
+        function displaySQL() {
+            const output = document.getElementById('sqlOutput');
+            let sql = '';
+            
+            for (const user of generatedHashes) {
+                const hashEscaped = user.hash.replace(/'/g, "''");
+                sql += `UPDATE users SET password_hash = '${hashEscaped}' WHERE username = '${user.username}';\n`;
+            }
+            
+            output.innerHTML = '<code>' + sql.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</code>';
+        }
+        
+        function copySQLToClipboard() {
+            const sqlOutput = document.getElementById('sqlOutput');
+            const text = sqlOutput.innerText;
+            
+            navigator.clipboard.writeText(text).then(() => {
+                showStatus('✓ SQL copied to clipboard!', 'success');
+                setTimeout(() => {
+                    document.getElementById('status').classList.remove('show');
+                }, 3000);
+            }).catch(err => {
+                showStatus('✗ Failed to copy: ' + err, 'error');
+            });
+        }
+        
+        function downloadSQL() {
+            const sqlOutput = document.getElementById('sqlOutput');
+            const text = sqlOutput.innerText;
+            const blob = new Blob([text], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'update_passwords.sql';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showStatus('✓ SQL file downloaded!', 'success');
+            setTimeout(() => {
+                document.getElementById('status').classList.remove('show');
+            }, 3000);
+        }
+        
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status show ${type}`;
+        }
+    </script>
+</body>
+</html>

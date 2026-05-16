@@ -11,7 +11,7 @@ This mirrors CLAUDE.md for Cursor. Full constitution in `CLAUDE.md`.
 ## Session Logging (Mandatory)
 
 Create or update a log in `c:\DevWork\sessions\` at session start and end.
-Format: `YYYY-MM-DD_<topic-slug>.md`
+Format: `<chat-name>_YYYYMMDD_HHmmss.md` — one file per session, named after the chat topic with a timestamp suffix.
 Sections: Goal, Provider, Model, Decisions, Work Done, Blockers/Next Steps.
 
 ## Memory
@@ -23,7 +23,15 @@ Write back decisions and learnings at session end.
 
 Think → Plan → Build → Review → Test → Ship → Reflect
 
+**Reflect is MANDATORY.** Before ending any session:
+1. Add a `## Learnings` section to the session log.
+2. Update relevant memory files in `memory/` (decisions, constraints, trust score changes).
+3. Claude Code users: run `/learn` — reads session log and updates memory automatically.
+4. If model trust score diverged from expectation: update `memory/feedback_model_selection.md`.
+
 ## Cross-Provider Handoff
+
+Providers: Claude Code, GitHub Copilot, OpenAI Codex, Google Antigravity, Cursor, Kiro.
 
 1. Commit WIP with `WIP:` prefix.
 2. Update session log.
@@ -40,6 +48,19 @@ Think → Plan → Build → Review → Test → Ship → Reflect
 
 - BlackFire/AECI: `c:\DevWork\BlackFire\`
 - Astute: `c:\DevWork\Astute\`
+
+## Cost / Token Management Agent (MANDATORY)
+
+Classify the task at conversation start and verify the active model matches:
+
+| Tier | Label | Claude | OpenAI | Google |
+|------|-------|--------|--------|--------|
+| 1 | Fast | Haiku 4.5 (9/10) | GPT-4o-mini (8/10) | Gemini Flash 2.0 (7/10) |
+| 2 | Medium | Sonnet 4.6 (9/10) | GPT-4o (8/10) | Gemini 1.5 Pro (8/10) |
+| 3 | Complex | Opus 4.7 (10/10) | o3 / o1 (9/10) | Gemini 2.5 Pro (9/10) |
+
+Output recommendation block (see CLAUDE.md § 11.3) if model is wrong for the tier. Log in session log.
+Target cost: Tier 1 < $0.05 | Tier 2 $0.05–$0.50 | Tier 3 $0.50–$5.00.
 
 ## Sensitive Files (never commit)
 

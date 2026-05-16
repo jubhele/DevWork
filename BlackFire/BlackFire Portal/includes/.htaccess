@@ -1,0 +1,10 @@
+# BlackFire Solutions Portal — includes/ directory protection
+# PHP helper files — no direct web access permitted.
+
+Order deny,allow
+Deny from all
+
+<FilesMatch ".*">
+    Order deny,allow
+    Deny from all
+</FilesMatch>

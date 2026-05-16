@@ -3,9 +3,21 @@ chatsessions/*.jsonl
 sessions/system_chatsessions/*.jsonl
 BlackFire/BlackFire Portal/install/blackfire_aeci_seed.sql
 BlackFire/BlackFire Portal/install/generate_bcrypt_hashes.*
-*.env
+BlackFire/BlackFire Portal/error_log
+BlackFire/BlackFire Portal/test_connection.php
+BlackFire/BlackFire Portal/zzcheck.php
+BlackFire/BlackFire Portal/.env
 *.env.local
 config.local.*
+
+# Timestamped backup folders
+**/_backups/
+
+# Root-level backup folder
+/_backups/
+
+# Scratch/test artifacts
+**/test_*.docx
 
 # OS artifacts
 Thumbs.db

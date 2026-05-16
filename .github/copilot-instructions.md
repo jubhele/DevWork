@@ -8,7 +8,7 @@ The authoritative source is `CLAUDE.md` — defer to it for the full constitutio
 ## Mandatory: Session Logging
 
 Every session must create or update a log in `c:\DevWork\sessions\`.
-Format: `YYYY-MM-DD_<topic-slug>.md`
+Format: `<chat-name>_YYYYMMDD_HHmmss.md` — one file per session, named after the chat topic with a timestamp suffix.
 
 Log structure:
 - **Goal** (fill at start of session)
@@ -31,11 +31,17 @@ All providers share this memory. Save decisions and constraints found during the
 
 Think → Plan → Build → Review → Test → Ship → Reflect
 
+**Reflect is MANDATORY.** Before ending any session:
+1. Add a `## Learnings` section to the session log.
+2. Update relevant memory files in `memory/` (decisions, constraints, trust score changes).
+3. Claude Code users: run `/learn` — it reads the session log and updates memory automatically.
+4. If the active model trust score diverged from expectation: update `memory/feedback_model_selection.md`.
+
 ---
 
 ## Cross-Provider Handoff
 
-If handing off to another AI (Claude, Codex, Cursor):
+If handing off to another AI (Claude, Codex, Antigravity, Cursor):
 1. Commit in-progress work with `WIP:` prefix.
 2. Update session log with current state and exact next steps.
 3. The next AI reads the session log before starting.
@@ -55,6 +61,23 @@ If handing off to another AI (Claude, Codex, Cursor):
 
 - **BlackFire / AECI**: `c:\DevWork\BlackFire\` — security proposals + PHP portal
 - **Astute**: `c:\DevWork\Astute\`
+
+## Cost / Token Management Agent (MANDATORY)
+
+At conversation start, classify the request and check if the active model fits the tier:
+
+| Tier | Label | Claude | GitHub Models / OpenAI |
+|------|-------|--------|------------------------|
+| 1 | Fast / Cheap | Haiku 4.5 (9/10) | GPT-4o-mini (8/10) |
+| 2 | Medium | Sonnet 4.6 (9/10) | GPT-4o (8/10) |
+| 3 | Complex | Opus 4.7 (10/10) | o3 / o1 (9/10) |
+
+If the model is wrong for the tier, output the recommendation block (see CLAUDE.md § 11.3) and log it.
+If correct, log silently.
+
+Target cost: Tier 1 < $0.05 | Tier 2 $0.05–$0.50 | Tier 3 $0.50–$5.00.
+
+---
 
 ## Sensitive Files (never expose or commit)
 

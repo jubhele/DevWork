@@ -1,7 +1,7 @@
 # DevWork Workspace Constitution
 
 > This constitution governs all AI agents operating in this workspace regardless of provider
-> (Claude Code, GitHub Copilot, OpenAI Codex, Cursor, Kiro, etc.).
+> (Claude Code, GitHub Copilot, OpenAI Codex, Cursor, Google Antigravity, Kiro, etc.).
 > Provider-specific instructions never override this document.
 
 ---
@@ -11,18 +11,23 @@
 Every session **must** create or update a session log. This is non-negotiable.
 
 **Log location**: `c:\DevWork\sessions\`
-**Format**: `YYYY-MM-DD_<topic-slug>.md`
+**Format**: `<chat-name>_YYYYMMDD_HHmmss.md` — one file per session, named after the chat topic with a timestamp suffix.
 
 ### Session log structure
 
 ```
 # Session: <topic>
 Date: YYYY-MM-DD
-Provider: <Claude Code | GitHub Copilot | OpenAI Codex | Cursor | Kiro | Other>
+Provider: <Claude Code | GitHub Copilot | OpenAI Codex | Google Antigravity | Cursor | Kiro | Other>
 Model: <model name>
 
 ## Goal
 <one paragraph — what was attempted>
+
+## Model Recommendation
+Task tier: <1-Fast | 2-Medium | 3-Complex>
+Recommended model: <name>  Trust score: <X>/10
+Active model: <name>  Status: <correct | over-powered | under-powered>
 
 ## Decisions
 - <key decision and why>
@@ -32,6 +37,9 @@ Model: <model name>
 
 ## Blockers / Next Steps
 - <anything left incomplete or requiring follow-up>
+
+## Learnings
+- <MANDATORY — fill before ending session>
 ```
 
 At session **start**: create the log file with Goal filled in.
@@ -59,7 +67,7 @@ Rules:
 ```
 c:\DevWork\
 ├── CLAUDE.md                   ← This constitution (Claude Code)
-├── AGENTS.md                   ← Mirror for OpenAI Codex
+├── AGENTS.md                   ← Mirror for OpenAI Codex + Google Antigravity
 ├── .github/
 │   └── copilot-instructions.md ← Mirror for GitHub Copilot
 ├── .cursor/
@@ -113,7 +121,11 @@ Think → Plan → Build → Review → Test → Ship → Reflect
 - **Review**: Use `/review` or `/cso` for security-sensitive changes.
 - **Test**: Verify the feature works end-to-end, not just unit tests.
 - **Ship**: Clean commits, update session log.
-- **Reflect**: Update memory with decisions and learnings.
+- **Reflect** *(MANDATORY)*: Before ending the session, persist learnings to memory:
+  - **Claude Code**: run `/learn` — it reads the session log and updates memory automatically.
+  - **All other providers**: manually add a `## Learnings` section to the session log and update relevant memory files in `memory/`.
+  - Either way, the session log **must** contain a `## Learnings` section before the session closes.
+  - If the active model trust score diverged from expectation, update § 11 scores now.
 
 ---
 
@@ -224,7 +236,84 @@ This workspace is configured for use with:
 - **Claude Code** (primary) — reads `CLAUDE.md`
 - **GitHub Copilot** — reads `.github/copilot-instructions.md`
 - **OpenAI Codex CLI** — reads `AGENTS.md`
+- **Google Antigravity** — reads `AGENTS.md`
 - **Cursor** — reads `.cursor/rules/constitution.mdc`
 - **Kiro / Factory Droid / Others** — read `AGENTS.md` as fallback
 
 All providers follow the same constitution. Divergence is a bug.
+
+---
+
+## 11. Cost / Token Management Agent (MANDATORY)
+
+Every session **must** assess whether the current model is the right one for the task.
+This is not optional — running an over-powered model on trivial work wastes budget;
+running an under-powered model on complex work wastes time and produces poor output.
+
+### 11.1 Task Tiers
+
+| Tier | Label | Signal words | Examples |
+|------|-------|-------------|---------|
+| 1 | **Fast / Cheap** | quick, lookup, format, rename, fix typo, summarise short text | Single-file edits, Q&A, grep/search, formatting, simple rewrites |
+| 2 | **Medium** | plan, review, multi-file, analyse, debug, draft, explain | Code review, multi-file refactor, document drafts, planning sessions |
+| 3 | **Complex** | architect, security, reasoning, research, design, multi-step, generate | System design, security audits, long-form generation, cross-repo reasoning |
+
+### 11.2 Model Trust Matrix
+
+Higher trust score = more reliable for that tier. Scores are 0–10.
+
+| Provider | Tier 1 – Fast | Score | Tier 2 – Medium | Score | Tier 3 – Complex | Score |
+|----------|--------------|-------|----------------|-------|-----------------|-------|
+| **Claude** | Haiku 4.5 | 9 | Sonnet 4.6 | 9 | Opus 4.7 | 10 |
+| **OpenAI** | GPT-4o-mini | 8 | GPT-4o | 8 | o3 / o1 | 9 |
+| **Google** | Gemini Flash 2.0 | 7 | Gemini 1.5 Pro | 8 | Gemini 2.5 Pro | 9 |
+| **Codex CLI** | — | — | codex (default) | 7 | codex + reasoning | 8 |
+
+Trust scores reflect: reasoning depth, instruction-following, tool-use reliability,
+and observed output quality in this workspace. Update via `/learn` when experience diverges.
+
+### 11.3 Agent Behaviour
+
+At **conversation start** the agent must:
+
+1. Read the user's first message and classify it into Tier 1 / 2 / 3.
+2. Identify the model currently in use (from session context or environment).
+3. If the active model is **not** the recommended tier model, output a recommendation block:
+
+```
+┌─ Model Advisor ──────────────────────────────────────────────────────┐
+│ Task tier:   <1-Fast | 2-Medium | 3-Complex>                        │
+│ Recommended: <model name>   Trust score: <X>/10                     │
+│ Active:      <current model>  (over/under-powered for this task)    │
+│ Switch with: /model <recommended> — or proceed with current model   │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+4. Log the recommendation in the session log under a `## Model Recommendation` sub-section.
+5. If the model is already correct, log it silently — no output block needed.
+
+### 11.4 Cost Guidance
+
+| Tier | Target cost per session |
+|------|------------------------|
+| 1 – Fast | < $0.05 |
+| 2 – Medium | $0.05 – $0.50 |
+| 3 – Complex | $0.50 – $5.00 |
+
+If a session is trending over budget for its tier, the agent should flag it inline:
+`⚠ Cost alert: ~$X used so far — consider switching to a lower tier or batching remaining work.`
+
+### 11.5 Updating the Trust Matrix
+
+This happens during the mandatory **Reflect** step (§ 5) at session end — not optionally later.
+
+If a model performed notably better or worse than its trust score predicted:
+- **Claude Code**: run `/learn` — it will update `memory/feedback_model_selection.md` automatically.
+- **All other providers**: manually edit `memory/feedback_model_selection.md` and add an entry:
+
+```
+Model: <name>  Tier: <1|2|3>  Observed score: <X>/10
+Why: <what happened — good or bad>
+```
+
+The `## Learnings` section in the session log must record whether scores were updated or confirmed unchanged.

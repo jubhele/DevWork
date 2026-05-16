@@ -1,0 +1,1319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BlackFire Solutions · Brand Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders:wght@400;700;900&family=Instrument+Sans:wght@400;700&family=Instrument+Serif:ital@1&family=IBM+Plex+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+.theme-dark {
+  --ground      : #0A0E19;
+  --surface     : #141B26;
+  --surface-alt : #1E2530;
+  --divider     : #2B3340;
+  --ember       : #C0392B;
+  --fire        : #E05A1A;
+  --amber       : #F07820;
+  --gold        : #F5A623;
+  --muted       : #7A8699;
+  --secondary   : #A8B2BE;
+  --primary     : #E0E4EA;
+  --grid-line   : rgba(224,90,26,0.08);
+  --shadow-strong : 0 20px 60px rgba(0,0,0,0.6);
+}
+.theme-light {
+  --ground      : #F5F1EA;
+  --surface     : #EDE8DE;
+  --surface-alt : #E4DED2;
+  --divider     : #C8C1B3;
+  --ember       : #A82A1E;
+  --fire        : #C94A10;
+  --amber       : #E06A1A;
+  --gold        : #D48A15;
+  --muted       : #7A7566;
+  --secondary   : #4A4638;
+  --primary     : #1A1814;
+  --grid-line   : rgba(168,42,30,0.08);
+  --shadow-strong : 0 20px 60px rgba(26,24,20,0.12);
+}
+
+*,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--ground);
+  color: var(--primary);
+  font-family: 'Instrument Sans', -apple-system, sans-serif;
+  font-weight: 400;
+  line-height: 1.6;
+  transition: background 0.4s ease, color 0.4s ease;
+  min-height: 100vh;
+}
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 60px 60px;
+  pointer-events: none;
+  z-index: 0;
+}
+main { position: relative; z-index: 1; }
+
+.mono {
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+}
+
+/* NAV */
+.topnav {
+  position: sticky; top: 0;
+  background: color-mix(in srgb, var(--ground) 88%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--divider);
+  padding: 14px 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 100;
+  transition: background 0.4s ease, border-color 0.4s ease;
+}
+.brand-lockup { display: flex; align-items: center; gap: 10px; }
+.flame-mark { width: 26px; height: auto; display: block; }
+.wordmark {
+  font-family: 'Big Shoulders', sans-serif;
+  font-weight: 900;
+  font-size: 17px;
+  letter-spacing: 0.04em;
+}
+.subword {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 8.5px;
+  letter-spacing: 0.3em;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-top: 2px;
+  display: block;
+}
+.topnav-links { display: flex; gap: 26px; align-items: center; }
+.topnav-links a {
+  color: var(--muted);
+  text-decoration: none;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  transition: color 0.2s;
+}
+.topnav-links a:hover { color: var(--fire); }
+.mode-toggle {
+  border: 1px solid var(--divider);
+  background: transparent;
+  color: var(--primary);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: all 0.25s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.mode-toggle:hover { border-color: var(--fire); color: var(--fire); }
+.mode-toggle .dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--fire);
+  box-shadow: 0 0 8px var(--fire);
+}
+
+/* LOGO USAGE SECTION */
+.logo-card-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+.logo-card {
+  border: 1px solid var(--divider);
+  overflow: hidden;
+  background: var(--surface);
+}
+.logo-card-bg {
+  padding: 36px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 140px;
+}
+.logo-card-bg.dark  { background: #0A0E19; }
+.logo-card-bg.light { background: #F5F1EA; }
+.logo-card-bg img { max-width: 100%; max-height: 100px; display: block; }
+.logo-card-bg.icon img { max-height: 120px; }
+.logo-card-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 12px 16px;
+  background: var(--surface-alt);
+  border-top: 1px solid var(--divider);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.logo-card-meta .code { color: var(--fire); font-weight: 700; }
+
+.construction-grid {
+  border: 1px solid var(--divider);
+  background: var(--surface);
+}
+.construction-row {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--divider);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  align-items: baseline;
+}
+.construction-row:last-child { border-bottom: none; }
+.con-label {
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--fire);
+}
+.con-value { color: var(--secondary); }
+
+/* SECTIONS */
+.section {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 100px 40px;
+  border-bottom: 1px solid var(--divider);
+}
+.section-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 32px;
+  color: var(--muted);
+}
+.section-meta .left, .section-meta .right {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.section-title-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  align-items: end;
+  margin-bottom: 48px;
+}
+.section-title {
+  font-family: 'Big Shoulders', sans-serif;
+  font-weight: 900;
+  font-size: clamp(48px, 7vw, 96px);
+  letter-spacing: 0.02em;
+  line-height: 0.9;
+  text-transform: uppercase;
+}
+.section-title .accent { color: var(--fire); display: block; }
+.section-intro {
+  font-family: 'Instrument Serif', serif;
+  font-style: italic;
+  font-size: 18px;
+  line-height: 1.5;
+  color: var(--secondary);
+  max-width: 440px;
+  justify-self: end;
+}
+
+/* HERO */
+.hero {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 80px 40px 60px;
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 48px;
+  align-items: end;
+  position: relative;
+}
+.hero-title {
+  font-family: 'Big Shoulders', sans-serif;
+  font-weight: 900;
+  font-size: clamp(80px, 14vw, 180px);
+  letter-spacing: 0.01em;
+  line-height: 0.85;
+  text-transform: uppercase;
+}
+.hero-title .line-1 { color: var(--primary); display: block; }
+.hero-title .line-2 {
+  color: var(--fire);
+  display: block;
+  position: relative;
+}
+.hero-title .line-2::before {
+  content: '';
+  position: absolute;
+  left: 0; bottom: -8px;
+  width: 70%; height: 4px;
+  background: linear-gradient(90deg, var(--ember), var(--fire), var(--gold));
+}
+.hero-sub {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-top: 40px;
+}
+.hero-tagline {
+  font-family: 'Instrument Serif', serif;
+  font-style: italic;
+  font-size: 24px;
+  color: var(--secondary);
+  margin-top: 14px;
+}
+.hero-mark {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.hero-mark-frame {
+  border: 1px solid var(--divider);
+  padding: 24px;
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.hero-mark-frame::before,
+.hero-mark-frame::after {
+  content: '';
+  position: absolute;
+  width: 10px; height: 10px;
+  border: 2px solid var(--fire);
+}
+.hero-mark-frame::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+.hero-mark-frame::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+.hero-mark-frame svg, .hero-mark-frame img {
+  width: 100%; height: 100%; object-fit: contain;
+}
+.hero-mark-meta {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* SWATCHES */
+.swatch-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.swatch-grid.neutral { grid-template-columns: repeat(3, 1fr); }
+.swatch-block {
+  height: 120px;
+  border: 1px solid var(--divider);
+  position: relative;
+}
+.swatch-block::after {
+  content: '';
+  position: absolute;
+  top: 2px; right: 2px;
+  width: 10px; height: 10px;
+  border-top: 1px solid rgba(255,255,255,0.3);
+  border-right: 1px solid rgba(255,255,255,0.3);
+}
+.theme-light .swatch-block::after {
+  border-top: 1px solid rgba(26,24,20,0.2);
+  border-right: 1px solid rgba(26,24,20,0.2);
+}
+.swatch-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-top: 10px;
+  gap: 8px;
+}
+.swatch-name {
+  font-family: 'Instrument Sans', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+}
+.swatch-code {
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 700;
+  font-size: 9.5px;
+  color: var(--fire);
+  letter-spacing: 0.15em;
+}
+.swatch-hex {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+}
+.swatch-role {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  text-align: right;
+}
+.subhead {
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 700;
+  font-size: 10.5px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--divider);
+  margin-bottom: 20px;
+  margin-top: 40px;
+  color: var(--primary);
+}
+.subhead:first-of-type { margin-top: 0; }
+.gradient-bar {
+  height: 16px;
+  background: linear-gradient(90deg, var(--ember) 0%, var(--fire) 45%, var(--amber) 75%, var(--gold) 100%);
+  border: 1px solid var(--divider);
+  margin-top: 8px;
+}
+.gradient-scale {
+  display: flex;
+  justify-content: space-between;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+/* TYPE */
+.type-band {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 48px;
+  padding: 32px 0;
+  border-bottom: 1px solid var(--divider);
+  align-items: center;
+}
+.type-band:last-child { border-bottom: none; }
+.type-meta .role {
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 700;
+  font-size: 10px;
+  color: var(--fire);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+.type-meta .family {
+  font-family: 'Instrument Sans', sans-serif;
+  font-weight: 700;
+  font-size: 20px;
+  margin: 6px 0 4px;
+}
+.type-meta .weights {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+.type-meta .desc {
+  font-family: 'Instrument Serif', serif;
+  font-style: italic;
+  font-size: 13px;
+  color: var(--secondary);
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--divider);
+  line-height: 1.5;
+}
+.type-preview.display {
+  font-family: 'Big Shoulders', sans-serif;
+  font-weight: 900;
+  font-size: clamp(72px, 10vw, 130px);
+  line-height: 0.9;
+  letter-spacing: 0.02em;
+  color: var(--fire);
+  text-transform: uppercase;
+}
+.type-preview.body {
+  font-family: 'Instrument Sans', sans-serif;
+  font-size: 18px;
+  line-height: 1.55;
+  color: var(--primary);
+  max-width: 560px;
+}
+.type-preview.mono-spec {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13.5px;
+  color: var(--secondary);
+  line-height: 1.7;
+}
+.type-preview.mono-spec .accent { color: var(--fire); }
+
+/* GEOMETRY */
+.forms-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
+  margin-bottom: 60px;
+}
+.form-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 32px 20px;
+  border: 1px solid var(--divider);
+  position: relative;
+}
+.form-card .index {
+  position: absolute;
+  top: 12px; left: 12px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 700;
+  font-size: 9px;
+  color: var(--fire);
+  letter-spacing: 0.2em;
+}
+.form-shape { width: 110px; height: 110px; }
+.form-name {
+  font-family: 'Big Shoulders', sans-serif;
+  font-weight: 900;
+  font-size: 22px;
+  color: var(--primary);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.form-desc {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9.5px;
+  color: var(--muted);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  text-align: center;
+}
+.band-row { margin-bottom: 28px; }
+.band-row .band-label {
+  display: flex;
+  justify-content: space-between;
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--primary);
+  margin-bottom: 8px;
+}
+.band-row .band-label .code { color: var(--fire); }
+.band-canvas { width: 100%; height: 56px; }
+
+/* VOICE */
+.voice-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+}
+.voice-card {
+  padding-top: 18px;
+  border-top: 2px solid var(--fire);
+}
+.voice-word {
+  font-family: 'Big Shoulders', sans-serif;
+  font-weight: 900;
+  font-size: 28px;
+  color: var(--fire);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.voice-desc {
+  font-family: 'Instrument Serif', serif;
+  font-style: italic;
+  font-size: 15px;
+  color: var(--secondary);
+  line-height: 1.5;
+}
+
+/* PATTERNS */
+.pattern-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+.pattern-card {
+  border: 1px solid var(--divider);
+  overflow: hidden;
+  background: var(--surface);
+}
+.pattern-canvas {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  display: block;
+}
+.pattern-label {
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  background: var(--surface-alt);
+  border-top: 1px solid var(--divider);
+}
+.pattern-label .name {
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 700;
+  font-size: 10.5px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--primary);
+}
+.pattern-label .code {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--fire);
+}
+
+/* DOWNLOADS */
+.download-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+.download-card {
+  border: 1px solid var(--divider);
+  padding: 28px;
+  transition: all 0.25s;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--primary);
+}
+.download-card:hover {
+  border-color: var(--fire);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-strong);
+}
+.download-card .kind {
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--fire);
+}
+.download-card .title {
+  font-family: 'Big Shoulders', sans-serif;
+  font-weight: 900;
+  font-size: 26px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.download-card .meta {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-top: 6px;
+}
+
+/* FOOTER */
+.footer {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 60px 40px;
+  text-align: center;
+}
+.footer-mark { width: 36px; height: auto; display: block; margin: 0 auto 18px; }
+.footer-tagline {
+  font-family: 'Instrument Serif', serif;
+  font-style: italic;
+  font-size: 26px;
+  color: var(--primary);
+  margin-bottom: 10px;
+}
+.footer-doctrine {
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.footer-divider {
+  width: 60px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--ember), var(--fire), var(--gold));
+  margin: 24px auto;
+}
+.footer-meta {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-top: 24px;
+}
+.footer-meta .sep { color: var(--divider); }
+
+@media (max-width: 900px) {
+  .hero { grid-template-columns: 1fr; }
+  .hero-mark { max-width: 240px; }
+  .section-title-row { grid-template-columns: 1fr; }
+  .section-intro { justify-self: start; }
+  .swatch-grid { grid-template-columns: repeat(2, 1fr); }
+  .swatch-grid.neutral { grid-template-columns: 1fr; }
+  .type-band { grid-template-columns: 1fr; gap: 16px; }
+  .forms-row { grid-template-columns: 1fr; }
+  .voice-grid { grid-template-columns: repeat(2, 1fr); }
+  .pattern-grid { grid-template-columns: 1fr; }
+  .download-grid { grid-template-columns: 1fr; }
+  .logo-card-row { grid-template-columns: 1fr; }
+  .construction-row { grid-template-columns: 1fr; gap: 4px; }
+  .topnav { padding: 12px 20px; }
+  .topnav-links a:not(.mode-toggle) { display: none; }
+  .section { padding: 64px 20px; }
+  .hero { padding: 48px 20px 40px; }
+}
+</style>
+</head>
+<body class="theme-dark">
+
+<nav class="topnav">
+  <div class="brand-lockup">
+    <img class="flame-mark" src="blackfire-icon.png" alt="BlackFire Solutions mark" />
+    <div>
+      <div class="wordmark">BLACKFIRE</div>
+      <span class="subword">S O L U T I O N S</span>
+    </div>
+  </div>
+  <div class="topnav-links">
+    <a href="#mark">Mark</a>
+    <a href="#color">Color</a>
+    <a href="#type">Type</a>
+    <a href="#geometry">Geometry</a>
+    <a href="#voice">Voice</a>
+    <a href="#downloads">Downloads</a>
+    <button class="mode-toggle" id="themeBtn" aria-label="Toggle theme">
+      <span class="dot"></span>
+      <span id="themeLabel">DARK</span>
+    </button>
+  </div>
+</nav>
+
+<main>
+
+<section class="hero">
+  <div>
+    <div class="mono" style="color: var(--muted); margin-bottom: 24px;">
+      BLKFR · BRAND PORTAL · <span id="varTag">DARK VARIANT</span>
+    </div>
+    <h1 class="hero-title">
+      <span class="line-1">Brand</span>
+      <span class="line-2">Identity</span>
+    </h1>
+    <div class="hero-sub">Volume 01 · The Official Brand System</div>
+    <div class="hero-tagline">A field manual for controlled combustion.</div>
+  </div>
+  <div class="hero-mark">
+    <div class="hero-mark-frame">
+      <img src="blackfire-icon.png" alt="BlackFire Solutions primary mark" />
+    </div>
+    <div class="hero-mark-meta">
+      <span>FIG. 001</span>
+      <span>IZILO-M-001</span>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="mark">
+  <div class="section-meta">
+    <span class="left">Section A · The Mark</span>
+    <span class="right">Spec · IZILO-M-001</span>
+  </div>
+  <div class="section-title-row">
+    <h2 class="section-title">The<span class="accent">Mark</span></h2>
+    <p class="section-intro">The official asset library. Four variants for four contexts — every placement protected by clear-space and palette rules.</p>
+  </div>
+
+  <div class="subhead">A · Primary Lockup · Horizontal</div>
+  <div class="logo-card-row">
+    <div class="logo-card">
+      <div class="logo-card-bg dark">
+        <img src="blackfire-logo.png" alt="BlackFire Solutions full logo on dark"/>
+      </div>
+      <div class="logo-card-meta">
+        <span>FIG. 001-A · ON COAL</span>
+        <span class="code">PRIMARY</span>
+      </div>
+    </div>
+    <div class="logo-card">
+      <div class="logo-card-bg light">
+        <img src="blackfire-logo.png" alt="BlackFire Solutions full logo on paper"/>
+      </div>
+      <div class="logo-card-meta">
+        <span>FIG. 001-B · ON BONE</span>
+        <span class="code">LIGHT VARIANT</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="subhead">B · Icon Only · Square Format</div>
+  <div class="logo-card-row icon-row">
+    <div class="logo-card">
+      <div class="logo-card-bg dark icon">
+        <img src="blackfire-icon.png" alt="Icon on dark"/>
+      </div>
+      <div class="logo-card-meta">
+        <span>FIG. 002-A · ICON · COAL</span>
+        <span class="code">SOCIAL · FAVICON</span>
+      </div>
+    </div>
+    <div class="logo-card">
+      <div class="logo-card-bg light icon">
+        <img src="blackfire-icon.png" alt="Icon on bone"/>
+      </div>
+      <div class="logo-card-meta">
+        <span>FIG. 002-B · ICON · BONE</span>
+        <span class="code">PRINT · STATIONERY</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="subhead">C · Construction Notes</div>
+  <div class="construction-grid">
+    <div class="construction-row">
+      <span class="con-label">Aspect Ratio</span>
+      <span class="con-value">Icon 7 × 10 · Lockup 8 × 3</span>
+    </div>
+    <div class="construction-row">
+      <span class="con-label">Minimum Size</span>
+      <span class="con-value">Icon 24px digital · 8mm print · Lockup 120px / 40mm</span>
+    </div>
+    <div class="construction-row">
+      <span class="con-label">Clear Space</span>
+      <span class="con-value">Minimum 1x icon-width on all sides</span>
+    </div>
+    <div class="construction-row">
+      <span class="con-label">File Formats</span>
+      <span class="con-value">PNG (RGBA) · SVG · EPS · on-dark composite</span>
+    </div>
+    <div class="construction-row">
+      <span class="con-label">Wordmark Type</span>
+      <span class="con-value">Rounded geometric sans · gradient Ember Red → Fire Orange (left to right)</span>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="color">
+  <div class="section-meta">
+    <span class="left">Section B · Chromatic Spectrum</span>
+    <span class="right">Spec · IZILO-C-001</span>
+  </div>
+  <div class="section-title-row">
+    <h2 class="section-title">Color<span class="accent">System</span></h2>
+    <p class="section-intro">Fire as data. Color becomes temperature; gradient becomes a scientific scale.</p>
+  </div>
+
+  <div class="subhead">A · Master Thermal Gradient · FIG. 002</div>
+  <div class="gradient-bar"></div>
+  <div class="gradient-scale">
+    <span>Cold</span><span>Warm</span><span>Hot</span><span>Ignition</span>
+  </div>
+
+  <div class="subhead">B · Warm Spectrum · The Fire</div>
+  <div class="swatch-grid">
+    <div><div class="swatch-block" style="background: var(--ember);"></div>
+      <div class="swatch-label"><span class="swatch-name">Ember Red</span><span class="swatch-code">T·01</span></div>
+      <div class="swatch-label"><span class="swatch-hex">#C0392B</span><span class="swatch-role">Primary</span></div></div>
+    <div><div class="swatch-block" style="background: var(--fire);"></div>
+      <div class="swatch-label"><span class="swatch-name">Fire Orange</span><span class="swatch-code">T·02</span></div>
+      <div class="swatch-label"><span class="swatch-hex">#E05A1A</span><span class="swatch-role">Secondary</span></div></div>
+    <div><div class="swatch-block" style="background: var(--amber);"></div>
+      <div class="swatch-label"><span class="swatch-name">Ember Amber</span><span class="swatch-code">T·03</span></div>
+      <div class="swatch-label"><span class="swatch-hex">#F07820</span><span class="swatch-role">Support</span></div></div>
+    <div><div class="swatch-block" style="background: var(--gold);"></div>
+      <div class="swatch-label"><span class="swatch-name">Flame Gold</span><span class="swatch-code">T·04</span></div>
+      <div class="swatch-label"><span class="swatch-hex">#F5A623</span><span class="swatch-role">Accent</span></div></div>
+  </div>
+
+  <div class="subhead">C · Cool Spectrum · The Crucible (Dark Variant)</div>
+  <div class="swatch-grid">
+    <div><div class="swatch-block" style="background: #0A0E19;"></div>
+      <div class="swatch-label"><span class="swatch-name">Coal Black</span><span class="swatch-code">N·01</span></div>
+      <div class="swatch-label"><span class="swatch-hex">#0A0E19</span><span class="swatch-role">Ground</span></div></div>
+    <div><div class="swatch-block" style="background: #141B26;"></div>
+      <div class="swatch-label"><span class="swatch-name">Deep Navy</span><span class="swatch-code">N·02</span></div>
+      <div class="swatch-label"><span class="swatch-hex">#141B26</span><span class="swatch-role">Surface</span></div></div>
+    <div><div class="swatch-block" style="background: #1E2530;"></div>
+      <div class="swatch-label"><span class="swatch-name">Charcoal</span><span class="swatch-code">N·03</span></div>
+      <div class="swatch-label"><span class="swatch-hex">#1E2530</span><span class="swatch-role">Tertiary</span></div></div>
+    <div><div class="swatch-block" style="background: #2B3340;"></div>
+      <div class="swatch-label"><span class="swatch-name">Steel Dark</span><span class="swatch-code">N·04</span></div>
+      <div class="swatch-label"><span class="swatch-hex">#2B3340</span><span class="swatch-role">Divider</span></div></div>
+  </div>
+
+  <div class="subhead">D · Paper Spectrum · The Document (Light Variant)</div>
+  <div class="swatch-grid">
+    <div><div class="swatch-block" style="background: #F5F1EA;"></div>
+      <div class="swatch-label"><span class="swatch-name">Bone Paper</span><span class="swatch-code">L·01</span></div>
+      <div class="swatch-label"><span class="swatch-hex">#F5F1EA</span><span class="swatch-role">Ground</span></div></div>
+    <div><div class="swatch-block" style="background: #EDE8DE;"></div>
+      <div class="swatch-label"><span class="swatch-name">Warm Paper</span><span class="swatch-code">L·02</span></div>
+      <div class="swatch-label"><span class="swatch-hex">#EDE8DE</span><span class="swatch-role">Surface</span></div></div>
+    <div><div class="swatch-block" style="background: #E4DED2;"></div>
+      <div class="swatch-label"><span class="swatch-name">Cream</span><span class="swatch-code">L·03</span></div>
+      <div class="swatch-label"><span class="swatch-hex">#E4DED2</span><span class="swatch-role">Tertiary</span></div></div>
+    <div><div class="swatch-block" style="background: #C8C1B3;"></div>
+      <div class="swatch-label"><span class="swatch-name">Graphite</span><span class="swatch-code">L·04</span></div>
+      <div class="swatch-label"><span class="swatch-hex">#C8C1B3</span><span class="swatch-role">Divider</span></div></div>
+  </div>
+
+  <div class="subhead">E · Neutral Scale · The Ash</div>
+  <div class="swatch-grid neutral">
+    <div><div class="swatch-block" style="background: #7A8699;"></div>
+      <div class="swatch-label"><span class="swatch-name">Ash</span><span class="swatch-code">N·05</span></div>
+      <div class="swatch-label"><span class="swatch-hex">#7A8699</span><span class="swatch-role">Muted</span></div></div>
+    <div><div class="swatch-block" style="background: #A8B2BE;"></div>
+      <div class="swatch-label"><span class="swatch-name">Steel</span><span class="swatch-code">N·06</span></div>
+      <div class="swatch-label"><span class="swatch-hex">#A8B2BE</span><span class="swatch-role">Secondary</span></div></div>
+    <div><div class="swatch-block" style="background: #E0E4EA;"></div>
+      <div class="swatch-label"><span class="swatch-name">Bone</span><span class="swatch-code">N·07</span></div>
+      <div class="swatch-label"><span class="swatch-hex">#E0E4EA</span><span class="swatch-role">Primary Text</span></div></div>
+  </div>
+</section>
+
+<section class="section" id="type">
+  <div class="section-meta">
+    <span class="left">Section C · Typography</span>
+    <span class="right">Spec · IZILO-T-001</span>
+  </div>
+  <div class="section-title-row">
+    <h2 class="section-title">Type<span class="accent">System</span></h2>
+    <p class="section-intro">Three-voice hierarchy. Industrial display, precise body, clinical annotation — each earning its place.</p>
+  </div>
+
+  <div class="type-band">
+    <div class="type-meta">
+      <div class="role">I · Display</div>
+      <div class="family">Big Shoulders</div>
+      <div class="weights">Bold · 900</div>
+      <div class="desc">Industrial condensed. For monumental gestures: headlines, hero statements, billboard-scale display.</div>
+    </div>
+    <div class="type-preview display">Ignite</div>
+  </div>
+
+  <div class="type-band">
+    <div class="type-meta">
+      <div class="role">II · Body</div>
+      <div class="family">Instrument Sans</div>
+      <div class="weights">Regular · Bold</div>
+      <div class="desc">The working voice. Clear, measured, unhurried — for every paragraph that earns the reader's attention.</div>
+    </div>
+    <div class="type-preview body">
+      BlackFire Solutions engineers controlled combustion for organizations that refuse to accept friction as a fixed cost. Every outcome is measured; every degree accounted for.
+    </div>
+  </div>
+
+  <div class="type-band">
+    <div class="type-meta">
+      <div class="role">III · Clinical</div>
+      <div class="family">IBM Plex Mono</div>
+      <div class="weights">Regular · Bold</div>
+      <div class="desc">The specification voice. Labels, coordinates, reference codes — the whisper of engineered discipline.</div>
+    </div>
+    <div class="type-preview mono-spec">
+      <span class="accent">SPEC</span> · IZILO-T-001 · REV. A<br>
+      <span class="accent">TOLERANCE</span> ± 0.25 MSU<br>
+      <span class="accent">CALIBRATED</span> · 2025.04.22<br>
+      <span class="accent">TEMP</span> · 1450°C · IGNITION
+    </div>
+  </div>
+</section>
+
+<section class="section" id="geometry">
+  <div class="section-meta">
+    <span class="left">Section E · Geometric Ancestry</span>
+    <span class="right">Spec · IZILO-G-001</span>
+  </div>
+  <div class="section-title-row">
+    <h2 class="section-title">Geometric<span class="accent">Ancestry</span></h2>
+    <p class="section-intro">In the beadwork of the Zulu, form speaks before color. The triangle names a person; the diamond names a union; the band names a lineage.</p>
+  </div>
+
+  <div class="subhead">A · The Three Named Forms</div>
+  <div class="forms-row">
+    <div class="form-card">
+      <div class="index">·01</div>
+      <svg class="form-shape" viewBox="0 0 100 100">
+        <polygon points="50,10 90,82 10,82" fill="var(--ember)"/>
+      </svg>
+      <div class="form-name">Ignition</div>
+      <div class="form-desc">The Spark · Rising Heat</div>
+    </div>
+    <div class="form-card">
+      <div class="index">·02</div>
+      <svg class="form-shape" viewBox="0 0 100 100">
+        <polygon points="50,90 90,18 10,18" fill="var(--fire)"/>
+      </svg>
+      <div class="form-name">Containment</div>
+      <div class="form-desc">The Hearth · The Vessel</div>
+    </div>
+    <div class="form-card">
+      <div class="index">·03</div>
+      <svg class="form-shape" viewBox="0 0 100 100">
+        <polygon points="50,6 82,50 50,94 18,50" fill="var(--gold)"/>
+        <polygon points="50,30 64,50 50,70 36,50" fill="var(--ember)"/>
+      </svg>
+      <div class="form-name">Union</div>
+      <div class="form-desc">The Engineered Firebox</div>
+    </div>
+  </div>
+
+  <div class="subhead">B · Tessellation Library</div>
+
+  <div class="band-row">
+    <div class="band-label"><span>Diamond Chain · Isishunka</span><span class="code">B·01</span></div>
+    <svg class="band-canvas" viewBox="0 0 600 40" preserveAspectRatio="none">
+      <g id="diamondChain"></g>
+    </svg>
+  </div>
+
+  <div class="band-row">
+    <div class="band-label"><span>Chevron Field · Directional Heat</span><span class="code">B·02</span></div>
+    <svg class="band-canvas" viewBox="0 0 600 40" preserveAspectRatio="none">
+      <g id="chevronField"></g>
+    </svg>
+  </div>
+
+  <div class="band-row">
+    <div class="band-label"><span>Triangle Tessellation · Full Coverage</span><span class="code">B·03</span></div>
+    <svg class="band-canvas" viewBox="0 0 600 40" preserveAspectRatio="none">
+      <g id="triangleTess"></g>
+    </svg>
+  </div>
+
+  <div style="margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--divider);">
+    <div class="mono" style="color: var(--fire); margin-bottom: 8px;">Acknowledgment</div>
+    <p style="font-family: 'Instrument Serif', serif; font-style: italic; font-size: 15px; color: var(--secondary); line-height: 1.5;">
+      This form system draws from the Zulu beadwork tradition (<em>ubuhlalu</em>) of KwaZulu-Natal, South Africa — a living geometric craft honored here as foundation, not ornament.
+    </p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-meta">
+    <span class="left">Section D · Visual Language</span>
+    <span class="right">Spec · IZILO-V-001</span>
+  </div>
+  <div class="section-title-row">
+    <h2 class="section-title">Pattern<span class="accent">Library</span></h2>
+    <p class="section-intro">Four textures. Each built from the same palette, each performing a different tonal role.</p>
+  </div>
+
+  <div class="pattern-grid">
+    <div class="pattern-card">
+      <svg class="pattern-canvas" viewBox="0 0 160 90" preserveAspectRatio="xMidYMid slice">
+        <defs>
+          <radialGradient id="thermal" cx="50%" cy="50%">
+            <stop offset="0%" stop-color="var(--fire)" stop-opacity="0.9"/>
+            <stop offset="40%" stop-color="var(--ember)" stop-opacity="0.4"/>
+            <stop offset="100%" stop-color="var(--surface)" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+        <rect width="160" height="90" fill="var(--surface)"/>
+        <circle cx="80" cy="45" r="50" fill="url(#thermal)"/>
+      </svg>
+      <div class="pattern-label"><span class="name">Thermal Field</span><span class="code">P·01</span></div>
+    </div>
+
+    <div class="pattern-card">
+      <svg class="pattern-canvas" viewBox="0 0 160 90" preserveAspectRatio="xMidYMid slice">
+        <rect width="160" height="90" fill="var(--surface)"/>
+        <g id="emberArray"></g>
+      </svg>
+      <div class="pattern-label"><span class="name">Ember Array</span><span class="code">P·02</span></div>
+    </div>
+
+    <div class="pattern-card">
+      <svg class="pattern-canvas" viewBox="0 0 160 90" preserveAspectRatio="xMidYMid slice">
+        <rect width="160" height="90" fill="var(--surface)"/>
+        <g stroke="var(--divider)" stroke-width="0.3" id="calibGridMinor"></g>
+        <g stroke="var(--fire)" stroke-width="0.5" id="calibGridMajor"></g>
+        <g stroke="var(--gold)" stroke-width="0.8" fill="none">
+          <line x1="75" y1="45" x2="85" y2="45"/>
+          <line x1="80" y1="40" x2="80" y2="50"/>
+          <circle cx="80" cy="45" r="3"/>
+        </g>
+      </svg>
+      <div class="pattern-label"><span class="name">Calibration Grid</span><span class="code">P·03</span></div>
+    </div>
+
+    <div class="pattern-card">
+      <svg class="pattern-canvas" viewBox="0 0 160 90" preserveAspectRatio="xMidYMid slice">
+        <rect width="160" height="90" fill="var(--surface)"/>
+        <g id="heatStripe"></g>
+      </svg>
+      <div class="pattern-label"><span class="name">Heat Stripe</span><span class="code">P·04</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="voice">
+  <div class="section-meta">
+    <span class="left">Section D · Voice</span>
+    <span class="right">The Four Temperaments</span>
+  </div>
+  <div class="section-title-row">
+    <h2 class="section-title">Brand<span class="accent">Voice</span></h2>
+    <p class="section-intro">The tonal register BlackFire speaks in. Four words; each earning its place on the page and in the work.</p>
+  </div>
+
+  <div class="voice-grid">
+    <div class="voice-card">
+      <div class="voice-word">Confident</div>
+      <p class="voice-desc">State. Do not hedge.</p>
+    </div>
+    <div class="voice-card">
+      <div class="voice-word">Direct</div>
+      <p class="voice-desc">Meaning before ornament.</p>
+    </div>
+    <div class="voice-card">
+      <div class="voice-word">Energized</div>
+      <p class="voice-desc">Forward motion in every line.</p>
+    </div>
+    <div class="voice-card">
+      <div class="voice-word">Trustworthy</div>
+      <p class="voice-desc">Evidence, not volume.</p>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="downloads">
+  <div class="section-meta">
+    <span class="left">Section F · Assets</span>
+    <span class="right">Volume 01 · Issue A</span>
+  </div>
+  <div class="section-title-row">
+    <h2 class="section-title">Downloads<span class="accent">& Specs</span></h2>
+    <p class="section-intro">The official brand identity, both variants, for partner use under license.</p>
+  </div>
+
+  <div class="download-grid">
+    <a class="download-card" href="blackfire-logo.png" download>
+      <div class="kind">Asset · Full Logo</div>
+      <div class="title">Horizontal Lockup</div>
+      <div class="meta">PNG · 1600×600 · Transparent</div>
+    </a>
+    <a class="download-card" href="blackfire-icon.png" download>
+      <div class="kind">Asset · Icon</div>
+      <div class="title">Flame Mark</div>
+      <div class="meta">PNG · 450×640 · Transparent</div>
+    </a>
+    <a class="download-card" href="blackfire-logo-on-dark.png" download>
+      <div class="kind">Asset · Full Logo · On Dark</div>
+      <div class="title">Horizontal Lockup · Coal</div>
+      <div class="meta">PNG · 1600×600 · Coal Ground</div>
+    </a>
+    <a class="download-card" href="blackfire-icon-on-dark.png" download>
+      <div class="kind">Asset · Icon · On Dark</div>
+      <div class="title">Flame Mark · Coal</div>
+      <div class="meta">PNG · 225×320 · Coal Ground</div>
+    </a>
+    <a class="download-card" href="BlackFire_Brand_Identity_Vol01.pdf" download>
+      <div class="kind">PDF · Dark Variant</div>
+      <div class="title">Brand Identity Vol. 01</div>
+      <div class="meta">7 Plates · Coal Ground · 130 KB</div>
+    </a>
+    <a class="download-card" href="BlackFire_Brand_Identity_Vol01_LIGHT.pdf" download>
+      <div class="kind">PDF · Light Variant</div>
+      <div class="title">Brand Identity Vol. 01 · Light</div>
+      <div class="meta">7 Plates · Bone Ground · 130 KB</div>
+    </a>
+    <a class="download-card" href="BlackFire_Thermal_Geometry_Philosophy.md" download>
+      <div class="kind">Doctrine · Source</div>
+      <div class="title">Thermal Geometry</div>
+      <div class="meta">Markdown · The Dark Manifesto</div>
+    </a>
+    <a class="download-card" href="BlackFire_Thermal_Geometry_Philosophy_LIGHT.md" download>
+      <div class="kind">Doctrine · Source</div>
+      <div class="title">Thermal Geometry · Light</div>
+      <div class="meta">Markdown · The Paper Variant</div>
+    </a>
+  </div>
+</section>
+
+<footer class="footer">
+  <img class="footer-mark" src="blackfire-icon.png" alt="BlackFire Solutions mark" />
+  <div class="footer-tagline">Fire, taught to behave.</div>
+  <div class="footer-doctrine">— The BlackFire Doctrine</div>
+  <div class="footer-divider"></div>
+  <div class="footer-meta">
+    <span>BLKFR · VOL I</span><span class="sep">·</span>
+    <span>IZILO Spec Register</span><span class="sep">·</span>
+    <span>MMXXV · Issue A</span>
+  </div>
+</footer>
+
+</main>
+
+<script>
+const body = document.body;
+const btn = document.getElementById('themeBtn');
+const label = document.getElementById('themeLabel');
+const varTag = document.getElementById('varTag');
+
+btn.addEventListener('click', () => {
+  if (body.classList.contains('theme-dark')) {
+    body.classList.replace('theme-dark', 'theme-light');
+    label.textContent = 'LIGHT';
+    varTag.textContent = 'LIGHT VARIANT';
+  } else {
+    body.classList.replace('theme-light', 'theme-dark');
+    label.textContent = 'DARK';
+    varTag.textContent = 'DARK VARIANT';
+  }
+});
+
+(function buildBands() {
+  const ns = 'http://www.w3.org/2000/svg';
+  const dc = document.getElementById('diamondChain');
+  const colors = ['var(--ember)', 'var(--fire)', 'var(--amber)', 'var(--gold)'];
+  const n = 15;
+  const w = 600 / n;
+  for (let i = 0; i < n; i++) {
+    const cx = i * w + w/2;
+    const cy = 20;
+    const d = document.createElementNS(ns, 'polygon');
+    const dw = w * 0.85;
+    d.setAttribute('points', `${cx},${cy-14} ${cx+dw/2},${cy} ${cx},${cy+14} ${cx-dw/2},${cy}`);
+    d.setAttribute('fill', colors[i % colors.length]);
+    dc.appendChild(d);
+    const inner = document.createElementNS(ns, 'polygon');
+    inner.setAttribute('points', `${cx},${cy-4} ${cx+3},${cy} ${cx},${cy+4} ${cx-3},${cy}`);
+    inner.setAttribute('fill', 'var(--ground)');
+    dc.appendChild(inner);
+  }
+
+  const cf = document.getElementById('chevronField');
+  const cn = 18;
+  const cw = 600 / cn;
+  for (let i = 0; i < cn; i++) {
+    const t = i / (cn - 1);
+    const col = t < 0.33 ? 'var(--ember)' : t < 0.66 ? 'var(--fire)' : 'var(--gold)';
+    const x0 = i * cw;
+    const p = document.createElementNS(ns, 'polygon');
+    p.setAttribute('points',
+      `${x0},0 ${x0+cw*0.5},20 ${x0+cw},0 ${x0+cw},16 ${x0+cw*0.5},40 ${x0},16`);
+    p.setAttribute('fill', col);
+    cf.appendChild(p);
+  }
+
+  const tt = document.getElementById('triangleTess');
+  const tn = 15;
+  const tw = 600 / tn;
+  const palUp = ['var(--ember)', 'var(--amber)', 'var(--fire)', 'var(--gold)'];
+  const palDn = ['var(--fire)', 'var(--gold)', 'var(--ember)', 'var(--amber)'];
+  for (let i = 0; i <= tn; i++) {
+    const x0 = i * tw - tw/2;
+    const p = document.createElementNS(ns, 'polygon');
+    p.setAttribute('points', `${x0},0 ${x0+tw},0 ${x0+tw/2},40`);
+    p.setAttribute('fill', palUp[i % palUp.length]);
+    tt.appendChild(p);
+  }
+  for (let i = 0; i <= tn; i++) {
+    const x0 = i * tw;
+    const p = document.createElementNS(ns, 'polygon');
+    p.setAttribute('points', `${x0},40 ${x0+tw},40 ${x0+tw/2},0`);
+    p.setAttribute('fill', palDn[i % palDn.length]);
+    tt.appendChild(p);
+  }
+})();
+
+(function buildPatterns() {
+  const ns = 'http://www.w3.org/2000/svg';
+  const ea = document.getElementById('emberArray');
+  const cols = 14, rows = 8;
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const cx = 10 + c * 10;
+      const cy = 10 + r * 10;
+      const t = (r * cols + c) / (rows * cols);
+      const col = t < 0.3 ? 'var(--ember)' : t < 0.6 ? 'var(--fire)' : 'var(--gold)';
+      const dot = document.createElementNS(ns, 'circle');
+      dot.setAttribute('cx', cx);
+      dot.setAttribute('cy', cy);
+      dot.setAttribute('r', 1 + t * 2);
+      dot.setAttribute('fill', col);
+      dot.setAttribute('opacity', 0.4 + t * 0.5);
+      ea.appendChild(dot);
+    }
+  }
+
+  const minor = document.getElementById('calibGridMinor');
+  const major = document.getElementById('calibGridMajor');
+  for (let x = 0; x <= 160; x += 5) {
+    const l = document.createElementNS(ns, 'line');
+    l.setAttribute('x1', x); l.setAttribute('y1', 0);
+    l.setAttribute('x2', x); l.setAttribute('y2', 90);
+    (x % 20 === 0 ? major : minor).appendChild(l);
+  }
+  for (let y = 0; y <= 90; y += 5) {
+    const l = document.createElementNS(ns, 'line');
+    l.setAttribute('x1', 0); l.setAttribute('y1', y);
+    l.setAttribute('x2', 160); l.setAttribute('y2', y);
+    (y % 20 === 0 ? major : minor).appendChild(l);
+  }
+
+  const hs = document.getElementById('heatStripe');
+  for (let i = -100; i < 260; i += 6) {
+    const t = (i + 100) / 360;
+    const col = t < 0.33 ? 'var(--ember)' : t < 0.66 ? 'var(--fire)' : 'var(--gold)';
+    const l = document.createElementNS(ns, 'line');
+    l.setAttribute('x1', i); l.setAttribute('y1', 0);
+    l.setAttribute('x2', i + 90); l.setAttribute('y2', 90);
+    l.setAttribute('stroke', col);
+    l.setAttribute('stroke-width', 2);
+    l.setAttribute('opacity', 0.75);
+    hs.appendChild(l);
+  }
+})();
+</script>
+
+</body>
+</html>

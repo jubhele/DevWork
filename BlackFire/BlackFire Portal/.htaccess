@@ -1,0 +1,40 @@
+# BlackFire Solutions Portal — Root .htaccess
+# Upload this file to: /public_html/portal/
+# Rename it to: .htaccess (remove the .txt extension)
+
+Options -Indexes
+Options -MultiViews
+
+# ── Protect config and includes from direct web access ──
+<Files "config.php">
+    Order allow,deny
+    Deny from all
+</Files>
+
+# ── PHP error handling ──
+php_flag display_errors Off
+php_flag log_errors On
+
+# ── Security headers ──
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "same-origin"
+</IfModule>
+
+# ── Rewrite engine ──
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /portal/
+
+    # Block direct access to includes/
+    RewriteRule ^includes/ - [L,F]
+
+    # If the request is for an existing file or directory, serve it directly
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Route everything else through index.php
+    RewriteRule ^ index.php [L]
+</IfModule>

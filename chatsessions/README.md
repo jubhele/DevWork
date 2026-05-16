@@ -23,6 +23,7 @@ chatsessions/
 | 188be5c3 | blackfire-aeci | BlackFire/AECI | AECI Portfolio Pack & Comparison | Complete |
 | 4593b082 | blackfire-aeci | BlackFire Portal | PHP UI — Logo & Favicon | Paused |
 | 606cfd63 | blackfire-aeci | BlackFire Portal | Bcrypt Hash Generator | Complete |
+| 2026-05-16_aeci-cost-corrections | sessions/ | BlackFire/AECI | AECI Comparison — Cost Verification & Corrections | Complete |
 
 ## Session File Locations (VS Code System Storage)
 
