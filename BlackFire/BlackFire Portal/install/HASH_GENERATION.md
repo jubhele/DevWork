@@ -85,8 +85,8 @@ Choose one method above to generate the bcrypt hashes.
 ### Step 2: Review the Output
 You'll get SQL UPDATE statements like:
 ```sql
-UPDATE users SET password_hash = '$2y$10$...' WHERE username = 'admin';
-UPDATE users SET password_hash = '$2y$10$...' WHERE username = 'manager';
+UPDATE bf_users SET password_hash = '$2y$10$...' WHERE username = 'admin';
+UPDATE bf_users SET password_hash = '$2y$10$...' WHERE username = 'manager';
 -- ... etc for all 8 users
 ```
 
@@ -103,7 +103,7 @@ mysql -u root -p blackfire_aeci < update_passwords.sql
 
 ### Step 4: Verify in Database
 ```sql
-SELECT username, password_hash FROM users WHERE username = 'admin';
+SELECT username, password_hash FROM bf_users WHERE username = 'admin';
 ```
 
 You should see a long hash like:
@@ -114,7 +114,7 @@ $2y$10$jXkVrQQwk8bvnQ2r5tL3nOqK8pR9sX4zQ2mK7pL4vN5tO3tR6sU8
 ### Step 5: Remove Plain Text Password Column (IMPORTANT)
 This prevents accidental exposure of plain-text passwords in future backups:
 ```sql
-ALTER TABLE users DROP COLUMN password_plain;
+ALTER TABLE bf_users DROP COLUMN password_plain;
 ```
 
 ### Step 6: Update the Seed Script
@@ -122,22 +122,22 @@ Edit `blackfire_aeci_seed.sql`:
 
 **BEFORE:**
 ```sql
-INSERT INTO users (username, password_hash, password_plain, full_name, role, title) VALUES
+INSERT INTO bf_users (username, password_hash, password_plain, name, role, title) VALUES
 ('admin', 'REPLACE_WITH_BCRYPT', 'BlackFire2026!', ...),
 ```
 
 **AFTER:**
 ```sql
-INSERT INTO users (username, password_hash, full_name, role, title) VALUES
+INSERT INTO bf_users (username, password_hash, name, role, title) VALUES
 ('admin', '$2y$12$...actual hash here...', 'J. Ndlovu', 'admin', 'System Administrator'),
 ```
 
 Also update the ON DUPLICATE KEY UPDATE clause to NOT include password_hash:
 ```sql
 ON DUPLICATE KEY UPDATE
-  full_name = VALUES(full_name),
-  role      = VALUES(role),
-  title     = VALUES(title);
+  name = VALUES(name),
+  role = VALUES(role),
+  title = VALUES(title);
   -- password_hash REMOVED — never auto-overwrite hashes on re-seed
 ```
 
@@ -148,7 +148,7 @@ ON DUPLICATE KEY UPDATE
 - [ ] Hashes generated with bcrypt (not MD5, SHA1, or salted hashes)
 - [ ] Cost factor is at least 10 (12 recommended)
 - [ ] All 8 users have been updated with actual hashes
-- [ ] `password_plain` column removed from database
+- [ ] `password_plain` column removed from database (if present)
 - [ ] `password_plain` removed from seed script
 - [ ] Seed script does NOT include password_hash in ON DUPLICATE UPDATE
 - [ ] Updated seed script re-tested

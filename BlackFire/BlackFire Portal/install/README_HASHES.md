@@ -13,14 +13,14 @@
 4. **Execute the SQL** in your MySQL client:
    ```sql
    -- Paste the copied SQL here and run it
-   UPDATE users SET password_hash = '...' WHERE username = 'admin';
-   UPDATE users SET password_hash = '...' WHERE username = 'manager';
+   UPDATE bf_users SET password_hash = '...' WHERE username = 'admin';
+   UPDATE bf_users SET password_hash = '...' WHERE username = 'manager';
    -- ... etc
    ```
 
-5. **Drop the plain-text password column** (security):
+5. **Drop the plain-text password column** if it exists:
    ```sql
-   ALTER TABLE users DROP COLUMN password_plain;
+   ALTER TABLE bf_users DROP COLUMN password_plain;
    ```
 
 Done! ✓
@@ -39,7 +39,7 @@ Done! ✓
 ## ⚠️ Important Security Notes
 
 1. **Plain-text password column** (`password_plain`) is a security risk
-   - It MUST be deleted after hashing: `ALTER TABLE users DROP COLUMN password_plain;`
+   - If present, remove it after hashing: `ALTER TABLE bf_users DROP COLUMN password_plain;`
    - Update the seed script to not include it in future imports
 
 2. **These are temporary passwords**
@@ -53,7 +53,7 @@ Done! ✓
 4. **Backup before updating**
    ```sql
    -- Optional: backup before making changes
-   CREATE TABLE users_backup AS SELECT * FROM users;
+   CREATE TABLE bf_users_backup AS SELECT * FROM bf_users;
    ```
 
 ---

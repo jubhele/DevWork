@@ -280,7 +280,7 @@
                     </li>
                     <li>After updating, drop the <code>password_plain</code> column (DEV ONLY):
                         <div style="margin: 10px 0; padding: 10px; background: #1a1a1a; border-radius: 4px; border-left: 3px solid #d4af37;">
-                            <code>ALTER TABLE users DROP COLUMN password_plain;</code>
+                            <code>ALTER TABLE bf_users DROP COLUMN password_plain;</code>
                         </div>
                     </li>
                     <li>Update the seed script to exclude <code>password_plain</code> from future INSERTs</li>
@@ -365,9 +365,7 @@
             
             for (const user of generatedHashes) {
                 const hashEscaped = user.hash.replace(/'/g, "''");
-                sql += `UPDATE users SET password_hash = '${hashEscaped}' WHERE username = '${user.username}';\n`;
-            }
-            
+                    sql += `UPDATE bf_users SET password_hash = '${hashEscaped}' WHERE username = '${user.username}';\n`;
             output.innerHTML = '<code>' + sql.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</code>';
         }
         
