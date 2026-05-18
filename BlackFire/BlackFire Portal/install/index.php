@@ -161,13 +161,16 @@ $title = ['', 'System Requirements', 'Database Configuration', 'Installing…', 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>BlackFire Portal — Installer</title>
-<link rel="icon" type="image/png" href="../../blackfire-logo-pack/blackfire_icon_transparent.png">
-<link rel="shortcut icon" type="image/png" href="../../blackfire-logo-pack/blackfire_icon_transparent.png">
+<link rel="icon" href="../favicon.ico?v=20260518-2" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="../favicon-32x32.png?v=20260518-2">
+<link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png?v=20260518-2">
+<link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png?v=20260518-2">
+<link rel="shortcut icon" href="../favicon.ico?v=20260518-2">
 <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#0A0E19 url('../../blackfire-logo-pack/blackfire_logo_transparent.png') no-repeat center fixed;background-size:auto;background-attachment:fixed;opacity:0.95;color:#E0E4EA;font-family:'Instrument Sans',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
-body::before{content:'';position:fixed;inset:0;background-image:url('../../blackfire-logo-pack/blackfire_logo_transparent.png');background-size:auto;background-position:center;background-attachment:fixed;background-repeat:no-repeat;opacity:0.08;pointer-events:none;z-index:0}
+body{background:#0A0E19 url('../blackfire_logo_transparent.png') no-repeat center fixed;background-size:auto;background-attachment:fixed;opacity:0.95;color:#E0E4EA;font-family:'Instrument Sans',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+body::before{content:'';position:fixed;inset:0;background-image:url('../blackfire_logo_transparent.png');background-size:auto;background-position:center;background-attachment:fixed;background-repeat:no-repeat;opacity:0.08;pointer-events:none;z-index:0}
 .card{background:#141B26;border:1px solid #2B3340;border-radius:4px;width:100%;max-width:560px;overflow:hidden}
 .card-header{background:#1E2530;padding:28px 32px;border-bottom:1px solid #2B3340}
 .brand{font-family:'Big Shoulders Display',sans-serif;font-size:22px;font-weight:900;margin-bottom:6px}
