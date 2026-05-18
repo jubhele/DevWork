@@ -744,9 +744,10 @@ tr:hover td{background:var(--row-hover)}
      ■ LOGIN SCREEN
 ═══════════════════════════════════════════════════════ -->
 <div id="login-screen">
-  <div class="login-card">
+  <!-- ── Sign In Panel ── -->
+  <div class="login-card" id="login-panel">
     <div class="login-header">
-      <div class="login-mark">
+      <div class="login-mark" onclick="goPublic()" style="cursor:pointer" title="Back to home">
         <img src="./blackfire_logo_transparent.png" class="bf-logo-dark" style="height:64px;width:auto;display:block;object-fit:contain;object-position:left center;"><img src="./blackfire_logo_transparent.png" class="bf-logo-light" style="height:64px;width:auto;display:none;object-fit:contain;object-position:left center;">
       </div>
       <div class="login-title" style="font-size:14px;margin-top:8px;letter-spacing:2px">STAFF PORTAL</div>
@@ -762,8 +763,59 @@ tr:hover td{background:var(--row-hover)}
         <label class="login-label">Password</label>
         <input class="login-input" type="password" id="l-pass" placeholder="password" onkeydown="if(event.key==='Enter') doLogin()">
       </div>
+      <div class="login-group">
+        <label class="login-label" id="captcha-question">Security check: loading…</label>
+        <input class="login-input" type="number" id="l-captcha" placeholder="answer" onkeydown="if(event.key==='Enter') doLogin()" autocomplete="off">
+      </div>
       <button class="btn-login-submit" onclick="doLogin()">Sign In</button>
-      <div class="login-back" onclick="goPublic()">Back to public site</div>
+      <div style="text-align:center;margin-top:12px">
+        <span class="login-back" onclick="showForgotPassword()" style="font-size:11px">Forgot password?</span>
+        <span style="color:var(--muted);font-size:11px;margin:0 8px">·</span>
+        <span class="login-back" onclick="goPublic()" style="font-size:11px">Back to site</span>
+      </div>
+    </div>
+  </div>
+  <!-- ── Forgot Password Panel ── -->
+  <div class="login-card" id="forgot-panel" style="display:none">
+    <div class="login-header">
+      <div class="login-mark" onclick="goPublic()" style="cursor:pointer" title="Back to home">
+        <img src="./blackfire_logo_transparent.png" class="bf-logo-dark" style="height:64px;width:auto;display:block;object-fit:contain;object-position:left center;"><img src="./blackfire_logo_transparent.png" class="bf-logo-light" style="height:64px;width:auto;display:none;object-fit:contain;object-position:left center;">
+      </div>
+      <div class="login-title" style="font-size:14px;margin-top:8px;letter-spacing:2px">RESET PASSWORD</div>
+      <div class="login-sub">ENTER YOUR USERNAME</div>
+    </div>
+    <div class="login-body">
+      <div id="forgot-msg" class="login-error" style="display:none"></div>
+      <div class="login-group">
+        <label class="login-label">Username</label>
+        <input class="login-input" id="fp-user" placeholder="your username" onkeydown="if(event.key==='Enter') doRequestReset()">
+      </div>
+      <button class="btn-login-submit" onclick="doRequestReset()">Send Reset Email</button>
+      <div style="text-align:center;margin-top:12px">
+        <span class="login-back" onclick="showLoginPanel()" style="font-size:11px">Back to sign in</span>
+      </div>
+    </div>
+  </div>
+  <!-- ── New Password Panel (token from URL) ── -->
+  <div class="login-card" id="newpass-panel" style="display:none">
+    <div class="login-header">
+      <div class="login-mark" onclick="goPublic()" style="cursor:pointer" title="Back to home">
+        <img src="./blackfire_logo_transparent.png" class="bf-logo-dark" style="height:64px;width:auto;display:block;object-fit:contain;object-position:left center;"><img src="./blackfire_logo_transparent.png" class="bf-logo-light" style="height:64px;width:auto;display:none;object-fit:contain;object-position:left center;">
+      </div>
+      <div class="login-title" style="font-size:14px;margin-top:8px;letter-spacing:2px">NEW PASSWORD</div>
+      <div class="login-sub">CHOOSE A NEW PASSWORD</div>
+    </div>
+    <div class="login-body">
+      <div id="newpass-msg" class="login-error" style="display:none"></div>
+      <div class="login-group">
+        <label class="login-label">New Password</label>
+        <input class="login-input" type="password" id="np-pass1" placeholder="new password" onkeydown="if(event.key==='Enter') doResetPassword()">
+      </div>
+      <div class="login-group">
+        <label class="login-label">Confirm Password</label>
+        <input class="login-input" type="password" id="np-pass2" placeholder="confirm password" onkeydown="if(event.key==='Enter') doResetPassword()">
+      </div>
+      <button class="btn-login-submit" onclick="doResetPassword()">Set New Password</button>
     </div>
   </div>
 </div>
@@ -1049,6 +1101,9 @@ tr:hover td{background:var(--row-hover)}
     <!-- USERS & ROLES -->
     <div id="p-users" class="ppage">
       <div class="ptitle">Users & Roles</div><div class="psub">RBAC  -  ACCESS CONTROL MATRIX</div>
+      <div id="users-create-bar" style="display:none;margin-bottom:12px">
+        <button class="btn btn-g btn-s" onclick="openCreateUserModal()" style="background:var(--accent);color:#fff;border:none;padding:8px 18px;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;border-radius:2px">+ New User</button>
+      </div>
       <div class="panel"><div class="tw"><table><thead>
         <tr><th>Username</th><th>Name</th><th>Role</th><th>Can Create Callout</th><th>Update Status</th><th>Assign PO</th><th>Finance</th><th>Submit Quote</th><th>Approve Quote</th></tr>
       </thead><tbody id="users-table-body"></tbody></table></div></div>
@@ -1089,6 +1144,7 @@ async function api(method, endpoint, data = null) {
       // Session expired
       SESSION = null;
       document.documentElement.dataset.state = 'login';
+      showLoginPanel();
       toast('Session expired. Please log in again.', 'err');
       return { success: false, error: 'Session expired' };
     }
@@ -1126,7 +1182,9 @@ const PERMS = {
   'capture.new_invoice':   ['admin','manager','admin_clerk'],
   'capture.log_payment':   ['admin','manager','admin_clerk'],
   'security.audit':        ['admin'],
-  'security.users':        ['admin'],
+  'security.users':        ['admin','manager','admin_clerk'],
+  'user.create':           ['admin','manager','admin_clerk'],
+  'user.update':           ['admin'],
 };
 function can(perm){ return (PERMS[perm]||[]).includes(SESSION?.role); }
 
@@ -1236,20 +1294,88 @@ const proxyDB = {
    AUTH
 ═══════════════════════════════════════════════════════ */
 
+async function loadCaptcha(){
+  const r = await api('GET', 'auth.php?action=captcha');
+  if (r.success) {
+    document.getElementById('captcha-question').textContent = 'Security check: ' + r.question;
+    document.getElementById('l-captcha').value = '';
+  }
+}
+
+function showLoginPanel(){
+  document.getElementById('login-panel').style.display  = '';
+  document.getElementById('forgot-panel').style.display = 'none';
+  document.getElementById('newpass-panel').style.display = 'none';
+  loadCaptcha();
+}
+
+function showForgotPassword(){
+  document.getElementById('login-panel').style.display  = 'none';
+  document.getElementById('forgot-panel').style.display = '';
+  document.getElementById('newpass-panel').style.display = 'none';
+  document.getElementById('forgot-msg').style.display = 'none';
+  document.getElementById('fp-user').value = '';
+}
+
+async function doRequestReset(){
+  const u = document.getElementById('fp-user').value.trim().toLowerCase();
+  if (!u) return;
+  const msgEl = document.getElementById('forgot-msg');
+  const r = await api('POST', 'auth.php?action=reset_request', { username: u });
+  msgEl.textContent = r.message || (r.success ? 'Reset email sent if account exists.' : r.error);
+  msgEl.style.background = r.success ? 'var(--grn-glow)' : 'var(--emb-glow)';
+  msgEl.style.borderColor = r.success ? 'rgba(26,122,64,.3)' : 'rgba(192,57,43,.3)';
+  msgEl.style.color = r.success ? 'var(--pill-paid-txt)' : 'var(--pill-ovr-txt)';
+  msgEl.style.display = 'block';
+}
+
+async function doResetPassword(){
+  const p1 = document.getElementById('np-pass1').value;
+  const p2 = document.getElementById('np-pass2').value;
+  const msgEl = document.getElementById('newpass-msg');
+  if (!p1 || !p2) return;
+  if (p1 !== p2) {
+    msgEl.textContent = 'Passwords do not match.';
+    msgEl.style.display = 'block';
+    return;
+  }
+  const token = new URLSearchParams(window.location.search).get('reset_token');
+  if (!token) { msgEl.textContent = 'Invalid reset link.'; msgEl.style.display = 'block'; return; }
+  const r = await api('POST', 'auth.php?action=reset_password', { token, password: p1 });
+  msgEl.textContent = r.message || (r.success ? 'Password updated. Please log in.' : r.error);
+  msgEl.style.background = r.success ? 'var(--grn-glow)' : 'var(--emb-glow)';
+  msgEl.style.borderColor = r.success ? 'rgba(26,122,64,.3)' : 'rgba(192,57,43,.3)';
+  msgEl.style.color = r.success ? 'var(--pill-paid-txt)' : 'var(--pill-ovr-txt)';
+  msgEl.style.display = 'block';
+  if (r.success) {
+    setTimeout(()=>{ history.replaceState(null,'',window.location.pathname); showLoginPanel(); }, 2500);
+  }
+}
+
 async function doLogin(){
   const u = document.getElementById('l-user').value.trim().toLowerCase();
   const p = document.getElementById('l-pass').value;
-  if (!u || !p) return;
+  const captcha = parseInt(document.getElementById('l-captcha').value, 10);
+  if (!u || !p || isNaN(captcha)) {
+    document.getElementById('login-error').textContent = 'Please fill in all fields including the security check.';
+    document.getElementById('login-error').classList.add('show');
+    return;
+  }
 
   const loginBtn = document.querySelector('#login-screen .btn-login-main');
   if (loginBtn) { loginBtn.disabled = true; loginBtn.textContent = 'Signing in…'; }
 
-  const r = await api('POST', 'auth.php?action=login', { username: u, password: p });
+  const r = await api('POST', 'auth.php?action=login', { username: u, password: p, captcha });
 
   if (loginBtn) { loginBtn.disabled = false; loginBtn.textContent = 'Sign In'; }
 
-  document.getElementById('login-error').classList.toggle('show', !r.success);
-  if (!r.success) return;
+  if (!r.success) {
+    document.getElementById('login-error').textContent = r.error || 'Incorrect username or password.';
+    document.getElementById('login-error').classList.add('show');
+    loadCaptcha(); // refresh captcha on failure
+    return;
+  }
+  document.getElementById('login-error').classList.remove('show');
 
   SESSION = r.user;
 
@@ -1285,6 +1411,7 @@ async function doLogout(){
   document.getElementById('l-pass').value = '';
   document.getElementById('login-error').classList.remove('show');
   document.documentElement.dataset.state = 'login';
+  showLoginPanel();
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -1524,7 +1651,18 @@ function submitContact(){
 /* ═══════════════════════════════════════════════════════
    AUTH
 ═══════════════════════════════════════════════════════ */
-function goLogin(){ document.documentElement.dataset.state='login'; }
+function goLogin(){
+  document.documentElement.dataset.state='login';
+  // Check for reset_token in URL
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('reset_token')) {
+    document.getElementById('login-panel').style.display  = 'none';
+    document.getElementById('forgot-panel').style.display = 'none';
+    document.getElementById('newpass-panel').style.display = '';
+  } else {
+    showLoginPanel();
+  }
+}
 function fillCreds(u,p){ document.getElementById('l-user').value=u; document.getElementById('l-pass').value=p; }
 
 function showPortalPage(id, el){
@@ -2184,6 +2322,8 @@ function renderUsers(){
     viewer:        {create:'-',status:'-',po:'-',finance:'View',quote:'-',approve:'-'},
   };
   const tick=(v)=>v==='✓'?`<span style="color:var(--pill-paid-txt)">✓</span>`:v==='-'?`<span style="color:var(--muted)">-</span>`:`<span style="color:var(--warn);font-size:10px">${v}</span>`;
+  const bar = document.getElementById('users-create-bar');
+  if (bar) bar.style.display = can('user.create') ? '' : 'none';
   document.getElementById('users-table-body').innerHTML=USERS.map(u=>{
     const m=matrix[u.role]||{create:'-',status:'-',po:'-',finance:'-',quote:'-',approve:'-'};
     return`<tr>
@@ -2198,6 +2338,38 @@ function renderUsers(){
       <td style="text-align:center">${tick(m.approve)}</td>
     </tr>`;
   }).join('');
+}
+
+function openCreateUserModal(){
+  if (!can('user.create')) return;
+  const roles = ['admin','manager','call_logger','junior_tech','senior_tech','client_support','admin_clerk','viewer'];
+  const opts = roles.map(r=>`<option value="${r}">${r.replace(/_/g,' ')}</option>`).join('');
+  openModal('New User', `
+    <div class="login-group"><label class="login-label">Username</label><input class="login-input" id="nu-user" placeholder="username"></div>
+    <div class="login-group"><label class="login-label">Full Name</label><input class="login-input" id="nu-name" placeholder="First Last"></div>
+    <div class="login-group"><label class="login-label">Email</label><input class="login-input" type="email" id="nu-email" placeholder="user@example.com"></div>
+    <div class="login-group"><label class="login-label">Title / Position</label><input class="login-input" id="nu-title" placeholder="e.g. Field Technician"></div>
+    <div class="login-group"><label class="login-label">Role</label><select class="login-input" id="nu-role">${opts}</select></div>
+    <div class="login-group"><label class="login-label">Password</label><input class="login-input" type="password" id="nu-pass" placeholder="min 8 characters"></div>
+    <button class="btn-login-submit" style="margin-top:8px" onclick="saveNewUser()">Create User</button>
+  `);
+}
+
+async function saveNewUser(){
+  const username = document.getElementById('nu-user')?.value.trim().toLowerCase();
+  const name     = document.getElementById('nu-name')?.value.trim();
+  const email    = document.getElementById('nu-email')?.value.trim();
+  const title    = document.getElementById('nu-title')?.value.trim();
+  const role     = document.getElementById('nu-role')?.value;
+  const password = document.getElementById('nu-pass')?.value;
+  if (!username || !name || !password) { toast('Username, name and password are required', 'err'); return; }
+  if (password.length < 8) { toast('Password must be at least 8 characters', 'err'); return; }
+  const r = await api('POST', 'users.php', { username, name, email, title, role, password });
+  if (!r.success) { toast(r.error || 'Error creating user', 'err'); return; }
+  closeModalDirect();
+  await refreshUsers();
+  renderUsers();
+  toast(`User ${username} created`, 'ok');
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -2229,6 +2401,13 @@ document.addEventListener('DOMContentLoaded',()=>{
   window.addEventListener('resize',syncPublicNavOffset);
   if(document.fonts && document.fonts.ready){
     document.fonts.ready.then(syncPublicNavOffset);
+  }
+  // If URL has reset_token, jump straight to new-password panel
+  if(new URLSearchParams(window.location.search).get('reset_token')){
+    document.documentElement.dataset.state='login';
+    document.getElementById('login-panel').style.display  = 'none';
+    document.getElementById('forgot-panel').style.display = 'none';
+    document.getElementById('newpass-panel').style.display = '';
   }
 });
 

@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS `bf_users` (
   `name`          VARCHAR(100)     NOT NULL,
   `role`          ENUM('admin','manager','call_logger','junior_tech','senior_tech','client_support','admin_clerk','viewer','client') NOT NULL DEFAULT 'viewer',
   `title`         VARCHAR(100)     NOT NULL DEFAULT '',
+  `email`         VARCHAR(150)     NOT NULL DEFAULT '',
   `active`        TINYINT(1)       NOT NULL DEFAULT 1,
   `last_login`    DATETIME         NULL,
   `created_at`    DATETIME         NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -48,43 +49,62 @@ CREATE TABLE IF NOT EXISTS `bf_callouts` (
   `id`            INT UNSIGNED NOT NULL AUTO_INCREMENT,
   `ref_id`        VARCHAR(20)  NOT NULL UNIQUE,
   `client_name`   VARCHAR(150) NOT NULL,
+  `client_id`     INT UNSIGNED NULL,
+  `client_email`  VARCHAR(150) NOT NULL DEFAULT '',
   `service`       VARCHAR(255) NOT NULL,
   `location`      VARCHAR(255) NOT NULL DEFAULT '',
   `tech`          VARCHAR(100) NOT NULL DEFAULT '',
   `assigned_to`   VARCHAR(50)  NOT NULL DEFAULT '',
   `priority`      ENUM('Normal','Urgent','Emergency') NOT NULL DEFAULT 'Normal',
   `status`        ENUM('Open','In Progress','Completed','Invoiced','Cancelled') NOT NULL DEFAULT 'Open',
+  `approval_status` ENUM('not_required','pending','approved','rejected') NOT NULL DEFAULT 'not_required',
+  `approval_token` VARCHAR(64) NULL,
+  `approval_token_expires` DATETIME NULL,
   `callout_date`  DATE         NOT NULL,
   `callout_time`  TIME         NOT NULL DEFAULT '08:00:00',
   `notes`         TEXT         NULL,
   `logged_by`     VARCHAR(50)  NOT NULL DEFAULT '',
   `po`            VARCHAR(50)  NOT NULL DEFAULT '',
+  `approved_at`   DATETIME     NULL,
+  `approved_by`   VARCHAR(100) NOT NULL DEFAULT '',
   `created_at`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_ref`    (`ref_id`),
   KEY `idx_status` (`status`),
-  KEY `idx_date`   (`callout_date`)
+  KEY `idx_approval` (`approval_status`),
+  KEY `idx_token` (`approval_token`),
+  KEY `idx_date`   (`callout_date`),
+  CONSTRAINT `fk_callout_client` FOREIGN KEY (`client_id`) REFERENCES `bf_clients`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ── Quotes ─────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS `bf_quotes` (
-  `id`              INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `ref_id`          VARCHAR(20)  NOT NULL UNIQUE,
-  `client_name`     VARCHAR(150) NOT NULL,
-  `status`          ENUM('Draft','Sent','Approved','Rejected','Pending Approval','Expired') NOT NULL DEFAULT 'Draft',
-  `valid_until`     DATE         NULL,
-  `quote_date`      DATE         NOT NULL,
-  `submitted_by`    VARCHAR(50)  NOT NULL DEFAULT '',
-  `source`          VARCHAR(50)  NOT NULL DEFAULT 'staff',
-  `approval_status` ENUM('pending','approved','rejected') NULL,
-  `notes`           TEXT         NULL,
-  `total_amount`    DECIMAL(12,2) NOT NULL DEFAULT 0.00,
-  `created_at`      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at`      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `id`                    INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `ref_id`                VARCHAR(20)  NOT NULL UNIQUE,
+  `client_name`           VARCHAR(150) NOT NULL,
+  `client_id`             INT UNSIGNED NULL,
+  `client_email`          VARCHAR(150) NOT NULL DEFAULT '',
+  `status`                ENUM('Draft','Sent','Approved','Rejected','Pending Approval','Expired') NOT NULL DEFAULT 'Draft',
+  `valid_until`           DATE         NULL,
+  `quote_date`            DATE         NOT NULL,
+  `submitted_by`          VARCHAR(50)  NOT NULL DEFAULT '',
+  `source`                VARCHAR(50)  NOT NULL DEFAULT 'staff',
+  `approval_status`       ENUM('pending','approved','rejected') NULL,
+  `approval_token`        VARCHAR(64)  NULL,
+  `approval_token_expires` DATETIME    NULL,
+  `notes`                 TEXT         NULL,
+  `total_amount`          DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  `approved_at`           DATETIME     NULL,
+  `approved_by`           VARCHAR(100) NOT NULL DEFAULT '',
+  `created_at`            DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at`            DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  KEY `idx_ref`    (`ref_id`),
-  KEY `idx_status` (`status`)
+  KEY `idx_ref`           (`ref_id`),
+  KEY `idx_status`        (`status`),
+  KEY `idx_approval`      (`approval_status`),
+  KEY `idx_token`         (`approval_token`),
+  CONSTRAINT `fk_quote_client` FOREIGN KEY (`client_id`) REFERENCES `bf_clients`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ── Quote Line Items ────────────────────────────────────
@@ -177,6 +197,19 @@ CREATE TABLE IF NOT EXISTS `bf_payments` (
   `created_at`   DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_inv` (`invoice_ref`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ── Password Resets ────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `bf_password_resets` (
+  `id`         INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `user_id`    INT UNSIGNED NOT NULL,
+  `token`      VARCHAR(64)  NOT NULL,
+  `expires_at` DATETIME     NOT NULL,
+  `used`       TINYINT(1)   NOT NULL DEFAULT 0,
+  `created_at` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_token` (`token`),
+  KEY `idx_user`  (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ── Audit Log ──────────────────────────────────────────

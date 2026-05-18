@@ -67,21 +67,26 @@ if ($method === 'POST') {
         $total += ((float)($item['qty'] ?? 1)) * ((float)($item['unit'] ?? 0));
     }
 
+    $client_email = clean($b['client_email'] ?? '', 150);
+
     // Determine approval status
     $approval_status = null;
     $status = clean($b['status'] ?? 'Draft');
     if ($usr['role'] === 'senior_tech') {
         $status          = 'Pending Approval';
         $approval_status = 'pending';
+    } elseif ($usr['role'] !== 'client' && $client_email && filter_var($client_email, FILTER_VALIDATE_EMAIL)) {
+        $approval_status = 'pending';
     }
 
     $ref = next_ref_id('q');
     $id  = db_insert(
-        "INSERT INTO bf_quotes (ref_id, client_name, status, valid_until, quote_date, submitted_by, source, approval_status, notes, total_amount)
-         VALUES (?,?,?,?,?,?,?,?,?,?)",
+        "INSERT INTO bf_quotes (ref_id, client_name, client_email, status, valid_until, quote_date, submitted_by, source, approval_status, notes, total_amount)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?)",
         [
             $ref,
             clean($b['client_name']),
+            $client_email,
             $status,
             valid_date($b['valid_until'] ?? null) ? $b['valid_until'] : null,
             date('Y-m-d'),
@@ -100,7 +105,7 @@ if ($method === 'POST') {
         );
     }
 
-    audit($usr['username'], 'CREATE', "Quote $ref created (R" . number_format($total, 2) . ")");
+    audit($usr['username'], 'CREATE', "Quote $ref created (R" . number_format($total, 2) . ", approval: $approval_status)");
     $row = db_row("SELECT * FROM bf_quotes WHERE id = ?", [$id]);
     $row['items'] = $items;
     json_ok(['data' => $row], "Quote $ref created");

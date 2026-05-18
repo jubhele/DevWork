@@ -36,8 +36,8 @@ const PERMS = [
     'approval.send'         => ['admin','manager','call_logger','client_support'],
 
     'security.audit'        => ['admin'],
-    'security.users'        => ['admin'],
-    'user.create'           => ['admin'],
+    'security.users'        => ['admin','manager','admin_clerk'],
+    'user.create'           => ['admin','manager','admin_clerk'],
     'user.update'           => ['admin'],
 ];
 

@@ -33,13 +33,14 @@ if ($method === 'POST') {
     if ($exists) json_err('Username already exists');
 
     $id = db_insert(
-        "INSERT INTO bf_users (username, password_hash, name, role, title, active) VALUES (?,?,?,?,?,1)",
+        "INSERT INTO bf_users (username, password_hash, name, role, title, email, active) VALUES (?,?,?,?,?,?,1)",
         [
             strtolower(clean($b['username'])),
             password_hash($b['password'], PASSWORD_BCRYPT),
             clean($b['name']),
             clean($b['role']),
             clean($b['title'] ?? ''),
+            clean($b['email'] ?? ''),
         ]
     );
     audit($usr['username'], 'CREATE', "User created: {$b['username']}");

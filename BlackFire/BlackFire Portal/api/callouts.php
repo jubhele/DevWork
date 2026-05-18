@@ -60,21 +60,31 @@ if ($method === 'POST') {
     $b   = get_body();
     require_fields($b, ['client_name', 'service', 'callout_date']);
 
+    $client_email = clean($b['client_email'] ?? '', 150);
+
+    // Auto-determine approval_status based on who logged the callout
+    $approval_status = 'not_required';
+    if ($usr['role'] !== 'client' && $client_email && filter_var($client_email, FILTER_VALIDATE_EMAIL)) {
+        $approval_status = 'pending';
+    }
+
     $ref = next_ref_id('co');
     $id  = db_insert(
         "INSERT INTO bf_callouts
-         (ref_id, client_name, service, location, tech, assigned_to, priority, status,
-          callout_date, callout_time, notes, logged_by, po)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+         (ref_id, client_name, client_email, service, location, tech, assigned_to, priority, status,
+          approval_status, callout_date, callout_time, notes, logged_by, po)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
         [
             $ref,
             clean($b['client_name']),
+            $client_email,
             clean($b['service']),
             clean($b['location'] ?? ''),
             clean($b['tech']     ?? ''),
             clean($b['assigned_to'] ?? ''),
             clean($b['priority'] ?? 'Normal'),
             clean($b['status']   ?? 'Open'),
+            $approval_status,
             $b['callout_date'],
             clean($b['callout_time'] ?? '08:00'),
             clean($b['notes'] ?? '', 2000),
@@ -83,7 +93,7 @@ if ($method === 'POST') {
         ]
     );
 
-    audit($usr['username'], 'CREATE', "Callout $ref created");
+    audit($usr['username'], 'CREATE', "Callout $ref created (approval: $approval_status)");
     $row = db_row("SELECT * FROM bf_callouts WHERE id = ?", [$id]);
     json_ok(['data' => $row], "Callout $ref created");
 }
