@@ -544,6 +544,21 @@ tr:hover td{background:var(--row-hover)}
 .toast.err{border-left-color:var(--ember)}
 @keyframes tIn{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:translateX(0)}}
 
+/* ── Back to Top Button ── */
+#back-to-top{
+  position:fixed;bottom:30px;right:30px;width:48px;height:48px;
+  background:var(--accent);color:#fff;border:none;border-radius:2px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:20px;z-index:999;opacity:0;visibility:hidden;
+  transition:opacity .3s,visibility .3s,transform .2s;transform:translateY(10px);
+  box-shadow:0 4px 12px rgba(0,0,0,.2);
+}
+#back-to-top.show{opacity:1;visibility:visible;transform:translateY(0)}
+#back-to-top:hover{background:var(--amber);transform:translateY(-2px);box-shadow:0 6px 16px rgba(0,0,0,.3)}
+@media(max-width:640px){
+  #back-to-top{width:44px;height:44px;bottom:20px;right:20px;font-size:18px}
+}
+
 /* Responsive portal */
 @media(max-width:1024px){
   #ptopbar{display:flex}
@@ -2685,6 +2700,27 @@ function showPortalPage(id, el) {
   if (refreshMap[id]) refreshMap[id]();
 }
 
+<!-- Back to top button -->
+<button id="back-to-top" onclick="scrollToTop()" title="Back to top"></button>
+
+<script>
+/* ── Back to Top Functionality ──────────────────────── */
+const backToTopBtn = document.getElementById('back-to-top');
+
+function scrollToTop() {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+window.addEventListener('scroll', () => {
+  if (window.scrollY > 300) {
+    backToTopBtn.classList.add('show');
+  } else {
+    backToTopBtn.classList.remove('show');
+  }
+});
+
+// Set button text with arrow
+backToTopBtn.innerHTML = '↑';
 </script>
 
 

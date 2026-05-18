@@ -36,3 +36,5 @@ Active model: claude-sonnet-4-6  Status: correct
 - Approval token pattern: store on record + public endpoint avoids need for separate token table
 - Client role in ENUM must also be added to PERMS in auth.php to grant access
 _Session ended: 2026-05-18 20:21:33 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-18 20:39:30 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-18 20:41:15 (Claude Code / claude-sonnet-4-6)_
