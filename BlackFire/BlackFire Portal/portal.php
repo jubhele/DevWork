@@ -1,7 +1,7 @@
 <?php
 ob_start(); // Buffer output so headers can be sent from API calls
 /**
- * Umlilo Portal - Main Portal PHP
+ * BlackFire Solutions Portal - Main Portal PHP
  * This file outputs the full portal HTML, with the JS data layer
  * replaced by API calls to the PHP/MySQL backend.
  */
@@ -15,7 +15,7 @@ $base = rtrim($cfg['base_url'] ?? '', '/');
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; img-src 'self' data:; script-src 'self' 'unsafe-inline'; connect-src 'self'; object-src 'none';">
-<title>Umlilo Portal</title>
+<title>BlackFire Solutions - Fire, taught to behave.</title>
 <link rel="icon" href="./favicon.ico?v=20260518-2" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png?v=20260518-2">
 <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png?v=20260518-2">
@@ -589,7 +589,7 @@ tr:hover td{background:var(--row-hover)}
   <!-- Nav -->
   <nav id="pub-nav">
     <div class="pub-brand" onclick="pubNav('home')">
-      <img src="./blackfire_logo_transparent.png" class="bf-logo-dark" style="height:50px;width:auto;display:block;object-fit:contain;object-position:left center;"><img src="./blackfire_logo_transparent.png" class="bf-logo-light" style="height:50px;width:auto;display:none;object-fit:contain;object-position:left center;">
+      <img src="./blackfire_logo_transparent.png" class="bf-logo-dark" style="height:60px;width:auto;display:block;object-fit:contain;object-position:left center;"><img src="./blackfire_logo_transparent.png" class="bf-logo-light" style="height:60px;width:auto;display:none;object-fit:contain;object-position:left center;">
     </div>
     <div class="pub-nav-links">
       <div class="pub-nav-link active" id="pnl-home" onclick="pubNav('home')">Home</div>
@@ -663,7 +663,7 @@ tr:hover td{background:var(--row-hover)}
     <div class="pub-footer">
       <div class="pub-footer-grid">
         <div class="footer-brand-block">
-          <img src="./blackfire_logo_transparent.png" class="bf-logo-dark" style="height:52px;width:auto;display:block;object-fit:contain;object-position:left center;"><img src="./blackfire_logo_transparent.png" class="bf-logo-light" style="height:52px;width:auto;display:none;object-fit:contain;object-position:left center;">
+          <img src="./blackfire_logo_transparent.png" class="bf-logo-dark" style="height:62px;width:auto;display:block;object-fit:contain;object-position:left center;"><img src="./blackfire_logo_transparent.png" class="bf-logo-light" style="height:62px;width:auto;display:none;object-fit:contain;object-position:left center;">
           <div class="footer-tagline">Fire, taught to behave.</div>
           <p class="footer-desc">Professional security services across Gauteng. PSIRA registered. Fully insured. 24/7 armed response, CCTV, access control and integrated security solutions.</p>
         </div>
@@ -681,7 +681,7 @@ tr:hover td{background:var(--row-hover)}
           <div class="footer-link">info@blackfiresolutions.co.za</div>
           <div class="footer-link">Johannesburg &middot; Sandton &middot; Gauteng</div>
           <div class="footer-col-title" style="margin-top:16px">Portal</div>
-          <div class="footer-link" onclick="goLogin()">Staff Login →</div>
+          <div class="footer-link" onclick="goLogin()">Staff Portal →</div>
         </div>
       </div>
       <div class="footer-bottom">
@@ -763,9 +763,9 @@ tr:hover td{background:var(--row-hover)}
   <div class="login-card" id="login-panel">
     <div class="login-header">
       <div class="login-mark" onclick="goPublic()" style="cursor:pointer" title="Back to home">
-        <img src="./blackfire_logo_transparent.png" class="bf-logo-dark" style="height:64px;width:auto;display:block;object-fit:contain;object-position:left center;"><img src="./blackfire_logo_transparent.png" class="bf-logo-light" style="height:64px;width:auto;display:none;object-fit:contain;object-position:left center;">
+        <img src="./blackfire_logo_transparent.png" class="bf-logo-dark" style="height:74px;width:auto;display:block;object-fit:contain;object-position:left center;"><img src="./blackfire_logo_transparent.png" class="bf-logo-light" style="height:74px;width:auto;display:none;object-fit:contain;object-position:left center;">
       </div>
-      <div class="login-title" style="font-size:14px;margin-top:8px;letter-spacing:2px">STAFF PORTAL</div>
+      <div class="login-title" style="font-size:14px;margin-top:8px;letter-spacing:2px">BLACKFIRE SOLUTIONS</div>
       <div class="login-sub">SECURE ACCESS</div>
     </div>
     <div class="login-body">
@@ -794,7 +794,7 @@ tr:hover td{background:var(--row-hover)}
   <div class="login-card" id="forgot-panel" style="display:none">
     <div class="login-header">
       <div class="login-mark" onclick="goPublic()" style="cursor:pointer" title="Back to home">
-        <img src="./blackfire_logo_transparent.png" class="bf-logo-dark" style="height:64px;width:auto;display:block;object-fit:contain;object-position:left center;"><img src="./blackfire_logo_transparent.png" class="bf-logo-light" style="height:64px;width:auto;display:none;object-fit:contain;object-position:left center;">
+        <img src="./blackfire_logo_transparent.png" class="bf-logo-dark" style="height:74px;width:auto;display:block;object-fit:contain;object-position:left center;"><img src="./blackfire_logo_transparent.png" class="bf-logo-light" style="height:74px;width:auto;display:none;object-fit:contain;object-position:left center;">
       </div>
       <div class="login-title" style="font-size:14px;margin-top:8px;letter-spacing:2px">RESET PASSWORD</div>
       <div class="login-sub">ENTER YOUR USERNAME</div>
@@ -815,7 +815,7 @@ tr:hover td{background:var(--row-hover)}
   <div class="login-card" id="newpass-panel" style="display:none">
     <div class="login-header">
       <div class="login-mark" onclick="goPublic()" style="cursor:pointer" title="Back to home">
-        <img src="./blackfire_logo_transparent.png" class="bf-logo-dark" style="height:64px;width:auto;display:block;object-fit:contain;object-position:left center;"><img src="./blackfire_logo_transparent.png" class="bf-logo-light" style="height:64px;width:auto;display:none;object-fit:contain;object-position:left center;">
+        <img src="./blackfire_logo_transparent.png" class="bf-logo-dark" style="height:74px;width:auto;display:block;object-fit:contain;object-position:left center;"><img src="./blackfire_logo_transparent.png" class="bf-logo-light" style="height:74px;width:auto;display:none;object-fit:contain;object-position:left center;">
       </div>
       <div class="login-title" style="font-size:14px;margin-top:8px;letter-spacing:2px">NEW PASSWORD</div>
       <div class="login-sub">CHOOSE A NEW PASSWORD</div>
@@ -846,7 +846,7 @@ tr:hover td{background:var(--row-hover)}
   <div id="ptopbar">
     <div style="display:flex;align-items:center;gap:8px">
       <button id="hamburger" onclick="toggleSb()"><span></span><span></span><span></span></button>
-      <img src="./blackfire_logo_transparent.png" class="bf-logo-dark" style="height:44px;width:auto;display:block;object-fit:contain;object-position:left center;"><img src="./blackfire_logo_transparent.png" class="bf-logo-light" style="height:44px;width:auto;display:none;object-fit:contain;object-position:left center;">
+      <img src="./blackfire_logo_transparent.png" class="bf-logo-dark" style="height:54px;width:auto;display:block;object-fit:contain;object-position:left center;"><img src="./blackfire_logo_transparent.png" class="bf-logo-light" style="height:54px;width:auto;display:none;object-fit:contain;object-position:left center;">
     </div>
     <button class="theme-btn" onclick="toggleTheme()">
       <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
@@ -859,7 +859,7 @@ tr:hover td{background:var(--row-hover)}
   <div id="psidebar">
     <div class="sb-brand">
       <div class="sb-brand-inner">
-        <img src="./blackfire_logo_transparent.png" class="bf-logo-dark" style="height:46px;width:auto;display:block;object-fit:contain;object-position:left center;"><img src="./blackfire_logo_transparent.png" class="bf-logo-light" style="height:46px;width:auto;display:none;object-fit:contain;object-position:left center;">
+        <img src="./blackfire_logo_transparent.png" class="bf-logo-dark" style="height:56px;width:auto;display:block;object-fit:contain;object-position:left center;"><img src="./blackfire_logo_transparent.png" class="bf-logo-light" style="height:56px;width:auto;display:none;object-fit:contain;object-position:left center;">
         <div><span class="sb-btag" id="sb-portaltag" style="display:block;margin-top:2px">PORTAL  -  v9</span></div>
       </div>
       <button class="sb-close-btn" onclick="closeSb()">✕</button>
@@ -1144,7 +1144,11 @@ tr:hover td{background:var(--row-hover)}
    All data operations go through fetch() to /api/ endpoints
 ═══════════════════════════════════════════════════════ */
 
-const API_BASE = '<?php echo rtrim($cfg["base_url"],"/"); ?>/api';
+const API_BASE = (() => {
+  // Derive API base relative to current page so it works both locally and in production
+  const p = window.location.pathname.replace(/\/[^\/]*$/, '');
+  return (p || '') + '/api';
+})();
 
 async function api(method, endpoint, data = null) {
   const opts = {
@@ -1809,15 +1813,15 @@ function renderCallouts(search='',filter=''){
     const poCell=c.po
       ?`<span class="mono" style="font-size:10px">${esc(c.po)}</span>`
       :(canPO?`<button class="btn btn-g btn-s" onclick="openAssignPO('${esc(c.id)}')">Assign</button>`:`<span style="color:var(--muted);font-size:11px">-</span>`);
-    const loggedByUser=USERS.find(u=>u.username===c.loggedBy);
-    const assignedUser=USERS.find(u=>u.username===c.assignedTo);
+    const loggedByUser=proxyDB.users.find(u=>u.username===c.loggedBy);
+    const assignedUser=proxyDB.users.find(u=>u.username===c.assignedTo);
     const assignedDisplay=assignedUser?assignedUser.name:(c.tech||'-');
 
     const actions=[];
     if(canStatus) actions.push(`<button class="btn btn-g btn-s" onclick="openStatusModal('${esc(c.id)}')">Update Status</button>`);
     if(canTech&&!c.assignedTo) actions.push(`<button class="btn btn-g btn-s" onclick="openAssignTech('${esc(c.id)}')">Assign Tech</button>`);
     if(can('capture.new_quote')) actions.push(`<button class="btn btn-g btn-s" onclick="prefillQuoteFromJob('${esc(c.id)}')">Quote</button>`);
-    if(canDel) actions.push(`<button class="btn btn-g btn-s" onclick="delCo('${esc(c.id)}')">Del</button>`);
+    if(canDel) actions.push(`<button class="btn btn-g btn-s" onclick="deleteCallout('${esc(c.id)}')">Del</button>`);
 
     return`<tr>
       <td class="mono">${esc(c.id)}</td>
@@ -1857,15 +1861,18 @@ function openStatusModal(id){
     <div class="mt3 flex-end"><button class="btn btn-p" onclick="saveStatus('${esc(c.id)}')">Save Update</button></div>
   `);
 }
-function saveStatus(id){
-  const c=proxyDB.callouts.find(x=>x.id===id);if(!c)return;
-  const prev=c.status;
-  c.status=document.getElementById('su-status').value;
-  c.priority=document.getElementById('su-priority').value;
-  c.notes=document.getElementById('su-notes').value.trim();
-  save();closeModalDirect();renderCallouts();renderDashboard();
-  toast(`${id} updated: ${prev} → ${c.status}`,'ok');
-  audit('UPDATE_STATUS',`${id}: ${prev} → ${c.status} by ${SESSION?.username}`);
+async function saveStatus(id){
+  const status   = document.getElementById('su-status').value;
+  const priority = document.getElementById('su-priority').value;
+  const notes    = document.getElementById('su-notes').value.trim();
+  const r = await api('PUT', `callouts.php?id=${id}`, { status, priority, notes });
+  if (!r.success) { toast(r.error || 'Error updating callout', 'err'); return; }
+  await refreshCallouts();
+  updateBadges();
+  closeModalDirect();
+  renderCallouts('');
+  renderDashboard();
+  toast(`${id} updated → ${status}`, 'ok');
 }
 
 function openAssignPO(id){
@@ -1873,19 +1880,12 @@ function openAssignPO(id){
   openModal(`Assign PO - ${c.id}`,`
     <div style="margin-bottom:14px;font-size:12px;color:var(--muted)">Assign a Purchase Order number to this job. The PO will be referenced on the invoice.</div>
     <div class="fgroup"><label class="flbl">Purchase Order Number</label><input class="finput" id="po-input" value="${esc(c.po||'')}" placeholder="e.g. PO-2026-045"></div>
-    <div class="mt3 flex-end"><button class="btn btn-p" onclick="savePO('${esc(c.id)}')">Assign PO</button></div>
+    <div class="mt3 flex-end"><button class="btn btn-p" onclick="assignPO('${esc(c.id)}')">Assign PO</button></div>
   `);
-}
-function savePO(id){
-  const c=proxyDB.callouts.find(x=>x.id===id);if(!c)return;
-  c.po=document.getElementById('po-input').value.trim();
-  save();closeModalDirect();renderCallouts();
-  toast(`PO ${c.po} assigned to ${id}`,'ok');
-  audit('ASSIGN_PO',`${id} → ${c.po}`);
 }
 
 function openAssignTech(id){
-  const techs=USERS.filter(u=>u.role==='junior_tech'||u.role==='senior_tech');
+  const techs=proxyDB.users.filter(u=>u.role==='junior_tech'||u.role==='senior_tech');
   openModal(`Assign Technician - ${id}`,`
     <div class="fgroup"><label class="flbl">Select Technician</label>
       <select class="finput" id="tech-sel">
@@ -1896,14 +1896,15 @@ function openAssignTech(id){
     <div class="mt3 flex-end"><button class="btn btn-p" onclick="saveTechAssign('${esc(id)}')">Assign</button></div>
   `);
 }
-function saveTechAssign(id){
-  const c=proxyDB.callouts.find(x=>x.id===id);if(!c)return;
+async function saveTechAssign(id){
   const sel=document.getElementById('tech-sel').value;if(!sel)return;
-  const tech=USERS.find(u=>u.username===sel);if(!tech)return;
-  c.assignedTo=sel;c.tech=tech.name;
-  save();closeModalDirect();renderCallouts();
+  const tech=proxyDB.users.find(u=>u.username===sel);if(!tech)return;
+  const r = await api('PUT', `callouts.php?id=${id}`, { assigned_to: sel, tech: tech.name });
+  if (!r.success) { toast(r.error || 'Error assigning tech', 'err'); return; }
+  await refreshCallouts();
+  closeModalDirect();
+  renderCallouts('');
   toast(`${tech.name} assigned to ${id}`,'ok');
-  audit('ASSIGN_TECH',`${id} → ${tech.name}`);
 }
 
 function prefillQuoteFromJob(id){
@@ -1925,7 +1926,7 @@ function saveCallout(){
   const service=document.getElementById('nc-service').value.trim();
   if(!client||!service){toast('Client and service are required','err');return;}
   const techSel=document.getElementById('nc-tech').value;
-  const techUser=USERS.find(u=>u.username===techSel);
+  const techUser=proxyDB.users.find(u=>u.username===techSel);
   const id=nextId('co');
   proxyDB.callouts.unshift({
     id,client,service,
@@ -1978,16 +1979,16 @@ function renderQuotes(search='',filter=''){
 
   document.getElementById('qte-table').innerHTML=items.length?items.map(q=>{
     const{total}=qtot(q.items);
-    const submitter=USERS.find(u=>u.username===q.submittedBy);
+    const submitter=proxyDB.users.find(u=>u.username===q.submittedBy);
     const submitterCell=submitter?`${esc(submitter.name)}<div style="font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--muted)">${esc(ROLE_LABELS[submitter.role]||submitter.role)}</div>`:'<span style="color:var(--muted)">-</span>';
     const actions=[];
     actions.push(`<button class="btn btn-g btn-s" onclick="previewQuote('${esc(q.id)}')">View</button>`);
     if(canApprove&&q.approvalStatus==='pending'){
       actions.push(`<button class="btn btn-s" style="background:var(--grn-glow);border-color:var(--green);color:var(--pill-paid-txt)" onclick="approveQuote('${esc(q.id)}')">Approve</button>`);
-      actions.push(`<button class="btn btn-s" style="background:var(--emb-glow);border-color:var(--ember);color:var(--pill-ovr-txt)" onclick="declineQuote('${esc(q.id)}')">Decline</button>`);
+      actions.push(`<button class="btn btn-s" style="background:var(--emb-glow);border-color:var(--ember);color:var(--pill-ovr-txt)" onclick="rejectQuote('${esc(q.id)}')">Decline</button>`);
     }
-    if(canConvert&&q.status!=='Pending Approval') actions.push(`<button class="btn btn-g btn-s" onclick="convertQtoInv('${esc(q.id)}')">Invoice</button>`);
-    if(canDel) actions.push(`<button class="btn btn-g btn-s" onclick="delQuote('${esc(q.id)}')">Del</button>`);
+    if(canConvert&&q.status!=='Pending Approval') actions.push(`<button class="btn btn-g btn-s" onclick="convertToInvoice('${esc(q.id)}')">Invoice</button>`);
+    if(canDel) actions.push(`<button class="btn btn-g btn-s" onclick="deleteQuote('${esc(q.id)}')">Del</button>`);
     return`<tr>
       <td class="mono">${esc(q.id)}</td>
       <td>${esc(q.client)}</td>
@@ -2126,7 +2127,7 @@ function renderInvoices(search='',filter=''){
     <td><div class="bgrp">
       <button class="btn btn-g btn-s" onclick="previewInvoice('${esc(inv.id)}')">View</button>
       ${canPaid&&inv.status!=='Paid'?`<button class="btn btn-g btn-s" onclick="markPaid('${esc(inv.id)}')">Paid</button>`:''}
-      ${canDel?`<button class="btn btn-g btn-s" onclick="delInvoice('${esc(inv.id)}')">Del</button>`:''}
+      ${canDel?`<button class="btn btn-g btn-s" onclick="deleteInvoice('${esc(inv.id)}')">Del</button>`:''}
     </div></td></tr>`).join(''):'<tr><td colspan="6" style="text-align:center;padding:18px;color:var(--muted);font-style:italic">No invoices</td></tr>';
 }
 
@@ -2339,7 +2340,7 @@ function renderUsers(){
   const tick=(v)=>v==='✓'?`<span style="color:var(--pill-paid-txt)">✓</span>`:v==='-'?`<span style="color:var(--muted)">-</span>`:`<span style="color:var(--warn);font-size:10px">${v}</span>`;
   const bar = document.getElementById('users-create-bar');
   if (bar) bar.style.display = can('user.create') ? '' : 'none';
-  document.getElementById('users-table-body').innerHTML=USERS.map(u=>{
+  document.getElementById('users-table-body').innerHTML=proxyDB.users.map(u=>{
     const m=matrix[u.role]||{create:'-',status:'-',po:'-',finance:'-',quote:'-',approve:'-'};
     return`<tr>
       <td class="mono">${esc(u.username)}</td>
@@ -2488,7 +2489,7 @@ async function deleteCallout(id){
   updateBadges();
   renderCallouts('');
   toast(`${id} deleted`);
-  closeModal();
+  closeModalDirect();
 }
 
 /* ── Override: updateCalloutStatus ──────────────────── */
@@ -2498,19 +2499,19 @@ async function updateCalloutStatus(id, status){
   await refreshCallouts();
   updateBadges();
   renderCallouts('');
-  closeModal();
+  closeModalDirect();
   toast(`Status updated to ${status}`);
 }
 
 /* ── Override: assignPO ──────────────────────────────── */
 async function assignPO(id){
-  const po = document.getElementById(`po-input-${id}`)?.value.trim();
+  const po = document.getElementById('po-input')?.value.trim();
   if (!po) return;
   const r = await api('PUT', `callouts.php?id=${id}`, { po });
   if (!r.success) { toast(r.error || 'Error', 'err'); return; }
   await refreshCallouts();
   renderCallouts('');
-  closeModal();
+  closeModalDirect();
   toast(`PO ${po} assigned to ${id}`);
 }
 
@@ -2521,7 +2522,7 @@ async function approveQuote(id){
   await refreshQuotes();
   updateBadges();
   renderQuotes('');
-  closeModal();
+  closeModalDirect();
   toast(`Quote ${id} approved`, 'ok');
 }
 async function rejectQuote(id){
@@ -2530,7 +2531,7 @@ async function rejectQuote(id){
   await refreshQuotes();
   updateBadges();
   renderQuotes('');
-  closeModal();
+  closeModalDirect();
   toast(`Quote ${id} rejected`);
 }
 
@@ -2542,7 +2543,7 @@ async function deleteQuote(id){
   await refreshQuotes();
   updateBadges();
   renderQuotes('');
-  closeModal();
+  closeModalDirect();
   toast(`${id} deleted`);
 }
 
@@ -2591,7 +2592,7 @@ async function convertToInvoice(id){
   updateBadges();
   showPortalPage('p-invoices', null);
   toast(`Invoice ${r.data?.ref_id || ''} created from ${id}`, 'ok');
-  closeModal();
+  closeModalDirect();
 }
 
 /* ── Override: markPaid ──────────────────────────────── */
@@ -2601,7 +2602,7 @@ async function markPaid(id){
   await Promise.all([refreshInvoices(), refreshTransactions()]);
   updateBadges();
   renderInvoices('');
-  closeModal();
+  closeModalDirect();
   toast(`Invoice ${id} marked as paid`, 'ok');
 }
 
@@ -2613,7 +2614,7 @@ async function deleteInvoice(id){
   await refreshInvoices();
   updateBadges();
   renderInvoices('');
-  closeModal();
+  closeModalDirect();
   toast(`${id} deleted`);
 }
 
@@ -2694,11 +2695,13 @@ function showPortalPage(id, el) {
     'p-transactions': async()=>{ await refreshTransactions(); renderTransactions(''); },
     'p-dashboard':    async()=>{ await refreshAll(); renderDashboard(); updateBadges(); },
     'p-log-payment':  async()=>{ await refreshInvoices(); renderPayList(); },
-    'p-audit':        async()=>{ const r=await api('GET','audit.php?limit=200'); AUDIT_LOG=r.data||[]; renderAudit(); },
+    'p-audit':        async()=>{ const r=await api('GET','audit.php?limit=200'); AUDIT_LOG=(r.data||[]).map(e=>({ts:e.created_at?.slice(11,19)||'',user:e.username,role:'',action:e.action,detail:e.detail,level:'info'})); renderAudit(); },
     'p-users':        async()=>{ await refreshUsers(); renderUsers(); },
   };
   if (refreshMap[id]) refreshMap[id]();
 }
+
+</script>
 
 <!-- Back to top button -->
 <button id="back-to-top" onclick="scrollToTop()" title="Back to top"></button>

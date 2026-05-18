@@ -23,14 +23,12 @@ if ($action === 'generate_password_hashes' && $method === 'POST') {
     
     // Seed user credentials (from blackfire_aeci_seed.sql)
     $seed_users = [
-        ['username' => 'admin',   'password' => 'BlackFire2026!', 'name' => 'J. Ndlovu',  'role' => 'admin'],
-        ['username' => 'manager', 'password' => 'BlackFire2026!', 'name' => 'T. Nkosi',   'role' => 'manager'],
-        ['username' => 'calllog', 'password' => 'CallLog2026!',   'name' => 'N. Mokoena', 'role' => 'call_logger'],
-        ['username' => 'jtech',   'password' => 'JTech2026!',     'name' => 'J. Mthembu', 'role' => 'junior_tech'],
-        ['username' => 'stech',   'password' => 'STech2026!',     'name' => 'R. Khumalo', 'role' => 'senior_tech'],
-        ['username' => 'support', 'password' => 'Support2026!',   'name' => 'L. Dlamini', 'role' => 'client_support'],
-        ['username' => 'clerk',   'password' => 'Clerk2026!',     'name' => 'A. Sithole', 'role' => 'admin_clerk'],
-        ['username' => 'viewer',  'password' => 'view2026',       'name' => 'S. Baloyi',  'role' => 'viewer'],
+        ['username' => 'jubhele',   'password' => 'BlackFire2026!', 'name' => 'Jubhele Shange',   'role' => 'admin'],
+        ['username' => 'nontokozo', 'password' => 'BlackFire2026!', 'name' => 'Nontokozo',         'role' => 'manager'],
+        ['username' => 'lelo',      'password' => 'BlackFire2026!', 'name' => 'Lelo Mtolo',        'role' => 'manager'],
+        ['username' => 'farai',     'password' => 'BlackFire2026!', 'name' => 'Farai Mustefe',     'role' => 'senior_tech'],
+        ['username' => 'dan',       'password' => 'BlackFire2026!', 'name' => 'Dan Mupeta',        'role' => 'junior_tech'],
+        ['username' => 'martito',   'password' => 'BlackFire2026!', 'name' => 'Martito Mahlatsu',  'role' => 'junior_tech'],
     ];
     
     $hashes = [];
@@ -104,14 +102,12 @@ if ($action === 'export_password_sql' && $method === 'POST') {
     $usr = require_perm('security.users');
     
     $seed_users = [
-        ['username' => 'admin',   'password' => 'BlackFire2026!'],
-        ['username' => 'manager', 'password' => 'BlackFire2026!'],
-        ['username' => 'calllog', 'password' => 'CallLog2026!'],
-        ['username' => 'jtech',   'password' => 'JTech2026!'],
-        ['username' => 'stech',   'password' => 'STech2026!'],
-        ['username' => 'support', 'password' => 'Support2026!'],
-        ['username' => 'clerk',   'password' => 'Clerk2026!'],
-        ['username' => 'viewer',  'password' => 'view2026'],
+        ['username' => 'jubhele',   'password' => 'BlackFire2026!'],
+        ['username' => 'nontokozo', 'password' => 'BlackFire2026!'],
+        ['username' => 'lelo',      'password' => 'BlackFire2026!'],
+        ['username' => 'farai',     'password' => 'BlackFire2026!'],
+        ['username' => 'dan',       'password' => 'BlackFire2026!'],
+        ['username' => 'martito',   'password' => 'BlackFire2026!'],
     ];
     
     $sql_lines = [

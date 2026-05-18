@@ -53,7 +53,8 @@ function bf_session_start(): void {
         ini_set('session.use_strict_mode', '1');
         ini_set('session.cookie_samesite', 'Lax');
         ini_set('session.cookie_secure', '0');
-        ini_set('session.cookie_path', '/portal/');
+        $scriptDir = rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? '/'), '/\\');
+        ini_set('session.cookie_path', ($scriptDir ?: '') . '/');
         ini_set('session.use_cookies', '1');
         ini_set('session.use_only_cookies', '1');
         session_name('bf_portal');
