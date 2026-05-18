@@ -1,7 +1,7 @@
 <?php
 ob_start();
 /**
- * BlackFire Solutions Portal — Quotes API
+ * Umlilo Portal — Quotes API
  * GET    /api/quotes.php              → list
  * POST   /api/quotes.php              → create (with items[])
  * PUT    /api/quotes.php?id=QTE-001   → update status / approval

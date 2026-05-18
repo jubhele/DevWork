@@ -1,7 +1,7 @@
 <?php
 ob_start();
 /**
- * BlackFire Solutions Portal — Dashboard Stats API
+ * Umlilo Portal — Dashboard Stats API
  * GET /api/dashboard.php
  */
 

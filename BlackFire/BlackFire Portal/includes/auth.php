@@ -1,25 +1,25 @@
 <?php
 ob_start();
 /**
- * BlackFire Solutions Portal — Authentication & Permissions
+ * Umlilo Portal — Authentication & Permissions
  */
 
 // Permissions matrix — mirrors the JS PERMS object
 const PERMS = [
-    'callout.view'          => ['admin','manager','call_logger','junior_tech','senior_tech','client_support','admin_clerk','viewer'],
-    'callout.create'        => ['admin','manager','call_logger','client_support'],
+    'callout.view'          => ['admin','manager','call_logger','junior_tech','senior_tech','client_support','admin_clerk','viewer','client'],
+    'callout.create'        => ['admin','manager','call_logger','client_support','client'],
     'callout.update_status' => ['admin','manager','call_logger','junior_tech','senior_tech','admin_clerk'],
     'callout.assign_po'     => ['admin','manager','admin_clerk'],
     'callout.assign_tech'   => ['admin','manager','admin_clerk'],
     'callout.delete'        => ['admin','manager'],
 
-    'quote.view'            => ['admin','manager','senior_tech','client_support','admin_clerk','viewer'],
-    'quote.create'          => ['admin','manager','senior_tech'],
+    'quote.view'            => ['admin','manager','senior_tech','client_support','admin_clerk','viewer','client'],
+    'quote.create'          => ['admin','manager','senior_tech','client'],
     'quote.approve'         => ['admin','manager'],
     'quote.convert'         => ['admin','manager','admin_clerk'],
     'quote.delete'          => ['admin','manager'],
 
-    'invoice.view'          => ['admin','manager','client_support','admin_clerk','viewer'],
+    'invoice.view'          => ['admin','manager','client_support','admin_clerk','viewer','client'],
     'invoice.create'        => ['admin','manager','admin_clerk'],
     'invoice.mark_paid'     => ['admin','manager','admin_clerk'],
     'invoice.delete'        => ['admin','manager'],
@@ -28,10 +28,12 @@ const PERMS = [
     'finance.statement'     => ['admin','manager','client_support','admin_clerk'],
     'finance.income'        => ['admin','manager','admin_clerk'],
 
-    'capture.new_callout'   => ['admin','manager','call_logger','client_support'],
-    'capture.new_quote'     => ['admin','manager','senior_tech'],
+    'capture.new_callout'   => ['admin','manager','call_logger','client_support','client'],
+    'capture.new_quote'     => ['admin','manager','senior_tech','client'],
     'capture.new_invoice'   => ['admin','manager','admin_clerk'],
     'capture.log_payment'   => ['admin','manager','admin_clerk'],
+
+    'approval.send'         => ['admin','manager','call_logger','client_support'],
 
     'security.audit'        => ['admin'],
     'security.users'        => ['admin'],

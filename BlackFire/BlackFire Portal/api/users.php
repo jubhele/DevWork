@@ -1,7 +1,7 @@
 <?php
 ob_start();
 /**
- * BlackFire Solutions Portal — Users API
+ * Umlilo Portal — Users API
  * GET  /api/users.php           → list (admin only)
  * POST /api/users.php           → create
  * PUT  /api/users.php?id=N      → update

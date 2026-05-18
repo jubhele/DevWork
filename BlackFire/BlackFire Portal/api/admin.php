@@ -1,7 +1,7 @@
 <?php
 ob_start();
 /**
- * BlackFire Solutions Portal — Admin Functions API
+ * Umlilo Portal — Admin Functions API
  * POST /api/admin.php?action=generate_password_hashes
  */
 

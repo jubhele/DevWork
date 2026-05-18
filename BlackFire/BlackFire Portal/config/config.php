@@ -1,7 +1,7 @@
 <?php
 /**
- * BlackFire Solutions Portal â€” Configuration
- * PROD ENV Â· Afrihost MySQL Â· 2026-05-14 Â· v1.1
+ * Umlilo Portal — Configuration
+ * PROD ENV · Afrihost MySQL · 2026-05-14 · v1.1
  *
  * Credentials are read from environment variables.
  * Set these in cPanel > Environment Variables, or in a .env file loaded
@@ -10,13 +10,13 @@
 
 // Load secrets file stored above public_html (not web-accessible).
 // Path: ~/blackfire_secrets.php  (one level above public_html)
-// This is where BF_APP_KEY lives on the server â€” never committed to git.
+// This is where BF_APP_KEY lives on the server — never committed to git.
 $secretsFile = dirname(__DIR__, 3) . '/blackfire_secrets.php';
 if (file_exists($secretsFile)) {
     require_once $secretsFile;
 }
 
-// Load .env file if present (no Composer dependency â€” plain key=value parser)
+// Load .env file if present (no Composer dependency — plain key=value parser)
 $envFile = __DIR__ . '/../.env';
 if (file_exists($envFile)) {
     foreach (file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
@@ -28,7 +28,7 @@ if (file_exists($envFile)) {
 
 /**
  * Decrypt a value encrypted by install/encrypt_config.php.
- * Requires BF_APP_KEY env var (set in cPanel Environment Variables â€” never in a file).
+ * Requires BF_APP_KEY env var (set in cPanel Environment Variables — never in a file).
  * Format: base64( IV[16 bytes] || AES-256-CBC ciphertext )
  * Falls back to plaintext BF_DB_PASS for local development.
  */
@@ -42,7 +42,7 @@ function bf_decrypt(string $encoded): string {
             error_log('BlackFire: Using plaintext BF_DB_PASS (local dev mode)');
             return $plainPass;
         }
-        error_log('BlackFire: BF_APP_KEY is not set and BF_DB_PASS is missing â€” decryption failed');
+        error_log('BlackFire: BF_APP_KEY is not set and BF_DB_PASS is missing — decryption failed');
         return '';
     }
     $raw  = base64_decode($encoded);
@@ -58,13 +58,13 @@ function bf_decrypt(string $encoded): string {
 }
 
 return [
-    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+    // �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
     // DATABASE CONNECTION
-    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+    // �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
     'db_host'    => getenv('BF_DB_HOST') ?: 'localhost',
     'db_port'    => (int)(getenv('BF_DB_PORT') ?: 3306),
     'db_name'    => getenv('BF_DB_NAME') ?: 'blackfm6w9f9_portal',
-    'db_user'    => getenv('BF_DB_USER') ?: 'blackfm6w9f9_izilo',
+    'db_user'    => getenv('BF_DB_USER') ?: 'blackfm6w9f9_umlilo_admin',
     'db_pass'    => bf_decrypt(getenv('BF_DB_PASS_ENC')),
     'db_charset' => 'utf8mb4',
     'db_options' => [
@@ -73,18 +73,18 @@ return [
         PDO::ATTR_EMULATE_PREPARES   => false,
     ],
 
-    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+    // �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
     // APPLICATION SETTINGS
-    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-    'app_name'     => 'BlackFire Solutions Portal',
+    // �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
+    'app_name'     => 'Umlilo Portal',
     'app_version'  => '1.1',
     'app_env'      => 'production',
     'base_url'     => 'https://blackfiresolutions.co.za/portal',
     'api_base'     => 'https://blackfiresolutions.co.za/portal/api',
 
-    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+    // �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
     // SECURITY & SESSION
-    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+    // �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
     'timezone'          => 'Africa/Johannesburg',
     'session_ttl'       => 3600,                  // 1 hour
     'session_name'      => 'BLKFR_SESSION',
@@ -95,9 +95,9 @@ return [
     'require_https'     => true,
     'secure_cookies'    => true,
 
-    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+    // �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
     // EMAIL (for notifications & contact form)
-    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+    // �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
     'mail_from'     => 'info@blackfiresolutions.co.za',
     'mail_from_name' => 'BlackFire Solutions',
     'mail_host'     => 'mail.blackfiresolutions.co.za',
@@ -107,9 +107,9 @@ return [
     'mail_encryption' => 'tls',
     'notification_email' => 'jubhele@astuteinsights.co.za',
 
-    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+    // �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
     // BUSINESS CONFIG
-    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+    // �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
     'company_name'   => 'BlackFire Solutions',
     'company_phone'  => '+27 (0) 11 234 5678',
     'company_email'  => 'info@blackfiresolutions.co.za',
@@ -121,16 +121,16 @@ return [
     'default_currency' => 'ZAR',
     'tax_rate'       => 0.15,                    // 15% VAT
 
-    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+    // �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
     // AUDIT & LOGGING
-    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+    // �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
     'log_file'      => __DIR__ . '/../logs/app.log',
     'audit_events'  => true,
     'log_api_calls' => true,
 
-    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+    // �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
     // FEATURE FLAGS
-    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+    // �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
     'feature_invoices'    => true,
     'feature_quotes'      => true,
     'feature_callouts'    => true,
@@ -139,9 +139,9 @@ return [
     'feature_users'       => true,
     'feature_integration' => false,  // Third-party integrations
 
-    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+    // �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
     // CLIENT: AECI CHEMPARK
-    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+    // �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
     'aeci_site'     => 'Chempark, Modderfontein, Johannesburg',
     'aeci_contact'  => 'Site Manager',
     'aeci_email'    => 'admin@chempark.co.za',

@@ -1,7 +1,7 @@
 <?php
 ob_start();
 /**
- * BlackFire Solutions Portal — Invoices API
+ * Umlilo Portal — Invoices API
  * GET    /api/invoices.php              → list
  * POST   /api/invoices.php              → create
  * PUT    /api/invoices.php?id=INV-001   → update / mark paid

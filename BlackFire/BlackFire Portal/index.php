@@ -1,7 +1,7 @@
 <?php
 header('Content-Type: text/html; charset=UTF-8');
 /**
- * BlackFire Solutions Portal — Entry Point
+ * Umlilo Portal — Entry Point
  * Serves the portal shell. Session check happens client-side via API.
  */
 

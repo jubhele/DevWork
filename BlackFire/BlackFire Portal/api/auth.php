@@ -1,7 +1,7 @@
 <?php
 ob_start();
 /**
- * BlackFire Solutions Portal — Auth API
+ * Umlilo Portal — Auth API
  * POST /api/auth.php?action=login   { username, password }
  * POST /api/auth.php?action=logout
  * GET  /api/auth.php?action=me

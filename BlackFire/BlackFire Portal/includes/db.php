@@ -1,7 +1,7 @@
 <?php
 ob_start();
 /**
- * BlackFire Solutions Portal — Database Connection
+ * Umlilo Portal — Database Connection
  * PDO singleton with UTF-8 MB4
  */
 

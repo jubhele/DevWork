@@ -1,7 +1,7 @@
 <?php
 ob_start();
 /**
- * BlackFire Solutions Portal — Audit Log API
+ * Umlilo Portal — Audit Log API
  * GET /api/audit.php
  */
 

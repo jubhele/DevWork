@@ -1,7 +1,7 @@
 <?php
 ob_start();
 /**
- * BlackFire Solutions Portal — Callouts API
+ * Umlilo Portal — Callouts API
  * GET    /api/callouts.php              → list
  * POST   /api/callouts.php              → create
  * PUT    /api/callouts.php?id=JOB-001   → update

@@ -49,7 +49,9 @@
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
       "Bash(git push *)",
-      "Bash(ssh -i ~/.ssh/blackfire_deploy -o StrictHostKeyChecking=no -o ConnectTimeout=10 blackfm6w9f9@ibis.aserv.co.za \"echo 'Connected as $\\(whoami\\)'\")"
+      "Bash(ssh -i ~/.ssh/blackfire_deploy -o StrictHostKeyChecking=no -o ConnectTimeout=10 blackfm6w9f9@ibis.aserv.co.za \"echo 'Connected as $\\(whoami\\)'\")",
+      "PowerShell(Get-ChildItem \"G:\\\\My Drive\\\\JS\\\\Astute Insights\\\\BlackFire\\\\Admin Finance\\\\AECI\" | ForEach-Object { Write-Host $_.Name })",
+      "PowerShell(python \"C:\\\\DevWork\\\\temp\\\\fix_portal_encoding.py\")"
     ]
   }
 }

@@ -1,6 +1,6 @@
 <?php
 /**
- * BlackFire Solutions Portal — Response Helpers
+ * Umlilo Portal — Response Helpers
  */
 
 /**

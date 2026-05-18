@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS `bf_users` (
   `username`      VARCHAR(50)      NOT NULL UNIQUE,
   `password_hash` VARCHAR(255)     NOT NULL,
   `name`          VARCHAR(100)     NOT NULL,
-  `role`          ENUM('admin','manager','call_logger','junior_tech','senior_tech','client_support','admin_clerk','viewer') NOT NULL DEFAULT 'viewer',
+  `role`          ENUM('admin','manager','call_logger','junior_tech','senior_tech','client_support','admin_clerk','viewer','client') NOT NULL DEFAULT 'viewer',
   `title`         VARCHAR(100)     NOT NULL DEFAULT '',
   `active`        TINYINT(1)       NOT NULL DEFAULT 1,
   `last_login`    DATETIME         NULL,
@@ -133,6 +133,36 @@ CREATE TABLE IF NOT EXISTS `bf_transactions` (
   `created_at`  DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_date` (`trans_date`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ── Role Permissions ───────────────────────────────────
+CREATE TABLE IF NOT EXISTS `bf_role_permissions` (
+  `id`         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `role`       VARCHAR(30)  NOT NULL,
+  `permission` VARCHAR(60)  NOT NULL,
+  UNIQUE KEY `uq_role_perm` (`role`, `permission`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ── Service Categories ──────────────────────────────────
+CREATE TABLE IF NOT EXISTS `bf_service_categories` (
+  `id`    INT UNSIGNED     NOT NULL AUTO_INCREMENT,
+  `name`  VARCHAR(80)      NOT NULL,
+  `icon`  VARCHAR(10)      NOT NULL,
+  `count` TINYINT UNSIGNED NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_cat_name` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ── Services ────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `bf_services` (
+  `id`          INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `name`        VARCHAR(120) NOT NULL,
+  `category_id` INT UNSIGNED NOT NULL,
+  `active`      TINYINT(1)   NOT NULL DEFAULT 1,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_svc_name` (`name`),
+  KEY `idx_category` (`category_id`),
+  CONSTRAINT `fk_svc_cat` FOREIGN KEY (`category_id`) REFERENCES `bf_service_categories`(`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ── Payments ───────────────────────────────────────────

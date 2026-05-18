@@ -1,7 +1,7 @@
 <?php
 ob_start();
 /**
- * BlackFire Solutions Portal — Transactions API
+ * Umlilo Portal — Transactions API
  * GET  /api/transactions.php  → list
  * POST /api/transactions.php  → create
  */

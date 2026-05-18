@@ -1,4 +1,4 @@
-# BlackFire Solutions Portal — PHP/MySQL Installation Guide
+# Umlilo Portal — PHP/MySQL Installation Guide
 **Version 1.0 · Built for Afrihost cPanel Linux Hosting**
 
 ---
@@ -210,5 +210,5 @@ The PHP/MySQL version is a backend upgrade of the v9 portal. All features are id
 
 **BlackFire Solutions — Internal IT**
 Portal Version: 1.0 · Build Date: 2026
-Spec: IZILO-V-001 · BLKFR
+Spec: UMLILO-V-001 · BLKFR
 *Fire, taught to behave.*

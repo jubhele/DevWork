@@ -16,7 +16,7 @@ DATABASE CREDENTIALS
 
 Host: localhost (Afrihost)
 Database: blackfm6w9f9_portal
-User: blackfm6w9f9_izilo
+User: blackfm6w9f9_umlilo
 Password: stored encrypted — see install/encrypt_config.php to generate/rotate
 
 QUICK DEPLOYMENT
@@ -68,7 +68,7 @@ BEFORE (broken):
 
 AFTER (fixed + encrypted):
   'db_name' => 'blackfm6w9f9_portal'         ✅
-  'db_user' => 'blackfm6w9f9_izilo'          ✅
+  'db_user' => 'blackfm6w9f9_umlilo'          ✅
   'db_pass' => bf_decrypt(getenv('...'))     ✅ (AES-256-CBC, key in cPanel)
 
 RESULT: All buttons now work — contact form submits, login validates, 
@@ -97,7 +97,7 @@ Step 3: Set Permissions
 Step 4: Initialize Database
   - Navigate to: https://blackfiresolutions.co.za/portal/install/
   - Follow wizard → Create tables
-  - OR via SSH: mysql -u blackfm6w9f9_izilo -p blackfm6w9f9_portal < install/schema.sql
+  - OR via SSH: mysql -u blackfm6w9f9_umlilo -p blackfm6w9f9_portal < install/schema.sql
 
 Step 5: Create Admin User
   - Via installer (Step 4) OR via SSH (replace YOUR_PORTAL_PASSWORD with your chosen password):
