@@ -64,7 +64,7 @@ return [
     'db_host'    => getenv('BF_DB_HOST') ?: 'localhost',
     'db_port'    => (int)(getenv('BF_DB_PORT') ?: 3306),
     'db_name'    => getenv('BF_DB_NAME') ?: 'blackfm6w9f9_portal',
-    'db_user'    => getenv('BF_DB_USER') ?: 'blackfm6w9f9_umlilo_admin',
+    'db_user'    => getenv('BF_DB_USER') ?: 'blackfm6w9f9_umlilo_admin', // fallback for local dev only
     'db_pass'    => bf_decrypt(getenv('BF_DB_PASS_ENC')),
     'db_charset' => 'utf8mb4',
     'db_options' => [
