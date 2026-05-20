@@ -84,7 +84,7 @@ a{color:inherit;text-decoration:none}
 [data-theme="light"] .bf-logo-light { display:block }
 .pub-brand-mark { display:none }  /* hide old SVG mark */
 
-body::before{content:'';position:fixed;inset:0;background-image:url('./blackfire_logo_transparent.png'),linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:auto,48px 48px,48px 48px;background-position:center,0 0,0 0;background-attachment:fixed;background-repeat:no-repeat;opacity:0.08;pointer-events:none;z-index:0}
+body::before{content:'';position:fixed;inset:0;background-image:url('./blackfire_logo_transparent.png'),linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:280px auto,48px 48px,48px 48px;background-position:center,0 0,0 0;background-attachment:fixed;background-repeat:no-repeat;opacity:0.08;pointer-events:none;z-index:0}
 
 /* ═══════════════════════════════════════════════════════
    STATE VISIBILITY
@@ -210,7 +210,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url('./blackfire
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 
 /* ── Categories Section ── */
-.pub-section{padding:72px clamp(16px,6vw,80px);max-width:1280px;margin:0 auto}
+.pub-section{padding:72px clamp(16px,6vw,80px);max-width:1280px;margin:0 auto;background:var(--bg)}
 .section-eyebrow{
   font-family:'IBM Plex Mono',monospace;font-size:9px;
   letter-spacing:3px;color:var(--amber);text-transform:uppercase;
@@ -628,12 +628,12 @@ tr:hover td{background:var(--row-hover)}
     </div>
 
     <!-- CTA -->
-    <div style="text-align:center;padding:72px clamp(16px,6vw,80px)">
-      <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--amber);letter-spacing:3px;text-transform:uppercase;margin-bottom:12px">Protect What Matters</div>
-      <h2 style="font-family:'Big Shoulders Display',sans-serif;font-size:clamp(32px,5vw,56px);font-weight:900;color:var(--text);margin-bottom:16px">Ready to secure your site?</h2>
-      <p style="color:var(--muted);margin-bottom:28px;font-size:14px">Get a tailored security assessment and quote within 24 hours.</p>
+    <div style="text-align:center;padding:72px clamp(16px,6vw,80px);display:flex;flex-direction:column;align-items:center;gap:20px">
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--amber);letter-spacing:3px;text-transform:uppercase">Protect What Matters</div>
+      <h2 style="font-family:'Big Shoulders Display',sans-serif;font-size:clamp(32px,5vw,56px);font-weight:900;color:var(--text);margin:0">Ready to secure your site?</h2>
+      <p style="color:var(--muted);font-size:14px;max-width:560px;margin:0">Get a tailored security assessment and quote within 24 hours.</p>
       <button class="btn-primary-lg" onclick="pubNav('contact')">Get a Free Assessment</button>
-      <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ember);letter-spacing:2px;margin-top:32px">Fire, taught to behave.</div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ember);letter-spacing:2px">Fire, taught to behave.</div>
     </div>
 
     <!-- Footer -->

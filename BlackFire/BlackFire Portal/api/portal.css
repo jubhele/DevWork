@@ -59,7 +59,7 @@ a{color:inherit;text-decoration:none}
 [data-theme="light"] .bf-logo-light { display:block }
 .pub-brand-mark { display:none }  /* hide old SVG mark */
 
-body::before{content:'';position:fixed;inset:0;background-image:url('./blackfire_logo_transparent.png'),linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:auto,48px 48px,48px 48px;background-position:center,0 0,0 0;background-attachment:fixed;background-repeat:no-repeat;opacity:0.08;pointer-events:none;z-index:0}
+body::before{content:'';position:fixed;inset:0;background-image:url('./blackfire_logo_transparent.png'),linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:280px auto,48px 48px,48px 48px;background-position:center,0 0,0 0;background-attachment:fixed;background-repeat:no-repeat;opacity:0.08;pointer-events:none;z-index:0}
 
 /* ═══════════════════════════════════════════════════════
    STATE VISIBILITY
@@ -185,7 +185,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url('./blackfire
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 
 /* ── Categories Section ── */
-.pub-section{padding:72px clamp(16px,6vw,80px);max-width:1280px;margin:0 auto}
+.pub-section{padding:72px clamp(16px,6vw,80px);max-width:1280px;margin:0 auto;background:var(--bg)}
 .section-eyebrow{
   font-family:'IBM Plex Mono',monospace;font-size:9px;
   letter-spacing:3px;color:var(--amber);text-transform:uppercase;

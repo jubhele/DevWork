@@ -53,13 +53,13 @@ a{color:inherit;text-decoration:none}
 ::-webkit-scrollbar-track{background:var(--scrolltrack)}
 ::-webkit-scrollbar-thumb{background:var(--scrollthumb)}
 /* ── LOGO THEME SWAP ── */
-.bf-logo-dark { display:block;width:auto;object-fit:contain;object-position:left center }
-.bf-logo-light { display:none;width:auto;object-fit:contain;object-position:left center }
+.bf-logo-dark { display:block;width:auto;max-height:80px;object-fit:contain;object-position:left center }
+.bf-logo-light { display:none;width:auto;max-height:80px;object-fit:contain;object-position:left center }
 [data-theme="light"] .bf-logo-dark { display:none }
 [data-theme="light"] .bf-logo-light { display:block }
 .pub-brand-mark { display:none }
 
-body::before{content:'';position:fixed;inset:0;background-image:url('./blackfire_logo_transparent.png'),linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:auto,48px 48px,48px 48px;background-position:center,0 0,0 0;background-attachment:fixed;background-repeat:no-repeat;opacity:0.08;pointer-events:none;z-index:0}
+body::before{content:'';position:fixed;inset:0;background-image:url('./blackfire_logo_transparent.png'),linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:280px auto,48px 48px,48px 48px;background-position:center,0 0,0 0;background-attachment:fixed;background-repeat:no-repeat;opacity:0.08;pointer-events:none;z-index:0}
 
 /* ═══════════════════════════════════════════════════════
    STATE VISIBILITY
@@ -109,6 +109,9 @@ body::before{content:'';position:fixed;inset:0;background-image:url('./blackfire
 }
 .theme-btn:hover{border-color:var(--accent);color:var(--accent)}
 .theme-btn svg{width:12px;height:12px}
+/* compact icon style when theme-btn is inside the vertical nav rail */
+#pnav-right .theme-btn{padding:8px;border:none;background:transparent;border-radius:2px;font-size:0;gap:0}
+#pnav-right .theme-btn svg{width:15px;height:15px}
 .theme-btn .sun{display:block}.theme-btn .moon{display:none}
 [data-theme="light"] .theme-btn .sun{display:none}
 [data-theme="light"] .theme-btn .moon{display:block}
@@ -185,7 +188,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url('./blackfire
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 
 /* ── Categories Section ── */
-.pub-section{padding:72px clamp(16px,6vw,80px);max-width:1280px;margin:0 auto}
+.pub-section{padding:72px clamp(16px,6vw,80px);max-width:1280px;margin:0 auto;background:var(--bg)}
 .section-eyebrow{
   font-family:'IBM Plex Mono',monospace;font-size:9px;
   letter-spacing:3px;color:var(--amber);text-transform:uppercase;
@@ -336,38 +339,41 @@ body::before{content:'';position:fixed;inset:0;background-image:url('./blackfire
 ═══════════════════════════════════════════════════════ */
 #portal-shell{min-height:100vh;position:relative;z-index:1}
 
-/* ── Portal Nav Bar (horizontal, below pub-nav) ── */
+/* ── Portal Nav Rail (vertical, fixed left side) ── */
 #pnav-bar{
-  display:none;position:fixed;top:60px;left:0;right:0;height:48px;
-  background:var(--surface);border-bottom:1px solid var(--border);
-  align-items:center;justify-content:space-between;z-index:99;
+  display:none;position:fixed;top:60px;left:0;bottom:0;width:80px;
+  background:var(--surface);border-right:1px solid var(--border);
+  flex-direction:column;align-items:stretch;justify-content:flex-start;
+  z-index:99;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;
   transition:background .25s,border-color .25s;
 }
+#pnav-bar::-webkit-scrollbar{display:none}
 [data-state="portal"] #pnav-bar{display:flex}
-#pnav-links{display:flex;align-items:center;height:100%;overflow-x:auto;scrollbar-width:none;flex:1;min-width:0}
+#pnav-links{display:flex;flex-direction:column;align-items:stretch;flex:1;overflow-y:auto;scrollbar-width:none}
 #pnav-links::-webkit-scrollbar{display:none}
-.pnav-sep{width:1px;height:18px;background:var(--border);flex-shrink:0;margin:0 2px}
+.pnav-sep{width:52px;height:1px;background:var(--border);flex-shrink:0;margin:4px 14px}
 .pnitem{
-  display:flex;align-items:center;gap:6px;padding:0 12px;height:100%;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;padding:11px 4px;height:auto;width:100%;
   cursor:pointer;color:var(--muted);font-family:'IBM Plex Mono',monospace;
-  font-size:9px;letter-spacing:1px;text-transform:uppercase;
-  border-bottom:2px solid transparent;transition:all .15s;
-  white-space:nowrap;flex-shrink:0;-webkit-tap-highlight-color:transparent;
+  font-size:7px;letter-spacing:.5px;text-transform:uppercase;text-align:center;
+  border-left:2px solid transparent;border-bottom:none;transition:all .15s;
+  flex-shrink:0;-webkit-tap-highlight-color:transparent;overflow:hidden;
 }
-.pnitem:hover{color:var(--text);border-bottom-color:var(--amber)}
-.pnitem.active{color:var(--accent);border-bottom-color:var(--accent)}
-.pnitem svg{width:13px;height:13px;flex-shrink:0;opacity:.6}
+.pnitem:hover{color:var(--text);border-left-color:var(--amber);background:var(--surface2)}
+.pnitem.active{color:var(--accent);border-left-color:var(--accent);background:var(--amb-glow)}
+.pnitem svg{width:16px;height:16px;flex-shrink:0;opacity:.6}
 .pnitem.active svg,.pnitem:hover svg{opacity:1}
-.pnbadge{background:var(--accent);color:var(--bg);font-family:'IBM Plex Mono',monospace;font-size:7px;padding:1px 5px;border-radius:2px;min-width:16px;text-align:center}
-#pnav-right{display:flex;align-items:center;gap:10px;padding:0 16px;flex-shrink:0;border-left:1px solid var(--border)}
-#pnav-user{font-size:11px;color:var(--text2);font-family:'IBM Plex Mono',monospace;letter-spacing:.3px;white-space:nowrap}
+.pnbadge{background:var(--accent);color:var(--bg);font-family:'IBM Plex Mono',monospace;font-size:6px;padding:1px 4px;border-radius:2px;min-width:14px;text-align:center}
+#pnav-right{display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 0;flex-shrink:0;border-top:1px solid var(--border)}
+#pnav-user{display:none}
 #pnav-signout{
-  padding:5px 12px;border:1px solid var(--border);background:var(--surface2);
-  color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:9px;
-  letter-spacing:.5px;cursor:pointer;border-radius:2px;transition:all .15s;
-  display:flex;align-items:center;gap:5px;
+  padding:8px;border:none;background:transparent;
+  color:var(--muted);cursor:pointer;border-radius:2px;transition:all .15s;
+  display:flex;align-items:center;justify-content:center;font-size:0;letter-spacing:0;
 }
-#pnav-signout:hover{border-color:var(--accent);color:var(--accent)}
+.signout-icon{width:15px;height:15px}
+#pnav-signout:hover{color:var(--accent);background:var(--surface2)}
 
 /* ── Portal Main ── */
 #pmain{padding:28px 32px;min-height:100vh;max-width:1400px;margin:0 auto}
@@ -513,15 +519,20 @@ tr:hover td{background:var(--row-hover)}
 }
 
 /* Responsive portal */
-[data-state="portal"] #pmain{padding-top:124px}
+[data-state="portal"] #pmain{padding-top:80px;padding-left:112px}
 @media(max-width:1024px){
-  #pnav-user{display:none}
-  #pnav-right{padding:0 10px;gap:8px}
-  [data-state="portal"] #pmain{padding:112px 16px 24px}
+  [data-state="portal"] #pmain{padding:80px 16px 24px 96px}
   .kgrid{grid-template-columns:1fr 1fr}
   .twocol{grid-template-columns:1fr}
 }
-@media(max-width:640px){.kgrid{grid-template-columns:1fr 1fr}.fgrid{grid-template-columns:1fr}.fgrid.three{grid-template-columns:1fr}}
+@media(max-width:640px){
+  #pnav-bar{width:64px}
+  .pnitem{font-size:6px;padding:10px 2px}
+  [data-state="portal"] #pmain{padding:80px 12px 24px 76px}
+  .kgrid{grid-template-columns:1fr 1fr}
+  .fgrid{grid-template-columns:1fr}
+  .fgrid.three{grid-template-columns:1fr}
+}
 
 /* ═══════════════════════════════════════════════════════
    ■ EXTRACTED INLINE STYLES
@@ -545,8 +556,11 @@ tr:hover td{background:var(--row-hover)}
 .site-tagline{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ember);letter-spacing:2px;margin-top:32px}
 
 /* ── Public site sections ── */
-.home-cta{text-align:center;padding:72px clamp(16px,6vw,80px)}
-.svc-cta{text-align:center;padding:48px 20px;border-top:1px solid var(--border)}
+.home-cta{text-align:center;padding:72px clamp(16px,6vw,80px);background:var(--bg);display:flex;flex-direction:column;align-items:center;gap:20px}
+.home-cta .h2-display{margin:0}
+.home-cta .text-intro{margin:0;max-width:560px}
+.home-cta .site-tagline{margin-top:12px}
+.svc-cta{text-align:center;padding:48px 20px;border-top:1px solid var(--border);background:var(--bg)}
 #pub-contact > div{padding-top:96px}
 
 /* ── Contact ── */

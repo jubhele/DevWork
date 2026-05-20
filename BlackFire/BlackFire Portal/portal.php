@@ -32,7 +32,7 @@ $base = rtrim($cfg['base_url'] ?? '', '/');
 <!-- Public Nav — always visible across all states -->
 <nav id="pub-nav">
   <div class="pub-brand" onclick="pubNav('home')">
-    <img src="./blackfire_logo_transparent.png" class="bf-logo-dark"><img src="./blackfire_logo_transparent.png" class="bf-logo-light">
+    <img src="./blackfire_logo_transparent.png" class="bf-logo-dark" height="60"><img src="./blackfire_logo_transparent.png" class="bf-logo-light" height="60">
   </div>
   <div class="pub-nav-links">
     <div class="pub-nav-link active" id="pnl-home" onclick="pubNav('home')">Home</div>
@@ -114,7 +114,7 @@ $base = rtrim($cfg['base_url'] ?? '', '/');
     <div class="pub-footer">
       <div class="pub-footer-grid">
         <div class="footer-brand-block">
-          <img src="./blackfire_logo_transparent.png" class="bf-logo-dark"><img src="./blackfire_logo_transparent.png" class="bf-logo-light">
+          <img src="./blackfire_logo_transparent.png" class="bf-logo-dark" height="62"><img src="./blackfire_logo_transparent.png" class="bf-logo-light" height="62">
           <div class="footer-tagline">Fire, taught to behave.</div>
           <p class="footer-desc">Professional security services across Gauteng. PSIRA registered. Fully insured. 24/7 armed response, CCTV, access control and integrated security solutions.</p>
         </div>
@@ -159,6 +159,36 @@ $base = rtrim($cfg['base_url'] ?? '', '/');
       <p class="text-intro">Need a custom solution? Let's talk.</p>
       <button class="btn-primary-lg" onclick="pubNav('contact')">Request a Quote</button>
     </div>
+    <!-- Footer -->
+    <div class="pub-footer">
+      <div class="pub-footer-grid">
+        <div class="footer-brand-block">
+          <img src="./blackfire_logo_transparent.png" class="bf-logo-dark" height="62"><img src="./blackfire_logo_transparent.png" class="bf-logo-light" height="62">
+          <div class="footer-tagline">Fire, taught to behave.</div>
+          <p class="footer-desc">Professional security services across Gauteng. PSIRA registered. Fully insured. 24/7 armed response, CCTV, access control and integrated security solutions.</p>
+        </div>
+        <div>
+          <div class="footer-col-title">Services</div>
+          <div class="footer-link" onclick="pubNav('services')">Armed Response</div>
+          <div class="footer-link" onclick="pubNav('services')">CCTV &amp; Surveillance</div>
+          <div class="footer-link" onclick="pubNav('services')">Access Control</div>
+          <div class="footer-link" onclick="pubNav('services')">Guard Services</div>
+          <div class="footer-link" onclick="pubNav('services')">Electronic Security</div>
+        </div>
+        <div>
+          <div class="footer-col-title">Contact</div>
+          <div class="footer-link">+27 68 912 6581</div>
+          <div class="footer-link">info@blackfiresolutions.co.za</div>
+          <div class="footer-link">Johannesburg &middot; Sandton &middot; Gauteng</div>
+          <div class="footer-col-title mt2">Portal</div>
+          <div class="footer-link" data-action="goLogin">Umlilo Portal &rarr;</div>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <div class="footer-copy">(C) 2026 BlackFire Solutions (Pty) Ltd &middot; PSIRA Registered &middot; All Rights Reserved</div>
+        <div class="footer-copy">BLKFR &middot; Thermal Geometry System</div>
+      </div>
+    </div>
   </div><!-- /pub-services -->
 
   <!-- ── CONTACT ── -->
@@ -202,6 +232,36 @@ $base = rtrim($cfg['base_url'] ?? '', '/');
         </div>
       </div>
     </div>
+    <!-- Footer -->
+    <div class="pub-footer">
+      <div class="pub-footer-grid">
+        <div class="footer-brand-block">
+          <img src="./blackfire_logo_transparent.png" class="bf-logo-dark" height="62"><img src="./blackfire_logo_transparent.png" class="bf-logo-light" height="62">
+          <div class="footer-tagline">Fire, taught to behave.</div>
+          <p class="footer-desc">Professional security services across Gauteng. PSIRA registered. Fully insured. 24/7 armed response, CCTV, access control and integrated security solutions.</p>
+        </div>
+        <div>
+          <div class="footer-col-title">Services</div>
+          <div class="footer-link" onclick="pubNav('services')">Armed Response</div>
+          <div class="footer-link" onclick="pubNav('services')">CCTV &amp; Surveillance</div>
+          <div class="footer-link" onclick="pubNav('services')">Access Control</div>
+          <div class="footer-link" onclick="pubNav('services')">Guard Services</div>
+          <div class="footer-link" onclick="pubNav('services')">Electronic Security</div>
+        </div>
+        <div>
+          <div class="footer-col-title">Contact</div>
+          <div class="footer-link">+27 68 912 6581</div>
+          <div class="footer-link">info@blackfiresolutions.co.za</div>
+          <div class="footer-link">Johannesburg &middot; Sandton &middot; Gauteng</div>
+          <div class="footer-col-title mt2">Portal</div>
+          <div class="footer-link" data-action="goLogin">Umlilo Portal &rarr;</div>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <div class="footer-copy">(C) 2026 BlackFire Solutions (Pty) Ltd &middot; PSIRA Registered &middot; All Rights Reserved</div>
+        <div class="footer-copy">BLKFR &middot; Thermal Geometry System</div>
+      </div>
+    </div>
   </div><!-- /pub-contact -->
 
 </div><!-- /pub-site -->
@@ -214,7 +274,7 @@ $base = rtrim($cfg['base_url'] ?? '', '/');
   <div class="login-card" id="login-panel">
     <div class="login-header">
       <div class="login-mark" data-action="goPublic" title="Back to home">
-        <img src="./blackfire_logo_transparent.png" class="bf-logo-dark"><img src="./blackfire_logo_transparent.png" class="bf-logo-light">
+        <img src="./blackfire_logo_transparent.png" class="bf-logo-dark" height="74"><img src="./blackfire_logo_transparent.png" class="bf-logo-light" height="74">
       </div>
       <div class="login-title">BLACKFIRE SOLUTIONS</div>
       <div class="login-sub">SECURE ACCESS</div>
@@ -245,7 +305,7 @@ $base = rtrim($cfg['base_url'] ?? '', '/');
   <div class="login-card" id="forgot-panel" style="display:none">
     <div class="login-header">
       <div class="login-mark" data-action="goPublic" title="Back to home">
-        <img src="./blackfire_logo_transparent.png" class="bf-logo-dark"><img src="./blackfire_logo_transparent.png" class="bf-logo-light">
+        <img src="./blackfire_logo_transparent.png" class="bf-logo-dark" height="74"><img src="./blackfire_logo_transparent.png" class="bf-logo-light" height="74">
       </div>
       <div class="login-title">RESET PASSWORD</div>
       <div class="login-sub">ENTER YOUR USERNAME</div>
@@ -266,7 +326,7 @@ $base = rtrim($cfg['base_url'] ?? '', '/');
   <div class="login-card" id="newpass-panel" style="display:none">
     <div class="login-header">
       <div class="login-mark" data-action="goPublic" title="Back to home">
-        <img src="./blackfire_logo_transparent.png" class="bf-logo-dark"><img src="./blackfire_logo_transparent.png" class="bf-logo-light">
+        <img src="./blackfire_logo_transparent.png" class="bf-logo-dark" height="74"><img src="./blackfire_logo_transparent.png" class="bf-logo-light" height="74">
       </div>
       <div class="login-title">NEW PASSWORD</div>
       <div class="login-sub">CHOOSE A NEW PASSWORD</div>
