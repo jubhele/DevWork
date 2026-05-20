@@ -1,44 +1,141 @@
 # BlackFire Solutions Portal — Root .htaccess
-# Upload this file to: /public_html/portal/
+# Upload this file to: /public_html/
 # Rename it to: .htaccess (remove the .txt extension)
 
+# ── Disable directory listing ──
 Options -Indexes
 Options -MultiViews
 
-# ── Protect config, env, and sensitive files from direct web access ──
+# ══════════════════════════════════════════════════════
+# BLOCK SENSITIVE FILES FROM WEB ACCESS
+# ══════════════════════════════════════════════════════
+
 <Files "config.php">
     Order allow,deny
     Deny from all
 </Files>
 
-<FilesMatch "^\.env(\.example)?$">
+<Files "test_connection.php">
+    Order allow,deny
+    Deny from all
+</Files>
+
+<FilesMatch "^\.env(\.example|\.backup.*)?$">
     Order allow,deny
     Deny from all
 </FilesMatch>
 
-<FilesMatch "\.(sql|log|md|txt|json|bak)$">
+<FilesMatch "\.(sql|log|md|txt|json|bak|env|ini|sh|key)$">
     Order allow,deny
     Deny from all
 </FilesMatch>
 
-# ── PHP error handling ──
-php_flag display_errors Off
-php_flag log_errors On
-
-# ── Security headers ──
-<IfModule mod_headers.c>
-    Header always set X-Content-Type-Options "nosniff"
-    Header always set X-Frame-Options "SAMEORIGIN"
-    Header always set Referrer-Policy "same-origin"
+# Block _backups folder entirely
+<IfModule mod_rewrite.c>
+    RewriteRule ^_backups/ - [L,F]
 </IfModule>
 
-# ── Rewrite engine ──
+# Block direct access to uploads/attachments — served only through api/files.php
+<IfModule mod_rewrite.c>
+    RewriteRule ^uploads/attachments/ - [L,F]
+</IfModule>
+
+# ══════════════════════════════════════════════════════
+# PHP HARDENING
+# ══════════════════════════════════════════════════════
+php_flag display_errors Off
+php_flag log_errors On
+php_flag expose_php Off
+
+# ══════════════════════════════════════════════════════
+# SECURITY HEADERS
+# ══════════════════════════════════════════════════════
+<IfModule mod_headers.c>
+    # Prevent MIME type sniffing
+    Header always set X-Content-Type-Options "nosniff"
+
+    # Prevent clickjacking
+    Header always set X-Frame-Options "DENY"
+
+    # Stop referrer leakage
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+
+    # Force HTTPS for 1 year (only enable once site is fully on HTTPS)
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+
+    # Disable browser features that aren't needed
+    Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+
+    # Basic XSS protection for older browsers
+    Header always set X-XSS-Protection "1; mode=block"
+
+    # Remove server signature
+    Header unset Server
+    Header unset X-Powered-By
+</IfModule>
+
+# ══════════════════════════════════════════════════════
+# BLOCK KNOWN BAD BOTS & SCANNERS
+# ══════════════════════════════════════════════════════
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    RewriteBase /portal/
 
-    # Block direct access to includes/
+    # Block empty user agents (most bots/scripts)
+    RewriteCond %{HTTP_USER_AGENT} ^-?$ [OR]
+    RewriteCond %{HTTP_USER_AGENT} ^$ [OR]
+
+    # Block known vulnerability scanners and exploit tools
+    RewriteCond %{HTTP_USER_AGENT} (sqlmap|nikto|nmap|masscan|zgrab|dirbuster|gobuster|wfuzz|nuclei|acunetix|nessus|openvas|burpsuite|havij|hydra|metasploit) [NC,OR]
+
+    # Block known bad bots
+    RewriteCond %{HTTP_USER_AGENT} (SemrushBot|AhrefsBot|MJ12bot|DotBot|BLEXBot|DataForSeoBot|PetalBot|serpstatbot) [NC]
+
+    RewriteRule .* - [F,L]
+</IfModule>
+
+# ══════════════════════════════════════════════════════
+# BLOCK COMMON ATTACK PATTERNS IN URLs
+# ══════════════════════════════════════════════════════
+<IfModule mod_rewrite.c>
+    # Block SQL injection attempts
+    RewriteCond %{QUERY_STRING} (union.*select|select.*from|insert.*into|drop.*table|update.*set|delete.*from) [NC,OR]
+    RewriteCond %{QUERY_STRING} (;.*--|\bor\b.*=.*\bor\b|1=1|0x[0-9a-f]+) [NC,OR]
+
+    # Block XSS attempts
+    RewriteCond %{QUERY_STRING} (<script|javascript:|vbscript:|onload=|onerror=|alert\() [NC,OR]
+
+    # Block path traversal
+    RewriteCond %{QUERY_STRING} (\.\.\/|\.\.\\|%2e%2e%2f|%252e%252e) [NC,OR]
+
+    # Block remote file inclusion
+    RewriteCond %{QUERY_STRING} (http://|https://|ftp://) [NC,OR]
+
+    # Block base64 encoded attacks
+    RewriteCond %{QUERY_STRING} (base64_encode|base64_decode) [NC]
+
+    RewriteRule .* - [F,L]
+</IfModule>
+
+# ══════════════════════════════════════════════════════
+# BLOCK SUSPICIOUS REQUEST METHODS
+# PUT/DELETE/PATCH are allowed for /api/ endpoints (portal API).
+# Only block them on non-API paths.
+# ══════════════════════════════════════════════════════
+<IfModule mod_rewrite.c>
+    RewriteCond %{REQUEST_URI} !^/api/ [NC]
+    RewriteCond %{REQUEST_METHOD} ^(TRACE|TRACK|CONNECT|DELETE|PATCH|PUT) [NC]
+    RewriteRule .* - [F,L]
+</IfModule>
+
+# ══════════════════════════════════════════════════════
+# ROUTING
+# ══════════════════════════════════════════════════════
+<IfModule mod_rewrite.c>
+    RewriteBase /
+
+    # Block direct access to includes/ and install/
     RewriteRule ^includes/ - [L,F]
+    RewriteRule ^install/ - [L,F]
 
     # If the request is for an existing file or directory, serve it directly
     RewriteCond %{REQUEST_FILENAME} -f [OR]
@@ -48,3 +145,10 @@ php_flag log_errors On
     # Route everything else through index.php
     RewriteRule ^ index.php [L]
 </IfModule>
+
+# php -- BEGIN cPanel-generated handler, do not edit
+# Set the “ea-php82” package as the default “PHP” programming language.
+<IfModule mime_module>
+  AddHandler application/x-httpd-ea-php82 .php .php8 .phtml
+</IfModule>
+# php -- END cPanel-generated handler, do not edit

@@ -20,36 +20,24 @@ $method = $_SERVER['REQUEST_METHOD'];
 if ($action === 'generate_password_hashes' && $method === 'POST') {
     $usr = require_perm('security.users');
     $body = get_body();
-    
-    // Seed user credentials (from blackfire_aeci_seed.sql)
-    $seed_users = [
-        ['username' => 'jubhele',   'password' => 'BlackFire2026!', 'name' => 'Jubhele Shange',   'role' => 'admin'],
-        ['username' => 'nontokozo', 'password' => 'BlackFire2026!', 'name' => 'Nontokozo',         'role' => 'manager'],
-        ['username' => 'lelo',      'password' => 'BlackFire2026!', 'name' => 'Lelo Mtolo',        'role' => 'manager'],
-        ['username' => 'farai',     'password' => 'BlackFire2026!', 'name' => 'Farai Mustefe',     'role' => 'senior_tech'],
-        ['username' => 'dan',       'password' => 'BlackFire2026!', 'name' => 'Dan Mupeta',        'role' => 'junior_tech'],
-        ['username' => 'martito',   'password' => 'BlackFire2026!', 'name' => 'Martito Mahlatsu',  'role' => 'junior_tech'],
-    ];
-    
-    $hashes = [];
+    require_fields($body, ['default_password']);
+    $default_password = $body['default_password'];
+    if (!password_valid($default_password)) json_err(PASSWORD_COMPLEXITY_MSG, 400);
+
+    $rows = db_select("SELECT username FROM bf_users ORDER BY username", []);
+    $seed_usernames = array_column($rows, 'username');
+    if (!$seed_usernames) json_err('No users found in database', 404);
+
+    $hashes  = [];
     $updates = [];
-    
-    foreach ($seed_users as $seed_user) {
-        $hash = password_hash($seed_user['password'], PASSWORD_BCRYPT, ['cost' => 12]);
-        
-        $hashes[] = [
-            'username'  => $seed_user['username'],
-            'password'  => $seed_user['password'],
-            'hash'      => $hash,
-            'name'      => $seed_user['name'],
-            'role'      => $seed_user['role'],
-        ];
-        
-        // Escape hash for SQL (though bcrypt hashes don't typically have quotes)
-        $hash_escaped = str_replace("'", "''", $hash);
-        $updates[] = "UPDATE bf_users SET password_hash = '$hash_escaped' WHERE username = '{$seed_user['username']}';";
+
+    foreach ($seed_usernames as $uname) {
+        $hash = password_hash($default_password, PASSWORD_BCRYPT, ['cost' => 12]);
+        $hashes[] = ['username' => $uname, 'hash' => $hash];
+        // bcrypt output is ASCII-safe (alphanumeric + $, /, .) — no SQL quoting needed
+        $updates[] = "UPDATE bf_users SET password_hash = '$hash' WHERE username = '$uname';";
     }
-    
+
     // If apply=true in request, apply to database
     if ($body['apply'] ?? false) {
         foreach ($hashes as $item) {
@@ -64,8 +52,8 @@ if ($action === 'generate_password_hashes' && $method === 'POST') {
             'Password hashes applied to database'
         );
     }
-    
-    // Return hashes for review (don't apply yet)
+
+    // Return hashes for review (not yet applied)
     json_ok(
         ['hashes' => $hashes, 'updates' => $updates, 'applied' => false],
         'Password hashes generated (not yet applied)'
@@ -83,8 +71,8 @@ if ($action === 'reset_user_password' && $method === 'POST') {
     $user_row = db_row("SELECT id, username FROM bf_users WHERE username = ?", [$username]);
     if (!$user_row) json_err('User not found');
     
-    // Generate temporary password
-    $temp_password = bin2hex(random_bytes(6)); // 12-character hex string
+    // Generate temporary password — 16 hex chars (64-bit entropy), always meets complexity
+    $temp_password = bin2hex(random_bytes(8));
     $hash = password_hash($temp_password, PASSWORD_BCRYPT, ['cost' => 12]);
     
     db_exec("UPDATE bf_users SET password_hash = ? WHERE id = ?", [$hash, $user_row['id']]);
@@ -97,19 +85,18 @@ if ($action === 'reset_user_password' && $method === 'POST') {
 }
 
 // ── POST /admin?action=export_password_sql ──────────────────
-// Export all seed user hashes as SQL UPDATE statements
+// Export seed user hashes as SQL UPDATE statements
 if ($action === 'export_password_sql' && $method === 'POST') {
     $usr = require_perm('security.users');
-    
-    $seed_users = [
-        ['username' => 'jubhele',   'password' => 'BlackFire2026!'],
-        ['username' => 'nontokozo', 'password' => 'BlackFire2026!'],
-        ['username' => 'lelo',      'password' => 'BlackFire2026!'],
-        ['username' => 'farai',     'password' => 'BlackFire2026!'],
-        ['username' => 'dan',       'password' => 'BlackFire2026!'],
-        ['username' => 'martito',   'password' => 'BlackFire2026!'],
-    ];
-    
+    $body = get_body();
+    require_fields($body, ['default_password']);
+    $default_password = $body['default_password'];
+    if (!password_valid($default_password)) json_err(PASSWORD_COMPLEXITY_MSG, 400);
+
+    $rows = db_select("SELECT username FROM bf_users ORDER BY username", []);
+    $seed_usernames = array_column($rows, 'username');
+    if (!$seed_usernames) json_err('No users found in database', 404);
+
     $sql_lines = [
         "-- BlackFire Solutions — Password Hash Update Script",
         "-- Generated: " . date('Y-m-d H:i:s'),
@@ -119,23 +106,22 @@ if ($action === 'export_password_sql' && $method === 'POST') {
         "-- Update all seed user passwords with bcrypt hashes",
         "",
     ];
-    
-    foreach ($seed_users as $seed_user) {
-        $hash = password_hash($seed_user['password'], PASSWORD_BCRYPT, ['cost' => 12]);
-        $hash_escaped = str_replace("'", "''", $hash);
-        $sql_lines[] = "UPDATE bf_users SET password_hash = '$hash_escaped' WHERE username = '{$seed_user['username']}';";
+
+    foreach ($seed_usernames as $uname) {
+        $hash = password_hash($default_password, PASSWORD_BCRYPT, ['cost' => 12]);
+        // bcrypt output is ASCII-safe (alphanumeric + $, /, .) — no SQL quoting needed
+        $sql_lines[] = "UPDATE bf_users SET password_hash = '$hash' WHERE username = '$uname';";
     }
-    
+
     $sql_lines[] = "";
     $sql_lines[] = "-- After running above updates:";
     $sql_lines[] = "-- 1. Delete the password_plain column (if it exists)";
     $sql_lines[] = "-- 2. Update the seed script to remove password_plain from INSERT";
     $sql_lines[] = "-- 3. Require users to change password on next login";
     $sql_lines[] = "";
-    
+
     $sql_content = implode("\n", $sql_lines);
-    
-    // Return as downloadable file
+
     header('Content-Type: text/plain; charset=utf-8');
     header('Content-Disposition: attachment; filename="update_passwords_' . date('Y-m-d_His') . '.sql"');
     echo $sql_content;

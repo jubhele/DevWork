@@ -48,7 +48,7 @@ if ($method === 'POST') {
 
     // Generate token (random 64 hex chars)
     $token = bin2hex(random_bytes(32));
-    $expires = date('Y-m-d H:i:s', time() + (7 * 86400)); // 7 days
+    $expires = date('Y-m-d H:i:s', time() + 86400); // 24 hours
 
     // Update record with token
     db_exec(
@@ -106,34 +106,37 @@ if ($method === 'PATCH') {
         json_err('Invalid decision: must be approved or rejected');
     }
 
+    $status = $decision === 'approved' ? 'Approved' : 'Cancelled';
+
     // Find which table has this token
     $callout = db_row(
-        "SELECT id, approval_token, ref_id FROM bf_callouts WHERE approval_token = ? AND approval_token_expires > NOW()",
+        "SELECT id, approval_token, ref_id, client_name FROM bf_callouts WHERE approval_token = ? AND approval_token_expires > NOW()",
         [$token]
     );
 
     if ($callout) {
-        $status = $decision === 'approved' ? 'Approved' : 'Cancelled';
+        $approver = 'client:' . hash('sha256', strtolower(trim($callout['client_name'])));
         db_exec(
             "UPDATE bf_callouts SET approval_status = ?, approved_at = NOW(), approved_by = ? WHERE id = ?",
-            [$decision, 'Client (' . ($b['client_name'] ?? 'Portal') . ')', $callout['id']]
+            [$status, 'Client (' . $callout['client_name'] . ')', $callout['id']]
         );
-        audit('SYSTEM', 'CALLOUT_APPROVAL', "Callout {$callout['ref_id']} {$decision} by client");
-        json_ok(['data' => ['type' => 'callout', 'ref_id' => $callout['ref_id'], 'approval_status' => $decision]]);
+        audit($approver, 'CALLOUT_APPROVAL', "Callout {$callout['ref_id']} {$status} via approval link");
+        json_ok(['data' => ['type' => 'callout', 'ref_id' => $callout['ref_id'], 'approval_status' => $status]]);
     }
 
     $quote = db_row(
-        "SELECT id, approval_token, ref_id FROM bf_quotes WHERE approval_token = ? AND approval_token_expires > NOW()",
+        "SELECT id, approval_token, ref_id, client_name FROM bf_quotes WHERE approval_token = ? AND approval_token_expires > NOW()",
         [$token]
     );
 
     if ($quote) {
+        $approver = 'client:' . hash('sha256', strtolower(trim($quote['client_name'])));
         db_exec(
             "UPDATE bf_quotes SET approval_status = ?, approved_at = NOW(), approved_by = ? WHERE id = ?",
-            [$decision, 'Client (' . ($b['client_name'] ?? 'Portal') . ')', $quote['id']]
+            [$status, 'Client (' . $quote['client_name'] . ')', $quote['id']]
         );
-        audit('SYSTEM', 'QUOTE_APPROVAL', "Quote {$quote['ref_id']} {$decision} by client");
-        json_ok(['data' => ['type' => 'quote', 'ref_id' => $quote['ref_id'], 'approval_status' => $decision]]);
+        audit($approver, 'QUOTE_APPROVAL', "Quote {$quote['ref_id']} {$status} via approval link");
+        json_ok(['data' => ['type' => 'quote', 'ref_id' => $quote['ref_id'], 'approval_status' => $status]]);
     }
 
     json_err('Invalid or expired token', 404);

@@ -39,8 +39,8 @@ if ($method === 'GET') {
 
     // Search filter
     if ($q) {
-        $like = "%$q%";
-        $where .= ($where ? ' AND' : ' WHERE') . ' (ref_id LIKE ? OR client_name LIKE ? OR service LIKE ? OR location LIKE ?)';
+        $like = '%' . like_escape($q) . '%';
+        $where .= ($where ? ' AND' : ' WHERE') . ' (ref_id LIKE ? ESCAPE \'\\\\\' OR client_name LIKE ? ESCAPE \'\\\\\' OR service LIKE ? ESCAPE \'\\\\\' OR location LIKE ? ESCAPE \'\\\\\')';
         array_push($params, $like, $like, $like, $like);
     }
 
@@ -103,13 +103,88 @@ if ($method === 'PUT') {
     $usr = require_auth();
     if (!$ref_id) json_err('Missing id');
 
-    $b = get_body();
+    $b      = get_body();
+    $action = clean($b['action'] ?? '', 50);
 
-    // Build dynamic update — only set fields that are present
+    // ── Action: confirm_closure ──────────────────────────────────────
+    if ($action === 'confirm_closure') {
+        require_perm('callout.confirm_closure');
+        $callout = db_row("SELECT * FROM bf_callouts WHERE ref_id = ?", [$ref_id]);
+        if (!$callout) json_err('Callout not found', 404);
+        if ($callout['status'] !== 'Completed') json_err('Callout must be in Completed status before confirming closure');
+        if (!empty($callout['closure_confirmed'])) json_err('Closure already confirmed for this callout');
+        if (!empty($callout['invoice_generated'])) json_err('Invoice already generated for this callout');
+
+        $closure_notes = clean($b['closure_notes'] ?? '', 2000);
+        if (!$closure_notes) json_err('Closure notes are required');
+
+        // Manager must have uploaded at least one document to this callout
+        $has_doc = db_row(
+            "SELECT id FROM bf_attachments WHERE entity_type = 'callout' AND entity_ref = ? LIMIT 1",
+            [$ref_id]
+        );
+        if (!$has_doc) json_err('A closure confirmation document must be uploaded to this callout first');
+
+        // Auto-create a Draft invoice
+        require_once __DIR__ . '/../includes/helpers.php';
+        $inv_ref  = next_ref_id('inv');
+        $due_date = date('Y-m-d', strtotime('+30 days'));
+
+        db_exec("START TRANSACTION");
+        try {
+            db_insert(
+                "INSERT INTO bf_invoices
+                 (ref_id, client_name, client_email, amount, due_date, status, callout_ref, invoice_date, sent_by)
+                 VALUES (?,?,?,?,?,?,?,?,?)",
+                [
+                    $inv_ref,
+                    $callout['client_name'],
+                    $callout['client_email'] ?? '',
+                    0.00,
+                    $due_date,
+                    'Draft',
+                    $ref_id,
+                    date('Y-m-d'),
+                    $usr['username'],
+                ]
+            );
+
+            db_exec(
+                "UPDATE bf_callouts
+                 SET closure_confirmed = 1, closure_confirmed_by = ?, closure_confirmed_at = NOW(),
+                     closure_notes = ?, invoice_generated = 1
+                 WHERE ref_id = ?",
+                [$usr['username'], $closure_notes, $ref_id]
+            );
+
+            db_exec("COMMIT");
+        } catch (Exception $e) {
+            db_exec("ROLLBACK");
+            json_err('Failed to confirm closure — no changes were saved.');
+        }
+
+        audit($usr['username'], 'CLOSURE_CONFIRMED',
+              "Callout {$ref_id} closure confirmed by {$usr['username']}; Invoice {$inv_ref} created");
+
+        $row = db_row("SELECT * FROM bf_callouts WHERE ref_id = ?", [$ref_id]);
+        json_ok(['data' => $row, 'invoice_ref' => $inv_ref],
+                "Closure confirmed. Draft invoice {$inv_ref} created.");
+    }
+
+    // ── Standard field update ────────────────────────────────────────
     $allowed = [
         'client_name', 'service', 'location', 'tech', 'assigned_to',
         'priority', 'status', 'callout_date', 'callout_time', 'notes', 'po'
     ];
+
+    require_perm('callout.update');
+
+    // Techs may only update callouts assigned to them
+    if (in_array($usr['role'], ['junior_tech', 'senior_tech'], true)) {
+        $ownership = db_row("SELECT assigned_to FROM bf_callouts WHERE ref_id = ?", [$ref_id]);
+        if (!$ownership) json_err('Callout not found', 404);
+        if ($ownership['assigned_to'] !== $usr['username']) json_err('You can only update callouts assigned to you', 403);
+    }
 
     // Permission gates on specific fields
     if (isset($b['status']) && !can('callout.update_status', $usr['role'])) json_err('No permission to update status', 403);
@@ -129,6 +204,51 @@ if ($method === 'PUT') {
 
     db_exec("UPDATE bf_callouts SET " . implode(', ', $sets) . " WHERE ref_id = ?", $params);
     audit($usr['username'], 'UPDATE', "Callout $ref_id updated");
+
+    // ── Post-update: auto-invoice when client closes callout ─────────
+    if (isset($b['status']) && $b['status'] === 'Completed') {
+        $callout = db_row("SELECT * FROM bf_callouts WHERE ref_id = ?", [$ref_id]);
+        if ($callout && empty($callout['invoice_generated']) && $usr['role'] === 'client') {
+            require_once __DIR__ . '/../includes/mailer.php';
+            $inv_ref  = next_ref_id('inv');
+            $due_date = date('Y-m-d', strtotime('+30 days'));
+
+            db_exec("START TRANSACTION");
+            try {
+                db_insert(
+                    "INSERT INTO bf_invoices
+                     (ref_id, client_name, client_email, amount, due_date, status, callout_ref, invoice_date, sent_by)
+                     VALUES (?,?,?,?,?,?,?,?,?)",
+                    [
+                        $inv_ref,
+                        $callout['client_name'],
+                        $callout['client_email'] ?? '',
+                        0.00,
+                        $due_date,
+                        'Draft',
+                        $ref_id,
+                        date('Y-m-d'),
+                        $usr['username'],
+                    ]
+                );
+                db_exec("UPDATE bf_callouts SET invoice_generated = 1 WHERE ref_id = ?", [$ref_id]);
+                db_exec("COMMIT");
+            } catch (Exception $e) {
+                db_exec("ROLLBACK");
+                // Log the failure but don't abort the callout status update that already committed
+                error_log("Auto-invoice failed for callout {$ref_id}: " . $e->getMessage());
+                $inv_ref = null;
+            }
+
+            if ($inv_ref && !empty($callout['client_email'])) {
+                send_invoice_notification_email($callout['client_email'], $callout, $inv_ref);
+            }
+            if ($inv_ref) {
+                audit($usr['username'], 'INVOICE_AUTO',
+                      "Invoice {$inv_ref} auto-generated for client-closed callout {$ref_id}");
+            }
+        }
+    }
 
     $row = db_row("SELECT * FROM bf_callouts WHERE ref_id = ?", [$ref_id]);
     if (!$row) json_err('Callout not found', 404);

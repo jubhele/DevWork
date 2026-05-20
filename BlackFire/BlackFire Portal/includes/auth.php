@@ -2,57 +2,36 @@
 ob_start();
 /**
  * Umlilo Portal — Authentication & Permissions
+ * Permissions are stored in bf_role_permissions and loaded once per request.
  */
 
-// Permissions matrix — mirrors the JS PERMS object
-const PERMS = [
-    'callout.view'          => ['admin','manager','call_logger','junior_tech','senior_tech','client_support','admin_clerk','viewer','client'],
-    'callout.create'        => ['admin','manager','call_logger','client_support','client'],
-    'callout.update_status' => ['admin','manager','call_logger','junior_tech','senior_tech','admin_clerk'],
-    'callout.assign_po'     => ['admin','manager','admin_clerk'],
-    'callout.assign_tech'   => ['admin','manager','admin_clerk'],
-    'callout.delete'        => ['admin','manager'],
-
-    'quote.view'            => ['admin','manager','senior_tech','client_support','admin_clerk','viewer','client'],
-    'quote.create'          => ['admin','manager','senior_tech','client'],
-    'quote.approve'         => ['admin','manager'],
-    'quote.convert'         => ['admin','manager','admin_clerk'],
-    'quote.delete'          => ['admin','manager'],
-
-    'invoice.view'          => ['admin','manager','client_support','admin_clerk','viewer','client'],
-    'invoice.create'        => ['admin','manager','admin_clerk'],
-    'invoice.mark_paid'     => ['admin','manager','admin_clerk'],
-    'invoice.delete'        => ['admin','manager'],
-
-    'finance.transactions'  => ['admin','manager','admin_clerk'],
-    'finance.statement'     => ['admin','manager','client_support','admin_clerk'],
-    'finance.income'        => ['admin','manager','admin_clerk'],
-
-    'capture.new_callout'   => ['admin','manager','call_logger','client_support','client'],
-    'capture.new_quote'     => ['admin','manager','senior_tech','client'],
-    'capture.new_invoice'   => ['admin','manager','admin_clerk'],
-    'capture.log_payment'   => ['admin','manager','admin_clerk'],
-
-    'approval.send'         => ['admin','manager','call_logger','client_support'],
-
-    'security.audit'        => ['admin'],
-    'security.users'        => ['admin','manager','admin_clerk'],
-    'user.create'           => ['admin','manager','admin_clerk'],
-    'user.update'           => ['admin'],
-];
+/**
+ * Load the full permissions map from DB — cached for the lifetime of this request.
+ * Returns: [ 'permission.name' => ['role1', 'role2', ...], ... ]
+ */
+function _load_role_perms(): array {
+    static $cache = null;
+    if ($cache !== null) return $cache;
+    require_once __DIR__ . '/db.php';
+    $rows = db_select("SELECT role, permission FROM bf_role_permissions");
+    $cache = [];
+    foreach ($rows as $row) {
+        $cache[$row['permission']][] = $row['role'];
+    }
+    return $cache;
+}
 
 /**
  * Start or resume session (called on every page/api load)
  */
 function bf_session_start(): void {
     if (session_status() === PHP_SESSION_NONE) {
-        // LiteSpeed-compatible session config
-        // SameSite=Lax (not Strict) so cookie is sent on same-site requests
-        // cookie_secure=0 because LiteSpeed may terminate SSL before PHP
+        $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+                || (($_SERVER['SERVER_PORT'] ?? 80) == 443);
         ini_set('session.cookie_httponly', '1');
         ini_set('session.use_strict_mode', '1');
         ini_set('session.cookie_samesite', 'Lax');
-        ini_set('session.cookie_secure', '0');
+        ini_set('session.cookie_secure', $isHttps ? '1' : '0');
         $scriptDir = rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? '/'), '/\\');
         ini_set('session.cookie_path', ($scriptDir ?: '') . '/');
         ini_set('session.use_cookies', '1');
@@ -67,14 +46,46 @@ function bf_session_start(): void {
  */
 function current_user(): ?array {
     bf_session_start();
-    if (!isset($_SESSION['bf_user']) || !isset($_SESSION['bf_expires'])) return null;
-    if ($_SESSION['bf_expires'] < time()) {
+    if (!isset($_SESSION['bf_user']) || !is_array($_SESSION['bf_user'])) return null;
+    if (!isset($_SESSION['bf_expires']) || $_SESSION['bf_expires'] < time()) {
         session_destroy();
         return null;
     }
-    // Slide expiry window
-    $_SESSION['bf_expires'] = time() + 7200; // 2hr
-    return $_SESSION['bf_user'];
+    $_SESSION['bf_expires'] = time() + 7200;
+    $user = $_SESSION['bf_user'];
+    session_write_close();
+    return $user;
+}
+
+/**
+ * Get or create a CSRF token for the current session.
+ * Token is stored in session; expose via /me and verify on state-changing requests.
+ */
+function csrf_token(): string {
+    bf_session_start();
+    if (empty($_SESSION['bf_csrf'])) {
+        $_SESSION['bf_csrf'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['bf_csrf'];
+}
+
+/**
+ * Verify the CSRF token from X-CSRF-Token header or body field.
+ * Call before processing any state-changing request.
+ */
+function verify_csrf(): void {
+    $headers = function_exists('getallheaders') ? getallheaders() : [];
+    $token = $headers['X-Csrf-Token']
+          ?? $headers['X-CSRF-Token']
+          ?? $_POST['csrf_token']
+          ?? '';
+    bf_session_start();
+    $expected = $_SESSION['bf_csrf'] ?? '';
+    if (!$expected || !hash_equals($expected, $token)) {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'error' => 'Invalid or missing CSRF token']);
+        exit;
+    }
 }
 
 /**
@@ -92,7 +103,7 @@ function require_auth(): array {
 }
 
 /**
- * Check if a role has a permission
+ * Check if a role has a permission (reads from bf_role_permissions table).
  */
 function can(string $perm, ?string $role = null): bool {
     if ($role === null) {
@@ -100,7 +111,8 @@ function can(string $perm, ?string $role = null): bool {
         if (!$user) return false;
         $role = $user['role'];
     }
-    return in_array($role, PERMS[$perm] ?? [], true);
+    $perms = _load_role_perms();
+    return in_array($role, $perms[$perm] ?? [], true);
 }
 
 /**

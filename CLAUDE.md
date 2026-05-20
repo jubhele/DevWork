@@ -13,6 +13,14 @@ Every session **must** create or update a session log. This is non-negotiable.
 **Log location**: `c:\DevWork\sessions\`
 **Format**: `<chat-name>_YYYYMMDD_HHmmss.md` — one file per session, named after the chat topic with a timestamp suffix.
 
+**Mirror**: After writing or updating a session log, copy it to `G:\My Drive\JS\Agentic AI\sessions\` with `.tbl.bk` appended to the filename.
+Example: `donthok_competitive_intel_20260519_222000.md` → `G:\My Drive\JS\Agentic AI\sessions\donthok_competitive_intel_20260519_222000.md.tbl.bk`
+
+PowerShell one-liner to mirror a file:
+```powershell
+Copy-Item "c:\DevWork\sessions\<filename>.md" "G:\My Drive\JS\Agentic AI\sessions\<filename>.md.tbl.bk" -Force
+```
+
 ### Session log structure
 
 ```

@@ -14,9 +14,6 @@ date_default_timezone_set($cfg['timezone'] ?? 'Africa/Johannesburg');
 api_headers();
 require_auth();
 
-// Auto-mark overdue invoices
-db_exec("UPDATE bf_invoices SET status='Overdue' WHERE status='Sent' AND due_date < CURDATE()");
-
 // KPI counts
 $open_callouts  = db_row("SELECT COUNT(*) AS n FROM bf_callouts WHERE status IN ('Open','In Progress')")['n'] ?? 0;
 $pending_quotes = db_row("SELECT COUNT(*) AS n FROM bf_quotes WHERE status IN ('Draft','Sent','Pending Approval')")['n'] ?? 0;

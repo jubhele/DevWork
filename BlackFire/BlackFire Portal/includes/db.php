@@ -74,14 +74,20 @@ function db_insert(string $sql, array $params = []): int {
 }
 
 /**
- * Generate next reference ID (JOB-001, QTE-001, INV-001)
- * Uses atomic counter in DB
+ * Generate next reference ID in format [TYPE]-[ddmmyy]-[counter]
+ * e.g. CO-190526-0042, Q-190526-0002, INV-190526-0042
+ * Uses atomic counter in DB. Date defaults to today; pass a date string to override.
  */
-function next_ref_id(string $type): string {
-    $db = get_db();
-    $db->exec("UPDATE bf_counters SET current_value = current_value + 1 WHERE counter_type = '$type'");
-    $row = db_row("SELECT current_value FROM bf_counters WHERE counter_type = ?", [$type]);
-    $n   = $row['current_value'] ?? 1;
-    $prefix = ['co' => 'JOB', 'q' => 'QTE', 'inv' => 'INV'][$type] ?? strtoupper($type);
-    return $prefix . '-' . str_pad($n, 3, '0', STR_PAD_LEFT);
+function next_ref_id(string $type, ?string $date = null): string {
+    $stmt = get_db()->prepare("UPDATE bf_counters SET current_value = current_value + 1 WHERE counter_type = ?");
+    $stmt->execute([$type]);
+    $row    = db_row("SELECT current_value FROM bf_counters WHERE counter_type = ?", [$type]);
+    $n      = $row['current_value'] ?? 1;
+    $prefix = ['co' => 'CO', 'q' => 'Q', 'inv' => 'INV', 'stmt' => 'STMT'][$type] ?? strtoupper($type);
+    $dmy    = (new DateTime($date ?? 'now'))->format('dmy');
+    return $prefix . '-' . $dmy . '-' . str_pad($n, 4, '0', STR_PAD_LEFT);
 }
+
+function db_begin(): void    { get_db()->beginTransaction(); }
+function db_commit(): void   { get_db()->commit(); }
+function db_rollback(): void { if (get_db()->inTransaction()) get_db()->rollBack(); }

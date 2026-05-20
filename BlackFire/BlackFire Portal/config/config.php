@@ -8,21 +8,27 @@
  * before this script runs. See .env.example for required keys.
  */
 
-// Load secrets file stored above public_html (not web-accessible).
-// Path: ~/blackfire_secrets.php  (one level above public_html)
-// This is where BF_APP_KEY lives on the server — never committed to git.
-$secretsFile = dirname(__DIR__, 3) . '/blackfire_secrets.php';
+// ── Server secrets (production) ───────────────────────────────────
+// ~/blackfire_secrets.php  — one level above public_html, never web-accessible,
+// never committed to git. Owns ALL secrets: DB, encryption key, SMTP password.
+// See blackfire_secrets.php.example in the portal root for the required template.
+$secretsFile = dirname(__DIR__, 2) . '/blackfire_secrets.php';
 if (file_exists($secretsFile)) {
     require_once $secretsFile;
 }
 
-// Load .env file if present (no Composer dependency — plain key=value parser)
+// ── Local dev fallback (.env) ──────────────────────────────────────
+// Only used when blackfire_secrets.php is absent (local development).
+// Never deploy .env to the server — use blackfire_secrets.php instead.
 $envFile = __DIR__ . '/../.env';
 if (file_exists($envFile)) {
     foreach (file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
         if ($line[0] === '#' || strpos($line, '=') === false) continue;
         [$key, $val] = explode('=', $line, 2);
-        putenv(trim($key) . '=' . trim($val));
+        $key = trim($key); $val = trim($val);
+        putenv("$key=$val");
+        $_ENV[$key]    = $val;
+        $_SERVER[$key] = $val;
     }
 }
 
@@ -34,10 +40,14 @@ if (file_exists($envFile)) {
  */
 if (!function_exists('bf_decrypt')) {
 function bf_decrypt(string $encoded): string {
-    $keyHex = getenv('BF_APP_KEY');
+    // Check all possible sources — putenv() is disabled on some shared hosts
+    $keyHex = getenv('BF_APP_KEY')
+           ?: ($_ENV['BF_APP_KEY'] ?? '')
+           ?: ($_SERVER['BF_APP_KEY'] ?? '')
+           ?: (defined('BF_APP_KEY') ? BF_APP_KEY : '');
     if (!$keyHex) {
         // Fallback for local development: try plaintext password from env
-        $plainPass = getenv('BF_DB_PASS');
+        $plainPass = getenv('BF_DB_PASS') ?: ($_ENV['BF_DB_PASS'] ?? '');
         if ($plainPass) {
             error_log('BlackFire: Using plaintext BF_DB_PASS (local dev mode)');
             return $plainPass;
@@ -65,7 +75,11 @@ return [
     'db_port'    => (int)(getenv('BF_DB_PORT') ?: 3306),
     'db_name'    => getenv('BF_DB_NAME') ?: 'blackfm6w9f9_portal',
     'db_user'    => getenv('BF_DB_USER') ?: 'blackfm6w9f9_umlilo_admin', // fallback for local dev only
-    'db_pass'    => bf_decrypt(getenv('BF_DB_PASS_ENC')),
+    'db_pass'    => bf_decrypt(
+        getenv('BF_DB_PASS_ENC')
+        ?: ($_ENV['BF_DB_PASS_ENC'] ?? '')
+        ?: (defined('BF_DB_PASS_ENC') ? BF_DB_PASS_ENC : '')
+    ),
     'db_charset' => 'utf8mb4',
     'db_options' => [
         PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
@@ -79,8 +93,8 @@ return [
     'app_name'     => 'Umlilo Portal',
     'app_version'  => '1.1',
     'app_env'      => 'production',
-    'base_url'     => 'https://blackfiresolutions.co.za/portal',
-    'api_base'     => 'https://blackfiresolutions.co.za/portal/api',
+    'base_url'     => 'https://blackfiresolutions.co.za',
+    'api_base'     => 'https://blackfiresolutions.co.za/api',
 
     // �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
     // SECURITY & SESSION

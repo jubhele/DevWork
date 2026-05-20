@@ -63,7 +63,32 @@ function api_headers(): void {
     header('Content-Type: application/json');
     header('X-Content-Type-Options: nosniff');
     header('X-Frame-Options: DENY');
+    header('Referrer-Policy: strict-origin-when-cross-origin');
+    header('X-Permitted-Cross-Domain-Policies: none');
+    header("Content-Security-Policy: default-src 'none'");
 }
+
+/**
+ * Escape user input for use inside a SQL LIKE pattern.
+ * Prevents % and _ from acting as wildcards.
+ */
+function like_escape(string $val): string {
+    return str_replace(['\\', '%', '_'], ['\\\\', '\%', '\_'], $val);
+}
+
+/**
+ * Validate password complexity.
+ * Requires: min 12 chars, uppercase, lowercase, digit, special char.
+ */
+function password_valid(string $pass): bool {
+    return strlen($pass) >= 12
+        && preg_match('/[A-Z]/', $pass)
+        && preg_match('/[a-z]/', $pass)
+        && preg_match('/[0-9]/', $pass)
+        && preg_match('/[\W_]/', $pass);
+}
+
+const PASSWORD_COMPLEXITY_MSG = 'Password must be at least 12 characters and contain uppercase, lowercase, a number, and a special character';
 
 /**
  * Get pagination params from GET

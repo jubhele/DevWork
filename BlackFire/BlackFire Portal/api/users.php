@@ -65,7 +65,7 @@ if ($method === 'PUT') {
     foreach (['name', 'role', 'title', 'active'] as $f) {
         if (array_key_exists($f, $b)) {
             $sets[]   = "$f = ?";
-            $params[] = $f === 'active' ? (int)(bool)$b[$f] : clean($b[$f]);
+            $params[] = $f === 'active' ? (int)filter_var($b[$f], FILTER_VALIDATE_BOOLEAN) : clean($b[$f]);
         }
     }
     if ($sets) {

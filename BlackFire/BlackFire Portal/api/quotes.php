@@ -41,8 +41,8 @@ if ($method === 'GET') {
     $where  = '';
 
     if ($q) {
-        $like  = "%$q%";
-        $where = 'WHERE (ref_id LIKE ? OR client_name LIKE ? OR status LIKE ?)';
+        $like  = '%' . like_escape($q) . '%';
+        $where = 'WHERE (ref_id LIKE ? ESCAPE \'\\\\\' OR client_name LIKE ? ESCAPE \'\\\\\' OR status LIKE ? ESCAPE \'\\\\\')';
         $params = [$like, $like, $like];
     }
 
@@ -80,29 +80,39 @@ if ($method === 'POST') {
     }
 
     $ref = next_ref_id('q');
-    $id  = db_insert(
-        "INSERT INTO bf_quotes (ref_id, client_name, client_email, status, valid_until, quote_date, submitted_by, source, approval_status, notes, total_amount)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?)",
-        [
-            $ref,
-            clean($b['client_name']),
-            $client_email,
-            $status,
-            valid_date($b['valid_until'] ?? null) ? $b['valid_until'] : null,
-            date('Y-m-d'),
-            $usr['username'],
-            clean($b['source'] ?? 'staff'),
-            $approval_status,
-            clean($b['notes'] ?? '', 2000),
-            $total,
-        ]
-    );
-
-    foreach ($items as $item) {
-        db_exec(
-            "INSERT INTO bf_quote_items (quote_id, description, qty, unit_price) VALUES (?,?,?,?)",
-            [$id, clean($item['desc'] ?? '', 255), (float)($item['qty'] ?? 1), (float)($item['unit'] ?? 0)]
+    
+    try {
+        db_begin();
+        
+        $id = db_insert(
+            "INSERT INTO bf_quotes (ref_id, client_name, client_email, status, valid_until, quote_date, submitted_by, source, approval_status, notes, total_amount)
+             VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+            [
+                $ref,
+                clean($b['client_name']),
+                $client_email,
+                $status,
+                valid_date($b['valid_until'] ?? null) ? $b['valid_until'] : null,
+                date('Y-m-d'),
+                $usr['username'],
+                clean($b['source'] ?? 'staff'),
+                $approval_status,
+                clean($b['notes'] ?? '', 2000),
+                $total,
+            ]
         );
+
+        foreach ($items as $item) {
+            db_exec(
+                "INSERT INTO bf_quote_items (quote_id, description, qty, unit_price) VALUES (?,?,?,?)",
+                [$id, clean($item['desc'] ?? '', 255), (float)($item['qty'] ?? 1), (float)($item['unit'] ?? 0)]
+            );
+        }
+        
+        db_commit();
+    } catch (Exception $e) {
+        db_rollback();
+        json_err('Failed to create quote and line items securely: ' . $e->getMessage(), 500);
     }
 
     audit($usr['username'], 'CREATE', "Quote $ref created (R" . number_format($total, 2) . ", approval: $approval_status)");
@@ -133,19 +143,32 @@ if ($method === 'PUT') {
     }
 
     // General status update
+    require_perm('quote.update');
     $allowed = ['status', 'valid_until', 'notes'];
     $sets   = [];
     $params = [];
     foreach ($allowed as $f) {
         if (array_key_exists($f, $b)) {
+            // Prevent manual status overrides that break approval workflow
+            if ($f === 'status' && in_array(strtolower($b[$f]), ['approved', 'rejected'])) {
+                continue; 
+            }
+            // Enforce date validation on update
+            if ($f === 'valid_until' && !valid_date($b[$f])) {
+                $b[$f] = null; 
+            }
+            
             $sets[]   = "$f = ?";
             $params[] = clean($b[$f], $f === 'notes' ? 2000 : 255);
         }
     }
-    if (!$sets) json_err('No fields to update');
+    
+    if (!$sets) json_err('No valid fields to update');
     $params[] = $ref_id;
+    
     db_exec("UPDATE bf_quotes SET " . implode(', ', $sets) . " WHERE ref_id = ?", $params);
     audit($usr['username'], 'UPDATE', "Quote $ref_id updated");
+    
     $row = db_row("SELECT * FROM bf_quotes WHERE ref_id = ?", [$ref_id]);
     if (!$row) json_err('Quote not found', 404);
     $rows = attach_items([$row]);
@@ -156,8 +179,21 @@ if ($method === 'PUT') {
 if ($method === 'DELETE') {
     $usr = require_perm('quote.delete');
     if (!$ref_id) json_err('Missing id');
-    $affected = db_exec("DELETE FROM bf_quotes WHERE ref_id = ?", [$ref_id]);
-    if (!$affected) json_err('Quote not found', 404);
+    
+    $quote = db_row("SELECT id FROM bf_quotes WHERE ref_id = ?", [$ref_id]);
+    if (!$quote) json_err('Quote not found', 404);
+
+    try {
+        db_begin();
+        // Explicitly clear line items first to prevent orphans
+        db_exec("DELETE FROM bf_quote_items WHERE quote_id = ?", [$quote['id']]);
+        db_exec("DELETE FROM bf_quotes WHERE id = ?", [$quote['id']]);
+        db_commit();
+    } catch (Exception $e) {
+        db_rollback();
+        json_err('Failed to delete quote securely', 500);
+    }
+    
     audit($usr['username'], 'DELETE', "Quote $ref_id deleted");
     json_ok([], "Quote $ref_id deleted");
 }

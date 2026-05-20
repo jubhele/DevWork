@@ -1,3 +1,6 @@
+# Uploaded files — environment-specific, never in git
+BlackFire/BlackFire Portal/uploads/
+
 # Sensitive data — never commit
 chatsessions/*.jsonl
 sessions/system_chatsessions/*.jsonl
@@ -7,6 +10,8 @@ BlackFire/BlackFire Portal/error_log
 BlackFire/BlackFire Portal/test_connection.php
 BlackFire/BlackFire Portal/zzcheck.php
 BlackFire/BlackFire Portal/.env
+BlackFire/BlackFire Portal/api/.env
+BlackFire/BlackFire Portal/api/error_log
 *.env.local
 config.local.*
 

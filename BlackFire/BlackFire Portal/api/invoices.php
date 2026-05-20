@@ -28,14 +28,9 @@ if ($method === 'GET') {
     $params = [];
     $where  = '';
 
-    // Auto-mark overdue
-    db_exec(
-        "UPDATE bf_invoices SET status = 'Overdue' WHERE status = 'Sent' AND due_date < CURDATE()"
-    );
-
     if ($q) {
-        $like  = "%$q%";
-        $where = 'WHERE (ref_id LIKE ? OR client_name LIKE ? OR status LIKE ? OR po LIKE ?)';
+        $like  = '%' . like_escape($q) . '%';
+        $where = 'WHERE (ref_id LIKE ? ESCAPE \'\\\\\' OR client_name LIKE ? ESCAPE \'\\\\\' OR status LIKE ? ESCAPE \'\\\\\' OR po LIKE ? ESCAPE \'\\\\\')';
         $params = [$like, $like, $like, $like];
     }
 
@@ -50,14 +45,18 @@ if ($method === 'POST') {
     $b   = get_body();
     require_fields($b, ['client_name', 'amount', 'due_date']);
 
+    $amount = (float)($b['amount'] ?? 0);
+    if ($amount < 0) json_err('Amount cannot be negative');
+
     $ref = next_ref_id('inv');
     $id  = db_insert(
-        "INSERT INTO bf_invoices (ref_id, client_name, amount, due_date, status, quote_ref, callout_ref, po, invoice_date)
-         VALUES (?,?,?,?,?,?,?,?,?)",
+        "INSERT INTO bf_invoices (ref_id, client_name, client_email, amount, due_date, status, quote_ref, callout_ref, po, invoice_date)
+         VALUES (?,?,?,?,?,?,?,?,?,?)",
         [
             $ref,
             clean($b['client_name']),
-            (float)($b['amount'] ?? 0),
+            clean($b['client_email'] ?? '', 150),
+            $amount,
             $b['due_date'],
             clean($b['status'] ?? 'Draft'),
             clean($b['quote_ref']   ?? ''),
@@ -80,41 +79,83 @@ if ($method === 'PUT') {
 
     $action = clean($b['action'] ?? '', 50);
 
+    if ($action === 'send_invoice') {
+        require_perm('invoice.send');
+        $inv = db_row("SELECT * FROM bf_invoices WHERE ref_id = ?", [$ref_id]);
+        if (!$inv) json_err('Invoice not found', 404);
+
+        $to = clean($b['to_email'] ?? $inv['client_email'] ?? '', 150);
+        if (!$to || !filter_var($to, FILTER_VALIDATE_EMAIL)) json_err('Valid recipient email required');
+        if ((float)$inv['amount'] <= 0) json_err('Invoice amount must be set before sending');
+
+        require_once __DIR__ . '/../includes/mailer.php';
+        $sent = send_invoice_email($inv, $to);
+        if (!$sent) json_err('Failed to send invoice email — check SMTP settings');
+
+        db_exec(
+            "UPDATE bf_invoices SET status = 'Sent', sent_at = NOW(), sent_by = ?, client_email = ? WHERE ref_id = ?",
+            [$usr['username'], $to, $ref_id]
+        );
+        audit($usr['username'], 'INVOICE_SENT', "Invoice {$ref_id} sent to {$to}");
+        $inv = db_row("SELECT * FROM bf_invoices WHERE ref_id = ?", [$ref_id]);
+        json_ok(['data' => $inv], "Invoice {$ref_id} sent to {$to}");
+    }
+
     if ($action === 'mark_paid') {
         require_perm('invoice.mark_paid');
-        $pay_date = valid_date($b['pay_date'] ?? null) ? $b['pay_date'] : date('Y-m-d');
-        db_exec(
-            "UPDATE bf_invoices SET status = 'Paid', paid_date = ? WHERE ref_id = ?",
-            [$pay_date, $ref_id]
-        );
-
         $inv = db_row("SELECT * FROM bf_invoices WHERE ref_id = ?", [$ref_id]);
-        if ($inv) {
-            // Add transaction record
+        if (!$inv) json_err('Invoice not found', 404);
+        if ($inv['status'] === 'Paid') json_err('Invoice is already marked as paid');
+
+        $pay_date = valid_date($b['pay_date'] ?? null) ? $b['pay_date'] : date('Y-m-d');
+        $notes    = clean($b['notes'] ?? '');
+        $amount   = (float)($b['amount'] ?? $inv['amount']);
+
+        $db = get_db();
+        $db->beginTransaction();
+        try {
+            db_exec(
+                "UPDATE bf_invoices SET status = 'Paid', paid_date = ? WHERE ref_id = ?",
+                [$pay_date, $ref_id]
+            );
             db_exec(
                 "INSERT INTO bf_transactions (trans_date, description, category, reference, credit, debit) VALUES (?,?,?,?,?,?)",
                 [$pay_date, "Payment received — {$inv['client_name']}", 'Invoice Payment', $ref_id, $inv['amount'], 0]
             );
-            // Log payment
-            $notes = clean($b['notes'] ?? '');
-            $amount = (float)($b['amount'] ?? $inv['amount']);
             db_exec(
                 "INSERT INTO bf_payments (invoice_ref, client_name, amount, payment_date, notes, logged_by) VALUES (?,?,?,?,?,?)",
                 [$ref_id, $inv['client_name'], $amount, $pay_date, $notes, $usr['username']]
             );
+            $db->commit();
+        } catch (Exception $e) {
+            $db->rollBack();
+            json_err('Payment recording failed — no changes saved');
         }
 
         audit($usr['username'], 'PAID', "Invoice $ref_id marked as paid");
-        json_ok(['data' => $inv], "Invoice $ref_id marked as paid");
+        $updated_inv = db_row("SELECT * FROM bf_invoices WHERE ref_id = ?", [$ref_id]);
+        json_ok(['data' => $updated_inv], "Invoice $ref_id marked as paid");
     }
 
     // General update
+    require_perm('invoice.update');
+    $inv = db_row("SELECT * FROM bf_invoices WHERE ref_id = ?", [$ref_id]);
+    if (!$inv) json_err('Invoice not found', 404);
+    if ($inv['status'] === 'Paid') json_err('Cannot modify a paid invoice directly.');
+
     $allowed = ['status', 'due_date', 'po', 'amount'];
     $sets = []; $params = [];
     foreach ($allowed as $f) {
         if (array_key_exists($f, $b)) {
-            $sets[]   = "$f = ?";
-            $params[] = $f === 'amount' ? (float)$b[$f] : clean($b[$f]);
+            if ($f === 'amount') {
+                $val = (float)$b[$f];
+                if ($val < 0) json_err('Amount cannot be negative');
+                $sets[]   = "$f = ?";
+                $params[] = $val;
+            } else {
+                $sets[]   = "$f = ?";
+                $params[] = clean($b[$f]);
+            }
         }
     }
     if (!$sets) json_err('No fields to update');
@@ -129,8 +170,10 @@ if ($method === 'PUT') {
 if ($method === 'DELETE') {
     $usr = require_perm('invoice.delete');
     if (!$ref_id) json_err('Missing id');
-    $affected = db_exec("DELETE FROM bf_invoices WHERE ref_id = ?", [$ref_id]);
-    if (!$affected) json_err('Invoice not found', 404);
+    $inv = db_row("SELECT status FROM bf_invoices WHERE ref_id = ?", [$ref_id]);
+    if (!$inv) json_err('Invoice not found', 404);
+    if ($inv['status'] === 'Paid') json_err('Cannot delete a paid invoice — reverse the payment first.');
+    db_exec("DELETE FROM bf_invoices WHERE ref_id = ?", [$ref_id]);
     audit($usr['username'], 'DELETE', "Invoice $ref_id deleted");
     json_ok([], "Invoice $ref_id deleted");
 }

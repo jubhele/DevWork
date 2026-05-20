@@ -33,7 +33,7 @@ if ($action === 'captcha') {
 if ($action === 'me') {
     $user = current_user();
     if (!$user) json_err('Not authenticated', 401);
-    json_ok(['user' => $user]);
+    json_ok(['user' => $user, 'csrf_token' => csrf_token()]);
 }
 
 // ── POST /logout ─────────────────────────────────────
@@ -97,9 +97,10 @@ if ($action === 'login' && $method === 'POST') {
     session_regenerate_id(true);
     $_SESSION['bf_user']    = $session_user;
     $_SESSION['bf_expires'] = time() + 7200; // 2 hours
+    $csrf = csrf_token();
 
     audit($username, 'LOGIN', "{$row['name']} signed in as {$row['role']}");
-    json_ok(['user' => $session_user], 'Login successful');
+    json_ok(['user' => $session_user, 'csrf_token' => $csrf], 'Login successful');
 }
 
 // ── POST /reset_request ──────────────────────────────
@@ -109,7 +110,7 @@ if ($action === 'reset_request' && $method === 'POST') {
     if (!$username) json_err('Username required');
 
     $row = db_row("SELECT id, username, name, email FROM bf_users WHERE username = ? AND active = 1", [$username]);
-    // Always return success to prevent user enumeration
+    // Constant-time response to prevent user enumeration via timing
     if ($row && !empty($row['email'])) {
         // Expire old tokens
         db_exec("UPDATE bf_password_resets SET used = 1 WHERE user_id = ?", [$row['id']]);
@@ -119,14 +120,14 @@ if ($action === 'reset_request' && $method === 'POST') {
             "INSERT INTO bf_password_resets (user_id, token, expires_at) VALUES (?,?,?)",
             [$row['id'], hash('sha256', $token), $expires]
         );
-        $resetLink = ($cfg['base_url'] ?? '') . '/portal.php?reset_token=' . urlencode($token);
+        $resetLink = ($cfg['base_url'] ?? '') . '?reset_token=' . urlencode($token);
         $subject = 'BlackFire Portal — Password Reset';
         $body  = "Hi {$row['name']},\r\n\r\n";
         $body .= "A password reset was requested for your account.\r\n\r\n";
         $body .= "Click the link below to reset your password (valid for 1 hour):\r\n";
         $body .= "$resetLink\r\n\r\n";
         $body .= "If you did not request this, please ignore this email.\r\n\r\n";
-        $body .= "— BlackFire Solutions";
+        $body .= "— BlackFire Solutions\r\nFire, taught to behave.";
         try {
             smtp_send($row['email'], $subject, $body);
         } catch (RuntimeException $e) {
@@ -134,6 +135,7 @@ if ($action === 'reset_request' && $method === 'POST') {
         }
         audit($username, 'RESET_REQUEST', "Password reset requested for {$row['username']}");
     }
+    sleep(1); // Constant delay regardless of whether user exists
     json_ok([], 'If that username exists with a registered email, a reset link has been sent.');
 }
 
@@ -143,7 +145,7 @@ if ($action === 'reset_password' && $method === 'POST') {
     $token = clean($body['token'] ?? '', 128);
     $pass  = $body['password'] ?? '';
     if (!$token || !$pass) json_err('Token and new password required');
-    if (strlen($pass) < 8) json_err('Password must be at least 8 characters');
+    if (!password_valid($pass)) json_err(PASSWORD_COMPLEXITY_MSG);
 
     $hashed = hash('sha256', $token);
     $row = db_row(

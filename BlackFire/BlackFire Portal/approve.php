@@ -71,7 +71,7 @@ if (!$token || !preg_match('/^[a-f0-9]{64}$/i', $token)) {
 
         async function loadRecord() {
             try {
-                const resp = await fetch(`/portal/api/approvals.php?token=${encodeURIComponent(token)}`);
+                const resp = await fetch(`/api/approvals.php?token=${encodeURIComponent(token)}`);
                 if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
                 const json = await resp.json();
                 if (!json.success) throw new Error(json.error || 'Failed to load');
@@ -168,7 +168,7 @@ if (!$token || !preg_match('/^[a-f0-9]{64}$/i', $token)) {
             buttons.forEach(b => b.disabled = true);
 
             try {
-                const resp = await fetch(`/portal/api/approvals.php?token=${encodeURIComponent(token)}`, {
+                const resp = await fetch(`/api/approvals.php?token=${encodeURIComponent(token)}`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
