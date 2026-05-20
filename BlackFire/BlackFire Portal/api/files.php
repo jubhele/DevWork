@@ -1,0 +1,195 @@
+<?php
+ob_start();
+/**
+ * Umlilo Portal — File Attachments API
+ *
+ * GET    ?action=list&entity_type=callout&entity_ref=CO-2024-0001  → list attachments
+ * GET    ?action=download&id=123                                   → stream file download
+ * POST   multipart: entity_type, entity_ref, file                 → upload
+ * DELETE ?id=123                                                   → delete
+ *
+ * Files are stored on disk at uploads/attachments/<stored_name>.
+ * DB stores metadata only (path, original name, uploader, size).
+ * Accepted types: PDF, Excel (.xlsx/.xls), Word (.docx/.doc), JPEG, PNG.
+ * Max size: 10 MB.
+ */
+
+require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/helpers.php';
+
+$cfg = require __DIR__ . '/../config/config.php';
+date_default_timezone_set($cfg['timezone'] ?? 'Africa/Johannesburg');
+
+$method = $_SERVER['REQUEST_METHOD'];
+$action = $_GET['action'] ?? '';
+$user   = require_auth();
+
+const ALLOWED_TYPES = [
+    'application/pdf'                                                          => 'pdf',
+    'application/vnd.ms-excel'                                                 => 'xls',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'       => 'xlsx',
+    'application/msword'                                                       => 'doc',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'docx',
+    'image/jpeg'                                                               => 'jpg',
+    'image/png'                                                                => 'png',
+];
+
+const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
+
+function attach_dir(): string {
+    return dirname(__DIR__) . '/uploads/attachments';
+}
+
+// ── GET list ──────────────────────────────────────────────────────────
+if ($method === 'GET' && $action === 'list') {
+    $entity_type = clean($_GET['entity_type'] ?? '', 20);
+    $entity_ref  = clean($_GET['entity_ref']  ?? '', 30);
+    if (!$entity_type || !$entity_ref) json_err('entity_type and entity_ref required');
+
+    api_headers();
+    $rows = db_select(
+        "SELECT id, original_name, file_size, mime_type, uploaded_by, created_at
+           FROM bf_attachments
+          WHERE entity_type = ? AND entity_ref = ?
+          ORDER BY created_at DESC",
+        [$entity_type, $entity_ref]
+    );
+    json_ok(['attachments' => $rows]);
+}
+
+// ── GET download ──────────────────────────────────────────────────────
+if ($method === 'GET' && $action === 'download') {
+    $id = (int)($_GET['id'] ?? 0);
+    if (!$id) { api_headers(); json_err('id required'); }
+
+    $row = db_row("SELECT * FROM bf_attachments WHERE id = ?", [$id]);
+    if (!$row) { api_headers(); json_err('File not found', 404); }
+
+    // [BUG FIX] IDOR Protection: Ensure user has permission to download this file.
+    // Ideally, check against parent entity access. Here, we restrict to uploader or admin/manager.
+    if (!in_array($user['role'], ['admin', 'manager'], true) && $row['uploaded_by'] !== $user['username']) {
+        api_headers(); json_err('Permission denied to download this file', 403);
+    }
+
+    $path = attach_dir() . '/' . $row['stored_name'];
+    if (!file_exists($path)) { api_headers(); json_err('File not on disk', 404); }
+
+    // Flush output buffers — we're streaming binary, not JSON
+    while (ob_get_level()) ob_end_clean();
+
+    $safe_name = str_replace(['"', '\\'], ['', ''], $row['original_name']);
+    header('Content-Type: ' . $row['mime_type']);
+    header('Content-Disposition: attachment; filename="' . $safe_name . '"');
+    header('Content-Length: ' . filesize($path));
+    header('X-Content-Type-Options: nosniff');
+    header('Cache-Control: private, no-cache');
+    readfile($path);
+    exit;
+}
+
+// ── POST upload ───────────────────────────────────────────────────────
+if ($method === 'POST') {
+    api_headers();
+
+    $entity_type = clean($_POST['entity_type'] ?? '', 20);
+    $entity_ref  = clean($_POST['entity_ref']  ?? '', 30);
+
+    if (!in_array($entity_type, ['callout', 'invoice', 'quote', 'payment'], true)) {
+        json_err('Invalid entity_type');
+    }
+    if (!$entity_ref) json_err('entity_ref required');
+
+    $entity_table_map = [
+        'callout' => 'bf_callouts',
+        'invoice' => 'bf_invoices',
+        'quote'   => 'bf_quotes',
+        'payment' => 'bf_payments',
+    ];
+    $entity_table = $entity_table_map[$entity_type];
+    if (!db_row("SELECT id FROM {$entity_table} WHERE ref_id = ?", [$entity_ref])) {
+        json_err(ucfirst($entity_type) . ' not found', 404);
+    }
+
+    if (empty($_FILES['file']) || $_FILES['file']['error'] === UPLOAD_ERR_NO_FILE) {
+        json_err('No file uploaded');
+    }
+
+    $f = $_FILES['file'];
+    if ($f['error'] !== UPLOAD_ERR_OK) {
+        $msgs = [
+            UPLOAD_ERR_INI_SIZE   => 'File exceeds server upload limit',
+            UPLOAD_ERR_FORM_SIZE  => 'File too large',
+            UPLOAD_ERR_PARTIAL    => 'Upload incomplete',
+            UPLOAD_ERR_NO_TMP_DIR => 'No temp directory',
+            UPLOAD_ERR_CANT_WRITE => 'Cannot write to disk',
+        ];
+        json_err($msgs[$f['error']] ?? 'Upload error ' . $f['error']);
+    }
+
+    if ($f['size'] > MAX_BYTES) json_err('File too large — max 10 MB');
+
+    // Detect real MIME via finfo (never trust $_FILES['type'])
+    $finfo = new finfo(FILEINFO_MIME_TYPE);
+    $mime  = $finfo->file($f['tmp_name']);
+    if (!array_key_exists($mime, ALLOWED_TYPES)) {
+        json_err('File type not allowed. Accepted: PDF, Excel, Word, JPEG, PNG');
+    }
+
+    $ext    = ALLOWED_TYPES[$mime];
+    $stored = bin2hex(random_bytes(16)) . '.' . $ext; // random, unguessable name
+    $dir    = attach_dir();
+    if (!is_dir($dir) && !mkdir($dir, 0755, true)) {
+        json_err('Cannot create upload directory');
+    }
+
+    if (!move_uploaded_file($f['tmp_name'], $dir . '/' . $stored)) {
+        json_err('Failed to save file');
+    }
+
+    $att_id = db_insert(
+        "INSERT INTO bf_attachments (entity_type, entity_ref, original_name, stored_name, file_size, mime_type, uploaded_by)
+         VALUES (?,?,?,?,?,?,?)",
+        [$entity_type, $entity_ref, basename($f['name']), $stored, (int)$f['size'], $mime, $user['username']]
+    );
+
+    audit($user['username'], 'FILE_UPLOAD',
+          "Attached " . basename($f['name']) . " to $entity_type $entity_ref");
+
+    json_ok([
+        'attachment' => [
+            'id'            => $att_id,
+            'original_name' => basename($f['name']),
+            'file_size'     => (int)$f['size'],
+            'mime_type'     => $mime,
+            'uploaded_by'   => $user['username'],
+            'created_at'    => date('Y-m-d H:i:s'),
+        ]
+    ], 'File uploaded');
+}
+
+// ── DELETE ────────────────────────────────────────────────────────────
+if ($method === 'DELETE') {
+    api_headers();
+    $id = (int)($_GET['id'] ?? 0);
+    if (!$id) json_err('id required');
+
+    $row = db_row("SELECT * FROM bf_attachments WHERE id = ?", [$id]);
+    if (!$row) json_err('File not found', 404);
+
+    if (!in_array($user['role'], ['admin', 'manager'], true) && $row['uploaded_by'] !== $user['username']) {
+        json_err('Permission denied', 403);
+    }
+
+    $path = attach_dir() . '/' . $row['stored_name'];
+    if (file_exists($path)) unlink($path);
+    db_exec("DELETE FROM bf_attachments WHERE id = ?", [$id]);
+
+    audit($user['username'], 'FILE_DELETE',
+          "Deleted {$row['original_name']} from {$row['entity_type']} {$row['entity_ref']}");
+
+    json_ok([], 'File deleted');
+}
+
+api_headers();
+json_err('Unknown action or method', 404);
