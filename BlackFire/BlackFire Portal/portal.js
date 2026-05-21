@@ -185,9 +185,9 @@ const PERMS = {
   'callout.confirm_closure':   ['admin','manager'],
   'invoice.send':              ['admin','manager','admin_clerk'],
   'finance.statement.release': ['admin','manager','admin_clerk'],
-  'finance.statement.generate':['admin'],
+  'finance.statement.generate':['admin','sysadmin'],
 };
-function can(perm){ return (PERMS[perm]||[]).includes(SESSION?.role); }
+function can(perm){ return SESSION?.role==='sysadmin' || (PERMS[perm]||[]).includes(SESSION?.role); }
 
 /* ═══════════════════════════════════════════════════════
    IN-MEMORY CACHE (populated from API on login/refresh)
@@ -368,6 +368,18 @@ const IDLE_MS = 30 * 60 * 1000;
 function _onActivity(){ clearTimeout(_idleTimer); _idleTimer = setTimeout(()=>{ toast('Session expired due to inactivity.','err'); doLogout(); }, IDLE_MS); }
 const _ACTIVITY_EVENTS = ['mousemove','keydown','click','scroll','touchstart'];
 function startIdleTimer(){ _ACTIVITY_EVENTS.forEach(e=>document.addEventListener(e,_onActivity,{passive:true})); _onActivity(); }
+function initStickyHeaders(){
+  document.querySelectorAll('.ppage').forEach(page=>{
+    const title=page.querySelector('.ptitle');
+    if(!title||title.parentElement.classList.contains('ppage-hdr')) return;
+    const sub=title.nextElementSibling;
+    const hdr=document.createElement('div');
+    hdr.className='ppage-hdr';
+    title.parentNode.insertBefore(hdr,title);
+    hdr.appendChild(title);
+    if(sub&&sub.classList.contains('psub')) hdr.appendChild(sub);
+  });
+}
 function stopIdleTimer(){ clearTimeout(_idleTimer); _ACTIVITY_EVENTS.forEach(e=>document.removeEventListener(e,_onActivity)); }
 
 async function doLogin(){
@@ -416,6 +428,7 @@ async function doLogin(){
   showPortalPage(firstPage, null);
   updateBadges();
   startIdleTimer();
+  initStickyHeaders();
 }
 
 async function doLogout(){
@@ -546,11 +559,13 @@ const fmtD = d=>d?new Date(d+'T00:00:00').toLocaleDateString('en-ZA',{day:'2-dig
 const esc = s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
 const ROLE_LABELS = {
+  sysadmin:'Sys Admin',
   admin:'Admin',manager:'Manager',call_logger:'Call Logger',
   junior_tech:'Junior Tech',senior_tech:'Senior Tech',
   client_support:'Client Support',admin_clerk:'Admin Clerk',viewer:'Viewer'
 };
 const ROLE_COLORS = {
+  sysadmin:'emergency',
   admin:'emergency',manager:'progress',call_logger:'open',
   junior_tech:'draft',senior_tech:'sent',client_support:'invoiced',
   admin_clerk:'paid',viewer:'draft'
@@ -1345,56 +1360,67 @@ async function renderStatement(){
       </div>
     </div>`).join('');
 
-  const releasedRows=released.slice(0,5).map(s=>`
+  const releasedRows=released.slice(0,10).map(s=>`
     <tr>
       <td class="mono">${esc(s.ref_id)}</td>
-      <td style="font-size:11px">${fmtD(s.scheduled_for||'')}</td>
-      <td style="font-size:11px">${fmtD(s.released_at?.slice(0,10)||'')} by ${esc(s.released_by||'')}</td>
-      <td style="font-size:11px">${esc(s.from_email||'')}</td>
-      <td style="font-size:11px">${esc(s.to_emails||'')}</td>
+      <td>${fmtD(s.scheduled_for||'')}</td>
+      <td>${fmtD(s.released_at?.slice(0,10)||'')} by ${esc(s.released_by||'')}</td>
+      <td>${esc(s.from_email||'')}</td>
+      <td>${esc(s.to_emails||'')}</td>
       <td class="amt">R ${Number(s.total_outstanding||0).toLocaleString('en-ZA',{minimumFractionDigits:2})}</td>
+      <td><button class="btn btn-g btn-s" onclick="downloadStatement('${esc(s.ref_id)}')">Download</button></td>
+    </tr>`).join('');
+
+  const outRowsLimited=outstanding.slice(0,10).map(inv=>`
+    <tr>
+      <td class="mono">${esc(inv.ref_id)}</td>
+      <td>${esc(inv.client_name)}</td>
+      <td>${esc(inv.invoice_date||'')}</td>
+      <td>${esc(inv.due_date||'')}</td>
+      <td>${pillH(inv.status)}</td>
+      <td class="amt">${fmt(Number(inv.amount))}</td>
     </tr>`).join('');
 
   document.getElementById('stmt-content').innerHTML=`
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px">
       <div style="background:var(--surface);border:1px solid var(--border);padding:14px;border-radius:2px">
-        <div style="font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px">Outstanding</div>
-        <div style="font-family:'Big Shoulders Display',sans-serif;font-size:22px;font-weight:700;color:${outTotal>0?'var(--pill-ovr-txt)':'var(--pill-paid-txt)'}">R ${outTotal.toLocaleString('en-ZA',{minimumFractionDigits:2})}</div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px">Outstanding</div>
+        <div style="font-family:'Big Shoulders Display',sans-serif;font-size:26px;font-weight:700;color:${outTotal>0?'var(--pill-ovr-txt)':'var(--pill-paid-txt)'}">R ${outTotal.toLocaleString('en-ZA',{minimumFractionDigits:2})}</div>
       </div>
       <div style="background:var(--surface);border:1px solid var(--border);padding:14px;border-radius:2px">
-        <div style="font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px">Pending Statements</div>
-        <div style="font-family:'Big Shoulders Display',sans-serif;font-size:22px;font-weight:700;color:${pending.length?'var(--amber)':'var(--muted)'}">${pending.length}</div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px">Pending Statements</div>
+        <div style="font-family:'Big Shoulders Display',sans-serif;font-size:26px;font-weight:700;color:${pending.length?'var(--amber)':'var(--muted)'}">${pending.length}</div>
       </div>
       <div style="background:var(--surface);border:1px solid var(--border);padding:14px;border-radius:2px">
-        <div style="font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px">Statements Sent</div>
-        <div style="font-family:'Big Shoulders Display',sans-serif;font-size:22px;font-weight:700">${released.length}</div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px">Statements Sent</div>
+        <div style="font-family:'Big Shoulders Display',sans-serif;font-size:26px;font-weight:700">${released.length}</div>
       </div>
     </div>
 
+    ${released.length?`
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:2px;margin-bottom:8px">RECENT STATEMENTS SENT</div>
+    <div class="panel" style="margin-bottom:18px"><div class="tw" style="max-height:360px;overflow-y:auto"><table>
+      <thead><tr><th>Ref</th><th>Scheduled</th><th>Released</th><th>From</th><th>To</th><th>Total</th><th></th></tr></thead>
+      <tbody>${releasedRows}</tbody>
+    </table></div></div>`:''}
+
     ${pending.length?`
     <div style="margin-bottom:18px">
-      <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:2px;margin-bottom:8px">PENDING RELEASE</div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:2px;margin-bottom:8px">PENDING RELEASE</div>
       ${pendingCards}
     </div>`:''}
 
     ${canGenerate?`
     <div style="margin-bottom:18px;padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:2px;display:flex;justify-content:space-between;align-items:center">
-      <div style="font-size:12px;color:var(--text2)">Statements are auto-generated every Monday at 09:00 via cron. You can also generate one manually for current outstanding invoices.</div>
+      <div style="font-size:14px;color:var(--text2)">Statements are auto-generated every Monday at 09:00 via cron. You can also generate one manually for current outstanding invoices.</div>
       <button class="btn btn-g btn-s" onclick="generateStatement()" style="white-space:nowrap;margin-left:16px">Generate Now</button>
     </div>`:''}
 
-    <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:2px;margin-bottom:8px">OUTSTANDING INVOICES</div>
-    <div class="panel" style="margin-bottom:18px"><div class="tw"><table>
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:2px;margin-bottom:8px">OUTSTANDING INVOICES</div>
+    <div class="panel" style="margin-bottom:18px"><div class="tw" style="max-height:360px;overflow-y:auto"><table>
       <thead><tr><th>Invoice #</th><th>Client</th><th>Date</th><th>Due</th><th>Status</th><th>Amount</th></tr></thead>
-      <tbody>${outRows||'<tr><td colspan="6" style="text-align:center;padding:18px;color:var(--muted);font-style:italic">No outstanding invoices</td></tr>'}</tbody>
+      <tbody>${outRowsLimited||'<tr><td colspan="6" style="text-align:center;padding:18px;color:var(--muted);font-style:italic">No outstanding invoices</td></tr>'}</tbody>
     </table></div></div>
-
-    ${released.length?`
-    <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:2px;margin-bottom:8px">RECENT STATEMENTS SENT</div>
-    <div class="panel"><div class="tw"><table>
-      <thead><tr><th>Ref</th><th>Scheduled</th><th>Released</th><th>From</th><th>To</th><th>Total</th></tr></thead>
-      <tbody>${releasedRows}</tbody>
-    </table></div></div>`:''}
   `;
 }
 
@@ -1403,6 +1429,29 @@ async function generateStatement(){
   if(!r.success){toast(r.error||'Error generating statement','err');return;}
   toast(r.message||'Statement generated','ok');
   renderStatement();
+}
+async function downloadStatement(ref_id){
+  const r=await api('GET',`statements.php?action=download&id=${encodeURIComponent(ref_id)}`);
+  if(!r.success){toast(r.error||'Could not load statement','err');return;}
+  const s=r.data;
+  const rows=(s.invoices||[]).map(inv=>`<tr><td>${esc(inv.ref_id)}</td><td>${esc(inv.client_name)}</td><td>${esc(inv.invoice_date||'')}</td><td>${esc(inv.due_date||'')}</td><td>${esc(inv.status)}</td><td style="text-align:right">R ${Number(inv.amount).toLocaleString('en-ZA',{minimumFractionDigits:2})}</td></tr>`).join('');
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Statement ${esc(s.ref_id)}</title>
+<style>body{font-family:Arial,sans-serif;margin:40px;color:#1a1814}h1{font-size:22px;margin-bottom:4px}p{font-size:12px;color:#666;margin:2px 0}table{width:100%;border-collapse:collapse;margin-top:20px;font-size:13px}th{background:#f5f1ea;padding:9px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:1px;border-bottom:2px solid #c8c1b3}td{padding:9px 12px;border-bottom:1px solid #e4ded2}.total{font-weight:700;font-size:15px;text-align:right;padding-top:12px}@media print{button{display:none}}</style>
+</head><body>
+<h1>Account Statement — ${esc(s.ref_id)}</h1>
+<p>Released: ${esc(s.released_at?.slice(0,10)||'')} by ${esc(s.released_by||'')}</p>
+<p>To: ${esc(s.to_emails||'')} | From: ${esc(s.from_email||'')}</p>
+<table><thead><tr><th>Invoice #</th><th>Client</th><th>Invoice Date</th><th>Due Date</th><th>Status</th><th style="text-align:right">Amount</th></tr></thead>
+<tbody>${rows}</tbody></table>
+<p class="total">Total Outstanding: R ${Number(s.total_outstanding||0).toLocaleString('en-ZA',{minimumFractionDigits:2})}</p>
+<br><button onclick="window.print()">Print / Save as PDF</button>
+</body></html>`;
+  const blob=new Blob([html],{type:'text/html'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`Statement_${ref_id}.html`;
+  a.click();
+  URL.revokeObjectURL(a.href);
 }
 
 async function openReleaseStatementModal(ref_id){

@@ -39,13 +39,30 @@ if ($method === 'POST' && $action === 'cron') {
 // All other endpoints require authentication
 $user = require_auth();
 
+// ── GET — download ───────────────────────────────────────────────────
+if ($method === 'GET' && $action === 'download') {
+    if (!can('finance.statement', $user['role'])) json_err('Permission denied', 403);
+    if (!$ref_id) json_err('Missing id', 400);
+    $stmt = db_row("SELECT * FROM bf_statements WHERE ref_id=?", [$ref_id]);
+    if (!$stmt) json_err('Statement not found', 404);
+    $invoices = [];
+    if (!empty($stmt['invoice_refs'])) {
+        $refs = array_filter(array_map('trim', explode(',', $stmt['invoice_refs'])));
+        if ($refs) {
+            $ph = implode(',', array_fill(0, count($refs), '?'));
+            $invoices = db_select("SELECT ref_id, client_name, invoice_date, due_date, status, amount FROM bf_invoices WHERE ref_id IN ($ph)", $refs);
+        }
+    }
+    json_ok(['data' => array_merge($stmt, ['invoices' => $invoices])]);
+}
+
 // ── GET — email_options ───────────────────────────────────────────────
 if ($method === 'GET' && $action === 'email_options') {
     $role = $user['role'];
 
     // Determine which roles' emails this user can use as FROM
     $allowed_roles = [];
-    if ($role === 'admin') {
+    if (in_array($role, ['admin','sysadmin'])) {
         $allowed_roles = ['admin', 'manager', 'admin_clerk'];
     } elseif ($role === 'manager') {
         $allowed_roles = ['manager', 'admin_clerk'];

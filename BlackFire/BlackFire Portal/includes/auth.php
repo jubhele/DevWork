@@ -111,6 +111,7 @@ function can(string $perm, ?string $role = null): bool {
         if (!$user) return false;
         $role = $user['role'];
     }
+    if ($role === 'sysadmin') return true;
     $perms = _load_role_perms();
     return in_array($role, $perms[$perm] ?? [], true);
 }
