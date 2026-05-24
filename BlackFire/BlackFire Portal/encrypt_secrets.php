@@ -23,6 +23,7 @@ $error  = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $db_pass   = $_POST['db_pass']   ?? '';
     $mail_pass = $_POST['mail_pass'] ?? '';
+    $github_pat = trim($_POST['github_pat'] ?? '');
     $app_key   = $_POST['app_key']   ?? '';
 
     // Generate a new key if not provided
@@ -67,6 +68,7 @@ define('BF_DB_PASS_ENC',  '$db_enc');
 
 // Mail password (Brevo SMTP or hosting SMTP)
 define('BF_MAIL_PASS',    '$mail_enc');
+define('BF_GITHUB_PAT',   '$github_pat');
 
 // Make available as env vars for getenv() compatibility
 putenv('BF_APP_KEY='     . BF_APP_KEY);
@@ -76,6 +78,7 @@ putenv('BF_DB_NAME='     . BF_DB_NAME);
 putenv('BF_DB_USER='     . BF_DB_USER);
 putenv('BF_DB_PASS_ENC=' . BF_DB_PASS_ENC);
 putenv('BF_MAIL_PASS='   . BF_MAIL_PASS);
+putenv('BF_GITHUB_PAT='  . BF_GITHUB_PAT);
 PHP_OUT;
     }
 }
@@ -145,6 +148,9 @@ $gen_key = bin2hex(random_bytes(32));
 
     <label>Mail Password (BF_MAIL_PASS) — optional</label>
     <input type="password" name="mail_pass" placeholder="Brevo SMTP or hosting mail password">
+
+    <label>GitHub PAT (BF_GITHUB_PAT) — for deploy script</label>
+    <input type="text" name="github_pat" value="<?= htmlspecialchars($_POST['github_pat'] ?? '') ?>" placeholder="github_pat_...">
 
     <button type="submit">Generate blackfire_secrets.php →</button>
   </form>
