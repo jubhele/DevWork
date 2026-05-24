@@ -95,7 +95,7 @@ $cspNonce = base64_encode(random_bytes(16));
   }
 }
 </script>
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; script-src 'self' 'nonce-<?= $cspNonce ?>'; connect-src 'self'; object-src 'none';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; script-src 'self' 'nonce-<?= $cspNonce ?>'; connect-src 'self'; object-src 'none';">
 <title>BlackFire Solutions - Fire, taught to behave.</title>
 <link rel="icon" href="./favicon.ico?v=20260521" sizes="any">
 <link rel="icon" type="image/png" sizes="512x512" href="./favicon-512x512.png?v=20260521">
@@ -308,7 +308,7 @@ $cspNonce = base64_encode(random_bytes(16));
           <div class="form-actions">
             <button class="btn-primary-lg btn-full" data-action="submitContact">Send Request</button>
           </div>
-          <div id="cf-success" style="display:none">
+          <div id="cf-success">
             ✓ Thank you - we'll be in touch within 24 hours.
           </div>
         </div>
@@ -384,7 +384,7 @@ $cspNonce = base64_encode(random_bytes(16));
     </div>
   </div>
   <!-- ── Forgot Password Panel ── -->
-  <div class="login-card" id="forgot-panel" style="display:none">
+  <div class="login-card" id="forgot-panel">
     <div class="login-header">
       <div class="login-mark" data-action="goPublic" title="Back to home">
         <img src="./blackfire_logo_transparent.png" class="bf-logo-dark" height="74"><img src="./blackfire_logo_transparent.png" class="bf-logo-light" height="74">
@@ -393,7 +393,7 @@ $cspNonce = base64_encode(random_bytes(16));
       <div class="login-sub">ENTER YOUR USERNAME</div>
     </div>
     <div class="login-body">
-      <div id="forgot-msg" class="login-error" style="display:none;"></div>
+      <div id="forgot-msg" class="login-error"></div>
       <div class="login-group">
         <label class="login-label">Username</label>
         <input class="login-input" id="fp-user" placeholder="your username" onkeydown="if(event.key==='Enter') doRequestReset()">
@@ -405,7 +405,7 @@ $cspNonce = base64_encode(random_bytes(16));
     </div>
   </div>
   <!-- ── New Password Panel (token from URL) ── -->
-  <div class="login-card" id="newpass-panel" style="display:none">
+  <div class="login-card" id="newpass-panel">
     <div class="login-header">
       <div class="login-mark" data-action="goPublic" title="Back to home">
         <img src="./blackfire_logo_transparent.png" class="bf-logo-dark" height="74"><img src="./blackfire_logo_transparent.png" class="bf-logo-light" height="74">
@@ -414,7 +414,7 @@ $cspNonce = base64_encode(random_bytes(16));
       <div class="login-sub">CHOOSE A NEW PASSWORD</div>
     </div>
     <div class="login-body">
-      <div id="newpass-msg" class="login-error" style="display:none"></div>
+      <div id="newpass-msg" class="login-error"></div>
       <div class="login-group">
         <label class="login-label">New Password</label>
         <input class="login-input" type="password" id="np-pass1" placeholder="new password" onkeydown="if(event.key==='Enter') doResetPassword()">
@@ -520,7 +520,7 @@ $cspNonce = base64_encode(random_bytes(16));
           <div class="psub" id="dash-sub">AECI CHEMPARK  -  OVERVIEW</div>
         </div>
         <button class="btn btn-g btn-s dash-edit-btn" onclick="showDashEditor()">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="vertical-align:-2px;margin-right:5px"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit Layout
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="svg-icon-inline"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit Layout
         </button>
       </div>
       <div id="dash-main-content"></div>
@@ -626,7 +626,7 @@ $cspNonce = base64_encode(random_bytes(16));
     <div id="p-new-quote" class="ppage">
       <div class="ptitle" id="nq-page-title">New Quote</div>
       <div class="psub" id="nq-page-sub">BUILD PROPOSAL</div>
-      <div id="nq-pending-notice" style="display:none">
+      <div id="nq-pending-notice">
         <strong>Senior Technician:</strong> Quotes you submit will be sent for manager approval before being issued to the client.
       </div>
       <div class="panel"><div class="pb">
@@ -702,7 +702,7 @@ $cspNonce = base64_encode(random_bytes(16));
     </div>
 
     <!-- CLIENT ADD/EDIT MODAL -->
-    <div id="client-modal" class="modal" style="display:none">
+    <div id="client-modal" class="modal">
       <div class="modal-box modal-box--lg">
         <div class="modal-hdr">
           <div class="modal-title" id="client-modal-title">Add Client</div>
@@ -841,8 +841,8 @@ $cspNonce = base64_encode(random_bytes(16));
           <button class="btn btn-g btn-s" onclick="showPortalPage('p-safety',null); renderSafetyFiles()">&#8592; Back</button>
           <button class="btn btn-g btn-s" data-action="editSafetyFile">Edit</button>
           <button class="btn btn-g btn-s" onclick="safGenerateTracker(document.getElementById('saf-detail-content').dataset.fileId)" title="Generate contractor action-plan tracker as a downloadable HTML file">&#8659; Tracker</button>
-          <button class="btn btn-s saf-approve-btn" id="saf-approve-btn" style="display:none;background:var(--grn-glow,#dcfce7);border-color:var(--green,#16a34a);color:var(--green,#16a34a)" onclick="approveSafetyFile()">&#10003; Approve</button>
-          <button class="btn btn-s" id="saf-deactivate-btn" style="display:none;background:#fee2e2;border-color:#dc2626;color:#dc2626" onclick="deactivateSafetyFile()" title="Deactivate this safety file — record is retained for audit">&#128465; Deactivate</button>
+          <button class="btn btn-s saf-approve-btn" id="saf-approve-btn" class="btn-approve-action" onclick="approveSafetyFile()">&#10003; Approve</button>
+          <button class="btn btn-s" id="saf-deactivate-btn" class="btn-deactivate-action" onclick="deactivateSafetyFile()" title="Deactivate this safety file — record is retained for audit">&#128465; Deactivate</button>
           <button class="btn btn-p btn-s" onclick="safDownloadPack(document.getElementById('saf-detail-content').dataset.fileId)" title="Download full safety file report as standalone HTML">&#8595; Download Pack</button>
         </div>
       </div>
@@ -859,7 +859,7 @@ $cspNonce = base64_encode(random_bytes(16));
     <!-- USERS & ROLES -->
     <div id="p-users" class="ppage">
       <div class="ptitle">Users & Roles</div><div class="psub">RBAC  -  ACCESS CONTROL MATRIX</div>
-      <div id="users-create-bar" style="display:none">
+      <div id="users-create-bar">
         <button class="btn-create-user" data-action="openCreateUserModal">+ New User</button>
       </div>
       <div class="panel">
@@ -876,7 +876,7 @@ $cspNonce = base64_encode(random_bytes(16));
             <th class="perm-col">Submit Quote</th>
             <th class="perm-col">Approve Quote</th>
             <th class="perm-col">Sys Admin</th>
-            <th id="users-th-actions" style="display:none">Actions</th>
+            <th id="users-th-actions">Actions</th>
           </tr>
         </thead><tbody id="users-table-body"></tbody></table></div>
       </div>
