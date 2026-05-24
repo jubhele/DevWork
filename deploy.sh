@@ -20,7 +20,12 @@
 set -euo pipefail
 
 # ── Config ────────────────────────────────────────────────────────
-GITHUB_PAT="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"
+# Read PAT from blackfire_secrets.php
+GITHUB_PAT=$(php -r "
+  \$s = dirname(getenv('HOME')).'/blackfire_secrets.php';
+  if (!file_exists(\$s)) \$s = getenv('HOME').'/blackfire_secrets.php';
+  if (file_exists(\$s)) { require_once \$s; echo defined('BF_GITHUB_PAT') ? BF_GITHUB_PAT : ''; }
+" 2>/dev/null)
 REPO_URL="https://${GITHUB_PAT}@github.com/jubhele/BlackFire.git"
 BRANCH="ndlunkulu"
 REPO_SUBDIR="BlackFire/BlackFire Portal"   # path inside repo to deploy
