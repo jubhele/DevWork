@@ -23,7 +23,12 @@ date_default_timezone_set($cfg['timezone'] ?? 'Africa/Johannesburg');
 
 $method = $_SERVER['REQUEST_METHOD'];
 $action = $_GET['action'] ?? '';
-$user   = require_auth();
+
+// Must be before require_auth() so 401 responses have Content-Type: application/json.
+// The download success path overwrites Content-Type with the file's mime type at line 86.
+api_headers();
+
+$user = require_auth();
 
 const ALLOWED_TYPES = [
     'application/pdf'                                                          => 'pdf',
@@ -58,18 +63,17 @@ if ($method === 'GET' && $action === 'list') {
     json_ok(['attachments' => $rows]);
 }
 
-// ── GET download ──────────────────────────────────────────────────────
-if ($method === 'GET' && $action === 'download') {
+// ── GET download / view ───────────────────────────────────────────────
+if ($method === 'GET' && ($action === 'download' || $action === 'view')) {
     $id = (int)($_GET['id'] ?? 0);
     if (!$id) { api_headers(); json_err('id required'); }
 
     $row = db_row("SELECT * FROM bf_attachments WHERE id = ?", [$id]);
     if (!$row) { api_headers(); json_err('File not found', 404); }
 
-    // [BUG FIX] IDOR Protection: Ensure user has permission to download this file.
-    // Ideally, check against parent entity access. Here, we restrict to uploader or admin/manager.
+    // IDOR Protection: restrict to uploader or admin/manager.
     if (!in_array($user['role'], ['admin', 'manager'], true) && $row['uploaded_by'] !== $user['username']) {
-        api_headers(); json_err('Permission denied to download this file', 403);
+        api_headers(); json_err('Permission denied', 403);
     }
 
     $path = attach_dir() . '/' . $row['stored_name'];
@@ -79,8 +83,12 @@ if ($method === 'GET' && $action === 'download') {
     while (ob_get_level()) ob_end_clean();
 
     $safe_name = str_replace(['"', '\\'], ['', ''], $row['original_name']);
+    $inline_types = ['application/pdf', 'image/jpeg', 'image/png'];
+    $disposition  = ($action === 'view' && in_array($row['mime_type'], $inline_types, true))
+                    ? 'inline'
+                    : 'attachment';
     header('Content-Type: ' . $row['mime_type']);
-    header('Content-Disposition: attachment; filename="' . $safe_name . '"');
+    header('Content-Disposition: ' . $disposition . '; filename="' . $safe_name . '"');
     header('Content-Length: ' . filesize($path));
     header('X-Content-Type-Options: nosniff');
     header('Cache-Control: private, no-cache');
@@ -95,20 +103,37 @@ if ($method === 'POST') {
     $entity_type = clean($_POST['entity_type'] ?? '', 20);
     $entity_ref  = clean($_POST['entity_ref']  ?? '', 30);
 
-    if (!in_array($entity_type, ['callout', 'invoice', 'quote', 'payment'], true)) {
+    if (!in_array($entity_type, ['callout', 'invoice', 'quote', 'payment', 'safety_file', 'safety_compliance'], true)) {
         json_err('Invalid entity_type');
     }
     if (!$entity_ref) json_err('entity_ref required');
 
-    $entity_table_map = [
-        'callout' => 'bf_callouts',
-        'invoice' => 'bf_invoices',
-        'quote'   => 'bf_quotes',
-        'payment' => 'bf_payments',
-    ];
-    $entity_table = $entity_table_map[$entity_type];
-    if (!db_row("SELECT id FROM {$entity_table} WHERE ref_id = ?", [$entity_ref])) {
-        json_err(ucfirst($entity_type) . ' not found', 404);
+    // safety_compliance records use an integer PK, all others use ref_id
+    if ($entity_type === 'safety_compliance') {
+        $rec_id = (int)$entity_ref;
+        if (!$rec_id || !db_row("SELECT id FROM bf_safety_compliance WHERE id = ?", [$rec_id])) {
+            json_err('Compliance record not found', 404);
+        }
+        // One document per compliance record — prevents stacking multiple certs on the same entry
+        $existing = (int)(db_row(
+            "SELECT COUNT(*) AS n FROM bf_attachments WHERE entity_type = 'safety_compliance' AND entity_ref = ?",
+            [$entity_ref]
+        )['n'] ?? 0);
+        if ($existing > 0) {
+            json_err('A document is already attached to this record. Remove it first to replace it.');
+        }
+    } else {
+        $entity_table_map = [
+            'callout'     => 'bf_callouts',
+            'invoice'     => 'bf_invoices',
+            'quote'       => 'bf_quotes',
+            'payment'     => 'bf_payments',
+            'safety_file' => 'bf_safety_files',
+        ];
+        $entity_table = $entity_table_map[$entity_type];
+        if (!db_row("SELECT id FROM {$entity_table} WHERE ref_id = ?", [$entity_ref])) {
+            json_err(ucfirst($entity_type) . ' not found', 404);
+        }
     }
 
     if (empty($_FILES['file']) || $_FILES['file']['error'] === UPLOAD_ERR_NO_FILE) {

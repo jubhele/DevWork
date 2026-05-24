@@ -32,8 +32,12 @@ function bf_session_start(): void {
         ini_set('session.use_strict_mode', '1');
         ini_set('session.cookie_samesite', 'Lax');
         ini_set('session.cookie_secure', $isHttps ? '1' : '0');
-        $scriptDir = rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? '/'), '/\\');
-        ini_set('session.cookie_path', ($scriptDir ?: '') . '/');
+        // Normalise to portal root — api/* scripts are one dir below portal.php
+        $dir = rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? '/'), '/\\');
+        if (substr($dir, -4) === '/api') {
+            $dir = rtrim(dirname($dir), '/\\');
+        }
+        ini_set('session.cookie_path', ($dir ?: '') . '/');
         ini_set('session.use_cookies', '1');
         ini_set('session.use_only_cookies', '1');
         session_name('bf_portal');

@@ -69,9 +69,8 @@ body::before{content:'';position:fixed;inset:0;background-image:url('./blackfire
 [data-state="login"]  #login-screen{display:flex}
 [data-state="portal"] #portal-shell{display:flex}
 [data-state="portal"] .btn-login{display:none}
-[data-state="portal"] #pub-nav,[data-state="login"] #pub-nav{top:0!important}
-[data-state="portal"] #pub-nav{left:160px}
-[data-state="portal"] .pub-brand,[data-state="portal"] #pub-nav .theme-btn{display:none}
+[data-state="login"] #pub-nav{top:0!important}
+[data-state="portal"] #pub-nav{display:none}
 
 /* ═══════════════════════════════════════════════════════
    ■ PUBLIC SITE
@@ -111,9 +110,6 @@ body::before{content:'';position:fixed;inset:0;background-image:url('./blackfire
 }
 .theme-btn:hover{border-color:var(--accent);color:var(--accent)}
 .theme-btn svg{width:12px;height:12px}
-/* compact icon style when theme-btn is inside the vertical nav rail */
-#pnav-right .theme-btn{padding:8px;border:none;background:transparent;border-radius:2px;font-size:0;gap:0}
-#pnav-right .theme-btn svg{width:15px;height:15px}
 .theme-btn .sun{display:block}.theme-btn .moon{display:none}
 [data-theme="light"] .theme-btn .sun{display:none}
 [data-theme="light"] .theme-btn .moon{display:block}
@@ -341,50 +337,94 @@ body::before{content:'';position:fixed;inset:0;background-image:url('./blackfire
 ═══════════════════════════════════════════════════════ */
 #portal-shell{min-height:100vh;position:relative;z-index:1}
 
-/* ── Portal Nav Rail (vertical, fixed left side) ── */
+/* ── Portal Top Bar — logo centred, identity right ── */
+#portal-topbar{
+  display:none;position:fixed;top:0;left:0;right:0;height:68px;z-index:101;
+  background:var(--surface);border-bottom:1px solid var(--border);
+  box-shadow:0 2px 8px rgba(0,0,0,.12);
+  align-items:center;justify-content:center;
+  padding:0 20px;
+  transition:background .25s,border-color .25s;
+}
+[data-state="portal"] #portal-topbar{display:flex}
+#portal-topbar .bf-logo-dark,
+#portal-topbar .bf-logo-light{height:50px;width:auto;object-fit:contain;display:block}
+[data-theme="light"] #portal-topbar .bf-logo-dark{display:none}
+[data-theme="light"] #portal-topbar .bf-logo-light{display:block}
+[data-theme="dark"]  #portal-topbar .bf-logo-light{display:none}
+
+/* identity + controls float to the right */
+.ptb-right{
+  position:absolute;right:20px;top:0;bottom:0;
+  display:flex;align-items:center;gap:8px;
+}
+#ptb-user{font-size:12px;font-weight:500;color:var(--text2);letter-spacing:.3px;white-space:nowrap}
+
+/* Sign-out button */
+#pnav-signout{
+  padding:5px 10px;border:1px solid var(--border);background:transparent;
+  color:var(--muted);cursor:pointer;border-radius:2px;transition:all .15s;
+  display:flex;align-items:center;gap:5px;
+  font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.5px;text-transform:uppercase;
+}
+.signout-icon{width:13px;height:13px}
+#pnav-signout:hover{color:var(--accent);border-color:var(--accent)}
+
+/* ── Primary Nav Bar — floating bar below topbar ── */
+#pnav-primary-bar{
+  display:none;position:fixed;top:68px;left:0;right:0;height:46px;z-index:100;
+  background:var(--surface);border-bottom:1px solid var(--border);
+  box-shadow:0 4px 16px rgba(0,0,0,.1);
+  align-items:center;justify-content:center;
+  transition:background .25s,border-color .25s;
+}
+[data-state="portal"] #pnav-primary-bar{display:flex}
+#pnav-primary{
+  display:flex;align-items:center;gap:0;
+  overflow-x:auto;scrollbar-width:none;max-width:100%;
+}
+#pnav-primary::-webkit-scrollbar{display:none}
+.pnav-group{
+  display:flex;align-items:center;padding:0 20px;height:46px;
+  cursor:pointer;color:var(--muted);font-family:'IBM Plex Mono',monospace;
+  font-size:11px;letter-spacing:1.5px;text-transform:uppercase;
+  border-bottom:2px solid transparent;white-space:nowrap;
+  transition:all .15s;flex-shrink:0;
+}
+.pnav-group:hover{color:var(--text);border-bottom-color:var(--amber)}
+.pnav-group.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* ── Sub-Nav Strip — child pages for the active group ── */
 #pnav-bar{
-  display:none;position:fixed;top:0;left:0;bottom:0;width:160px;
-  background:var(--surface);border-right:1px solid var(--border);
-  flex-direction:column;align-items:stretch;justify-content:flex-start;
-  z-index:99;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;
+  display:none;position:fixed;top:114px;left:0;right:0;height:38px;z-index:99;
+  background:var(--surface2);border-bottom:1px solid var(--border);
+  box-shadow:0 2px 8px rgba(0,0,0,.07);
+  align-items:center;overflow-x:auto;scrollbar-width:none;
   transition:background .25s,border-color .25s;
 }
 #pnav-bar::-webkit-scrollbar{display:none}
 [data-state="portal"] #pnav-bar{display:flex}
-#pnav-logo{height:60px;display:flex;align-items:center;justify-content:center;padding:0 12px;border-bottom:1px solid var(--border);cursor:pointer;flex-shrink:0}
-#pnav-logo img{height:38px;width:auto;max-width:136px;object-fit:contain;object-position:center}
-#pnav-links{display:flex;flex-direction:column;align-items:stretch;flex:1;overflow-y:auto;scrollbar-width:none}
-#pnav-links::-webkit-scrollbar{display:none}
-.pnav-sep{width:52px;height:1px;background:var(--border);flex-shrink:0;margin:4px 14px}
+#pnav-links{display:flex;align-items:center;flex-direction:row;justify-content:center;width:100%;padding:0 20px;gap:0}
 .pnitem{
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:3px;padding:11px 4px;height:auto;width:100%;
+  display:flex;align-items:center;gap:5px;padding:0 16px;height:38px;
   cursor:pointer;color:var(--muted);font-family:'IBM Plex Mono',monospace;
-  font-size:10px;letter-spacing:.5px;text-transform:uppercase;text-align:center;
-  border-left:2px solid transparent;border-bottom:none;transition:all .15s;
-  flex-shrink:0;-webkit-tap-highlight-color:transparent;overflow:hidden;
+  font-size:10px;letter-spacing:.5px;text-transform:uppercase;
+  border-bottom:2px solid transparent;white-space:nowrap;
+  transition:all .15s;flex-shrink:0;-webkit-tap-highlight-color:transparent;
 }
-.pnitem:hover{color:var(--text);border-left-color:var(--amber);background:var(--surface2)}
-.pnitem.active{color:var(--accent);border-left-color:var(--accent);background:var(--amb-glow)}
-.pnitem svg{width:16px;height:16px;flex-shrink:0;opacity:.6}
-.pnitem.active svg,.pnitem:hover svg{opacity:1}
+.pnitem:hover{color:var(--text);border-bottom-color:var(--amber)}
+.pnitem.active{color:var(--accent);border-bottom-color:var(--accent);background:var(--amb-glow)}
 .pnbadge{background:var(--accent);color:var(--bg);font-family:'IBM Plex Mono',monospace;font-size:8px;padding:1px 4px;border-radius:2px;min-width:14px;text-align:center}
-#pnav-right{display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 0;flex-shrink:0;border-top:1px solid var(--border)}
-#pnav-user{display:none}
-#pnav-signout{
-  padding:8px;border:none;background:transparent;
-  color:var(--muted);cursor:pointer;border-radius:2px;transition:all .15s;
-  display:flex;align-items:center;justify-content:center;font-size:0;letter-spacing:0;
-}
-.signout-icon{width:15px;height:15px}
-#pnav-signout:hover{color:var(--accent);background:var(--surface2)}
 
 /* ── Portal Main ── */
 #pmain{padding:28px 32px;min-height:100vh;max-width:1400px;margin:0 auto}
 .ppage{display:none}.ppage.active{display:block}
 .ptitle{font-family:'Big Shoulders Display',sans-serif;font-size:37px;font-weight:700;color:var(--text);margin-bottom:3px;letter-spacing:.3px}
 .psub{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--muted);margin-bottom:22px;letter-spacing:1.5px;text-transform:uppercase}
-.ppage-hdr{position:sticky;top:60px;z-index:20;background:var(--bg);padding:14px 0 10px;margin:-14px 0 0;border-bottom:1px solid var(--border);transition:background .25s}
+.ppage-hdr{position:sticky;top:152px;z-index:20;background:var(--bg);padding:14px 0 10px;margin:-14px 0 0;border-bottom:1px solid var(--border);transition:background .25s}
+.perm-toggle-bar{padding:8px 12px 6px;border-bottom:1px solid var(--border)}
+#users-rbac-table .perm-col{transition:opacity .15s}
+#users-rbac-table.perms-collapsed .perm-col{display:none}
 
 /* ── Portal Components ── */
 .panel{background:var(--surface);border:1px solid var(--border);border-radius:2px;transition:background .25s,border-color .25s;margin-bottom:20px}
@@ -420,6 +460,7 @@ tr:hover td{background:var(--row-hover)}
 .btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border:1px solid;border-radius:2px;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:13px;letter-spacing:1px;text-transform:uppercase;transition:all .15s;white-space:nowrap}
 .btn-p{background:var(--accent);border-color:var(--accent);color:#fff}.btn-p:hover{opacity:.85}
 .btn-g{background:transparent;border-color:var(--border);color:var(--text2)}.btn-g:hover{border-color:var(--accent);color:var(--accent)}
+.btn-d{background:transparent;border-color:var(--ember);color:var(--ember)}.btn-d:hover{background:var(--ember);color:#fff}
 .btn-s{padding:4px 9px;font-size:12px}
 .bgrp{display:flex;gap:6px;flex-wrap:wrap}
 .srow{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap}
@@ -482,7 +523,7 @@ tr:hover td{background:var(--row-hover)}
 .audit-row:last-child{border-bottom:none}
 .audit-row:hover{background:var(--surface2)}
 .audit-ts{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--muted);white-space:nowrap;width:100px;flex-shrink:0}
-.audit-user{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--accent);width:80px;flex-shrink:0}
+.audit-user{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--accent);width:150px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .audit-action{flex:1;color:var(--text2)}
 .audit-lvl{font-family:'IBM Plex Mono',monospace;font-size:12px;padding:2px 6px;border-radius:2px}
 .audit-lvl.info{background:var(--blu-glow);color:var(--pill-opn-txt)}
@@ -507,6 +548,8 @@ tr:hover td{background:var(--row-hover)}
 .toast.ok{border-left-color:var(--green)}
 .toast.err{border-left-color:var(--ember)}
 @keyframes tIn{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:translateX(0)}}
+@keyframes tOut{from{opacity:1;transform:translateX(0)}to{opacity:0;transform:translateX(16px)}}
+.toast.hiding{animation:tOut .4s ease forwards;pointer-events:none}
 
 /* ── Back to Top Button ── */
 #back-to-top{
@@ -523,19 +566,25 @@ tr:hover td{background:var(--row-hover)}
   #back-to-top{width:44px;height:44px;bottom:20px;right:20px;font-size:18px}
 }
 
-/* Responsive portal */
-[data-state="portal"] #pmain{padding-top:80px;padding-left:192px;max-width:none;margin:0}
+/* Responsive portal — centered content, no sidebar offset */
+[data-state="portal"] #pmain{
+  padding-top:170px;padding-left:32px;padding-right:32px;padding-bottom:40px;
+  max-width:1400px;margin:0 auto;
+}
 @media(max-width:1024px){
-  [data-state="portal"] #pmain{padding:80px 16px 24px 176px;max-width:none;margin:0}
+  [data-state="portal"] #pmain{padding:170px 20px 32px;max-width:none}
   .kgrid{grid-template-columns:1fr 1fr}
   .twocol{grid-template-columns:1fr}
 }
+@media(max-width:768px){
+  .pnav-group{padding:0 12px;font-size:10px;letter-spacing:.5px}
+  .pnitem{padding:0 10px;font-size:10px}
+  [data-state="portal"] #pmain{padding:170px 16px 28px}
+}
 @media(max-width:640px){
-  #pnav-bar{width:64px}
-  #pnav-logo{display:none}
-  [data-state="portal"] #pub-nav{left:64px}
-  .pnitem{font-size:8px;padding:10px 2px}
-  [data-state="portal"] #pmain{padding:80px 12px 24px 76px}
+  [data-state="portal"] #pmain{padding:170px 12px 24px}
+  #ptb-user{display:none}
+  .pnav-group{padding:0 8px;font-size:9px;letter-spacing:.3px}
   .kgrid{grid-template-columns:1fr 1fr}
   .fgrid{grid-template-columns:1fr}
   .fgrid.three{grid-template-columns:1fr}
@@ -624,3 +673,496 @@ tr:hover td{background:var(--row-hover)}
 
 /* ── Users ── */
 #users-create-bar{margin-bottom:12px}
+
+/* ═══════════════════════════════════════════════════════
+   ■ SAFETY FILES MODULE  (APS-EHS-FRM-010)
+═══════════════════════════════════════════════════════ */
+
+/* ── Colour bands ── */
+.saf-green    { color:#16a34a }
+.saf-yellow   { color:#ca8a04 }
+.saf-orange   { color:#ea580c }
+.saf-red      { color:#dc2626 }
+.saf-unscored { color:var(--muted) }
+
+/* ── Dashboard grid ── */
+.safety-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; margin-top:16px }
+.safety-grid.safety-grid--single { grid-template-columns:minmax(0,480px); justify-content:center }
+
+.saf-card {
+  background:var(--card); border:1px solid var(--border); border-top:3px solid var(--border);
+  border-radius:4px; padding:16px; cursor:pointer; transition:box-shadow .15s, transform .1s;
+}
+.saf-card:hover { box-shadow:0 4px 16px rgba(0,0,0,.12); transform:translateY(-1px) }
+.saf-card.saf-green  { border-top-color:#16a34a }
+.saf-card.saf-yellow { border-top-color:#ca8a04 }
+.saf-card.saf-orange { border-top-color:#ea580c }
+.saf-card.saf-red    { border-top-color:#dc2626 }
+
+.saf-card-hdr        { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px }
+.saf-card-id         { font-family:var(--mono); font-size:12px; color:var(--muted); font-weight:600 }
+.saf-card-contractor { font-size:16px; font-weight:700; color:var(--text); margin-bottom:4px; line-height:1.2 }
+.saf-card-scope      { font-size:13px; color:var(--muted); margin-bottom:8px; line-height:1.4; min-height:18px }
+.saf-card-meta       { display:flex; gap:12px; font-size:12px; color:var(--muted); margin-bottom:10px; flex-wrap:wrap; align-items:center }
+.saf-card-score-row  { display:flex; align-items:center; gap:10px; margin-bottom:8px }
+.saf-score-chip      { font-size:22px; font-weight:900; font-family:var(--display); line-height:1 }
+.saf-band-label      { font-size:12px; color:var(--muted) }
+.saf-card-stats      { display:flex; gap:8px; flex-wrap:wrap }
+.saf-stat            { font-size:11px; padding:2px 7px; border-radius:10px; font-weight:600 }
+.saf-stat-ts         { background:rgba(22,163,74,.12);  color:#16a34a }
+.saf-stat-nts        { background:rgba(220,38,38,.10);  color:#dc2626 }
+.saf-stat-na         { background:rgba(100,116,139,.10); color:var(--muted) }
+
+/* ── Status pills ── */
+.saf-status-pill { font-size:11px; padding:2px 8px; border-radius:10px; font-weight:600; text-transform:uppercase }
+.saf-status-draft       { background:rgba(100,116,139,.15); color:var(--muted) }
+.saf-status-in-progress { background:rgba(59,130,246,.12);  color:#2563eb }
+.saf-status-submitted   { background:rgba(234,179,8,.15);   color:#b45309 }
+.saf-status-approved    { background:rgba(22,163,74,.12);   color:#16a34a }
+
+/* ── Policy email badge ── */
+.saf-pol-badge { font-size:10px; padding:2px 6px; border-radius:8px; background:rgba(22,163,74,.12); color:#16a34a; font-weight:600 }
+
+/* ── Submission record — card bar ── */
+.saf-submission-bar {
+  font-size:10px; color:#16a34a; font-weight:600;
+  background:rgba(22,163,74,.07); border:1px solid rgba(22,163,74,.2);
+  border-radius:4px; padding:3px 8px; margin-top:6px; line-height:1.5;
+}
+
+/* ── Submission record — detail banner ── */
+.saf-submission-banner {
+  display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+  background:rgba(22,163,74,.07); border:1px solid rgba(22,163,74,.22);
+  border-radius:8px; padding:12px 16px; margin-bottom:16px;
+}
+.saf-sb-icon { font-size:22px; color:#16a34a; flex-shrink:0; line-height:1 }
+.saf-sb-meta { flex:1; min-width:160px }
+.saf-sb-meta strong { display:block; font-size:13px; color:#16a34a; line-height:1.4 }
+.saf-sb-meta span   { font-size:11px; color:var(--muted) }
+.saf-sb-score-pill  {
+  background:#16a34a; color:#fff; padding:5px 14px;
+  border-radius:20px; font-size:14px; font-weight:700; flex-shrink:0;
+}
+
+/* ── Reminders ── */
+.safety-reminders { margin-bottom:8px }
+
+/* ── Audit layout (two-column: main + sidebar) ── */
+.safety-audit-layout {
+  display:grid; grid-template-columns:1fr 260px; gap:20px; align-items:start;
+}
+@media(max-width:900px){ .safety-audit-layout { grid-template-columns:1fr } }
+@media(max-width:700px){ .safety-grid { grid-template-columns:1fr } }
+
+.safety-audit-main   { min-width:0 }
+.safety-score-sidebar { position:sticky; top:20px }
+
+/* ── Score panel ── */
+.safety-score-big { font-size:48px; font-weight:900; font-family:var(--display); text-align:center; margin-bottom:4px; transition:color .2s }
+.safety-score-label { text-align:center; font-size:14px; font-weight:600; margin-bottom:4px }
+.safety-score-rule  { text-align:center; font-size:12px; color:var(--muted); margin-bottom:8px; line-height:1.4 }
+
+.saf-sec-score-row  { display:flex; align-items:center; gap:6px; padding:4px 0; border-bottom:1px solid var(--border) }
+.saf-sec-key        { font-family:var(--mono); font-size:12px; font-weight:700; min-width:18px }
+.saf-sec-score-label { flex:1; font-size:11px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+.saf-sec-pct        { font-size:12px; font-weight:700; min-width:34px; text-align:right }
+
+/* ── Legend ── */
+.saf-legend    { display:flex; flex-direction:column; gap:6px }
+.saf-leg-item  { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--muted) }
+.saf-dot       { width:10px; height:10px; border-radius:50%; flex-shrink:0 }
+.saf-dot.saf-green  { background:#16a34a }
+.saf-dot.saf-yellow { background:#ca8a04 }
+.saf-dot.saf-orange { background:#ea580c }
+.saf-dot.saf-red    { background:#dc2626 }
+
+/* ── Section accordion ── */
+.safety-sections-wrap { display:flex; flex-direction:column }
+.saf-sec-hdr { cursor:pointer; user-select:none }
+.saf-sec-hdr-right { display:flex; align-items:center; gap:8px }
+.saf-toggle  { font-size:12px; color:var(--muted) }
+.saf-sec-body { overflow-x:auto }
+.saf-sec-body.collapsed { display:none }
+
+/* ── Checklist table ── */
+.saf-criteria-wrap  { overflow-x:auto }
+.saf-criteria-tbl   { width:100%; border-collapse:collapse; font-size:12px; min-width:700px }
+.saf-criteria-tbl th { padding:6px 8px; background:var(--th-bg,rgba(0,0,0,.04)); font-size:11px; font-weight:600; text-align:left; white-space:nowrap; border-bottom:1px solid var(--border) }
+.saf-criteria-tbl td { padding:5px 6px; border-bottom:1px solid var(--border); vertical-align:top }
+.saf-no   { font-family:var(--mono); font-size:11px; color:var(--muted); text-align:center }
+.saf-ref  { font-family:var(--mono); font-size:10px; color:var(--muted); white-space:nowrap }
+.saf-crit { font-size:12px; color:var(--text); line-height:1.4 }
+.saf-radio-cell { text-align:center; vertical-align:middle }
+.saf-radio-lbl  { display:flex; align-items:center; gap:4px; font-size:11px; cursor:pointer; justify-content:center }
+.saf-upload-cell { text-align:center; vertical-align:middle }
+.saf-up-count { font-size:10px; background:var(--accent); color:#fff; border-radius:8px; padding:0 5px; margin-right:3px }
+
+/* ── Row highlights ── */
+.saf-item-row.saf-row-ts  { background:rgba(22,163,74,.05) }
+.saf-item-row.saf-row-nts { background:rgba(220,38,38,.05) }
+.saf-item-row.saf-row-na  { background:rgba(100,116,139,.04); opacity:.7 }
+
+/* ── Comments / appointee inline inputs ── */
+.finput-sm   { font-size:12px; padding:3px 6px; min-height:24px }
+textarea.saf-cmt { resize:vertical; min-height:28px; width:100% }
+
+/* ── Audit action row ── */
+.saf-action-row { display:flex; gap:10px; justify-content:flex-end }
+
+/* ── Detail view ── */
+.saf-detail-header { display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px; margin-bottom:16px }
+.saf-detail-actions { display:flex; gap:8px; flex-wrap:wrap }
+
+.saf-detail-cover { padding:20px }
+.saf-cover-grid {
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:10px 20px;
+  margin-bottom:16px;
+}
+.saf-cover-lbl { display:block; font-size:11px; color:var(--muted); text-transform:uppercase; margin-bottom:2px }
+.saf-cover-val { font-size:13px; font-weight:600; color:var(--text) }
+.saf-cover-score-block {
+  padding:16px; border-radius:4px; text-align:center;
+  border:1px solid var(--border); background:var(--surface,rgba(0,0,0,.02));
+}
+.saf-cover-score { font-size:52px; font-weight:900; font-family:var(--display); line-height:1 }
+.saf-cover-band  { font-size:16px; font-weight:700; margin:4px 0 }
+.saf-cover-note  { font-size:12px; color:var(--muted); line-height:1.4; margin-top:6px }
+.saf-cover-doc   { font-size:10px; color:var(--muted); margin-top:8px; font-family:var(--mono) }
+
+/* ── Summary table ── */
+.saf-sum-tbl { width:100%; border-collapse:collapse; font-size:13px }
+.saf-sum-tbl th { background:var(--th-bg,rgba(0,0,0,.04)); padding:7px 10px; font-size:11px; font-weight:600; text-align:left }
+.saf-sum-tbl td { padding:7px 10px; border-bottom:1px solid var(--border) }
+.saf-sum-tbl tfoot td { font-weight:700; border-top:2px solid var(--border) }
+
+/* ── Action plan ── */
+.saf-ap-deadline { font-size:12px; font-weight:700; padding:2px 10px; border-radius:10px; background:rgba(0,0,0,.06) }
+.saf-ap-tbl { width:100%; border-collapse:collapse; font-size:12px }
+.saf-ap-tbl th { background:var(--th-bg,rgba(0,0,0,.04)); padding:6px 8px; font-size:11px; font-weight:600; text-align:left }
+.saf-ap-tbl td { padding:6px 8px; border-bottom:1px solid var(--border); vertical-align:top }
+.saf-ap-status { white-space:nowrap }
+
+/* ── Full checklist report ── */
+.saf-rpt-section { margin-bottom:24px }
+.saf-rpt-sec-hdr { font-size:14px; font-weight:700; color:var(--text); padding:8px 0; border-bottom:2px solid var(--border); margin-bottom:8px; display:flex; align-items:center; gap:10px }
+.saf-rpt-tbl { width:100%; border-collapse:collapse; font-size:12px }
+.saf-rpt-tbl th { background:var(--th-bg,rgba(0,0,0,.04)); padding:5px 8px; font-size:11px; font-weight:600; text-align:left; white-space:nowrap }
+.saf-rpt-tbl td { padding:5px 8px; border-bottom:1px solid var(--border); vertical-align:top; line-height:1.35 }
+.saf-ts      { color:#16a34a; font-weight:600 }
+.saf-nts-text { color:#dc2626; font-weight:600 }
+.saf-na-text  { color:var(--muted) }
+
+/* ── Safety attachments panel ── */
+.saf-att-section           { margin-bottom:16px }
+.saf-att-empty             { color:var(--muted); font-size:13px; padding:8px 0 }
+.saf-att-row               { display:flex; align-items:center; gap:8px; padding:7px 0; border-bottom:1px solid var(--border); flex-wrap:wrap }
+.saf-att-row:last-child    { border-bottom:none }
+.saf-att-icon              { font-size:18px; flex-shrink:0 }
+.saf-att-name              { font-size:13px; font-weight:600; flex:1; min-width:160px; word-break:break-word }
+.saf-att-meta              { font-size:11px; color:var(--muted); white-space:nowrap }
+.saf-att-dl                { text-decoration:none; flex-shrink:0 }
+.saf-att-del               { background:transparent; border:1px solid var(--ember,#ef4444); color:var(--ember,#ef4444); flex-shrink:0 }
+.saf-att-del:hover         { background:var(--ember,#ef4444); color:#fff }
+
+/* Grouped section header inside the attachments panel */
+.saf-att-sec-hdr           { display:flex; align-items:center; justify-content:space-between; font-size:11px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); padding:10px 0 4px; border-bottom:2px solid var(--border); margin-top:6px }
+.saf-att-sec-hdr:first-child { margin-top:0 }
+.saf-att-sec-count         { background:var(--surface-alt,#f0ede6); color:var(--muted); font-size:10px; font-weight:600; padding:1px 7px; border-radius:10px }
+
+/* ── Bonus section (Section I) ── */
+.saf-bonus-gold            { color:#b45309 !important }
+.saf-section-bonus         { border:2px solid #f59e0b !important; background:rgba(251,191,36,.05) }
+.saf-sec-hdr-bonus         { background:linear-gradient(90deg,rgba(251,191,36,.18) 0%,transparent 100%) !important }
+.saf-bonus-score-row       { display:flex; flex-direction:column; gap:4px; margin-top:6px; padding:6px 8px; background:rgba(251,191,36,.1); border-radius:6px; font-size:12px }
+.saf-bonus-main            { color:var(--muted) }
+.saf-bonus-pts             { font-weight:700; font-size:13px }
+.saf-sec-bonus-row         { background:rgba(251,191,36,.07); border-top:1px solid rgba(251,191,36,.3); margin-top:4px; padding-top:4px }
+.saf-bonus-tag             { font-size:10px; font-weight:700; background:#f59e0b; color:#fff; border-radius:4px; padding:1px 5px; vertical-align:middle }
+.saf-sum-bonus-row td      { background:rgba(251,191,36,.08); font-style:italic }
+.saf-ap-bonus-row td       { background:rgba(251,191,36,.08) }
+.saf-rpt-section-bonus     { border-left:3px solid #f59e0b; padding-left:8px }
+.saf-cover-breakdown       { font-size:13px; margin-top:4px; opacity:.9 }
+
+/* ── Document rename modal ── */
+.saf-rename-overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,.55);
+  display:flex; align-items:center; justify-content:center;
+  z-index:9999;
+}
+.saf-rename-box {
+  background:var(--surface,#1e2433); border:1px solid var(--border,#2d3748);
+  border-radius:10px; padding:24px 28px; width:420px; max-width:96vw;
+  box-shadow:0 8px 32px rgba(0,0,0,.4);
+}
+.saf-rename-title  { font-size:15px; font-weight:700; margin-bottom:10px }
+.saf-rename-orig   { font-size:12px; color:var(--muted); margin-bottom:10px }
+.saf-rename-orig em{ font-style:normal; color:var(--text) }
+.saf-rename-inp    { width:100%; margin-bottom:8px; font-size:13px }
+.saf-rename-hint   { font-size:11px; color:var(--muted); margin-bottom:16px }
+.saf-rename-hint code { background:rgba(255,255,255,.06); border-radius:3px; padding:1px 4px }
+.saf-rename-btns   { display:flex; gap:10px; justify-content:flex-end }
+
+/* ── Print styles ── */
+@media print {
+  #pub-nav, #pnav-bar, #pnav-primary-bar, #portal-topbar, #toaster, #back-to-top,
+  .saf-detail-actions, .srow, #safety-reminders { display:none !important }
+  #pmain  { margin:0 !important; padding:0 !important }
+  #p-safety-detail { display:block !important }
+  .ppage:not(#p-safety-detail) { display:none !important }
+  .saf-detail-header { margin-bottom:10px }
+  .panel  { box-shadow:none !important; border:1px solid #ccc !important }
+  .saf-rpt-tbl, .saf-sum-tbl, .saf-ap-tbl { page-break-inside:auto }
+  .saf-rpt-section { page-break-inside:avoid }
+  body    { font-size:11px }
+  .safety-audit-layout { grid-template-columns:1fr }
+}
+
+/* ── Button size xs ── */
+.btn-xs { font-size:11px; padding:3px 7px }
+
+/* ── Personnel on File panel ── */
+.saf-prs-tbl                  { width:100%; border-collapse:collapse }
+.saf-prs-tbl th,.saf-prs-tbl td { padding:6px 10px; text-align:left; border-bottom:1px solid var(--border,#e2e8f0); font-size:.84rem }
+.saf-prs-tbl th               { font-weight:600; background:var(--panel-bg,#f8fafc); font-size:.82rem; text-transform:uppercase; letter-spacing:.02em }
+.saf-prs-inactive-row         { opacity:.65; background:var(--panel-bg,#f8fafc) }
+.saf-former-toggle            { margin-top:8px }
+.saf-former-toggle summary    { cursor:pointer; font-size:.82rem; color:var(--muted,#64748b); padding:6px 2px; user-select:none }
+.saf-former-toggle summary:hover { color:var(--accent,#2563eb) }
+
+/* ── Compliance tracking panel ── */
+.saf-comp-tbl                   { width:100%; border-collapse:collapse }
+.saf-comp-tbl th,.saf-comp-tbl td { padding:6px 10px; text-align:left; border-bottom:1px solid var(--border,#e2e8f0); font-size:.84rem }
+.saf-comp-tbl th                { font-weight:600; background:var(--panel-bg,#f8fafc); font-size:.82rem; text-transform:uppercase; letter-spacing:.02em }
+.saf-cs-cat                     { color:var(--muted,#64748b); font-size:.75rem }
+.saf-cs-role                    { color:var(--muted,#64748b); font-size:.8rem }
+.saf-cs-days                    { color:var(--muted,#64748b); font-size:.75rem }
+.saf-cs-del-btn                 { background:transparent; border-color:transparent; color:var(--muted,#64748b) }
+.saf-cs-del-btn:hover           { color:#dc2626; border-color:#dc2626 }
+
+/* Compliance status badges */
+.saf-cs-badge    { display:inline-block; padding:2px 8px; border-radius:10px; font-size:.73rem; font-weight:600 }
+.saf-cs-ok       { background:#dcfce7; color:#15803d }
+.saf-cs-soon     { background:#fef3c7; color:#92400e }
+.saf-cs-overdue  { background:#fee2e2; color:#991b1b }
+.saf-cs-none     { background:#f1f5f9; color:var(--muted,#64748b) }
+
+/* Compliance health block (inside cover score panel) */
+.saf-ch-loading         { font-size:.75rem; color:var(--muted,#64748b); padding:6px 0; text-align:center }
+.saf-ch-block           { margin-top:10px; padding:8px 10px; border-radius:4px; text-align:left; font-size:.8rem }
+.saf-ch-compliant       { background:#dcfce7; border:1px solid #86efac; color:#15803d }
+.saf-ch-warning         { background:#fef3c7; border:1px solid #fde68a; color:#92400e }
+.saf-ch-non-compliant   { background:#fee2e2; border:1px solid #fca5a5; color:#991b1b }
+.saf-ch-title           { font-weight:700; font-size:.82rem; margin-bottom:4px }
+.saf-ch-item            { margin-top:4px; padding-left:8px; border-left:2px solid currentColor; line-height:1.35 }
+.saf-ch-item-detail     { opacity:.8; font-size:.75rem }
+
+/* Linked portal users panel */
+.saf-linked-users-section .saf-prs-tbl { width:100% }
+
+/* ── Section save button (in section header) ── */
+.saf-sec-save-btn { font-size:.72rem; padding:2px 8px; opacity:.75; transition:opacity .15s }
+.saf-sec-save-btn:hover { opacity:1 }
+
+/* ── Compliance document cell ── */
+.saf-doc-cell   { white-space:nowrap }
+.saf-doc-badge  { display:inline-flex; align-items:center; gap:4px; font-size:.8rem }
+.saf-doc-dl     { color:var(--primary,#2563eb); text-decoration:none; font-weight:600 }
+.saf-doc-dl:hover { text-decoration:underline }
+
+/* ═══════════════════════════════════════════════════════
+   INFO / GUIDE MODE
+═══════════════════════════════════════════════════════ */
+
+/* Button in portal topbar */
+.info-btn{
+  display:flex;align-items:center;gap:5px;padding:6px 10px;
+  background:var(--surface2);border:1px solid var(--border);border-radius:20px;
+  cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:9px;
+  color:var(--muted);letter-spacing:.5px;transition:all .2s;
+}
+.info-btn svg{width:12px;height:12px;flex-shrink:0}
+.info-btn:hover{border-color:var(--accent);color:var(--accent)}
+.info-btn.active{
+  background:var(--accent);border-color:var(--accent);
+  color:#fff;
+}
+.info-btn.active svg{stroke:#fff}
+
+/* Slide-in guide panel */
+#info-panel{
+  position:fixed;
+  top:152px;right:0;bottom:0;
+  width:340px;z-index:98;
+  background:var(--surface);
+  border-left:1px solid var(--border);
+  box-shadow:-4px 0 20px rgba(0,0,0,.15);
+  overflow-y:auto;
+  transform:translateX(100%);
+  transition:transform .25s cubic-bezier(.4,0,.2,1);
+  display:none;
+}
+[data-state="portal"] #info-panel{display:block}
+[data-state="portal"][data-info="on"] #info-panel{transform:translateX(0)}
+
+/* Panel inner content */
+#info-panel-inner{padding:20px 18px 32px}
+.ipanel-badge{
+  display:inline-block;
+  font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.08em;
+  text-transform:uppercase;padding:2px 8px;border-radius:20px;margin-bottom:14px;
+  background:color-mix(in srgb, var(--accent) 15%, transparent);
+  color:var(--accent);border:1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+}
+.ipanel-title{
+  font-family:'Big Shoulders Display',sans-serif;font-size:22px;font-weight:700;
+  line-height:1.1;margin-bottom:4px;color:var(--text);
+}
+.ipanel-sub{
+  font-size:11px;color:var(--muted);margin-bottom:18px;
+}
+.ipanel-section{margin-bottom:16px}
+.ipanel-section-lbl{
+  font-family:'IBM Plex Mono',monospace;font-size:9px;text-transform:uppercase;
+  letter-spacing:.1em;color:var(--muted);margin-bottom:6px;
+}
+.ipanel-section-body{
+  font-size:12px;line-height:1.6;color:var(--text2);
+}
+.ipanel-steps{padding-left:0;margin:0;list-style:none}
+.ipanel-steps li{
+  display:flex;gap:8px;font-size:12px;line-height:1.5;color:var(--text2);
+  padding:4px 0;border-bottom:1px solid var(--border);
+}
+.ipanel-steps li:last-child{border-bottom:none}
+.ipanel-step-num{
+  flex-shrink:0;width:18px;height:18px;border-radius:50%;
+  background:color-mix(in srgb, var(--accent) 15%, transparent);
+  color:var(--accent);font-size:9px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;margin-top:1px;
+  font-family:'IBM Plex Mono',monospace;
+}
+.ipanel-access-chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.ipanel-chip{
+  font-size:10px;padding:2px 7px;border-radius:10px;
+  background:var(--surface2);border:1px solid var(--border);color:var(--text2);
+  font-family:'IBM Plex Mono',monospace;letter-spacing:.03em;
+}
+.ipanel-chip.chip-admin{background:color-mix(in srgb,var(--ember) 15%,transparent);border-color:color-mix(in srgb,var(--ember) 30%,transparent);color:var(--ember)}
+.ipanel-chip.chip-manager{background:color-mix(in srgb,var(--accent) 15%,transparent);border-color:color-mix(in srgb,var(--accent) 30%,transparent);color:var(--accent)}
+.ipanel-divider{height:1px;background:var(--border);margin:18px 0}
+.ipanel-suggest-lbl{
+  font-family:'IBM Plex Mono',monospace;font-size:9px;text-transform:uppercase;
+  letter-spacing:.1em;color:var(--muted);margin-bottom:6px;
+}
+#info-suggestion{
+  width:100%;box-sizing:border-box;
+  background:var(--surface2);border:1px solid var(--border);
+  color:var(--text);border-radius:3px;padding:8px 10px;
+  font-size:12px;font-family:'Instrument Sans',sans-serif;
+  resize:vertical;min-height:72px;transition:border-color .15s;
+}
+#info-suggestion:focus{outline:none;border-color:var(--accent)}
+#info-suggest-btn{
+  margin-top:6px;width:100%;
+  background:var(--accent);color:#fff;border:none;border-radius:3px;
+  padding:7px 12px;font-size:11px;font-family:'IBM Plex Mono',monospace;
+  letter-spacing:.05em;text-transform:uppercase;cursor:pointer;transition:opacity .15s;
+}
+#info-suggest-btn:hover{opacity:.85}
+#info-suggest-btn:disabled{opacity:.45;cursor:default}
+.ipanel-empty{
+  padding:40px 20px;text-align:center;
+  font-size:12px;color:var(--muted);font-style:italic;
+}
+
+/* Role capabilities */
+.ipanel-can,.ipanel-cannot{
+  display:flex;align-items:baseline;gap:6px;font-size:12px;
+  padding:3px 0;line-height:1.4;
+}
+.ipanel-can{color:var(--text2)}
+.ipanel-cannot{color:var(--muted)}
+.ipanel-can-icon{
+  flex-shrink:0;font-size:10px;font-weight:700;
+  color:var(--ok,#22c55e);font-family:'IBM Plex Mono',monospace;
+}
+.ipanel-cannot-icon{
+  flex-shrink:0;font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--muted);
+}
+.ipanel-cannot-wrap{margin-top:4px;padding-top:4px;border-top:1px dashed var(--border)}
+
+/* Quick action buttons */
+.ipanel-actions-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
+.ipanel-action-btn{
+  padding:4px 10px;font-size:10px;font-family:'IBM Plex Mono',monospace;
+  letter-spacing:.04em;text-transform:uppercase;
+  background:var(--surface2);border:1px solid var(--border);border-radius:20px;
+  color:var(--text2);cursor:pointer;transition:all .15s;
+}
+.ipanel-action-btn:hover{border-color:var(--accent);color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,transparent)}
+
+/* Tips */
+.ipanel-tip{
+  display:flex;align-items:baseline;gap:8px;
+  font-size:12px;line-height:1.5;color:var(--text2);
+  padding:5px 8px;margin-bottom:4px;border-radius:2px;
+  background:color-mix(in srgb,var(--warn,#f59e0b) 10%,transparent);
+  border-left:2px solid var(--warn,#f59e0b);
+}
+.ipanel-tip-icon{
+  flex-shrink:0;font-size:9px;font-weight:700;font-style:normal;
+  font-family:'IBM Plex Mono',monospace;
+  color:var(--warn,#f59e0b);letter-spacing:.05em;
+}
+
+/* FAQ */
+.ipanel-faq{
+  padding:8px 0;border-bottom:1px solid var(--border);
+}
+.ipanel-faq:last-child{border-bottom:none}
+.ipanel-faq-q{
+  font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px;line-height:1.4;
+}
+.ipanel-faq-a{
+  font-size:11px;color:var(--text2);line-height:1.5;
+}
+
+/* ── req asterisk ── */
+.req { color:var(--ember) }
+
+/* ── Safety snag list additions (2026-05-22) ── */
+
+/* Score sidebar: audit score label */
+.saf-score-label-top{
+  font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:2px;
+}
+
+/* Completion percentage bar below audit score */
+.saf-completion-bar{
+  font-size:11px;color:var(--muted);margin-top:6px;padding:6px 8px;
+  background:var(--surface2);border-radius:3px;line-height:1.5;
+}
+.saf-comp-label{ font-weight:600;color:var(--text2); }
+.saf-comp-count{ color:var(--text); }
+.saf-comp-pct  { color:var(--muted); }
+
+/* Detail view score block: audit score label + completion */
+.saf-cover-score-lbl{
+  font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  opacity:.7;margin-bottom:2px;
+}
+.saf-cover-completion{
+  font-size:11px;opacity:.75;margin-top:4px;padding:4px 0;
+  border-top:1px solid rgba(255,255,255,.15);
+}
+
+/* Section sign-off document cell in summary table */
+.saf-sec-doc-cell{ white-space:nowrap;min-width:120px; }
+.saf-sec-doc-btn { font-size:11px; }
+.saf-sec-doc-link{ display:flex;gap:4px;align-items:center;flex-wrap:wrap; }
+
+/* Policy acknowledgment section */
+.saf-policy-ack-section{}
+

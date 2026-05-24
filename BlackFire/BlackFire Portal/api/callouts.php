@@ -28,10 +28,13 @@ if ($method === 'GET') {
     $pg   = get_pagination();
     $q    = clean($_GET['q'] ?? '', 100);
 
-    // Techs only see their assigned callouts
+    // Techs only see their assigned callouts; client_support users see only their client's callouts
     if (in_array($role, ['junior_tech', 'senior_tech'])) {
-        $where = 'WHERE assigned_to = ?';
+        $where  = 'WHERE assigned_to = ?';
         $params = [$user['username']];
+    } elseif ($role === 'client_support' && !empty($user['client_id'])) {
+        $where  = 'WHERE client_id = ?';
+        $params = [(int)$user['client_id']];
     } else {
         $where  = '';
         $params = [];
@@ -58,9 +61,21 @@ if ($method === 'GET') {
 if ($method === 'POST') {
     $usr = require_perm('callout.create');
     $b   = get_body();
-    require_fields($b, ['client_name', 'service', 'callout_date']);
+    require_fields($b, ['service', 'callout_date']);
 
+    // Resolve client: accept client_id (FK) or fallback to plain client_name
+    $client_id    = isset($b['client_id']) && $b['client_id'] ? (int)$b['client_id'] : null;
+    $client_name  = clean($b['client_name'] ?? '', 255);
     $client_email = clean($b['client_email'] ?? '', 150);
+
+    if ($client_id) {
+        $cl = db_row("SELECT name, email FROM bf_clients WHERE id = ? AND is_active = 1", [$client_id]);
+        if (!$cl) json_err('Client not found', 404);
+        $client_name  = $cl['name'];
+        $client_email = $cl['email'];
+    } elseif (!$client_name) {
+        json_err('client_id or client_name is required');
+    }
 
     // Auto-determine approval_status based on who logged the callout
     $approval_status = 'not_required';
@@ -68,20 +83,30 @@ if ($method === 'POST') {
         $approval_status = 'pending';
     }
 
+    // Resolve assigned_to user FK
+    $assigned_to_str     = clean($b['assigned_to'] ?? '');
+    $assigned_to_user_id = null;
+    if ($assigned_to_str) {
+        $au = db_row("SELECT id FROM bf_users WHERE username = ? LIMIT 1", [$assigned_to_str]);
+        $assigned_to_user_id = $au ? (int)$au['id'] : null;
+    }
+
     $ref = next_ref_id('co');
     $id  = db_insert(
         "INSERT INTO bf_callouts
-         (ref_id, client_name, client_email, service, location, tech, assigned_to, priority, status,
-          approval_status, callout_date, callout_time, notes, logged_by, po)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+         (ref_id, client_id, client_name, client_email, service, location, tech, assigned_to, assigned_to_user_id,
+          priority, status, approval_status, callout_date, callout_time, notes, logged_by, logged_by_user_id, po)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
         [
             $ref,
-            clean($b['client_name']),
+            $client_id,
+            $client_name,
             $client_email,
             clean($b['service']),
             clean($b['location'] ?? ''),
             clean($b['tech']     ?? ''),
-            clean($b['assigned_to'] ?? ''),
+            $assigned_to_str,
+            $assigned_to_user_id,
             clean($b['priority'] ?? 'Normal'),
             clean($b['status']   ?? 'Open'),
             $approval_status,
@@ -89,6 +114,7 @@ if ($method === 'POST') {
             clean($b['callout_time'] ?? '08:00'),
             clean($b['notes'] ?? '', 2000),
             $usr['username'],
+            (int)$usr['id'],
             clean($b['po'] ?? ''),
         ]
     );
@@ -134,18 +160,22 @@ if ($method === 'PUT') {
         try {
             db_insert(
                 "INSERT INTO bf_invoices
-                 (ref_id, client_name, client_email, amount, due_date, status, callout_ref, invoice_date, sent_by)
-                 VALUES (?,?,?,?,?,?,?,?,?)",
+                 (ref_id, client_id, client_name, client_email, amount, due_date, status,
+                  callout_ref, callout_id, invoice_date, sent_by, sent_by_user_id)
+                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
                 [
                     $inv_ref,
+                    $callout['client_id'] ?? null,
                     $callout['client_name'],
                     $callout['client_email'] ?? '',
                     0.00,
                     $due_date,
                     'Draft',
                     $ref_id,
+                    $callout['id'],
                     date('Y-m-d'),
                     $usr['username'],
+                    (int)$usr['id'],
                 ]
             );
 
@@ -217,18 +247,22 @@ if ($method === 'PUT') {
             try {
                 db_insert(
                     "INSERT INTO bf_invoices
-                     (ref_id, client_name, client_email, amount, due_date, status, callout_ref, invoice_date, sent_by)
-                     VALUES (?,?,?,?,?,?,?,?,?)",
+                     (ref_id, client_id, client_name, client_email, amount, due_date, status,
+                      callout_ref, callout_id, invoice_date, sent_by, sent_by_user_id)
+                     VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
                     [
                         $inv_ref,
+                        $callout['client_id'] ?? null,
                         $callout['client_name'],
                         $callout['client_email'] ?? '',
                         0.00,
                         $due_date,
                         'Draft',
                         $ref_id,
+                        $callout['id'],
                         date('Y-m-d'),
                         $usr['username'],
+                        (int)$usr['id'],
                     ]
                 );
                 db_exec("UPDATE bf_callouts SET invoice_generated = 1 WHERE ref_id = ?", [$ref_id]);

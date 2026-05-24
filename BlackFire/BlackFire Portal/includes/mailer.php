@@ -254,6 +254,55 @@ function send_invoice_email(array $invoice, string $to_email): bool {
  * @param string $from_email  Sender address (display From header override)
  * @param string $from_name   Sender display name
  */
+/**
+ * Send a policy acknowledgment request to a contractor.
+ * The contractor is asked to confirm they have read the H&S policies for the safety file.
+ */
+function send_safety_policy_email(
+    string $to_email,
+    array  $file,
+    string $policy_ref,
+    string $extra_message = ''
+): bool {
+    $cfg     = require __DIR__ . '/../config/config.php';
+    $company = $cfg['company_name'] ?? 'Astute Insights / BlackFire Solutions';
+    $co_email = $cfg['company_email'] ?? 'info@blackfiresolutions.co.za';
+
+    $ref        = htmlspecialchars($file['ref_id']     ?? '');
+    $contractor = htmlspecialchars($file['contractor'] ?? 'Contractor');
+    $scope      = htmlspecialchars($file['scope_of_work'] ?? '');
+    $audit_date = htmlspecialchars($file['audit_date'] ?? date('Y-m-d'));
+    $pol_ref    = htmlspecialchars($policy_ref);
+
+    $html  = "<html><body style='font-family:Arial,sans-serif;color:#333;max-width:600px;margin:0 auto'>";
+    $html .= "<div style='background:#1a1a1a;padding:20px 24px;margin-bottom:24px'>";
+    $html .= "<h2 style='color:#f97316;margin:0;font-size:20px'>{$company}</h2>";
+    $html .= "<p style='color:#94a3b8;margin:6px 0 0;font-size:13px'>Health &amp; Safety — Policy Acknowledgment Request</p>";
+    $html .= "</div>";
+    $html .= "<p>Dear {$contractor},</p>";
+    $html .= "<p>We are writing to request your formal acknowledgment that you have read and understood the health, safety and environment (H&amp;S) policies applicable to your scope of work at our site.</p>";
+    $html .= "<div style='border:1px solid #e2e8f0;border-left:4px solid #f97316;padding:14px 16px;margin:16px 0;background:#fafafa'>";
+    $html .= "<p style='margin:0 0 8px'><strong>Safety File Reference:</strong> {$ref}</p>";
+    $html .= "<p style='margin:0 0 8px'><strong>Policy Document:</strong> {$pol_ref}</p>";
+    $html .= "<p style='margin:0 0 8px'><strong>Scope of Work:</strong> {$scope}</p>";
+    $html .= "<p style='margin:0'><strong>Audit Date:</strong> {$audit_date}</p>";
+    $html .= "</div>";
+    if ($extra_message) {
+        $html .= "<p>" . nl2br(htmlspecialchars($extra_message)) . "</p>";
+    }
+    $html .= "<p>Please reply to this email with a written confirmation stating:</p>";
+    $html .= "<blockquote style='border-left:3px solid #e2e8f0;padding-left:14px;color:#555;margin:16px 0'>";
+    $html .= "<em>\"I, [Full Name], [Designation], confirm that I have read, understood and accept the health and safety policies referenced in {$pol_ref} as they apply to safety file {$ref}.\"</em>";
+    $html .= "</blockquote>";
+    $html .= "<p>This confirmation is required before work may commence. Please respond within <strong>5 working days</strong>.</p>";
+    $html .= "<p>For queries, contact us at <a href='mailto:{$co_email}'>{$co_email}</a>.</p>";
+    $html .= "<hr style='border:none;border-top:1px solid #e2e8f0;margin:24px 0'>";
+    $html .= "<p style='font-size:11px;color:#94a3b8'>{$company} — automated notification for safety file {$ref}. Do not reply to this email directly; contact {$co_email}.</p>";
+    $html .= "</body></html>";
+
+    return send_mail($to_email, "Policy Acknowledgment Required — Safety File {$ref} | {$company}", $html, $co_email);
+}
+
 function send_statement_email(
     array  $statement,
     array  $invoices,

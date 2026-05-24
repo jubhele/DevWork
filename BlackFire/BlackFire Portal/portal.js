@@ -17,7 +17,7 @@ async function api(method, endpoint, data = null) {
     headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
     credentials: 'same-origin',
   };
-  if (data) opts.body = JSON.stringify(data);
+  if (data && method.toUpperCase() !== 'GET' && method.toUpperCase() !== 'HEAD') opts.body = JSON.stringify(data);
   try {
     const res = await fetch(API_BASE + '/' + endpoint, opts);
     if (res.status === 401) {
@@ -54,6 +54,15 @@ async function apiUpload(entityType, entityRef, fileInput) {
       headers: { 'X-Requested-With': 'XMLHttpRequest' },
       body: fd,
     });
+    if (res.status === 401) {
+      if (typeof SESSION !== 'undefined' && SESSION) {
+        SESSION = null;
+        document.documentElement.dataset.state = 'login';
+        if (typeof showLoginPanel === 'function') showLoginPanel();
+        if (typeof toast === 'function') toast('Session expired. Please log in again.', 'err');
+      }
+      return { success: false, error: 'Session expired' };
+    }
     return await res.json();
   } catch (e) {
     return { success: false, error: String(e) };
@@ -67,6 +76,7 @@ document.addEventListener('click', function(e) {
   const action = el.dataset.action;
   switch (action) {
     case 'toggleTheme':         toggleTheme(); break;
+    case 'toggleInfoMode':      toggleInfoMode(); break;
     case 'goLogin':             goLogin(); break;
     case 'goPublic':            goPublic(); break;
     case 'goPublicFullscreen':  goPublicFullscreen(); break;
@@ -86,13 +96,36 @@ document.addEventListener('click', function(e) {
     case 'openCreateUserModal': openCreateUserModal(); break;
     case 'closeModalDirect':    closeModalDirect(); break;
     case 'scrollToTop':         scrollToTop(); break;
+    // Clients module
+    case 'saveClient':          saveClient(); break;
+    // Safety module
+    case 'newSafetyAudit':      newSafetyAudit(); break;
+    case 'saveSafetyDraft':     saveSafetyDraft(); break;
+    case 'submitSafetyAudit':   submitSafetyAudit(); break;
+    case 'editSafetyFile':      editSafetyFile(); break;
+    case 'sendPolicyEmail':     sendPolicyEmail(); break;
+    case 'approveSafetyFile':   approveSafetyFile(); break;
+    // Info/guide panel
+    case 'submitInfoSuggestion': submitInfoSuggestion(el.dataset.page); break;
+    case 'navPage':              showPortalPage(el.dataset.page, null); break;
   }
 });
 
 /* ── Attachments modal / panel ─────────────────────────────────────── */
 function openAttachmentsModal(entityType, entityRef) {
+  let ctxHtml = '';
+  if (entityType === 'callout') {
+    const c = proxyDB.callouts.find(x => x.id === entityRef);
+    if (c) ctxHtml = `<div style="padding:8px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:2px;margin-bottom:12px;font-size:11px"><span style="font-weight:600">${esc(c.service)}</span>  —  ${esc(c.location||'')}  ·  ${fmtD(c.date)}</div>`;
+  } else if (entityType === 'quote') {
+    const q = proxyDB.quotes.find(x => x.id === entityRef);
+    if (q) ctxHtml = `<div style="padding:8px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:2px;margin-bottom:12px;font-size:11px"><span style="font-weight:600">${esc(q.client)}</span>  —  Quote ${esc(q.id)}  ·  ${fmtD(q.date)}</div>`;
+  } else if (entityType === 'invoice') {
+    const inv = proxyDB.invoices.find(x => x.id === entityRef);
+    if (inv) ctxHtml = `<div style="padding:8px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:2px;margin-bottom:12px;font-size:11px"><span style="font-weight:600">${esc(inv.client)}</span>  —  Invoice ${esc(inv.id)}  ·  ${fmt(inv.amount)}</div>`;
+  }
   openModal('Attachments — ' + entityRef,
-    `<div id="attach-modal-area"></div>`);
+    `${ctxHtml}<div id="attach-modal-area"></div>`);
   loadAttachments(entityType, entityRef);
 }
 
@@ -114,8 +147,9 @@ async function loadAttachments(entityType, entityRef) {
             <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(a.original_name)}</div>
             <div style="font-size:10px;color:var(--muted)">${fmtBytes(a.file_size)} · ${esc(a.uploaded_by)} · ${(a.created_at||'').slice(0,10)}</div>
           </div>
-          <a href="${API_BASE}/files.php?action=download&id=${a.id}" target="_blank" class="btn btn-g btn-s" style="text-decoration:none">↓ Download</a>
-          ${canDel ? `<button class="btn btn-g btn-s" style="color:var(--ember)" onclick="deleteAttachment(${a.id},'${esc(entityType)}','${esc(entityRef)}')">✕</button>` : ''}
+          ${(a.mime_type==='application/pdf'||a.mime_type?.startsWith('image/'))?`<button class="btn btn-g btn-s" onclick="openDocViewer(${a.id},'${esc(a.original_name)}','${esc(a.mime_type)}')">&#128065; View</button>`:''}
+          <a href="${API_BASE}/files.php?action=download&id=${a.id}" target="_blank" class="btn btn-g btn-s" style="text-decoration:none">&#8595; Download</a>
+          ${canDel ? `<button class="btn btn-g btn-s" style="color:var(--ember)" onclick="deleteAttachment(${a.id},'${esc(entityType)}','${esc(entityRef)}')">&#10005;</button>` : ''}
         </div>`).join('') : '<div style="font-size:11px;color:var(--muted);font-style:italic;margin-bottom:8px">No files attached yet</div>'}
     </div>
     <div style="padding-top:12px;border-top:1px solid var(--border)">
@@ -152,6 +186,39 @@ async function deleteAttachment(id, entityType, entityRef) {
   await loadAttachments(entityType, entityRef);
 }
 
+/* ── Document viewer (inline PDF / image preview) ─────────────────── */
+function openDocViewer(id, name, mime) {
+  const isPdf = mime === 'application/pdf';
+  const isImg = mime && mime.startsWith('image/');
+  const src   = `${API_BASE}/files.php?action=view&id=${id}`;
+  let body;
+  if (isPdf) {
+    body = `<div style="display:flex;flex-direction:column;height:78vh">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace">${esc(name)}</span>
+        <a href="${API_BASE}/files.php?action=download&id=${id}" class="btn btn-g btn-s" style="text-decoration:none">&#8595; Download</a>
+      </div>
+      <iframe src="${src}" style="flex:1;width:100%;border:1px solid var(--border);border-radius:2px;background:#fff" title="${esc(name)}"></iframe>
+    </div>`;
+  } else if (isImg) {
+    body = `<div style="text-align:center">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace">${esc(name)}</span>
+        <a href="${API_BASE}/files.php?action=download&id=${id}" class="btn btn-g btn-s" style="text-decoration:none">&#8595; Download</a>
+      </div>
+      <img src="${src}" alt="${esc(name)}" style="max-width:100%;max-height:70vh;border:1px solid var(--border);border-radius:2px">
+    </div>`;
+  } else {
+    body = `<div style="padding:24px;text-align:center;color:var(--muted)">
+      <div style="font-size:32px;margin-bottom:12px">📄</div>
+      <div style="font-size:13px;margin-bottom:16px">${esc(name)}</div>
+      <p style="font-size:11px;margin-bottom:16px">This file type cannot be previewed in the browser.</p>
+      <a href="${API_BASE}/files.php?action=download&id=${id}" class="btn btn-p" style="text-decoration:none">&#8595; Download to Open</a>
+    </div>`;
+  }
+  openModal(name, body);
+}
+
 /* ═══════════════════════════════════════════════════════
    PERMISSIONS MAP (mirrors server-side PERMS)
 ═══════════════════════════════════════════════════════ */
@@ -171,32 +238,44 @@ const PERMS = {
   'invoice.create':        ['admin','manager','admin_clerk'],
   'invoice.mark_paid':     ['admin','manager','admin_clerk'],
   'invoice.delete':        ['admin','manager'],
-  'finance.transactions':  ['admin','manager','admin_clerk'],
-  'finance.statement':     ['admin','manager','client_support','admin_clerk'],
-  'finance.income':        ['admin','manager','admin_clerk'],
-  'capture.new_callout':   ['admin','manager','call_logger','client_support'],
-  'capture.new_quote':     ['admin','manager','senior_tech'],
-  'capture.new_invoice':   ['admin','manager','admin_clerk'],
-  'capture.log_payment':   ['admin','manager','admin_clerk'],
-  'security.audit':        ['admin'],
-  'security.users':        ['admin','manager','admin_clerk'],
-  'user.create':           ['admin','manager','admin_clerk'],
-  'user.update':           ['admin'],
-  'callout.confirm_closure':   ['admin','manager'],
-  'invoice.send':              ['admin','manager','admin_clerk'],
-  'finance.statement.release': ['admin','manager','admin_clerk'],
+  'finance.transactions':  ['admin','sysadmin','manager','admin_clerk'],
+  'finance.statement':     ['admin','sysadmin','manager','client_support','admin_clerk'],
+  'finance.income':        ['admin','sysadmin','manager','admin_clerk'],
+  'capture.new_callout':   ['admin','sysadmin','manager','call_logger','client_support'],
+  'capture.new_quote':     ['admin','sysadmin','manager','senior_tech'],
+  'capture.new_invoice':   ['admin','sysadmin','manager','admin_clerk'],
+  'capture.log_payment':   ['admin','sysadmin','manager','admin_clerk'],
+  'security.audit':        ['admin','sysadmin'],
+  'security.users':        ['admin','sysadmin','manager','admin_clerk'],
+  'user.create':           ['admin','sysadmin','manager','admin_clerk'],
+  'user.update':           ['admin','sysadmin'],
+  'callout.confirm_closure':   ['admin','sysadmin','manager'],
+  'invoice.send':              ['admin','sysadmin','manager','admin_clerk'],
+  'finance.statement.release': ['admin','sysadmin','manager','admin_clerk'],
   'finance.statement.generate':['admin','sysadmin'],
+  'clients.view':              ['admin','sysadmin','manager','admin_clerk','client_support'],
+  'clients.create':            ['admin','sysadmin','manager','admin_clerk'],
+  'clients.update':            ['admin','sysadmin','manager','admin_clerk'],
+  'safety.view':               ['admin','sysadmin','manager','admin_clerk','safety_officer','junior_tech','senior_tech','call_logger','client_support','viewer'],
+  'safety.create':             ['admin','sysadmin','manager','admin_clerk','safety_officer','senior_tech'],
+  'safety.update':             ['admin','sysadmin','manager','admin_clerk','safety_officer','senior_tech'],
+  'safety.delete':             ['admin','sysadmin','manager'],
+  'safety.approve':            ['admin','sysadmin','manager'],
 };
 function can(perm){ return SESSION?.role==='sysadmin' || (PERMS[perm]||[]).includes(SESSION?.role); }
 
 /* ═══════════════════════════════════════════════════════
    IN-MEMORY CACHE (populated from API on login/refresh)
 ═══════════════════════════════════════════════════════ */
-let DB = { callouts:[], quotes:[], invoices:[], bank:[], users:[] };
+let DB = { callouts:[], quotes:[], invoices:[], bank:[], users:[], safetyFiles:[], clients:[] };
 let SESSION = null;
 let AUDIT_LOG = [];
 
 /* ── Data Refresh Functions ─────────────────────────── */
+async function refreshSafetyFiles() {
+  const r = await api('GET', 'safety.php?limit=500');
+  if (r.success) DB.safetyFiles = r.data || [];
+}
 async function refreshCallouts() {
   const r = await api('GET', 'callouts.php?limit=500');
   if (r.success) DB.callouts = r.data || [];
@@ -218,10 +297,72 @@ async function refreshUsers() {
   const r = await api('GET', 'users.php');
   if (r.success) DB.users = r.data || [];
 }
+async function refreshClients() {
+  if (!can('clients.view')) return;
+  const r = await api('GET', 'clients.php?active=1');
+  if (r.success) {
+    DB.clients = r.data || [];
+    populateClientDropdowns();
+  }
+}
+function populateClientDropdowns() {
+  const opts = DB.clients.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+  ['nc-client','nq-client','ni-client'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const cur = el.value;
+    el.innerHTML = '<option value="">— Select Client —</option>' + opts;
+    if (cur) el.value = cur;
+  });
+}
+
+function populateLinkedDropdowns() {
+  // Tech dropdown — dynamic from users list, filtered to tech roles
+  const techEl = document.getElementById('nc-tech');
+  if (techEl) {
+    const TECH_ROLES = ['junior_tech', 'senior_tech'];
+    const techs = (DB.users || []).filter(u => TECH_ROLES.includes(u.role) && u.active != 0);
+    const techOpts = techs.map(u => `<option value="${esc(u.username)}">${esc(u.name)} (${esc(ROLE_LABELS[u.role]||u.role)})</option>`).join('');
+    const cur = techEl.value;
+    techEl.innerHTML = '<option value="">— Unassigned —</option>' + techOpts;
+    if (cur) techEl.value = cur;
+  }
+
+  // Quote linked callout select (open/in-progress callouts only)
+  const nqCalloutEl = document.getElementById('nq-callout-ref');
+  if (nqCalloutEl) {
+    const openCos = proxyDB.callouts.filter(c => ['Open','In Progress'].includes(c.status));
+    const coOpts  = openCos.map(c => `<option value="${esc(c.id)}">${esc(c.id)} — ${esc(c.service)} (${esc(c.client)})</option>`).join('');
+    const cur = nqCalloutEl.value;
+    nqCalloutEl.innerHTML = '<option value="">— None (standalone quote) —</option>' + coOpts;
+    if (cur) nqCalloutEl.value = cur;
+  }
+
+  // Invoice linked quote select (all non-cancelled quotes)
+  const niQuoteEl = document.getElementById('ni-quote-ref');
+  if (niQuoteEl) {
+    const quotes = proxyDB.quotes.filter(q => q.status !== 'Cancelled');
+    const qOpts  = quotes.map(q => `<option value="${esc(q.id)}">${esc(q.id)} — ${esc(q.client)} (${esc(q.status)})</option>`).join('');
+    const cur = niQuoteEl.value;
+    niQuoteEl.innerHTML = '<option value="">— None —</option>' + qOpts;
+    if (cur) niQuoteEl.value = cur;
+  }
+
+  // Invoice linked callout select (completed callouts without invoice, or all active)
+  const niCalloutEl = document.getElementById('ni-callout-ref');
+  if (niCalloutEl) {
+    const callouts = proxyDB.callouts.filter(c => c.status !== 'Invoiced');
+    const coOpts2  = callouts.map(c => `<option value="${esc(c.id)}">${esc(c.id)} — ${esc(c.service)} (${esc(c.status)})</option>`).join('');
+    const cur = niCalloutEl.value;
+    niCalloutEl.innerHTML = '<option value="">— None —</option>' + coOpts2;
+    if (cur) niCalloutEl.value = cur;
+  }
+}
 async function refreshAll() {
-  const tasks = [refreshCallouts(), refreshQuotes(), refreshInvoices(), refreshTransactions()];
+  const tasks = [refreshCallouts(), refreshQuotes(), refreshInvoices(), refreshTransactions(), refreshSafetyFiles(), refreshClients()];
   if (can('security.users')) tasks.push(refreshUsers());
   await Promise.all(tasks);
+  populateLinkedDropdowns();
 }
 
 /* ── Normalize DB fields from API ────────────────────── */
@@ -253,6 +394,7 @@ function normalizeQuote(q) {
   return {
     id:             q.ref_id || q.id,
     client:         q.client_name,
+    clientId:       q.client_id ? Number(q.client_id) : null,
     items,
     status:         q.status,
     validUntil:     q.valid_until,
@@ -289,15 +431,46 @@ function normalizeBank(b) {
   };
 }
 
+function normalizeSafetyFile(f) {
+  return {
+    id:               f.ref_id,
+    contractor:       f.contractor       || '',
+    contractorRep:    f.contractor_rep   || '',
+    appointee162:     f.appointee162     || '',
+    auditDate:        f.audit_date       || '',
+    region:           f.region           || '',
+    auditTeam:        f.audit_team       || '',
+    scopeOfWork:      f.scope_of_work    || '',
+    manpower:         Number(f.manpower  || 0),
+    supervisors:      Number(f.supervisors || 0),
+    sheReps:          Number(f.she_reps  || 0),
+    firstAiders:      Number(f.first_aiders || 0),
+    auditorName:      f.auditor_name     || '',
+    signOffDate:      f.sign_off_date    || '',
+    status:           f.status           || 'Draft',
+    score:            f.score !== null && f.score !== undefined ? Number(f.score) : null,
+    toStdCount:       f.to_std_count  !== undefined ? Number(f.to_std_count)  : null,
+    notStdCount:      f.not_std_count !== undefined ? Number(f.not_std_count) : null,
+    naCount:          f.na_count      !== undefined ? Number(f.na_count)      : null,
+    policyEmailSent:  !!f.policy_email_sent,
+    policyEmailDate:  f.policy_email_date || null,
+    sections:         f.sections         || null,
+    createdAt:        f.created_at       || '',
+    updatedAt:        f.updated_at       || '',
+  };
+}
+
 // Override DB getters to normalize on read
-const _DB = DB;
+// NOTE: reads DB directly (not a captured snapshot) so refreshAll() results are visible immediately
 const proxyDB = {
-  get callouts() { return _DB.callouts.map(normalizeCallout); },
-  get quotes()   { return _DB.quotes.map(normalizeQuote); },
-  get invoices() { return _DB.invoices.map(normalizeInvoice); },
-  get bank()     { return _DB.bank.map(normalizeBank); },
-  get users()    { return _DB.users; },
-  get counters() { return { co:0, q:0, inv:0 }; },
+  get callouts()    { return DB.callouts.map(normalizeCallout); },
+  get quotes()      { return DB.quotes.map(normalizeQuote); },
+  get invoices()    { return DB.invoices.map(normalizeInvoice); },
+  get bank()        { return DB.bank.map(normalizeBank); },
+  get users()       { return DB.users; },
+  get safetyFiles() { return (DB.safetyFiles || []).map(normalizeSafetyFile); },
+  get clients()     { return DB.clients || []; },
+  get counters()    { return { co:0, q:0, inv:0 }; },
 };
 
 /* ═══════════════════════════════════════════════════════
@@ -392,7 +565,7 @@ async function doLogin(){
     return;
   }
 
-  const loginBtn = document.querySelector('#login-screen .btn-login-main');
+  const loginBtn = document.querySelector('#login-screen .btn-login-submit');
   if (loginBtn) { loginBtn.disabled = true; loginBtn.textContent = 'Signing in…'; }
 
   const r = await api('POST', 'auth.php?action=login', { username: u, password: p, captcha });
@@ -411,7 +584,7 @@ async function doLogin(){
 
   // Build dynamic nav and set identity
   buildNav();
-  document.getElementById('pnav-user').textContent = SESSION.name;
+  document.getElementById('ptb-user').textContent = SESSION.name;
 
   document.documentElement.dataset.state = 'portal';
   document.getElementById('dash-sub').textContent = `AECI CHEMPARK  -  ${(ROLE_LABELS[SESSION.role]||SESSION.role).toUpperCase()} VIEW`;
@@ -424,6 +597,7 @@ async function doLogin(){
   const firstPage = {
     call_logger:'p-new-callout', junior_tech:'p-callouts',
     senior_tech:'p-callouts', client_support:'p-dashboard', admin_clerk:'p-callouts',
+    safety_officer:'p-safety',
   }[SESSION.role] || 'p-dashboard';
   showPortalPage(firstPage, null);
   updateBadges();
@@ -435,7 +609,7 @@ async function doLogout(){
   stopIdleTimer();
   await api('POST', 'auth.php?action=logout');
   SESSION = null;
-  DB = { callouts:[], quotes:[], invoices:[], bank:[], users:[] };
+  DB = { callouts:[], quotes:[], invoices:[], bank:[], users:[], safetyFiles:[], clients:[] };
   document.getElementById('l-user').value = '';
   document.getElementById('l-pass').value = '';
   document.getElementById('login-error').classList.remove('show');
@@ -459,51 +633,92 @@ function localDateStr(d = new Date()) {
 }
 
 const NAV_CONFIG = [
-  { sec:'Overview', items:[
-    { id:'p-dashboard', label:'Dashboard', perm:null, icon:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>' },
-  ]},
-  { sec:'Operations', items:[
-    { id:'p-callouts', label:'Callouts',  perm:'callout.view', badge:'nb-co',  icon:'<path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>' },
-    { id:'p-timeline', label:'Timeline',  perm:null, icon:'<line x1="3" y1="12" x2="21" y2="12"/><circle cx="6" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="18" cy="12" r="2"/>' },
-  ]},
-  { sec:'Finance', items:[
-    { id:'p-transactions', label:'Transactions',     perm:'finance.transactions', icon:'<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>' },
-    { id:'p-invoices',     label:'Invoices',         perm:'invoice.view',         badge:'nb-inv', icon:'<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/>' },
-    { id:'p-quotes',       label:'Quotes',           perm:'quote.view',           badge:'nb-qte', icon:'<path d="M9 14l6-6M9 9h.01M15 15h.01M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2z"/>' },
-    { id:'p-statement',    label:'Statement',        perm:'finance.statement',    icon:'<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>' },
-    { id:'p-income',       label:'Income Statement', perm:'finance.income',       icon:'<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>' },
-  ]},
-  { sec:'Capture', items:[
-    { id:'p-new-callout', label:'Log Call',     perm:'capture.new_callout', icon:'<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>' },
-    { id:'p-new-quote',   label:'Submit Quote', perm:'capture.new_quote',   icon:'<path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>' },
-    { id:'p-new-invoice', label:'New Invoice',  perm:'capture.new_invoice', icon:'<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>' },
-    { id:'p-log-payment', label:'Log Payment',  perm:'capture.log_payment', icon:'<rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/>' },
-  ]},
-  { sec:'Security', items:[
-    { id:'p-audit', label:'Audit Log',      perm:'security.audit', icon:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>' },
-    { id:'p-users', label:'Users & Roles',  perm:'security.users', icon:'<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>' },
-  ]},
+  {
+    id: 'group-dashboard', label: 'Dashboard',
+    page: 'p-dashboard', perm: null,
+    items: [],
+  },
+  {
+    id: 'group-operations', label: 'Operations', perm: null,
+    page: 'p-ops-dashboard',
+    items: [
+      { id:'p-ops-dashboard', label:'Overview',  perm: null },
+      { id:'p-timeline',      label:'Timeline',  perm: null },
+      { id:'p-callouts',      label:'Call Log',  perm:'callout.view', badge:'nb-co' },
+      { id:'p-quotes',        label:'Quote Log', perm:'quote.view',   badge:'nb-qte' },
+    ],
+  },
+  {
+    id: 'group-finance', label: 'Finance', perm: null,
+    page: 'p-finance-dashboard',
+    items: [
+      { id:'p-finance-dashboard', label:'Overview',         perm: null },
+      { id:'p-invoices',          label:'Invoices',         perm:'invoice.view',         badge:'nb-inv' },
+      { id:'p-statement',         label:'Statements',       perm:'finance.statement' },
+      { id:'p-transactions',      label:'Transactions',     perm:'finance.transactions' },
+      { id:'p-income',            label:'Income Stmt',      perm:'finance.income' },
+      { id:'p-clients',           label:'Clients',          perm:'clients.view' },
+    ],
+  },
+  {
+    id: 'group-support', label: 'Support', perm: null,
+    page: 'p-support-dashboard',
+    items: [
+      { id:'p-support-dashboard', label:'Overview',      perm: null },
+      { id:'p-users',             label:'Users & Roles', perm:'security.users' },
+      { id:'p-safety',            label:'Safety Files',  perm: 'safety.view', badge:'nb-saf' },
+      { id:'p-audit',             label:'Audit Log',     perm:'security.audit' },
+    ],
+  },
 ];
 
-function buildNav(){
-  const nav = document.getElementById('pnav-links');
-  if(!nav) return;
+function findGroupForPage(pageId) {
+  return NAV_CONFIG.find(g => g.page === pageId || (g.items||[]).some(i => i.id === pageId));
+}
+
+function activateNavGroup(groupId) {
+  document.querySelectorAll('.pnav-group').forEach(g => g.classList.remove('active'));
+  const groupEl = document.querySelector(`.pnav-group[data-group="${groupId}"]`);
+  if (groupEl) groupEl.classList.add('active');
+
+  const group = NAV_CONFIG.find(g => g.id === groupId);
+  if (!group) return;
+
+  const linksEl = document.getElementById('pnav-links');
+  const subBar  = document.getElementById('pnav-bar');
+  if (!linksEl) return;
+
+  const visible = (group.items || []).filter(i => !i.perm || can(i.perm));
+
+  if (!visible.length) {
+    linksEl.innerHTML = '';
+    if (subBar) subBar.style.visibility = 'hidden';
+    return;
+  }
+  if (subBar) subBar.style.visibility = '';
+  linksEl.innerHTML = visible.map(item => {
+    const badge = item.badge ? `<span class="pnbadge" id="${item.badge}">0</span>` : '';
+    return `<div class="pnitem" data-page="${item.id}" onclick="showPortalPage('${item.id}',this)">${item.label}${badge}</div>`;
+  }).join('');
+}
+
+function activateNavGroupAndNavigate(groupId) {
+  activateNavGroup(groupId);
+  const group = NAV_CONFIG.find(g => g.id === groupId);
+  if (!group) return;
+  showPortalPage(group.page || (group.items||[]).find(i=>!i.perm||can(i.perm))?.id, null);
+}
+
+function buildNav() {
+  const primary = document.getElementById('pnav-primary');
+  if (!primary) return;
   let html = '';
-  let first = true;
   NAV_CONFIG.forEach(group => {
-    const visible = group.items.filter(item => !item.perm || can(item.perm));
-    if(!visible.length) return;
-    if(!first) html += '<div class="pnav-sep"></div>';
-    first = false;
-    visible.forEach(item => {
-      const badge = item.badge ? `<span class="pnbadge" id="${item.badge}">0</span>` : '';
-      html += `<div class="pnitem" data-page="${item.id}" onclick="showPortalPage('${item.id}',this)">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">${item.icon}</svg>
-        ${item.label}${badge}
-      </div>`;
-    });
+    const accessible = (group.items||[]).some(i => !i.perm || can(i.perm)) || (!group.perm || can(group.perm));
+    if (!accessible) return;
+    html += `<div class="pnav-group" data-group="${group.id}" onclick="activateNavGroupAndNavigate('${group.id}')">${group.label}</div>`;
   });
-  nav.innerHTML = html;
+  primary.innerHTML = html;
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -514,7 +729,7 @@ DB = load();
 
 function load(){
   try{ const d=localStorage.getItem(STORE); if(d) return JSON.parse(d); }catch(e){}
-  return { callouts:[], quotes:[], invoices:[], bank:[], counters:{co:0,q:0,inv:0} };
+  return { callouts:[], quotes:[], invoices:[], bank:[], safetyFiles:[], clients:[], counters:{co:0,q:0,inv:0} };
 }
 function save(){ try{ localStorage.setItem(STORE, JSON.stringify(DB)); }catch(e){} }
 function nextId(t){
@@ -555,20 +770,22 @@ function seedData(){
    HELPERS
 ═══════════════════════════════════════════════════════ */
 const fmt = n=>'R'+Number(n).toLocaleString('en-ZA',{minimumFractionDigits:2,maximumFractionDigits:2});
-const fmtD = d=>d?new Date(d+'T00:00:00').toLocaleDateString('en-ZA',{day:'2-digit',month:'short',year:'numeric'}):'-';
+const fmtD  = d =>d?new Date(d+'T00:00:00').toLocaleDateString('en-ZA',{day:'2-digit',month:'short',year:'numeric'}):'-';
+const fmtDT = dt=>dt?new Date(dt).toLocaleString('en-ZA',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):'-';
 const esc = s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
 const ROLE_LABELS = {
   sysadmin:'Sys Admin',
   admin:'Admin',manager:'Manager',call_logger:'Call Logger',
   junior_tech:'Junior Tech',senior_tech:'Senior Tech',
-  client_support:'Client Support',admin_clerk:'Admin Clerk',viewer:'Viewer'
+  client_support:'Client Support',admin_clerk:'Admin Clerk',viewer:'Viewer',
+  safety_officer:'Safety Officer'
 };
 const ROLE_COLORS = {
   sysadmin:'emergency',
   admin:'emergency',manager:'progress',call_logger:'open',
   junior_tech:'draft',senior_tech:'sent',client_support:'invoiced',
-  admin_clerk:'paid',viewer:'draft'
+  admin_clerk:'paid',viewer:'draft',safety_officer:'approved'
 };
 
 function pillH(s){
@@ -587,7 +804,8 @@ function qtot(items){const s=(items||[]).reduce((a,i)=>a+(+i.qty||0)*(+i.unit||0
 function toast(msg,type=''){
   const c=document.getElementById('toaster');
   const t=document.createElement('div');t.className=`toast ${type}`;t.textContent=msg;
-  c.appendChild(t);setTimeout(()=>t.remove(),3500);
+  c.appendChild(t);
+  setTimeout(()=>{t.classList.add('hiding');setTimeout(()=>t.remove(),400);},6000);
 }
 function audit(action,detail=''){
   AUDIT_LOG.unshift({ts:new Date().toLocaleTimeString('en-ZA',{hour:'2-digit',minute:'2-digit',second:'2-digit'}),user:SESSION?.username||'?',role:SESSION?.role||'?',action,detail,level:'info'});
@@ -601,6 +819,663 @@ function toggleTheme(){
   const h=document.documentElement;
   h.dataset.theme=h.dataset.theme==='dark'?'light':'dark';
   localStorage.setItem('bf-theme',h.dataset.theme);
+}
+
+/* ═══════════════════════════════════════════════════════
+   INFO / GUIDE MODE
+═══════════════════════════════════════════════════════ */
+let INFO_MODE = localStorage.getItem('bf-info') === 'on';
+
+/* How-to guide content for each portal page */
+const PAGE_INFO = {
+  'p-dashboard': {
+    title: 'Dashboard',
+    sub: 'Your control centre',
+    purpose: 'The central hub showing live activity across the entire portal — callouts, invoices, safety compliance, and recent audit events at a glance.',
+    steps: [
+      'Review the key metric cards at the top — badge numbers flag items needing attention.',
+      'Check the recent callouts and outstanding invoices panels for anything requiring follow-up.',
+      'Use the quick-action buttons to jump directly to the relevant module.',
+      'The safety compliance summary shows whether any OHS documents are overdue.',
+      'The audit feed at the bottom shows the 5 most recent actions across all users.',
+    ],
+    tips: [
+      'Refresh the dashboard when you arrive each morning — it reflects the live state of the system.',
+      'Red badge numbers on the nav indicate urgent items — don\'t ignore them.',
+    ],
+    faqs: [
+      { q: 'Why are my badge counts different from what I expect?', a: 'Badges update every time you navigate to a page. Click away and back to force a refresh.' },
+      { q: 'Can I customise which cards appear on the dashboard?', a: 'Not yet — layout customisation is a planned feature. Submit a suggestion below to prioritise it.' },
+    ],
+    linked: 'Operations, Finance, Support — all modules feed into this view.',
+    access: ['admin','sysadmin','manager','admin_clerk','senior_tech','call_logger','viewer','client_support','junior_tech'],
+  },
+  'p-ops-dashboard': {
+    title: 'Operations Overview',
+    sub: 'Operational health at a glance',
+    purpose: 'Shows real-time status of callouts and quotes — active incidents, open items, and team workload in one view.',
+    steps: [
+      'Check pending callouts — anything in Open status needs a technician assigned.',
+      'Review quotes awaiting approval — managers can approve directly from here.',
+      'Use quick-action buttons to log a new callout or submit a new quote.',
+      'Click any summary card to drill into the full list for that module.',
+    ],
+    tips: [
+      'If the open callout count is high, check the Call Log for items stuck in Open for more than 24 hours.',
+      'Pending approval quotes block the billing cycle — review them daily.',
+    ],
+    faqs: [
+      { q: 'What\'s the difference between Operations Overview and the main Dashboard?', a: 'The main Dashboard covers all modules. Operations Overview focuses only on callouts and quotes.' },
+      { q: 'How do I assign a technician to a callout from here?', a: 'Navigate to the Call Log using the quick action button and expand the callout row.' },
+    ],
+    linked: 'Callouts, Quotes, Timeline.',
+    access: ['admin','sysadmin','manager','call_logger','senior_tech','junior_tech','client_support','admin_clerk','viewer'],
+  },
+  'p-timeline': {
+    title: 'Timeline',
+    sub: 'Chronological event view',
+    purpose: 'A time-ordered view of callouts and quotes, useful for spotting busy periods and understanding workload patterns.',
+    steps: [
+      'Scroll through the timeline to see events plotted by date.',
+      'Use this to plan resource allocation during known busy periods.',
+      'Click any event to see its full detail in the Call Log or Quote Log.',
+    ],
+    tips: [
+      'Dense clusters on the timeline indicate high-demand days — use this to plan staffing.',
+      'If events look sparse, check that callouts are being logged promptly and not batched.',
+    ],
+    faqs: [
+      { q: 'How far back does the timeline go?', a: 'The timeline shows all available records. Scroll up to go back further in time.' },
+      { q: 'Can I filter by client or technician?', a: 'Not yet — submit a suggestion below to prioritise it.' },
+    ],
+    linked: 'Callouts, Quotes.',
+    access: ['admin','sysadmin','manager','call_logger','senior_tech','junior_tech','client_support','admin_clerk','viewer'],
+  },
+  'p-callouts': {
+    title: 'Call Log',
+    sub: 'Incident & service callout tracker',
+    purpose: 'The complete record of every security callout — incident type, location, assigned technician, PO number, and resolution status.',
+    steps: [
+      'Click "+ Log Call" to create a new callout. Fill in the client, site, service type, and description.',
+      'Use the search box to filter by client name, reference number, or status.',
+      'Click any row to expand it — update status, assign a technician, or add a PO number.',
+      'Once work is complete, update status to Closed. A manager must confirm closure.',
+      'Closed callouts can be converted to invoices from the expanded row.',
+    ],
+    tips: [
+      'Always assign a PO number before sending a job to a subcontractor — finance needs it for reconciliation.',
+      'Close callouts within 24 hours of completion. Open callouts inflate the ops dashboard counts.',
+      'Never delete a callout unless it was logged in error — use Closed status to archive.',
+    ],
+    faqs: [
+      { q: 'Can I edit a callout after saving?', a: 'Yes — expand the row. Most fields remain editable until the callout is Closed.' },
+      { q: 'How do I link a callout to an invoice?', a: 'Open the callout and use "Convert to Invoice" — it pre-fills the line item with the service details.' },
+      { q: 'Why can\'t I delete a callout?', a: 'Only Admins and Managers can delete records. Contact your manager if a record needs removing.' },
+    ],
+    linked: 'Clients, Technicians, Quotes, Invoices.',
+    access: ['admin','sysadmin','manager','call_logger','senior_tech','junior_tech','client_support','admin_clerk','viewer'],
+  },
+  'p-quotes': {
+    title: 'Quote Log',
+    sub: 'Quotation management',
+    purpose: 'Create, track, and approve service quotations. Approved quotes convert directly into invoices.',
+    steps: [
+      'Click "+ Submit Quote" to draft a new quotation. Select the client and set a valid-until date.',
+      'Add line items — each needs a description, quantity, and unit rate. Totals are calculated automatically.',
+      'Submit the quote — it moves to Pending Approval. You will be notified when it is reviewed.',
+      'A manager or admin can approve or decline. Declined quotes can be revised and resubmitted.',
+      'Approved quotes can be converted to an invoice with one click from the expanded row.',
+    ],
+    tips: [
+      'Double-check the VAT treatment before submitting — incorrect VAT causes billing issues downstream.',
+      'Set realistic valid-until dates — expired quotes cannot be converted without re-approval.',
+    ],
+    faqs: [
+      { q: 'Can I edit a quote after submitting?', a: 'Not once it is Pending Approval. Only Admins can edit at that stage — withdraw and resubmit if you made an error.' },
+      { q: 'What happens when a quote expires?', a: 'It is marked Expired. The client must accept a revised quote before it can be converted.' },
+      { q: 'Can I send the quote directly to the client?', a: 'Not yet — export the details and send manually. A direct send feature is planned.' },
+    ],
+    linked: 'Clients, Invoices (conversion), Callouts.',
+    access: ['admin','sysadmin','manager','senior_tech','client_support','admin_clerk','viewer'],
+  },
+  'p-finance-dashboard': {
+    title: 'Finance Overview',
+    sub: 'Financial health summary',
+    purpose: 'High-level financial snapshot — total invoiced, amount collected, outstanding balance, and recent bank activity.',
+    steps: [
+      'Review the total outstanding balance — this is money owed across all active invoices.',
+      'Check recent transactions to confirm payments are being logged correctly.',
+      'Use quick links to drill into Invoices, Transactions, or the Income Statement.',
+      'Alert the billing team if outstanding balance is growing without corresponding new payments.',
+    ],
+    tips: [
+      'If outstanding is high but transactions look normal, check for invoices marked Sent but not followed up.',
+      'Month-end: ensure all transactions for the period are captured before generating the Income Statement.',
+    ],
+    faqs: [
+      { q: 'Why does my outstanding not match the bank statement?', a: 'Invoices are logged when created, but payments may not be logged yet. Check the Transactions module.' },
+      { q: 'Who can see financial data?', a: 'Finance data is restricted to Admin, Sysadmin, Manager, and Admin Clerk roles.' },
+    ],
+    linked: 'Invoices, Transactions, Statements, Income Statement.',
+    access: ['admin','sysadmin','manager','admin_clerk'],
+  },
+  'p-invoices': {
+    title: 'Invoices',
+    sub: 'Invoice management',
+    purpose: 'Create, send, and track all invoices — from draft through to paid.',
+    steps: [
+      'Click "+ New Invoice" to create. Select the client and billing period.',
+      'Add line items — description, quantity, and unit rate. VAT is calculated automatically.',
+      'Use the Send button to email the invoice directly to the client.',
+      'Mark an invoice as Paid once payment is confirmed. This updates the finance dashboard immediately.',
+      'Invoices can also be generated automatically from an approved quote.',
+    ],
+    tips: [
+      'Send invoices promptly — a delay between work completion and invoicing slows cash flow.',
+      'Never mark an invoice as Paid until you have confirmed the bank deposit. Reversing a payment is disruptive.',
+      'If a client queries an invoice, use the attachment feature to add supporting documentation.',
+    ],
+    faqs: [
+      { q: 'Can I edit an invoice after sending it?', a: 'Contact an admin — sent invoices are locked to maintain the audit trail.' },
+      { q: 'What if a client pays partially?', a: 'Log a partial payment in Log Payment. The invoice status will reflect the outstanding amount.' },
+      { q: 'How do I void a cancelled invoice?', a: 'Delete it (Admin/Manager only). Add a note in the suggestion box below for the record.' },
+    ],
+    linked: 'Clients, Quotes (conversion), Transactions, Statements.',
+    access: ['admin','sysadmin','manager','client_support','admin_clerk','viewer'],
+  },
+  'p-statement': {
+    title: 'Statements',
+    sub: 'Client account statements',
+    purpose: 'Generate a statement of account for any client — a summary of invoices and payments for a selected period.',
+    steps: [
+      'Select the client from the dropdown.',
+      'Choose the statement period (date range).',
+      'Review the statement — it lists all invoices, payment dates, and running balance.',
+      'Download as PDF, or release it directly to the client via the portal.',
+    ],
+    tips: [
+      'Send statements monthly even if the balance is zero — it builds client trust and reduces disputes.',
+      'Confirm all transactions for the period are logged before releasing a statement.',
+    ],
+    faqs: [
+      { q: 'Can clients view their own statements?', a: 'Not directly in this portal version. Download and email the PDF to the client.' },
+      { q: 'What if a statement shows the wrong balance?', a: 'Check that all payments for the period are logged in Log Payment. Missing payments cause discrepancies.' },
+    ],
+    linked: 'Invoices, Clients.',
+    access: ['admin','sysadmin','manager','client_support','admin_clerk'],
+  },
+  'p-transactions': {
+    title: 'Transactions',
+    sub: 'Bank transaction log',
+    purpose: 'Record every money-in and money-out bank transaction for reconciliation and income reporting.',
+    steps: [
+      'Log each transaction as it appears on the bank statement — date, description, and amount.',
+      'Set the type: Income or Expense.',
+      'Use the description field to note the invoice reference or supplier name for easy reconciliation.',
+      'This data feeds the Income Statement — accurate entries mean accurate reports.',
+    ],
+    tips: [
+      'Log transactions daily, not in batches at month-end — batching leads to errors and missed entries.',
+      'Use consistent descriptions, e.g. "INV-001 PAYMENT" not just "payment" — so reconciliation is simple.',
+    ],
+    faqs: [
+      { q: 'Do I log invoices here too?', a: 'No — invoices are logged in the Invoices module. Transactions are only actual bank movements.' },
+      { q: 'I logged the wrong amount — how do I fix it?', a: 'Contact an Admin. Only Admins can edit or delete transaction records to maintain the audit trail.' },
+    ],
+    linked: 'Invoices, Income Statement.',
+    access: ['admin','sysadmin','manager','admin_clerk'],
+  },
+  'p-income': {
+    title: 'Income Statement',
+    sub: 'Profit & loss summary',
+    purpose: 'A period-based income versus expense report showing net financial performance.',
+    steps: [
+      'Select the reporting period (month or custom date range).',
+      'Review total income, total expenses, and the net profit/loss figure.',
+      'Verify the figures match expectations before exporting.',
+      'Export for use in accounting software or management reporting.',
+    ],
+    tips: [
+      'Only generate this report after confirming all transactions for the period are captured.',
+      'If income looks unexpectedly low, check for invoices not yet marked as paid.',
+    ],
+    faqs: [
+      { q: 'Does this report include VAT?', a: 'It reflects transaction values as logged. Ensure VAT is handled consistently when logging transactions.' },
+      { q: 'Can I export to Excel?', a: 'PDF download is available. Excel export is on the roadmap — submit a suggestion below to prioritise it.' },
+    ],
+    linked: 'Transactions, Invoices.',
+    access: ['admin','sysadmin','manager','admin_clerk'],
+  },
+  'p-clients': {
+    title: 'Clients',
+    sub: 'Client master records',
+    purpose: 'The master list of all clients — company name, contact person, billing address, and account status.',
+    steps: [
+      'Add a new client before creating invoices or statements for them.',
+      'Ensure the billing contact email is accurate — it is used when sending invoices.',
+      'Keep the physical address current — it appears on invoices and statements.',
+      'Deactivate a client record when they are no longer active — preserves history without cluttering dropdowns.',
+    ],
+    tips: [
+      'Create the client record before logging their first callout or quote — you cannot link records to an unlisted client.',
+      'Use the company trading name exactly as it should appear on invoices.',
+    ],
+    faqs: [
+      { q: 'Can I delete a client?', a: 'Not if they have linked invoices or callouts. Deactivate the record instead to preserve history.' },
+      { q: 'What is the Account Reference field?', a: 'Your internal client code for cross-referencing with accounting systems or filing.' },
+    ],
+    linked: 'Invoices, Statements, Callouts.',
+    access: ['admin','sysadmin','manager','admin_clerk','client_support'],
+  },
+  'p-support-dashboard': {
+    title: 'Support Overview',
+    sub: 'Administration health check',
+    purpose: 'A daily admin snapshot — user account status, safety file compliance, and recent system activity.',
+    steps: [
+      'Check for any user accounts that need attention (new requests, role changes).',
+      'Review the safety compliance status — flag any documents nearing their review date.',
+      'Scan the recent audit feed for any unusual or unexpected actions.',
+      'Use quick links to manage Users, Safety Files, or view the full Audit Log.',
+    ],
+    tips: [
+      'Review this dashboard at the start of each week — compliance issues caught early are easier to resolve.',
+      'Unexpected audit entries outside business hours warrant immediate investigation.',
+    ],
+    faqs: [
+      { q: 'Who has access to this dashboard?', a: 'Admin, Sysadmin, Manager, Admin Clerk, and Viewer roles. Sensitive sub-pages have additional permission gates.' },
+    ],
+    linked: 'Users & Roles, Safety Files, Audit Log.',
+    access: ['admin','sysadmin','manager','admin_clerk','viewer'],
+  },
+  'p-users': {
+    title: 'Users & Roles',
+    sub: 'User account management',
+    purpose: 'Create and manage portal user accounts. Roles control exactly what each person can see and do.',
+    steps: [
+      'Click "+ New User" to create an account. Set username, email, and a temporary password.',
+      'Assign the correct role — this determines which modules and actions are available.',
+      'Use the edit button to change a user\'s role or reset their password.',
+      'Deactivate accounts immediately when staff leave — do not delete them, to preserve audit history.',
+      'All user changes are automatically logged in the Audit Log.',
+    ],
+    tips: [
+      'Apply least privilege — assign the minimum role that lets someone do their job.',
+      'Never share login credentials. Every person must have their own account for audit integrity.',
+      'Deactivate ex-staff accounts the same day they leave — not the following week.',
+    ],
+    faqs: [
+      { q: 'What is the difference between Admin and Sysadmin?', a: 'Sysadmin has unrestricted access to all functions. Admin has broad access but some restrictions remain.' },
+      { q: 'Can a user change their own password?', a: 'Yes — there is a Forgot Password flow on the login screen. Admins can also reset passwords from here.' },
+      { q: 'What happens to data when I deactivate a user?', a: 'Their records remain intact. They just cannot log in. All historical actions are preserved in the Audit Log.' },
+    ],
+    linked: 'Audit Log (all changes are recorded automatically).',
+    access: ['admin','sysadmin','manager','admin_clerk'],
+  },
+  'p-safety': {
+    title: 'Safety Files',
+    sub: 'OHS compliance document store',
+    purpose: 'Store, track, and manage all Occupational Health & Safety compliance documents — policies, appointments, and audit reports.',
+    steps: [
+      'Upload a new safety document using the "+ New File" button. Tag it with the correct document type.',
+      'Set a review date so the system alerts you when it is nearing expiry.',
+      'Once a document has been signed off, mark it as Approved.',
+      'Monitor the compliance dashboard — expired or expiring documents are highlighted automatically.',
+      'Use the Safety Audit tab to conduct a formal OHS audit against the Act.',
+    ],
+    tips: [
+      'Keep your Section 16.2 appointment letters current — they expire when a responsible person changes role.',
+      'Upload the signed version of each document, not the draft. Unsigned documents provide no legal protection.',
+      'Set review dates 2 weeks before actual expiry to allow processing time.',
+    ],
+    faqs: [
+      { q: 'Who can approve a safety document?', a: 'Admins and Managers only. The approver must verify the document is signed and current before approving.' },
+      { q: 'What file formats are accepted?', a: 'PDF, Word (DOC/DOCX), Excel (XLS/XLSX), and JPEG/PNG. Maximum 10 MB per file.' },
+      { q: 'Can I attach multiple files to one safety record?', a: 'Yes — use the attachments panel on the record to upload supplementary documents.' },
+    ],
+    linked: 'Safety Audit, Clients, Audit Log.',
+    access: ['admin','sysadmin','manager','senior_tech','junior_tech','call_logger','client_support','admin_clerk','viewer'],
+  },
+  'p-safety-audit': {
+    title: 'Safety Audit',
+    sub: 'OHS Act formal audit form',
+    purpose: 'Conduct and record a formal safety audit against OHS Act requirements. Creates a permanent compliance record.',
+    steps: [
+      'Click "+ New Audit" to start. Enter the contractor, representative, and Section 16.2 appointee.',
+      'Set the audit date, region, team members, and scope of work.',
+      'Work through each section of the checklist — record findings, ratings, and corrective actions.',
+      'Click Save Draft at any point. You can return and continue later.',
+      'Once all sections are completed, click Submit. The audit is locked from this point.',
+      'Attach the signed audit report PDF to the submitted record.',
+    ],
+    tips: [
+      'Complete audits in one sitting where possible — returning to a draft after a long gap risks inconsistent findings.',
+      'Document corrective action owners and deadlines in findings fields — vague findings are not actionable.',
+      'Get the Section 16.2 appointee to sign off physically before attaching the document.',
+    ],
+    faqs: [
+      { q: 'Can I edit a submitted audit?', a: 'No — submitted audits are locked. Contact an Admin if a genuine amendment is needed; they will note the change in the audit log.' },
+      { q: 'What is a Section 16.2 appointee?', a: 'Under the OHS Act, the employer (16.1) must appoint someone in writing to assist with compliance. This person is the 16.2 appointee.' },
+      { q: 'How often should audits be conducted?', a: 'At minimum annually, or whenever significant site changes occur. High-risk sites should audit more frequently.' },
+    ],
+    linked: 'Safety Files, Clients, Audit Log.',
+    access: ['admin','sysadmin','manager','senior_tech'],
+  },
+  'p-audit': {
+    title: 'Audit Log',
+    sub: 'Immutable system activity record',
+    purpose: 'A tamper-evident log of every significant action in the portal — who did what, and when.',
+    steps: [
+      'Use the search box to filter by username, action keyword, or record reference.',
+      'Look for PAGE_SUGGESTION entries — these are comments left by users via this Guide panel.',
+      'Cross-reference timestamps with user reports when investigating discrepancies.',
+      'Logs are read-only and cannot be altered — this is by design.',
+    ],
+    tips: [
+      'Check the audit log before making bulk changes — you need a baseline of what "normal" looks like.',
+      'PAGE_SUGGESTION entries are valuable user feedback — review them weekly and act on recurring themes.',
+      'Unusual activity outside business hours warrants immediate investigation.',
+    ],
+    faqs: [
+      { q: 'Can audit entries be deleted?', a: 'No — the audit log is immutable by design. This is a legal and compliance requirement.' },
+      { q: 'How far back do logs go?', a: 'All entries since the portal went live are retained. No automatic expiry is applied.' },
+      { q: 'Who can see the audit log?', a: 'Only Admin and Sysadmin roles. If a manager needs access, contact a Sysadmin to review the role configuration.' },
+    ],
+    linked: 'All modules — every significant action across the portal is recorded here.',
+    access: ['admin','sysadmin'],
+  },
+  'p-new-callout': {
+    title: 'Log New Callout',
+    sub: 'Create an incident or service record',
+    purpose: 'Log a new security incident or service callout as it comes in.',
+    steps: [
+      'Select the client and their site location.',
+      'Choose the service type from the dropdown.',
+      'Write a clear, specific description of the incident or service request.',
+      'Assign a technician if already known — you can update this later from the Call Log.',
+      'Click Save — the callout is created immediately with a unique reference number.',
+    ],
+    tips: [
+      'Log callouts as they happen, not hours later — accurate timestamps matter for incident reporting.',
+      'Be specific in the description: "CCTV Camera 3 offline, Sector B" is more useful than "CCTV issue".',
+    ],
+    faqs: [
+      { q: 'What if I don\'t know which technician to assign?', a: 'Leave it blank and save. Assign the technician from the Call Log once one is confirmed.' },
+      { q: 'Is there a limit to how many callouts I can log?', a: 'No limit. Log every callout — it builds your response history and supports billing.' },
+    ],
+    linked: 'Call Log, Clients.',
+    access: ['admin','sysadmin','manager','call_logger','client_support'],
+  },
+  'p-new-quote': {
+    title: 'New Quote',
+    sub: 'Draft a service quotation',
+    purpose: 'Create a quotation for services to be rendered. Must be approved before being sent to a client.',
+    steps: [
+      'Select the client and set a valid-until date.',
+      'Add line items — description, quantity, and unit rate for each service.',
+      'Review the calculated total and confirm VAT treatment.',
+      'Click Submit to send for approval. You will be notified when it is reviewed.',
+      'Once approved, convert it to an invoice from the Quote Log.',
+    ],
+    tips: [
+      'Break labour and materials into separate line items — clients prefer itemised quotes.',
+      'Set the valid-until date at least 2 weeks out — rushed quotes that expire before sign-off cause rework.',
+    ],
+    faqs: [
+      { q: 'Can I save a quote as a draft?', a: 'Save it at any point — it stays in Draft status until you click Submit.' },
+      { q: 'Can I duplicate an existing quote for a similar job?', a: 'Not yet — recreate it manually. Submit a suggestion below to request this feature.' },
+    ],
+    linked: 'Quote Log, Invoices, Clients.',
+    access: ['admin','sysadmin','manager','senior_tech'],
+  },
+  'p-new-invoice': {
+    title: 'New Invoice',
+    sub: 'Create a client invoice',
+    purpose: 'Generate an invoice for services delivered. Can be created from scratch or from an approved quote.',
+    steps: [
+      'Select the client and billing period.',
+      'Add line items — description, quantity, and unit rate. VAT is calculated automatically.',
+      'Review the total carefully before saving.',
+      'Click Save. The invoice is live in the Invoices module immediately.',
+      'Go to Invoices and use the Send button to email it to the client.',
+    ],
+    tips: [
+      'Always cross-reference the invoice against the callout or quote it relates to before saving.',
+      'Use a consistent description format, e.g. "Armed Response Retainer — May 2026".',
+    ],
+    faqs: [
+      { q: 'Can I add a discount line item?', a: 'Yes — add a line item with a negative amount to represent a discount.' },
+      { q: 'What invoice number format is used?', a: 'The system auto-generates a sequential reference (INV-XXX). Do not set it manually.' },
+    ],
+    linked: 'Invoices, Clients, Quotes.',
+    access: ['admin','sysadmin','manager','admin_clerk'],
+  },
+  'p-log-payment': {
+    title: 'Log Payment',
+    sub: 'Record a payment received',
+    purpose: 'Record a payment against an outstanding invoice, marking it as settled.',
+    steps: [
+      'Select the invoice from the dropdown — only outstanding invoices are listed.',
+      'Enter the amount received and the date the payment cleared.',
+      'Add a bank reference number (EFT reference or cheque number).',
+      'Click Confirm — the invoice status updates to Paid instantly.',
+    ],
+    tips: [
+      'Only log a payment once it has cleared the bank — do not log pending EFTs.',
+      'Always include the bank reference. Without it, the payment cannot be matched during reconciliation.',
+    ],
+    faqs: [
+      { q: 'What if a client pays two invoices in one EFT?', a: 'Log a separate payment entry for each invoice. Use the same bank reference for both.' },
+      { q: 'I logged the wrong amount — how do I fix it?', a: 'Contact an Admin. Payment records cannot be self-corrected to maintain the audit trail.' },
+    ],
+    linked: 'Invoices, Transactions.',
+    access: ['admin','sysadmin','manager','admin_clerk'],
+  },
+};
+
+/* Per-page permission capabilities (for role-specific guidance) */
+const PAGE_PERMS = {
+  'p-callouts': [
+    { perm: 'callout.view',            label: 'View callout records' },
+    { perm: 'callout.create',          label: 'Log new callouts' },
+    { perm: 'callout.update_status',   label: 'Update callout status' },
+    { perm: 'callout.assign_tech',     label: 'Assign technicians' },
+    { perm: 'callout.assign_po',       label: 'Assign PO numbers' },
+    { perm: 'callout.confirm_closure', label: 'Confirm closure' },
+    { perm: 'callout.delete',          label: 'Delete callout records' },
+  ],
+  'p-quotes': [
+    { perm: 'quote.view',    label: 'View quotes' },
+    { perm: 'quote.create',  label: 'Create & submit quotes' },
+    { perm: 'quote.approve', label: 'Approve or decline quotes' },
+    { perm: 'quote.convert', label: 'Convert quotes to invoices' },
+    { perm: 'quote.delete',  label: 'Delete quote records' },
+  ],
+  'p-finance-dashboard': [
+    { perm: 'finance.transactions', label: 'View financial overview' },
+  ],
+  'p-invoices': [
+    { perm: 'invoice.view',      label: 'View invoices' },
+    { perm: 'invoice.create',    label: 'Create new invoices' },
+    { perm: 'invoice.mark_paid', label: 'Mark invoices as paid' },
+    { perm: 'invoice.send',      label: 'Send invoices to clients' },
+    { perm: 'invoice.delete',    label: 'Delete invoice records' },
+  ],
+  'p-statement': [
+    { perm: 'finance.statement',          label: 'View & generate statements' },
+    { perm: 'finance.statement.release',  label: 'Release statements to clients' },
+    { perm: 'finance.statement.generate', label: 'Generate PDF statements' },
+  ],
+  'p-transactions': [
+    { perm: 'finance.transactions', label: 'View & log transactions' },
+  ],
+  'p-income': [
+    { perm: 'finance.income', label: 'View income statement' },
+  ],
+  'p-clients': [
+    { perm: 'clients.view', label: 'View & manage client records' },
+  ],
+  'p-users': [
+    { perm: 'security.users', label: 'View user accounts' },
+    { perm: 'user.create',    label: 'Create new accounts' },
+    { perm: 'user.update',    label: 'Edit roles & reset passwords' },
+  ],
+  'p-audit': [
+    { perm: 'security.audit', label: 'View the full audit log' },
+  ],
+  'p-new-callout':  [{ perm: 'capture.new_callout',  label: 'Log new callouts' }],
+  'p-new-quote':    [{ perm: 'capture.new_quote',    label: 'Submit new quotes' }],
+  'p-new-invoice':  [{ perm: 'capture.new_invoice',  label: 'Create new invoices' }],
+  'p-log-payment':  [{ perm: 'capture.log_payment',  label: 'Log payments' }],
+};
+
+/* Per-page quick navigation actions (filtered to user's permissions at render time) */
+const PAGE_ACTIONS = {
+  'p-dashboard':         [{ label:'Operations', page:'p-ops-dashboard' }, { label:'Finance', page:'p-finance-dashboard' }, { label:'Support', page:'p-support-dashboard' }],
+  'p-ops-dashboard':     [{ label:'Call Log', page:'p-callouts', perm:'callout.view' }, { label:'Quotes', page:'p-quotes', perm:'quote.view' }, { label:'Timeline', page:'p-timeline' }],
+  'p-timeline':          [{ label:'Call Log', page:'p-callouts', perm:'callout.view' }, { label:'Quotes', page:'p-quotes', perm:'quote.view' }],
+  'p-callouts':          [{ label:'+ Log Call', page:'p-new-callout', perm:'capture.new_callout' }, { label:'Quotes', page:'p-quotes', perm:'quote.view' }, { label:'Timeline', page:'p-timeline' }],
+  'p-quotes':            [{ label:'+ Submit Quote', page:'p-new-quote', perm:'capture.new_quote' }, { label:'Call Log', page:'p-callouts', perm:'callout.view' }, { label:'Invoices', page:'p-invoices', perm:'invoice.view' }],
+  'p-finance-dashboard': [{ label:'Invoices', page:'p-invoices', perm:'invoice.view' }, { label:'Transactions', page:'p-transactions', perm:'finance.transactions' }, { label:'Income Stmt', page:'p-income', perm:'finance.income' }],
+  'p-invoices':          [{ label:'+ New Invoice', page:'p-new-invoice', perm:'capture.new_invoice' }, { label:'Log Payment', page:'p-log-payment', perm:'capture.log_payment' }, { label:'Statements', page:'p-statement', perm:'finance.statement' }],
+  'p-statement':         [{ label:'Invoices', page:'p-invoices', perm:'invoice.view' }, { label:'Clients', page:'p-clients' }],
+  'p-transactions':      [{ label:'Invoices', page:'p-invoices', perm:'invoice.view' }, { label:'Income Stmt', page:'p-income', perm:'finance.income' }],
+  'p-income':            [{ label:'Transactions', page:'p-transactions', perm:'finance.transactions' }, { label:'Invoices', page:'p-invoices', perm:'invoice.view' }],
+  'p-clients':           [{ label:'Invoices', page:'p-invoices', perm:'invoice.view' }, { label:'Statements', page:'p-statement', perm:'finance.statement' }],
+  'p-support-dashboard': [{ label:'Users', page:'p-users', perm:'security.users' }, { label:'Safety Files', page:'p-safety' }, { label:'Audit Log', page:'p-audit', perm:'security.audit' }],
+  'p-users':             [{ label:'Audit Log', page:'p-audit', perm:'security.audit' }],
+  'p-safety':            [{ label:'+ New Audit', page:'p-safety-audit' }, { label:'Audit Log', page:'p-audit', perm:'security.audit' }],
+  'p-safety-audit':      [{ label:'Safety Files', page:'p-safety' }],
+  'p-audit':             [{ label:'Users', page:'p-users', perm:'security.users' }, { label:'Support', page:'p-support-dashboard' }],
+  'p-new-callout':       [{ label:'Call Log', page:'p-callouts', perm:'callout.view' }],
+  'p-new-quote':         [{ label:'Quote Log', page:'p-quotes', perm:'quote.view' }],
+  'p-new-invoice':       [{ label:'Invoices', page:'p-invoices', perm:'invoice.view' }],
+  'p-log-payment':       [{ label:'Invoices', page:'p-invoices', perm:'invoice.view' }, { label:'Transactions', page:'p-transactions', perm:'finance.transactions' }],
+};
+
+const ADMIN_ROLES = new Set(['admin','sysadmin']);
+const MANAGER_ROLES = new Set(['manager']);
+
+let _infoCurPage = null;
+
+function toggleInfoMode(){
+  INFO_MODE = !INFO_MODE;
+  localStorage.setItem('bf-info', INFO_MODE ? 'on' : 'off');
+  document.documentElement.dataset.info = INFO_MODE ? 'on' : 'off';
+  const btn = document.getElementById('info-mode-btn');
+  if(btn) btn.classList.toggle('active', INFO_MODE);
+  if(INFO_MODE && _infoCurPage) renderInfoPanel(_infoCurPage);
+}
+
+function renderInfoPanel(pageId){
+  _infoCurPage = pageId;
+  if(!INFO_MODE) return;
+  const panel = document.getElementById('info-panel-inner');
+  if(!panel) return;
+  const info = PAGE_INFO[pageId];
+  if(!info){
+    panel.innerHTML = `<div class="ipanel-empty">No guide available for this screen yet.</div>`;
+    return;
+  }
+
+  /* Role-specific capabilities */
+  const pageCaps = PAGE_PERMS[pageId] || [];
+  const myCaps    = pageCaps.filter(c => can(c.perm));
+  const notMyCaps = pageCaps.filter(c => !can(c.perm));
+  const roleSection = pageCaps.length && SESSION ? `
+    <div class="ipanel-section">
+      <div class="ipanel-section-lbl">Your access — ${esc(ROLE_LABELS[SESSION.role]||SESSION.role)}</div>
+      ${myCaps.length
+        ? myCaps.map(c=>`<div class="ipanel-can"><span class="ipanel-can-icon">✓</span>${esc(c.label)}</div>`).join('')
+        : '<div style="font-size:11px;color:var(--muted);font-style:italic">Read-only access on this page.</div>'}
+      ${notMyCaps.length
+        ? `<div class="ipanel-cannot-wrap">${notMyCaps.map(c=>`<div class="ipanel-cannot"><span class="ipanel-cannot-icon">–</span>${esc(c.label)}</div>`).join('')}</div>`
+        : ''}
+    </div>` : '';
+
+  /* Quick actions — filtered to what the user can do */
+  const pageActs = (PAGE_ACTIONS[pageId]||[]).filter(a => !a.perm || can(a.perm));
+  const actionsSection = pageActs.length ? `
+    <div class="ipanel-section">
+      <div class="ipanel-section-lbl">Quick actions</div>
+      <div class="ipanel-actions-row">${pageActs.map(a=>`<button class="ipanel-action-btn" data-action="navPage" data-page="${a.page}">${esc(a.label)}</button>`).join('')}</div>
+    </div>` : '';
+
+  /* Steps */
+  const steps = (info.steps||[]).map((s,i)=>`
+    <li><span class="ipanel-step-num">${i+1}</span><span>${esc(s)}</span></li>`).join('');
+
+  /* Tips */
+  const tipsSection = (info.tips||[]).length ? `
+    <div class="ipanel-section">
+      <div class="ipanel-section-lbl">Tips &amp; warnings</div>
+      ${info.tips.map(t=>`<div class="ipanel-tip"><span class="ipanel-tip-icon">!</span><span>${esc(t)}</span></div>`).join('')}
+    </div>` : '';
+
+  /* FAQs */
+  const faqsSection = (info.faqs||[]).length ? `
+    <div class="ipanel-section">
+      <div class="ipanel-section-lbl">Frequently asked</div>
+      ${info.faqs.map(f=>`
+        <div class="ipanel-faq">
+          <div class="ipanel-faq-q">${esc(f.q)}</div>
+          <div class="ipanel-faq-a">${esc(f.a)}</div>
+        </div>`).join('')}
+    </div>` : '';
+
+  /* Access chips */
+  const chips = (info.access||[]).map(r=>{
+    const cls = ADMIN_ROLES.has(r)?'chip-admin':MANAGER_ROLES.has(r)?'chip-manager':'';
+    return `<span class="ipanel-chip ${cls}">${ROLE_LABELS[r]||r}</span>`;
+  }).join('');
+
+  panel.innerHTML = `
+    <span class="ipanel-badge">Page Guide</span>
+    <div class="ipanel-title">${esc(info.title)}</div>
+    <div class="ipanel-sub">${esc(info.sub||'')}</div>
+    <div class="ipanel-section">
+      <div class="ipanel-section-lbl">What this page is for</div>
+      <div class="ipanel-section-body">${esc(info.purpose)}</div>
+    </div>
+    ${roleSection}
+    ${actionsSection}
+    <div class="ipanel-section">
+      <div class="ipanel-section-lbl">How to use it</div>
+      <ul class="ipanel-steps">${steps}</ul>
+    </div>
+    ${tipsSection}
+    ${faqsSection}
+    <div class="ipanel-section">
+      <div class="ipanel-section-lbl">Linked to</div>
+      <div class="ipanel-section-body">${esc(info.linked)}</div>
+    </div>
+    <div class="ipanel-section">
+      <div class="ipanel-section-lbl">Who has access</div>
+      <div class="ipanel-access-chips">${chips}</div>
+    </div>
+    <div class="ipanel-divider"></div>
+    <div class="ipanel-suggest-lbl">Suggestions &amp; comments</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:6px">Your feedback is logged to the audit trail and reviewed by admins.</div>
+    <textarea id="info-suggestion" placeholder="Write a suggestion or note about this page…"></textarea>
+    <button id="info-suggest-btn" data-action="submitInfoSuggestion" data-page="${pageId}">Log Suggestion</button>`;
+}
+
+async function submitInfoSuggestion(pageId){
+  const ta = document.getElementById('info-suggestion');
+  const btn = document.getElementById('info-suggest-btn');
+  if(!ta) return;
+  const comment = ta.value.trim();
+  if(!comment){ toast('Write a suggestion first','err'); return; }
+  if(btn){ btn.disabled=true; btn.textContent='Logging…'; }
+  const r = await api('POST','audit.php',{page:pageId,comment});
+  if(!r.success){
+    toast(r.error||'Could not save suggestion','err');
+    if(btn){ btn.disabled=false; btn.textContent='Log Suggestion'; }
+    return;
+  }
+  audit('PAGE_SUGGESTION',`[${pageId}] ${comment}`);
+  ta.value='';
+  if(btn){ btn.disabled=false; btn.textContent='Log Suggestion'; }
+  toast('Suggestion logged to audit trail','ok');
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -703,22 +1578,36 @@ function fillCreds(u,p){ document.getElementById('l-user').value=u; document.get
 
 function showPortalPage(id, el){
   document.querySelectorAll('.ppage').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.pnitem').forEach(n=>n.classList.remove('active'));
   const page=document.getElementById(id);
   if(page) page.classList.add('active');
+
+  // Sync the primary group tab and sub-nav
+  const group = findGroupForPage(id);
+  if(group){
+    const currentGroupEl = document.querySelector('.pnav-group.active');
+    if(!currentGroupEl || currentGroupEl.dataset.group !== group.id){
+      activateNavGroup(group.id);
+    }
+  }
+
+  document.querySelectorAll('.pnitem').forEach(n=>n.classList.remove('active'));
   if(el) el.classList.add('active');
   else { const found=document.querySelector(`.pnitem[data-page="${id}"]`); if(found) found.classList.add('active'); }
   audit('VIEW',id);
+  renderInfoPanel(id);
   // Render with current data immediately, then async-refresh and re-render
   const renders={
-    'p-dashboard':    async()=>{ renderDashboard(); await refreshAll(); renderDashboard(); updateBadges(); },
+    'p-dashboard':         async()=>{ renderDashboard(); await refreshAll(); renderDashboard(); updateBadges(); safLoadDashCompliance(); },
+    'p-ops-dashboard':     async()=>{ renderOpsDashboard(); await Promise.all([refreshCallouts(),refreshQuotes()]); renderOpsDashboard(); updateBadges(); },
+    'p-finance-dashboard': async()=>{ renderFinDashboard(); await Promise.all([refreshInvoices(),refreshTransactions()]); renderFinDashboard(); updateBadges(); },
+    'p-support-dashboard': async()=>{ renderSupDashboard(); await Promise.all([refreshUsers(),refreshSafetyFiles()]); renderSupDashboard(); updateBadges(); },
     'p-transactions': async()=>{ renderTransactions(''); await refreshTransactions(); renderTransactions(''); },
     'p-invoices':     async()=>{ renderInvoices(''); await refreshInvoices(); renderInvoices(''); updateBadges(); },
     'p-quotes':       async()=>{ renderQuotes(''); await refreshQuotes(); renderQuotes(''); updateBadges(); },
     'p-callouts':     async()=>{ renderCallouts(''); await refreshCallouts(); renderCallouts(''); updateBadges(); },
     'p-timeline':     async()=>{ renderTimeline(); },
     'p-statement':    async()=>{ renderStatement(); },
-    'p-income':       async()=>{ renderIncome(); },
+    'p-income':       async()=>{ await Promise.all([refreshInvoices(), refreshTransactions()]); renderIncome(); },
     'p-log-payment':  async()=>{ await refreshInvoices(); renderPayList(); },
     'p-audit':        async()=>{ const r=await api('GET','audit.php?limit=200'); AUDIT_LOG=(r.data||[]).map(e=>({ts:e.created_at?.slice(11,19)||'',user:e.username,role:'',action:e.action,detail:e.detail,level:'info'})); renderAudit(); },
     'p-home':         async()=>{ renderPortalHome(); },
@@ -727,6 +1616,8 @@ function showPortalPage(id, el){
     'p-new-callout':  async()=>{ initNewCallout(); },
     'p-new-invoice':  async()=>{ initNewInvoice(); },
     'p-users':        async()=>{ await refreshUsers(); renderUsers(); },
+    'p-safety':       async()=>{ const sf=document.getElementById('sf-filter-status'); if(sf) sf.value=''; renderSafetyFiles(); await refreshSafetyFiles(); renderSafetyFiles(); updateBadges(); },
+    'p-clients':      async()=>{ renderClients(''); await refreshClients(); renderClients(''); },
   };
   if(renders[id]) renders[id]();
 }
@@ -799,6 +1690,261 @@ function renderDashboard(){
   const nbCo=document.getElementById('nb-co');if(nbCo)nbCo.textContent=open;
   const nbInv=document.getElementById('nb-inv');if(nbInv)nbInv.textContent=proxyDB.invoices.filter(i=>i.status==='Sent'||i.status==='Overdue').length;
   const nbQte=document.getElementById('nb-qte');if(nbQte)nbQte.textContent=proxyDB.quotes.filter(q=>q.status==='Pending Approval').length;
+}
+
+async function safLoadDashCompliance(){
+  const panel=document.getElementById('dash-comp-widget');
+  const body=document.getElementById('dash-comp-body');
+  if(!panel||!body) return;
+  try {
+    const r=await api('GET','safety_compliance.php?action=due_soon');
+    const rows=r.data||[];
+    if(!rows.length){ panel.style.display='none'; return; }
+
+    const today=new Date(); today.setHours(0,0,0,0);
+    const isOverdue=row=>{ const e=new Date(row.expiry_date+'T00:00:00'); e.setHours(0,0,0,0); return e<today; };
+
+    const overdueTot=rows.filter(isOverdue).length;
+    const soonTot=rows.length-overdueTot;
+
+    // Inject alert cards into the dash-alerts strip (prepend)
+    const strip=document.getElementById('dash-alerts');
+    if(strip){
+      let extra='';
+      if(overdueTot>0) extra+=`<div class="acard danger"><div class="albl">Compliance Overdue</div><div class="acount">${overdueTot}</div><div class="adesc">Certificates expired</div></div>`;
+      if(soonTot>0)   extra+=`<div class="acard warn"><div class="albl">Compliance Due Soon</div><div class="acount">${soonTot}</div><div class="adesc">Renewing within 60 days</div></div>`;
+      strip.innerHTML=extra+strip.innerHTML;
+    }
+
+    // Build details table (cap at 15 rows; show "N more" footer)
+    const visible=rows.slice(0,15);
+    let html=`<div class="tw"><table><thead><tr><th>File</th><th>Contractor</th><th>Type</th><th>Person / Scope</th><th>Expiry</th><th>Status</th></tr></thead><tbody>`;
+    visible.forEach(row=>{
+      const ovr=isOverdue(row);
+      const who=row.full_name?esc(row.full_name):`<span style="color:var(--muted)">Company</span>`;
+      const badge=ovr
+        ?`<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;background:rgba(192,57,43,.15);color:var(--ember);text-transform:uppercase">Overdue</span>`
+        :`<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;background:rgba(240,120,32,.12);color:var(--amber);text-transform:uppercase">Due Soon</span>`;
+      html+=`<tr>
+        <td class="mono" style="font-size:11px">${esc(row.file_ref)}</td>
+        <td style="font-size:11px">${esc(row.contractor||'')}</td>
+        <td style="font-size:11px">${esc(row.compliance_type)}</td>
+        <td style="font-size:11px">${who}</td>
+        <td class="mono" style="font-size:11px">${esc(row.expiry_date)}</td>
+        <td>${badge}</td>
+      </tr>`;
+    });
+    html+='</tbody></table></div>';
+    if(rows.length>15) html+=`<div style="text-align:center;padding:8px 16px;font-size:11px;color:var(--muted)">${rows.length-15} more item${rows.length-15>1?'s':''} — open Safety / EHS for full list</div>`;
+
+    body.innerHTML=html;
+    panel.style.display='';
+  } catch(e){ /* compliance widget is non-critical — silent on API failure */ }
+}
+
+/* ═══════════════════════════════════════════════════════
+   SECTION LANDING DASHBOARDS
+═══════════════════════════════════════════════════════ */
+function renderOpsDashboard() {
+  const el = document.getElementById('ops-dash-content');
+  if (!el) return;
+  const now = new Date();
+  const open       = proxyDB.callouts.filter(c => c.status === 'Open').length;
+  const inProg     = proxyDB.callouts.filter(c => c.status === 'In Progress').length;
+  const urgent     = proxyDB.callouts.filter(c => c.priority === 'Urgent' || c.priority === 'Emergency').length;
+  const pendingQA  = proxyDB.quotes.filter(q => q.approvalStatus === 'pending').length;
+  const qMTD       = proxyDB.quotes.filter(q => { const d=new Date(q.date+'T00:00:00'); return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear(); }).length;
+  const recent     = [...proxyDB.callouts].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,6);
+  const statuses   = ['Open','In Progress','Completed','Invoiced'];
+  const total      = proxyDB.callouts.length || 1;
+
+  const statBars = statuses.map(s=>{
+    const cnt = proxyDB.callouts.filter(c=>c.status===s).length;
+    const pct = Math.round(cnt/total*100);
+    const col = s==='Open'?'var(--blue)':s==='In Progress'?'var(--amber)':s==='Completed'?'var(--green)':'var(--muted)';
+    return `<div style="margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">${s}</span>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;color:var(--text)">${cnt}</span>
+      </div>
+      <div style="height:5px;background:var(--surface3);border-radius:3px">
+        <div style="height:5px;width:${pct}%;background:${col};border-radius:3px;transition:width .4s"></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const recentRows = recent.length
+    ? recent.map(c=>`<tr>
+        <td class="mono" style="font-size:13px">${esc(c.id)}</td>
+        <td style="font-size:12px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.service)}</td>
+        <td>${pillH(c.priority)}</td>
+        <td>${pillH(c.status)}</td>
+      </tr>`).join('')
+    : `<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--muted);font-style:italic">No callouts yet</td></tr>`;
+
+  const qas = can('capture.new_callout') || can('capture.new_quote');
+  el.innerHTML = `
+    <div class="kgrid">
+      <div class="kcard k1"><div class="klbl">Open Callouts</div><div class="kval">${open}</div><div class="ksub">Awaiting dispatch</div></div>
+      <div class="kcard k2"><div class="klbl">In Progress</div><div class="kval">${inProg}</div><div class="ksub">Active on site</div></div>
+      <div class="kcard" style="border-top-color:var(--ember)"><div class="klbl">Urgent / Emergency</div><div class="kval" style="color:var(--pill-ovr-txt)">${urgent}</div><div class="ksub">Priority dispatch</div></div>
+      <div class="kcard k3"><div class="klbl">Quotes This Month</div><div class="kval">${qMTD}</div><div class="ksub">${pendingQA} pending approval</div></div>
+    </div>
+    <div class="twocol">
+      <div class="panel">
+        <div class="ph">
+          <div class="ph-title">Recent Callouts</div>
+          <button class="btn btn-g btn-s" onclick="showPortalPage('p-callouts',null)">View All →</button>
+        </div>
+        <div class="tw"><table><thead><tr><th>Job ID</th><th>Service</th><th>Priority</th><th>Status</th></tr></thead>
+          <tbody>${recentRows}</tbody>
+        </table></div>
+      </div>
+      <div class="panel">
+        <div class="ph"><div class="ph-title">Callout Breakdown</div></div>
+        <div class="pb">${statBars}</div>
+      </div>
+    </div>
+    ${qas ? `<div class="panel mt2">
+      <div class="ph"><div class="ph-title">Quick Actions</div></div>
+      <div class="pb" style="display:flex;gap:10px;flex-wrap:wrap">
+        ${can('capture.new_callout')?`<button class="btn btn-p" onclick="showPortalPage('p-new-callout',null)">+ Log Call</button>`:''}
+        ${can('capture.new_quote')?`<button class="btn btn-g" onclick="showPortalPage('p-new-quote',null)">+ Submit Quote</button>`:''}
+        <button class="btn btn-g" onclick="showPortalPage('p-timeline',null)">View Timeline →</button>
+      </div>
+    </div>` : ''}`;
+}
+
+function renderFinDashboard() {
+  const el = document.getElementById('fin-dash-content');
+  if (!el) return;
+  const now = new Date();
+  const mtd         = proxyDB.invoices.filter(i=>{ const d=new Date(i.date+'T00:00:00'); return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear(); }).reduce((a,i)=>a+i.amount,0);
+  const overdue     = proxyDB.invoices.filter(i=>i.status==='Overdue');
+  const sent        = proxyDB.invoices.filter(i=>i.status==='Sent');
+  const outstanding = [...overdue,...sent].reduce((a,i)=>a+i.amount,0);
+  const net         = proxyDB.bank.reduce((a,b)=>a+(b.credit||0)-(b.debit||0),0);
+
+  // Revenue 6-month chart data
+  const months=[];
+  for(let i=5;i>=0;i--){const dt=new Date(now.getFullYear(),now.getMonth()-i,1);months.push({lbl:dt.toLocaleDateString('en-ZA',{month:'short'}),m:dt.getMonth(),y:dt.getFullYear()});}
+  const revData = months.map(m=>proxyDB.invoices.filter(i=>{const d=new Date(i.date+'T00:00:00');return d.getMonth()===m.m&&d.getFullYear()===m.y;}).reduce((a,i)=>a+i.amount,0));
+  const maxRev  = Math.max(...revData,1);
+
+  const invStatuses = ['Draft','Sent','Paid','Overdue'];
+  const invTotal    = proxyDB.invoices.length || 1;
+  const statBars    = invStatuses.map(s=>{
+    const cnt = proxyDB.invoices.filter(i=>i.status===s).length;
+    const pct = Math.round(cnt/invTotal*100);
+    const col = s==='Paid'?'var(--green)':s==='Overdue'?'var(--ember)':s==='Sent'?'var(--amber)':'var(--muted)';
+    return `<div style="margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">${s}</span>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;color:var(--text)">${cnt}</span>
+      </div>
+      <div style="height:5px;background:var(--surface3);border-radius:3px">
+        <div style="height:5px;width:${pct}%;background:${col};border-radius:3px;transition:width .4s"></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const chartBars = revData.map((v,i)=>`
+    <div class="cbar-w">
+      <div class="cbar" style="height:${Math.max(Math.round(v/maxRev*100),2)}%" title="${fmt(v)}"></div>
+      <div class="clbl">${months[i].lbl}</div>
+      <div class="cval">${v>0?fmt(v):''}</div>
+    </div>`).join('');
+
+  const qas = can('capture.new_invoice') || can('capture.log_payment');
+  el.innerHTML = `
+    <div class="kgrid">
+      <div class="kcard k2"><div class="klbl">Invoiced MTD</div><div class="kval">${fmt(mtd)}</div><div class="ksub">Month to date</div></div>
+      <div class="kcard" style="border-top-color:var(--ember)"><div class="klbl">Outstanding</div><div class="kval" style="color:var(--pill-ovr-txt)">${fmt(outstanding)}</div><div class="ksub">${overdue.length} overdue · ${sent.length} sent</div></div>
+      <div class="kcard k4"><div class="klbl">Net Balance</div><div class="kval">${fmt(net)}</div><div class="ksub">Credits − Debits</div></div>
+      <div class="kcard k1"><div class="klbl">Total Invoices</div><div class="kval">${proxyDB.invoices.length}</div><div class="ksub">All time</div></div>
+    </div>
+    <div class="twocol">
+      <div class="panel">
+        <div class="ph"><div class="ph-title">Revenue — 6 Months</div></div>
+        <div class="rev-chart-wrap"><div class="chart-bars">${chartBars}</div></div>
+      </div>
+      <div class="panel">
+        <div class="ph"><div class="ph-title">Invoice Status Breakdown</div></div>
+        <div class="pb">${statBars}</div>
+      </div>
+    </div>
+    ${qas ? `<div class="panel mt2">
+      <div class="ph"><div class="ph-title">Quick Actions</div></div>
+      <div class="pb" style="display:flex;gap:10px;flex-wrap:wrap">
+        ${can('capture.new_invoice')?`<button class="btn btn-p" onclick="showPortalPage('p-new-invoice',null)">+ New Invoice</button>`:''}
+        ${can('capture.log_payment')?`<button class="btn btn-g" onclick="showPortalPage('p-log-payment',null)">Log Payment</button>`:''}
+        <button class="btn btn-g" onclick="showPortalPage('p-transactions',null)">View Transactions →</button>
+      </div>
+    </div>` : ''}`;
+}
+
+function renderSupDashboard() {
+  const el = document.getElementById('sup-dash-content');
+  if (!el) return;
+  const safFiles      = proxyDB.safetyFiles || [];
+  const safApproved   = safFiles.filter(f=>(f.status||'').toLowerCase()==='approved').length;
+  const safSubmitted  = safFiles.filter(f=>(f.status||'').toLowerCase()==='submitted').length;
+  const users         = DB.users || [];
+
+  // Users by role
+  const roleGroups = {};
+  users.forEach(u=>{ roleGroups[u.role]=(roleGroups[u.role]||0)+1; });
+  const roleRows = Object.entries(roleGroups).length
+    ? Object.entries(roleGroups).map(([role,cnt])=>`
+        <tr>
+          <td>${rolePill(role)}</td>
+          <td class="mono" style="font-size:15px">${cnt}</td>
+        </tr>`).join('')
+    : `<tr><td colspan="2" style="text-align:center;padding:14px;color:var(--muted);font-style:italic">No users loaded</td></tr>`;
+
+  // Recent audit
+  const auditRows = AUDIT_LOG.slice(0,5).length
+    ? AUDIT_LOG.slice(0,5).map(e=>`
+        <div class="audit-row">
+          <div class="audit-ts">${esc(e.ts||'')}</div>
+          <div class="audit-user">${esc(e.user||'')}</div>
+          <div class="audit-action">${esc(e.detail||e.action||'')}</div>
+        </div>`).join('')
+    : `<div style="padding:14px;color:var(--muted);font-size:12px;text-align:center;font-style:italic">No recent activity</div>`;
+
+  el.innerHTML = `
+    <div class="kgrid">
+      <div class="kcard" style="border-top-color:var(--blue)"><div class="klbl">Safety Files</div><div class="kval">${safFiles.length}</div><div class="ksub">Total contractor files</div></div>
+      <div class="kcard" style="border-top-color:var(--green)"><div class="klbl">Approved</div><div class="kval" style="color:var(--pill-paid-txt)">${safApproved}</div><div class="ksub">Compliant files</div></div>
+      <div class="kcard k3"><div class="klbl">Awaiting Review</div><div class="kval">${safSubmitted}</div><div class="ksub">Submitted for approval</div></div>
+      <div class="kcard k1"><div class="klbl">Portal Users</div><div class="kval">${users.length}</div><div class="ksub">Active accounts</div></div>
+    </div>
+    <div class="twocol">
+      <div class="panel">
+        <div class="ph">
+          <div class="ph-title">Users by Role</div>
+          ${can('security.users')?`<button class="btn btn-g btn-s" onclick="showPortalPage('p-users',null)">Manage →</button>`:''}
+        </div>
+        <div class="tw"><table><thead><tr><th>Role</th><th>Count</th></tr></thead>
+          <tbody>${roleRows}</tbody>
+        </table></div>
+      </div>
+      <div class="panel">
+        <div class="ph">
+          <div class="ph-title">Recent Audit Activity</div>
+          ${can('security.audit')?`<button class="btn btn-g btn-s" onclick="showPortalPage('p-audit',null)">View All →</button>`:''}
+        </div>
+        ${auditRows}
+      </div>
+    </div>
+    <div class="panel mt2">
+      <div class="ph"><div class="ph-title">Quick Actions</div></div>
+      <div class="pb" style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-g" onclick="showPortalPage('p-safety',null)">Safety Files →</button>
+        ${can('security.users')?`<button class="btn btn-g" onclick="showPortalPage('p-users',null)">Manage Users →</button>`:''}
+        ${can('security.audit')?`<button class="btn btn-g" onclick="showPortalPage('p-audit',null)">Audit Log →</button>`:''}
+      </div>
+    </div>`;
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -987,6 +2133,7 @@ function initNewCallout(){
   document.getElementById('nc-date').value=localDateStr();
   const nt=new Date();
   document.getElementById('nc-time').value=nt.toTimeString().slice(0,5);
+  populateLinkedDropdowns();
 }
 function saveCallout(){
   const client=document.getElementById('nc-client').value.trim();
@@ -1050,6 +2197,7 @@ function renderQuotes(search='',filter=''){
     const submitterCell=submitter?`${esc(submitter.name)}<div style="font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--muted)">${esc(ROLE_LABELS[submitter.role]||submitter.role)}</div>`:'<span style="color:var(--muted)">-</span>';
     const actions=[];
     actions.push(`<button class="btn btn-g btn-s" onclick="previewQuote('${esc(q.id)}')">View</button>`);
+    actions.push(`<button class="btn btn-g btn-s" onclick="openAttachmentsModal('quote','${esc(q.id)}')">Files</button>`);
     if(canApprove&&q.approvalStatus==='pending'){
       actions.push(`<button class="btn btn-s" style="background:var(--grn-glow);border-color:var(--green);color:var(--pill-paid-txt)" onclick="approveQuote('${esc(q.id)}')">Approve</button>`);
       actions.push(`<button class="btn btn-s" style="background:var(--emb-glow);border-color:var(--ember);color:var(--pill-ovr-txt)" onclick="rejectQuote('${esc(q.id)}')">Decline</button>`);
@@ -1138,6 +2286,7 @@ function initNewQuote(){
   document.getElementById('nq-valid').value=localDateStr(due);
   document.getElementById('li-body').innerHTML='';
   addLine();addLine();recalcQ();
+  populateLinkedDropdowns();
 }
 function addLine(){
   const r=document.createElement('tr');
@@ -1195,6 +2344,7 @@ function renderInvoices(search='',filter=''){
     <tr><td class="mono">${esc(inv.id)}</td><td>${esc(inv.client)}</td><td class="amt">${fmt(inv.amount)}</td><td style="font-size:11px;white-space:nowrap">${fmtD(inv.dueDate)}</td><td>${pillH(inv.status)}</td>
     <td><div class="bgrp">
       <button class="btn btn-g btn-s" onclick="previewInvoice('${esc(inv.id)}')">View</button>
+      <button class="btn btn-g btn-s" onclick="openAttachmentsModal('invoice','${esc(inv.id)}')">Files</button>
       ${canSend&&inv.status!=='Paid'&&inv.status!=='Cancelled'&&inv.amount>0?`<button class="btn btn-p btn-s" onclick="openSendInvoiceModal('${esc(inv.id)}')">Send</button>`:''}
       ${canPaid&&inv.status!=='Paid'?`<button class="btn btn-g btn-s" onclick="markPaid('${esc(inv.id)}')">Paid</button>`:''}
       ${canDel?`<button class="btn btn-g btn-s" onclick="deleteInvoice('${esc(inv.id)}')">Del</button>`:''}
@@ -1273,6 +2423,7 @@ function delInvoice(id){
 function initNewInvoice(){
   const due=new Date();due.setDate(due.getDate()+30);
   document.getElementById('ni-due').value=localDateStr(due);
+  populateLinkedDropdowns();
 }
 function saveInvoice(){
   const client=document.getElementById('ni-client').value.trim();
@@ -1592,38 +2743,57 @@ function filterAudit(v){ renderAudit(v); }
 ═══════════════════════════════════════════════════════ */
 function renderUsers(){
   const matrix = {
-    admin:         {create:'✓',status:'✓',po:'✓',finance:'✓',quote:'✓',approve:'✓'},
-    manager:       {create:'✓',status:'✓',po:'✓',finance:'✓',quote:'✓',approve:'✓'},
-    call_logger:   {create:'✓',status:'✓',po:'-',finance:'-',quote:'-',approve:'-'},
-    junior_tech:   {create:'-',status:'✓',po:'-',finance:'-',quote:'-',approve:'-'},
-    senior_tech:   {create:'-',status:'✓',po:'-',finance:'-',quote:'Submit',approve:'-'},
-    client_support:{create:'✓',status:'-',po:'-',finance:'View',quote:'-',approve:'-'},
-    admin_clerk:   {create:'-',status:'✓',po:'✓',finance:'✓',quote:'-',approve:'-'},
-    viewer:        {create:'-',status:'-',po:'-',finance:'View',quote:'-',approve:'-'},
+    sysadmin:      {create:'✓',status:'✓',po:'✓',finance:'✓',quote:'✓',approve:'✓',admin:'✓'},
+    admin:         {create:'✓',status:'✓',po:'✓',finance:'✓',quote:'✓',approve:'✓',admin:'-'},
+    manager:       {create:'✓',status:'✓',po:'✓',finance:'✓',quote:'✓',approve:'✓',admin:'-'},
+    call_logger:   {create:'✓',status:'✓',po:'-',finance:'-',quote:'-',approve:'-',admin:'-'},
+    junior_tech:   {create:'-',status:'✓',po:'-',finance:'-',quote:'-',approve:'-',admin:'-'},
+    senior_tech:   {create:'-',status:'✓',po:'-',finance:'-',quote:'Submit',approve:'-',admin:'-'},
+    client_support:{create:'✓',status:'-',po:'-',finance:'View',quote:'-',approve:'-',admin:'-'},
+    admin_clerk:   {create:'-',status:'✓',po:'✓',finance:'✓',quote:'-',approve:'-',admin:'-'},
+    viewer:        {create:'-',status:'-',po:'-',finance:'View',quote:'-',approve:'-',admin:'-'},
   };
   const tick=(v)=>v==='✓'?`<span style="color:var(--pill-paid-txt)">✓</span>`:v==='-'?`<span style="color:var(--muted)">-</span>`:`<span style="color:var(--warn);font-size:10px">${v}</span>`;
   const bar = document.getElementById('users-create-bar');
   if (bar) bar.style.display = can('user.create') ? '' : 'none';
+  const canEdit = can('user.update');
+  const thActions = document.getElementById('users-th-actions');
+  if (thActions) thActions.style.display = canEdit ? '' : 'none';
   document.getElementById('users-table-body').innerHTML=proxyDB.users.map(u=>{
-    const m=matrix[u.role]||{create:'-',status:'-',po:'-',finance:'-',quote:'-',approve:'-'};
-    return`<tr>
+    const m=matrix[u.role]||{create:'-',status:'-',po:'-',finance:'-',quote:'-',approve:'-',admin:'-'};
+    const actionCell = canEdit ? `<td>
+      <button class="btn btn-g btn-xs" onclick="openEditUserModal(${u.id})">Edit</button>
+      ${u.active!=0 ? `<button class="btn btn-d btn-xs" onclick="toggleUserActive(${u.id},0)">Disable</button>` : `<button class="btn btn-xs" style="background:var(--pill-ok-bg);color:var(--pill-ok-txt);border:none;border-radius:4px;padding:2px 8px;cursor:pointer" onclick="toggleUserActive(${u.id},1)">Enable</button>`}
+    </td>` : '';
+    return`<tr${u.active==0?' style="opacity:0.5"':''}>
       <td class="mono">${esc(u.username)}</td>
       <td>${esc(u.name)}</td>
       <td>${rolePill(u.role)}</td>
-      <td style="text-align:center">${tick(m.create)}</td>
-      <td style="text-align:center">${tick(m.status)}</td>
-      <td style="text-align:center">${tick(m.po)}</td>
-      <td style="text-align:center">${tick(m.finance)}</td>
-      <td style="text-align:center">${tick(m.quote)}</td>
-      <td style="text-align:center">${tick(m.approve)}</td>
+      <td class="perm-col" style="text-align:center">${tick(m.create)}</td>
+      <td class="perm-col" style="text-align:center">${tick(m.status)}</td>
+      <td class="perm-col" style="text-align:center">${tick(m.po)}</td>
+      <td class="perm-col" style="text-align:center">${tick(m.finance)}</td>
+      <td class="perm-col" style="text-align:center">${tick(m.quote)}</td>
+      <td class="perm-col" style="text-align:center">${tick(m.approve)}</td>
+      <td class="perm-col" style="text-align:center">${m.admin==='✓'?`<span style="color:var(--ember);font-weight:700">★</span>`:`<span style="color:var(--muted)">-</span>`}</td>
+      ${actionCell}
     </tr>`;
   }).join('');
+}
+
+function togglePermCols(){
+  const table = document.getElementById('users-rbac-table');
+  const btn   = document.getElementById('perm-cols-btn');
+  if (!table || !btn) return;
+  const collapsed = table.classList.toggle('perms-collapsed');
+  btn.textContent = collapsed ? '► Expand Permissions' : '◄ Collapse Permissions';
 }
 
 function openCreateUserModal(){
   if (!can('user.create')) return;
   const roles = ['admin','manager','call_logger','junior_tech','senior_tech','client_support','admin_clerk','viewer'];
-  const opts = roles.map(r=>`<option value="${r}">${r.replace(/_/g,' ')}</option>`).join('');
+  if (SESSION?.role === 'sysadmin') roles.unshift('sysadmin');
+  const opts = roles.map(r=>`<option value="${r}">${r==='sysadmin'?'System Administrator':r.replace(/_/g,' ')}</option>`).join('');
   openModal('New User', `
     <div class="login-group"><label class="login-label">Username</label><input class="login-input" id="nu-user" placeholder="username"></div>
     <div class="login-group"><label class="login-label">Full Name</label><input class="login-input" id="nu-name" placeholder="First Last"></div>
@@ -1652,6 +2822,54 @@ async function saveNewUser(){
   toast(`User ${username} created`, 'ok');
 }
 
+function openEditUserModal(id) {
+  if (!can('user.update')) return;
+  const u = (DB.users || []).find(x => x.id === id);
+  if (!u) return;
+  const roles = ['admin','manager','call_logger','junior_tech','senior_tech','client_support','admin_clerk','viewer'];
+  if (SESSION?.role === 'sysadmin') roles.unshift('sysadmin');
+  const opts = roles.map(r=>`<option value="${r}"${r===u.role?' selected':''}>${r==='sysadmin'?'System Administrator':r.replace(/_/g,' ')}</option>`).join('');
+  openModal(`Edit User — ${esc(u.username)}`, `
+    <input type="hidden" id="eu-id" value="${u.id}">
+    <div class="login-group"><label class="login-label">Username</label><input class="login-input" value="${esc(u.username)}" readonly style="opacity:0.6"></div>
+    <div class="login-group"><label class="login-label">Full Name</label><input class="login-input" id="eu-name" value="${esc(u.name)}" placeholder="First Last"></div>
+    <div class="login-group"><label class="login-label">Title / Position</label><input class="login-input" id="eu-title" value="${esc(u.title||'')}" placeholder="e.g. Field Technician"></div>
+    <div class="login-group"><label class="login-label">Role</label><select class="login-input" id="eu-role">${opts}</select></div>
+    <div class="login-group"><label class="login-label">New Password <span style="opacity:0.6;font-size:11px">(leave blank to keep)</span></label><input class="login-input" type="password" id="eu-pass" placeholder="min 8 characters"></div>
+    <button class="btn-login-submit" style="margin-top:8px" onclick="saveEditUser()">Save Changes</button>
+  `);
+}
+
+async function saveEditUser() {
+  const id    = parseInt(document.getElementById('eu-id')?.value) || 0;
+  const name  = document.getElementById('eu-name')?.value?.trim();
+  const title = document.getElementById('eu-title')?.value?.trim();
+  const role  = document.getElementById('eu-role')?.value;
+  const pass  = document.getElementById('eu-pass')?.value;
+  if (!id || !name) { toast('Name is required', 'err'); return; }
+  if (pass && pass.length < 8) { toast('Password must be at least 8 characters', 'err'); return; }
+  const payload = { name, title, role };
+  if (pass) payload.password = pass;
+  const r = await api('PUT', `users.php?id=${id}`, payload);
+  if (!r.success) { toast(r.error || 'Error saving user', 'err'); return; }
+  closeModalDirect();
+  await refreshUsers();
+  renderUsers();
+  toast('User updated', 'ok');
+}
+
+async function toggleUserActive(id, active) {
+  if (!can('user.update')) return;
+  const u = (DB.users || []).find(x => x.id === id);
+  const label = active ? 'enable' : 'disable';
+  if (!confirm(`${active?'Enable':'Disable'} user ${u?.username || id}?`)) return;
+  const r = await api('PUT', `users.php?id=${id}`, { active: active ? 1 : 0 });
+  if (!r.success) { toast(r.error || 'Error', 'err'); return; }
+  await refreshUsers();
+  renderUsers();
+  toast(`User ${label}d`, 'ok');
+}
+
 /* ═══════════════════════════════════════════════════════
    MODAL / TOAST
 ═══════════════════════════════════════════════════════ */
@@ -1674,6 +2892,12 @@ function syncPublicNavOffset(){
 
 document.addEventListener('DOMContentLoaded', async ()=>{
   const t=localStorage.getItem('bf-theme');if(t)document.documentElement.dataset.theme=t;
+  // Restore info mode button state on load
+  if(INFO_MODE){
+    document.documentElement.dataset.info='on';
+    const btn=document.getElementById('info-mode-btn');
+    if(btn) btn.classList.add('active');
+  }
   buildHomeCats();
   buildTicker();
   buildSvcGrid('pub');
@@ -1695,13 +2919,14 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   if(me.success && me.user){
     SESSION = me.user;
     buildNav();
-    document.getElementById('pnav-user').textContent = SESSION.name;
+    document.getElementById('ptb-user').textContent = SESSION.name;
     document.documentElement.dataset.state = 'portal';
     document.getElementById('dash-sub').textContent = `AECI CHEMPARK  -  ${(ROLE_LABELS[SESSION.role]||SESSION.role).toUpperCase()} VIEW`;
     await refreshAll();
     const firstPage = {
       call_logger:'p-new-callout', junior_tech:'p-callouts',
       senior_tech:'p-callouts', client_support:'p-dashboard', admin_clerk:'p-callouts',
+      safety_officer:'p-safety',
     }[SESSION.role] || 'p-dashboard';
     showPortalPage(firstPage, null);
     updateBadges();
@@ -1723,11 +2948,13 @@ function updateBadges(){
   if(nbInv) nbInv.textContent=proxyDB.invoices.filter(i=>i.status==='Sent'||i.status==='Overdue').length||'';
   if(nbQte) nbQte.textContent=proxyDB.quotes.filter(q=>q.status==='Pending Approval').length||'';
   if(nbCo)  nbCo.textContent=proxyDB.callouts.filter(c=>c.status==='Open'||c.status==='In Progress').length||'';
+  const nbSaf=document.getElementById('nb-saf');
+  if(nbSaf) nbSaf.textContent=typeof safBadgeCount==='function'?safBadgeCount()||'':'';
 }
 
 /* ── Override: saveCallout ───────────────────────────── */
 async function saveCallout(){
-  const client = (document.getElementById('nc-client')?.value || 'AECI Chempark').trim();
+  const clientId = parseInt(document.getElementById('nc-client')?.value) || 0;
   const service = document.getElementById('nc-service')?.value?.trim();
   const location = document.getElementById('nc-location')?.value?.trim() || '';
   const priority = document.getElementById('nc-priority')?.value || 'Normal';
@@ -1736,11 +2963,12 @@ async function saveCallout(){
   const notes = document.getElementById('nc-notes')?.value?.trim() || '';
   const calloutTime = document.getElementById('nc-time')?.value || '08:00';
   const po = document.getElementById('nc-po')?.value?.trim() || '';
-  
+
+  if (!clientId) { toast('Please select a client', 'err'); return; }
   if (!service) { toast('Please fill in the service field', 'err'); return; }
-  
+
   const r = await api('POST', 'callouts.php', {
-    client_name: client,
+    client_id: clientId,
     service,
     location,
     priority,
@@ -1831,10 +3059,12 @@ async function deleteQuote(id){
 
 /* ── Override: saveQuote ─────────────────────────────── */
 async function saveQuote(){
-  const client = (document.getElementById('nq-client')?.value || 'AECI Chempark').trim();
+  const clientId = parseInt(document.getElementById('nq-client')?.value) || 0;
   const validUntil = document.getElementById('nq-valid')?.value;
   const notes = document.getElementById('nq-notes')?.value?.trim() || '';
-  
+
+  if (!clientId) { toast('Please select a client', 'err'); return; }
+
   // Collect line items
   const rows = document.querySelectorAll('.qi-row');
   const items = [];
@@ -1844,10 +3074,11 @@ async function saveQuote(){
     const unit = parseFloat(row.querySelector('.qi-unit')?.value) || 0;
     if (desc) items.push({ desc, qty, unit });
   });
-  
+
   if (!items.length) { toast('Add at least one line item', 'err'); return; }
-  
-  const r = await api('POST', 'quotes.php', { client_name: client, items, valid_until: validUntil, notes });
+
+  const calloutRef = document.getElementById('nq-callout-ref')?.value || '';
+  const r = await api('POST', 'quotes.php', { client_id: clientId, items, valid_until: validUntil, notes, callout_ref: calloutRef });
   if (!r.success) { toast(r.error || 'Error saving quote', 'err'); return; }
   
   await refreshQuotes();
@@ -1862,13 +3093,15 @@ async function convertToInvoice(id){
   if (!q) return;
   const total = q.items.reduce((a,i)=>a+(i.qty*i.unit),0) * 1.15;
   const due = new Date(); due.setDate(due.getDate()+30);
-  const r = await api('POST', 'invoices.php', {
-    client_name: q.client,
+  const payload = {
     amount: Math.round(total*100)/100,
     due_date: localDateStr(due),
     status: 'Draft',
     quote_ref: id,
-  });
+  };
+  if (q.clientId) payload.client_id = q.clientId;
+  else payload.client_name = q.client;
+  const r = await api('POST', 'invoices.php', payload);
   if (!r.success) { toast(r.error || 'Error', 'err'); return; }
   await Promise.all([refreshInvoices(), refreshQuotes()]);
   updateBadges();
@@ -1902,16 +3135,18 @@ async function deleteInvoice(id){
 
 /* ── Override: saveInvoice ───────────────────────────── */
 async function saveInvoice(){
-  const client = document.getElementById('ni-client')?.value?.trim() || 'AECI Chempark';
-  const amount = parseFloat(document.getElementById('ni-amount')?.value) || 0;
-  const dueDate = document.getElementById('ni-due')?.value;
-  const status = document.getElementById('ni-status')?.value || 'Draft';
-  const po = document.getElementById('ni-po')?.value?.trim() || '';
-  const ref = document.getElementById('ni-ref')?.value?.trim() || '';
-  
+  const clientId   = parseInt(document.getElementById('ni-client')?.value) || 0;
+  const amount     = parseFloat(document.getElementById('ni-amount')?.value) || 0;
+  const dueDate    = document.getElementById('ni-due')?.value;
+  const status     = document.getElementById('ni-status')?.value || 'Draft';
+  const po         = document.getElementById('ni-po')?.value?.trim() || '';
+  const quoteRef   = document.getElementById('ni-quote-ref')?.value || '';
+  const calloutRef = document.getElementById('ni-callout-ref')?.value || '';
+
+  if (!clientId) { toast('Please select a client', 'err'); return; }
   if (!amount || !dueDate) { toast('Fill in amount and due date', 'err'); return; }
-  
-  const r = await api('POST', 'invoices.php', { client_name: client, amount, due_date: dueDate, status, po, quote_ref: ref.startsWith('QTE') ? ref : '', callout_ref: ref.startsWith('JOB') ? ref : '' });
+
+  const r = await api('POST', 'invoices.php', { client_id: clientId, amount, due_date: dueDate, status, po, quote_ref: quoteRef, callout_ref: calloutRef });
   if (!r.success) { toast(r.error || 'Error', 'err'); return; }
   
   await refreshInvoices();
@@ -1981,6 +3216,107 @@ async function addTransaction(){
 
 
 
+/* ═══════════════════════════════════════════════════════
+   CLIENTS MODULE
+═══════════════════════════════════════════════════════ */
+
+function renderClients(search = '') {
+  const tbody = document.getElementById('clients-table');
+  if (!tbody) return;
+  let rows = [...(DB.clients || [])];
+  if (search) {
+    const q = search.toLowerCase();
+    rows = rows.filter(c =>
+      (c.name||'').toLowerCase().includes(q) ||
+      (c.email||'').toLowerCase().includes(q) ||
+      (c.contact_person||'').toLowerCase().includes(q)
+    );
+  }
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted)">No clients found</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map(c => `
+    <tr>
+      <td><strong>${esc(c.name)}</strong></td>
+      <td>${esc(c.email)}</td>
+      <td>${esc(c.phone)}</td>
+      <td>${esc(c.contact_person)}</td>
+      <td>${esc(c.vat_number)}</td>
+      <td><span class="badge badge-${c.is_active ? 'ok' : 'grey'}">${c.is_active ? 'Active' : 'Inactive'}</span></td>
+      <td>
+        <button class="btn btn-g btn-xs" onclick="openClientModal(${c.id})">Edit</button>
+        ${c.is_active ? `<button class="btn btn-d btn-xs" onclick="deactivateClient(${c.id})">Deactivate</button>` : ''}
+      </td>
+    </tr>
+  `).join('');
+}
+
+function openClientModal(id) {
+  const modal = document.getElementById('client-modal');
+  if (!modal) return;
+  document.getElementById('cm-id').value = id || '';
+  document.getElementById('client-modal-title').textContent = id ? 'Edit Client' : 'Add Client';
+  if (id) {
+    const c = (DB.clients || []).find(x => x.id === id);
+    if (c) {
+      document.getElementById('cm-name').value            = c.name || '';
+      document.getElementById('cm-email').value           = c.email || '';
+      document.getElementById('cm-phone').value           = c.phone || '';
+      document.getElementById('cm-vat').value             = c.vat_number || '';
+      document.getElementById('cm-address').value         = c.address || '';
+      document.getElementById('cm-contact').value         = c.contact_person || '';
+      document.getElementById('cm-contact-details').value = c.contact_details || '';
+      document.getElementById('cm-notes').value           = c.notes || '';
+    }
+  } else {
+    ['cm-name','cm-email','cm-phone','cm-vat','cm-address','cm-contact','cm-contact-details','cm-notes']
+      .forEach(f => { const el = document.getElementById(f); if (el) el.value = ''; });
+  }
+  modal.style.display = 'flex';
+}
+
+function closeClientModal() {
+  const modal = document.getElementById('client-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+async function saveClient() {
+  const id   = parseInt(document.getElementById('cm-id')?.value) || 0;
+  const name = document.getElementById('cm-name')?.value?.trim();
+  if (!name) { toast('Client name is required', 'err'); return; }
+
+  const payload = {
+    name,
+    email:           document.getElementById('cm-email')?.value?.trim()           || '',
+    phone:           document.getElementById('cm-phone')?.value?.trim()           || '',
+    vat_number:      document.getElementById('cm-vat')?.value?.trim()             || '',
+    address:         document.getElementById('cm-address')?.value?.trim()         || '',
+    contact_person:  document.getElementById('cm-contact')?.value?.trim()         || '',
+    contact_details: document.getElementById('cm-contact-details')?.value?.trim() || '',
+    notes:           document.getElementById('cm-notes')?.value?.trim()           || '',
+  };
+
+  const r = id
+    ? await api('PUT', `clients.php?id=${id}`, payload)
+    : await api('POST', 'clients.php', payload);
+
+  if (!r.success) { toast(r.error || 'Error saving client', 'err'); return; }
+  closeClientModal();
+  await refreshClients();
+  renderClients('');
+  toast(id ? 'Client updated' : `Client ${name} added`, 'ok');
+}
+
+async function deactivateClient(id) {
+  if (!confirm('Deactivate this client? They will be removed from dropdowns.')) return;
+  const r = await api('DELETE', `clients.php?id=${id}`);
+  if (!r.success) { toast(r.error || 'Error', 'err'); return; }
+  await refreshClients();
+  renderClients('');
+  toast('Client deactivated');
+}
+
 /* ── Back to Top Functionality ──────────────────────── */
 const backToTopBtn = document.getElementById('back-to-top');
 
@@ -1988,13 +3324,2438 @@ function scrollToTop() {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-window.addEventListener('scroll', () => {
-  if (window.scrollY > 300) {
-    backToTopBtn.classList.add('show');
-  } else {
-    backToTopBtn.classList.remove('show');
-  }
-});
+if (backToTopBtn) {
+  backToTopBtn.innerHTML = '↑';
+  window.addEventListener('scroll', () => {
+    if (window.scrollY > 300) {
+      backToTopBtn.classList.add('show');
+    } else {
+      backToTopBtn.classList.remove('show');
+    }
+  });
+}
 
-// Set button text with arrow
-backToTopBtn.innerHTML = '↑';
+/* ═══════════════════════════════════════════════════════
+   ■ SAFETY FILES MODULE  (BF-SHE-FRM-010 Rev 01)
+═══════════════════════════════════════════════════════ */
+
+const SAFETY_SECTIONS = [
+  { key:'A', title:'Section A — Agreement', items:[
+    {no:1,  ref:'Optional',               criteria:'Proof of valid/current SHE Management System (e.g. NOSA Grading, ISO Certification, etc.)'},
+    {no:2,  ref:'Sec 37.2',               criteria:'Written contract (SLA or 37.2 agreement) between AST & Contractor'},
+    {no:3,  ref:'CR5',                    criteria:'AST representative must appoint every principal contractor in writing for the project or part thereof on the construction site. Check if the letter is in the file.'},
+    {no:4,  ref:'COIDA Sec.89 / CR5(1)j', criteria:'Letter of Good Standing (include Registration No.) including signed WCL 2 form.'},
+    {no:5,  ref:'Construction reg 3(1)',  criteria:'Construction work permit — work exceeds 180 days; or involves more than 1800 person days; or contract value ≥ R13M / CIDB grading level 6.'},
+    {no:6,  ref:'CR 4(1)',                criteria:'Notification of Construction Work'},
+    {no:7,  ref:'AECI',                   criteria:'Public Liability Insurance'},
+    {no:8,  ref:'Section 7 OHS Act',      criteria:'Health and Safety or EHS Policies'},
+    {no:9,  ref:'AECI — Accountability',  criteria:'Company Organogram & Onsite employees Organogram'},
+  ]},
+  { key:'B', title:'Section B — Risk Management', items:[
+    {no:1, ref:'CR 9(1)',    criteria:'List of all main activities to be performed according to the scope of work.'},
+    {no:2, ref:'CR 9(1)',    criteria:'Risk Register — Task Specific Risk Assessments (include list of tasks)'},
+    {no:3, ref:'CR 5(1)',    criteria:'Baseline Risk Assessment'},
+    {no:4, ref:'AECI',       criteria:'Continuous Risk Assessments'},
+    {no:5, ref:'CR 9(1)e',   criteria:'Risk Review Plan'},
+    {no:6, ref:'CR 9(1)c',   criteria:"Safe Work/Operating Procedures (include list of all SOPs)"},
+    {no:7, ref:'Haz. Chem.', criteria:'Safety Data Sheets for any material to be used onsite'},
+  ]},
+  { key:'C', title:'Section C — Medical Fitness', items:[
+    {no:1, ref:'CR 7(1)(g)', criteria:'Employees have a valid medical certificate of fitness specific to the construction work (Annexure 3).'},
+    {no:2, ref:'',           criteria:'Drug & Alcohol Policy. Arrangements for random testing. Arrangements for return to work after sickness/injury assessment.'},
+  ]},
+  { key:'D', title:'Section D — Employees, Training, Competency & Induction', items:[
+    {no:1, ref:'',           criteria:'Proof of Company Induction'},
+    {no:2, ref:'',           criteria:'Training Matrix'},
+    {no:3, ref:'',           criteria:'Competency records as per Matrix'},
+    {no:4, ref:'CR 29(j)',   criteria:'List of workers trained in the use of fire-extinguishing equipment'},
+    {no:5, ref:'CR 10(2)c',  criteria:'Programme for training of employees working from a fall risk position and records thereof'},
+    {no:6, ref:'',           criteria:'Proof of AECI or site-specific Induction (before commencing work)'},
+  ]},
+  { key:'E', title:'Section E — Operations (SHE Plan, FPP, Environmental, Incident & PPE)', items:[
+    {no:1,  ref:'CR 7(1)(a)', criteria:'Documented Health & Safety plan based on scope of work. AST to provide site-specific H&S specification.'},
+    {no:2,  ref:'',           criteria:'Documented Environmental Management Plan covering applicable aspects (waste, HCS, monitoring, etc.).'},
+    {no:3,  ref:'CR 10(1)a',  criteria:'Documented Fall Protection Plan (by trained Fall Protection Planner) based on scope of work.'},
+    {no:4,  ref:'CR 10(1)b',  criteria:'Fall Protection Risk Assessment of all work from fall risk positions with procedures and methods per location.'},
+    {no:5,  ref:'',           criteria:'Documented Contractor Management Procedure (managing subcontractors). Principal contractor to provide relevant H&S specs to subcontractors.'},
+    {no:6,  ref:'',           criteria:'Principal contractor to provide proof of SHE file requirements by all sub-contractors.'},
+    {no:7,  ref:'',           criteria:'Documented Incident Management Procedure.'},
+    {no:8,  ref:'',           criteria:'24 months of Incident Statistics.'},
+    {no:9,  ref:'',           criteria:'Documented PPE Management Procedure.'},
+    {no:10, ref:'',           criteria:'Proof of training on PPE management (limitations, use and care of).'},
+    {no:11, ref:'',           criteria:'Proof of PPE issued.'},
+    {no:12, ref:'',           criteria:'Proof of inspections conducted on PPE.'},
+  ]},
+  { key:'F', title:'Section F — Control & Maintenance of Equipment', items:[
+    {no:1, ref:'', criteria:"Equipment Register (Vehicles/LDVs, trucks, Cranes, etc.)"},
+    {no:2, ref:'', criteria:'Statutory & Mandatory scheduled inspections.'},
+    {no:3, ref:'', criteria:'Maintenance Records'},
+  ]},
+  { key:'G', title:'Section G — Emergency Preparedness', items:[
+    {no:1, ref:'CR 29(i)(i-iii)', criteria:'Documented Emergency Preparedness Procedure and proof of training.'},
+    {no:2, ref:'GSR 3',           criteria:'Emergency drill schedule & proof of drills conducted.'},
+    {no:3, ref:'',                criteria:'Proof of emergency equipment (fire extinguishers if own), use, inspection & maintenance thereof.'},
+  ]},
+  { key:'H', title:'Section H — Legal Appointments', items:[
+    {no:1,  ref:'Sec 16.2',    criteria:'Manager'},
+    {no:2,  ref:'Sec 8',       criteria:'General Supervision'},
+    {no:3,  ref:'Sec 17',      criteria:'SHE Representative (more than 20 employees) — NB Training required'},
+    {no:4,  ref:'Sec 19',      criteria:'SHE Committee Chairman (two or more H&S representatives designated)'},
+    {no:5,  ref:'Sec 19.3',    criteria:'SHE Committee Member (two or more H&S representatives designated)'},
+    {no:6,  ref:'CR8(6)',      criteria:'Construction Health & Safety Officer (registered with statutory body)'},
+    {no:7,  ref:'CR8(1)',      criteria:'Construction Manager'},
+    {no:8,  ref:'CR8(2)',      criteria:'Assistant Construction Manager (in absence of Construction Manager)'},
+    {no:9,  ref:'CR8(7)',      criteria:'Construction Supervisor'},
+    {no:10, ref:'CR8(8)',      criteria:'Assistant Construction Supervisor'},
+    {no:11, ref:'CR9(1)',      criteria:'Risk Assessor'},
+    {no:12, ref:'CR10(1)',     criteria:'Fall Protection Planner'},
+    {no:13, ref:'CR11(1)',     criteria:'Structure Inspector'},
+    {no:14, ref:'CR12(1)',     criteria:'Temporary Works Designer'},
+    {no:15, ref:'CR12(2)',     criteria:'Temporary Works Supervisor'},
+    {no:16, ref:'CR13(1)a',    criteria:'Excavation Supervisor'},
+    {no:17, ref:'CR14(1)',     criteria:'Demolition Supervisor'},
+    {no:18, ref:'CR16(1)',     criteria:'Scaffolding Supervisor'},
+    {no:19, ref:'CR17(1)',     criteria:'Suspended Platform Supervisor'},
+    {no:20, ref:'CR17(2)(ii)', criteria:'Suspended Platform Erectors, Operators and Inspector Competency'},
+    {no:21, ref:'CR18(1)',     criteria:'Rope Access Supervisor'},
+    {no:22, ref:'CR19(6)',     criteria:'Material Hoist Operator'},
+    {no:23, ref:'CR19(8)(a)',  criteria:'Material Hoist Inspector'},
+    {no:24, ref:'CR20(1)',     criteria:'Bulk Mixing Plant Supervisor'},
+    {no:25, ref:'CR20(2)',     criteria:'Bulk Mixing Plant Operator'},
+    {no:26, ref:'CR21(1)(b)',  criteria:'Explosive Actuated Tool Operator'},
+    {no:27, ref:'CR21(2)(b)',  criteria:'Explosive Actuated Tool Inspector'},
+    {no:28, ref:'CR21(2)(i)',  criteria:'Explosive Actuated Tool Controller'},
+    {no:29, ref:'CR23(K)',     criteria:'Construction Vehicle Operator / Inspector'},
+    {no:30, ref:'CR28(a)',     criteria:'Stacking and Storage Supervisor'},
+    {no:31, ref:'CR29(h)',     criteria:'Fire Equipment Inspector'},
+    {no:32, ref:'GAR9(2)',     criteria:'Incident Investigator'},
+    {no:33, ref:'GSR3(1)&(4)', criteria:'First Aider'},
+    {no:34, ref:'',            criteria:'Radiation Protection Officer'},
+  ]},
+  { key:'I', title:'Section I — Advanced & Best Practice (Bonus +10%)', bonus:true, items:[
+    {no:1,  ref:'ISO 45001:2018',  criteria:'ISO 45001:2018 / OHSAS 18001 or NOSA Grade A Certification currently in place.'},
+    {no:2,  ref:'OHS Act Sec 17',  criteria:'Weekly Toolbox Talk register with signed attendance sheet, topics recorded, and filed.'},
+    {no:3,  ref:'GAR 9',           criteria:'Near Miss Reporting Register with investigation close-out and trend analysis report.'},
+    {no:4,  ref:'Best Practice',   criteria:'Behavioral-Based Safety (BBS) Observation Programme with recorded observations and feedback loop.'},
+    {no:5,  ref:'Best Practice',   criteria:'Employee Assistance Programme (EAP) in place and communicated to all workers on site.'},
+    {no:6,  ref:'NEMA',            criteria:'Environmental Legal Register listing applicable legislation, reviewed and updated annually.'},
+    {no:7,  ref:'NEMA / NEMWA',    criteria:'Hazardous Waste Disposal Records and consignment notes / manifests for all hazardous waste streams.'},
+    {no:8,  ref:'Best Practice',   criteria:'Digital / Electronic Safety Record-Keeping system in active use for all SHE documentation.'},
+    {no:9,  ref:'OMP Reg.',        criteria:'Occupational Health Surveillance Programme — baseline and periodic medical surveillance records.'},
+    {no:10, ref:'Best Practice',   criteria:'Monthly Safety Performance Report issued to management (LTIFR, TRIR, near misses, training hours).'},
+  ]},
+];
+
+/* ── Safety: data model helpers ──────────────────────── */
+
+function safNextId(){
+  if(!DB.safetyFiles) DB.safetyFiles=[];
+  const nums=DB.safetyFiles.map(f=>parseInt((f.ref_id||f.id||'').replace(/^SAF-\d{6}-/,''))||0);
+  const n=nums.length?Math.max(...nums)+1:1;
+  return 'SAF-'+String(n).padStart(3,'0'); // temp local ID before API assigns real ref
+}
+
+function safBlankFile(id){
+  const sections = {};
+  SAFETY_SECTIONS.forEach(sec=>{
+    sections[sec.key] = sec.items.map(item=>({
+      no: item.no, result: null, appointee: '', comments: '', uploads: [],
+    }));
+  });
+  return {
+    id, contractor:'', contractorRep:'', appointee162:'',
+    auditDate: localDateStr(), region:'', auditTeam:'', scopeOfWork:'',
+    manpower:0, supervisors:0, sheReps:0, firstAiders:0,
+    sections, status:'Draft', auditorName:'', signOffDate:'',
+    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+    policyEmailSent: false, policyEmailDate: null,
+  };
+}
+
+function safCalcScore(file){
+  let total=0, na=0, std=0, filled=0;
+  let bTotal=0, bNa=0, bStd=0, bFilled=0;
+  SAFETY_SECTIONS.forEach(sec=>{
+    (file.sections[sec.key]||[]).forEach(item=>{
+      if(sec.bonus){
+        bTotal++;
+        if(item.result) bFilled++;
+        if(item.result==='N/A') bNa++; else if(item.result==='To Standard') bStd++;
+      } else {
+        total++;
+        if(item.result) filled++;
+        if(item.result==='N/A') na++; else if(item.result==='To Standard') std++;
+      }
+    });
+  });
+  const applicable  = total  - na;
+  const bApplicable = bTotal - bNa;
+  const mainScore   = applicable  ? (std  / applicable)  * 100 : null;
+  const bonusScore  = bApplicable ? (bStd / bApplicable) * 10  : 0;
+  const score = mainScore !== null ? mainScore + bonusScore : null;
+  const notStd  = applicable  - std;
+  const bNotStd = bApplicable - bStd;
+  // Completion: items with any result filled in (N/A counts as assessed; blank = not yet rated)
+  const allTotal  = total + bTotal;
+  const allFilled = filled + bFilled;
+  const completionPct = allTotal ? Math.round(allFilled / allTotal * 100) : 0;
+  return { score, mainScore, bonusScore, total: total+bTotal, na: na+bNa, std: std+bStd, notStd: notStd+bNotStd, bApplicable, bStd, bNotStd, allTotal, allFilled, completionPct };
+}
+
+function safBand(score){
+  if(score===null) return { label:'Not scored', cls:'saf-unscored', color:'#64748b', actionDays:null };
+  if(score>=90)    return { label:'Green — Complying', cls:'saf-green', color:'#22c55e', actionDays:null };
+  if(score>=75)    return { label:'Yellow — Minor concerns', cls:'saf-yellow', color:'#eab308', actionDays:7, note:'Action plan required within 7 working days.' };
+  if(score>=51)    return { label:'Orange — Not complying', cls:'saf-orange', color:'#f97316', actionDays:7, note:'Action plan required within 7 calendar days. Re-assessment required.' };
+  return              { label:'Red — Critical', cls:'saf-red', color:'#ef4444', actionDays:14, note:'Action plan within 14 working days. Re-assessment within 45 working days.' };
+}
+
+/* ── Safety: audit form ──────────────────────────────── */
+
+function safCurrentId(){
+  return document.getElementById('saf-current-id')?.value || null;
+}
+
+function safEnsureIdField(){
+  if(!document.getElementById('saf-current-id')){
+    const inp = document.createElement('input');
+    inp.type='hidden'; inp.id='saf-current-id'; inp.value='';
+    document.getElementById('safety-sections')?.appendChild(inp);
+  }
+}
+
+function safBuildSections(){
+  const wrap = document.getElementById('safety-sections');
+  if(!wrap) return;
+  safEnsureIdField();
+  const fileId = safCurrentId();
+  const file = fileId && fileId!=='null' ? proxyDB.safetyFiles.find(f=>f.id===fileId) : null;
+  let html = '';
+  SAFETY_SECTIONS.forEach(sec=>{
+    const saved = file ? (file.sections[sec.key]||[]) : [];
+    const pct = (() => {
+      let t=0,n=0,s=0;
+      saved.forEach(i=>{ t++; if(i.result==='N/A') n++; else if(i.result==='To Standard') s++; });
+      const a=t-n; return a?Math.round(s/a*100):null;
+    })();
+    const pctLabel = pct!==null ? `<span class="saf-sec-pct ${safBand(pct).cls}">${pct}%</span>` : '';
+    html += `<div class="panel mt2 saf-section-panel${sec.bonus?' saf-section-bonus':''}" data-sec="${sec.key}">
+      <div class="ph saf-sec-hdr${sec.bonus?' saf-sec-hdr-bonus':''}" onclick="safToggleSection('${sec.key}')">
+        <div class="ph-title">${esc(sec.title)}</div>
+        <div class="saf-sec-hdr-right">
+          ${pctLabel}
+          <button class="btn btn-g btn-xs saf-sec-save-btn" id="saf-sec-save-${sec.key}"
+                  onclick="event.stopPropagation();safSaveSection('${sec.key}')"
+                  title="Save this section only">Save</button>
+          <span class="saf-toggle" id="saf-tog-${sec.key}">&#9660;</span>
+        </div>
+      </div>
+      <div class="saf-sec-body" id="saf-sec-${sec.key}">
+        <div class="tw saf-criteria-wrap">
+          <table class="saf-criteria-tbl">
+            <thead><tr>
+              <th style="width:36px">#</th>
+              <th style="width:90px">Ref</th>
+              <th>Criteria</th>
+              <th style="width:60px">N/A</th>
+              <th style="width:100px">Not to Std</th>
+              <th style="width:80px">To Std</th>
+              ${sec.key==='H'?'<th style="width:130px">Appointee</th>':''}
+              <th style="width:180px">Comments / Findings</th>
+              <th style="width:70px">Docs</th>
+            </tr></thead>
+            <tbody>`;
+    sec.items.forEach((item,idx)=>{
+      const s = saved[idx] || {};
+      const rNA  = s.result==='N/A'             ? 'checked' : '';
+      const rNot = s.result==='Not to Standard' ? 'checked' : '';
+      const rStd = s.result==='To Standard'     ? 'checked' : '';
+      const apo  = esc(s.appointee||'');
+      const cmt  = esc(s.comments||'');
+      const upCount = (s.uploads||[]).length;
+      const rowCls = s.result==='N/A'?'saf-row-na':s.result==='Not to Standard'?'saf-row-nts':s.result==='To Standard'?'saf-row-ts':'';
+      html += `<tr class="saf-item-row ${rowCls}" data-sec="${sec.key}" data-idx="${idx}">
+        <td class="saf-no">${item.no}</td>
+        <td class="saf-ref">${esc(item.ref||'')}</td>
+        <td class="saf-crit">${esc(item.criteria)}</td>
+        <td class="saf-radio-cell"><label class="saf-radio-lbl"><input type="radio" name="saf_${sec.key}_${idx}" value="N/A" ${rNA} onchange="safItemChanged('${sec.key}',${idx},this)"> N/A</label></td>
+        <td class="saf-radio-cell saf-nts"><label class="saf-radio-lbl"><input type="radio" name="saf_${sec.key}_${idx}" value="Not to Standard" ${rNot} onchange="safItemChanged('${sec.key}',${idx},this)"> NTS</label></td>
+        <td class="saf-radio-cell saf-ts"><label class="saf-radio-lbl"><input type="radio" name="saf_${sec.key}_${idx}" value="To Standard" ${rStd} onchange="safItemChanged('${sec.key}',${idx},this)"> TS</label></td>
+        ${sec.key==='H'?`<td><input class="finput finput-sm" placeholder="Name" value="${apo}" oninput="safAppointeeChanged('${sec.key}',${idx},this)"></td>`:''}
+        <td><textarea class="finput finput-sm saf-cmt" rows="1" placeholder="Findings..." oninput="safCommentChanged('${sec.key}',${idx},this)">${cmt}</textarea></td>
+        <td class="saf-upload-cell">
+          <input type="file" id="saf-up-${sec.key}-${idx}" style="display:none" onchange="safHandleUpload('${sec.key}',${idx},this)">
+          <button class="btn btn-g btn-xs" onclick="document.getElementById('saf-up-${sec.key}-${idx}').click()">
+            ${upCount?`<span class="saf-up-count">${upCount}</span>`:''}+
+          </button>
+        </td>
+      </tr>`;
+    });
+    html += `</tbody></table></div></div></div>`;
+  });
+  wrap.innerHTML = html;
+  safEnsureIdField();
+}
+
+function safToggleSection(key){
+  const body = document.getElementById('saf-sec-'+key);
+  const tog  = document.getElementById('saf-tog-'+key);
+  if(!body) return;
+  const open = !body.classList.contains('collapsed');
+  body.classList.toggle('collapsed', open);
+  if(tog) tog.innerHTML = open ? '&#9654;' : '&#9660;';
+}
+
+/* ── item state ─────────────────────────────────────── */
+
+function safGetOrInitFile(){
+  safEnsureIdField();
+  if(!DB.safetyFiles) DB.safetyFiles=[];
+  let id = document.getElementById('saf-current-id')?.value;
+  if(!id || id==='null' || id===''){
+    // Allocate a client-side temp ID; will be replaced by API ref on first save
+    id = '_new_';
+    const inp = document.getElementById('saf-current-id');
+    if(inp) inp.value = id;
+  }
+  let mem = DB.safetyFiles.find(f=>(f.ref_id||f.id)===id);
+  if(!mem){
+    mem = safBlankFile(id);
+    DB.safetyFiles.unshift(mem);
+  }
+  // Return normalized view (sections in JS camelCase format)
+  if(mem.sections) return mem;       // already has sections (from API or blank)
+  return normalizeSafetyFile(mem);
+}
+
+function safItemChanged(sec, idx, radio){
+  const file = safGetOrInitFile();
+  if(!file || !file.sections[sec]) return;
+  file.sections[sec][idx].result = radio.value;
+  file.updatedAt = new Date().toISOString();
+  const row = radio.closest('tr');
+  if(row){
+    row.classList.remove('saf-row-na','saf-row-nts','saf-row-ts');
+    if(radio.value==='N/A') row.classList.add('saf-row-na');
+    else if(radio.value==='Not to Standard') row.classList.add('saf-row-nts');
+    else if(radio.value==='To Standard') row.classList.add('saf-row-ts');
+  }
+  safUpdateScore();
+}
+
+function safAppointeeChanged(sec, idx, inp){
+  const file = safGetOrInitFile();
+  if(!file||!file.sections[sec]) return;
+  file.sections[sec][idx].appointee = inp.value;
+  file.updatedAt = new Date().toISOString();
+}
+
+function safCommentChanged(sec, idx, ta){
+  const file = safGetOrInitFile();
+  if(!file||!file.sections[sec]) return;
+  file.sections[sec][idx].comments = ta.value;
+  file.updatedAt = new Date().toISOString();
+}
+
+/* ── section save ───────────────────────────────────── */
+
+async function safSaveSection(secKey){
+  const id  = safCurrentId();
+  const mem = safGetOrInitFile();
+  if(!mem){toast('No active audit','err');return;}
+
+  const btn = document.getElementById('saf-sec-save-'+secKey);
+  const restore = () => { if(btn){btn.disabled=false;btn.textContent='Save';} };
+
+  // New file: must have contractor name, then do a full create first
+  if(!id||id==='null'||id===''||id==='_new_'){
+    const contractor=(document.getElementById('sah-contractor')?.value||'').trim();
+    if(!contractor){toast('Enter contractor name before saving','err');return;}
+    if(btn){btn.disabled=true;btn.textContent='…';}
+    safReadHeader(mem);
+    mem.status='Draft';
+    const body=_safBuildApiBody(mem,'Draft');
+    const r=await api('POST','safety.php',body);
+    restore();
+    if(!r.success){toast(r.error||'Save failed','err');return;}
+    const saved=normalizeSafetyFile(r.data);
+    _safMergeToDb(saved);
+    document.getElementById('saf-current-id').value=saved.id;
+    document.getElementById('saf-page-title').textContent='Edit — '+saved.id;
+    renderSafetyFiles(); updateBadges();
+    toast(saved.id+' created — Section '+secKey+' saved','ok');
+    return;
+  }
+
+  // Existing file: upsert only this section's items
+  const sectionItems=(mem.sections[secKey]||[]).map(item=>({
+    no:        item.no,
+    result:    item.result||null,
+    appointee: item.appointee||'',
+    comments:  item.comments||'',
+    ap_status: item.apStatus||item.ap_status||'Open',
+  }));
+  if(btn){btn.disabled=true;btn.textContent='…';}
+  const r=await api('PUT','safety.php?id='+id,{sections:{[secKey]:sectionItems}});
+  restore();
+  if(!r.success){toast(r.error||'Save failed','err');return;}
+  toast('Section '+secKey+' saved','ok');
+  safUpdateScore();
+}
+
+/* ── upload helpers ─────────────────────────────────── */
+
+async function _safUploadFd(fd){
+  try {
+    const res = await fetch(API_BASE + '/files.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      body: fd,
+    });
+    if (res.status === 401) {
+      if (typeof SESSION !== 'undefined' && SESSION) {
+        SESSION = null;
+        document.documentElement.dataset.state = 'login';
+        if (typeof showLoginPanel === 'function') showLoginPanel();
+        if (typeof toast === 'function') toast('Session expired. Please log in again.', 'err');
+      }
+      return { success: false, error: 'Session expired' };
+    }
+    return await res.json();
+  } catch(e) {
+    return { success: false, error: String(e) };
+  }
+}
+
+function _safSlugifyName(filename){
+  let base = filename.includes('.') ? filename.slice(0, filename.lastIndexOf('.')) : filename;
+  base = base.replace(/^\d+[\.\s\-]+\s*/, '');
+  return base.replace(/[^a-zA-Z0-9]+/g, '-').toLowerCase().replace(/^-|-$/g, '').slice(0, 40) || 'document';
+}
+
+function _safCanonicalName(sec, idx, filename){
+  const ext = filename.includes('.') ? '.'+filename.split('.').pop().toLowerCase() : '';
+  const doctype = ['jpg','jpeg','png'].includes(ext.slice(1)) ? 'photo' : 'document';
+  const nn = String(idx+1).padStart(2,'0');
+  return `${sec}${nn}_${doctype}_${_safSlugifyName(filename)}${ext}`;
+}
+
+function safRenameModal(suggested, originalName){
+  return new Promise(resolve => {
+    const existing = document.getElementById('saf-rename-modal');
+    if(existing) existing.remove();
+    const overlay = document.createElement('div');
+    overlay.id = 'saf-rename-modal';
+    overlay.className = 'saf-rename-overlay';
+    overlay.innerHTML = `
+      <div class="saf-rename-box">
+        <div class="saf-rename-title">Name this document</div>
+        <div class="saf-rename-orig">Original: <em>${esc(originalName)}</em></div>
+        <input class="finput saf-rename-inp" id="saf-rename-inp" value="${esc(suggested)}" spellcheck="false" autocomplete="off">
+        <div class="saf-rename-hint">Convention: <code>SECTION-NN_doctype_description.ext</code></div>
+        <div class="saf-rename-btns">
+          <button class="btn btn-g" id="saf-rename-cancel">Cancel</button>
+          <button class="btn btn-primary" id="saf-rename-ok">Upload</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    const inp = document.getElementById('saf-rename-inp');
+    inp.focus(); inp.select();
+    const done = v => { overlay.remove(); resolve(v); };
+    document.getElementById('saf-rename-ok').onclick = () => done(inp.value.trim() || suggested);
+    document.getElementById('saf-rename-cancel').onclick = () => done(null);
+    inp.addEventListener('keydown', e => {
+      if(e.key==='Enter')  done(inp.value.trim() || suggested);
+      if(e.key==='Escape') done(null);
+    });
+  });
+}
+
+async function safHandleUpload(sec, idx, input){
+  if(!input.files.length) return;
+  const file=safGetOrInitFile();
+  if(!file||!file.sections[sec]) return;
+  const ref=safCurrentId();
+  if(!ref||ref==='null'||ref===''){
+    toast('Save the audit first before uploading documents','err');
+    input.value=''; return;
+  }
+  const btn=input.nextElementSibling;
+  let uploaded=0;
+  for(const f of Array.from(input.files)){
+    const finalName = await safRenameModal(_safCanonicalName(sec, idx, f.name), f.name);
+    if(finalName===null){ input.value=''; return; }
+    const renamed = new File([f], finalName, {type: f.type});
+    const fd=new FormData();
+    fd.append('entity_type','safety_file');
+    fd.append('entity_ref', ref);
+    fd.append('file', renamed);
+    const r=await _safUploadFd(fd);
+    if(r.success){
+      uploaded++;
+      file.sections[sec][idx].uploads=[...(file.sections[sec][idx].uploads||[]),finalName];
+    } else {
+      toast(r.error||'Upload failed for '+f.name,'err');
+    }
+  }
+  file.updatedAt=new Date().toISOString();
+  const cnt=file.sections[sec][idx].uploads.length;
+  if(btn) btn.innerHTML=`<span class="saf-up-count">${cnt}</span>+`;
+  if(uploaded) toast(uploaded+' file(s) uploaded','ok');
+  input.value='';
+}
+
+/* ── live score ─────────────────────────────────────── */
+
+function safUpdateScore(){
+  const id = safCurrentId();
+  const file = id && id!=='null' ? proxyDB.safetyFiles.find(f=>f.id===id) : null;
+  if(!file) return;
+  const {score, mainScore, bonusScore, std, notStd, na, bApplicable, bStd, allTotal, allFilled, completionPct} = safCalcScore(file);
+  const band = safBand(score);
+  const valEl  = document.getElementById('saf-score-val');
+  const bandEl = document.getElementById('saf-score-band');
+  const ruleEl = document.getElementById('saf-score-rule');
+  const bonusEl = document.getElementById('saf-bonus-score');
+  const compEl  = document.getElementById('saf-completion-pct');
+  if(valEl){ valEl.textContent = score!==null ? Math.round(score)+' pts' : '—'; valEl.className='safety-score-big '+band.cls; }
+  if(bandEl) bandEl.textContent = band.label;
+  if(ruleEl) ruleEl.textContent = band.note||'';
+  if(compEl) compEl.innerHTML = `<span class="saf-comp-label">Completion:</span> <span class="saf-comp-count">${allFilled}/${allTotal} items rated</span> <span class="saf-comp-pct">(${completionPct}%)</span>`;
+  if(bonusEl){
+    const mainDisp  = mainScore!==null  ? Math.round(mainScore)+'%'  : '—';
+    const bonusDisp = bApplicable ? '+'+Math.round(bonusScore*10)/10+'%' : '+0%';
+    bonusEl.innerHTML = `<span class="saf-bonus-main">Main A–H: ${mainDisp}</span><span class="saf-bonus-pts saf-bonus-gold">${bonusDisp} bonus (${bStd}/${bApplicable} pts)</span>`;
+  }
+  const secEl = document.getElementById('saf-section-scores');
+  if(secEl){
+    let html='';
+    SAFETY_SECTIONS.forEach(sec=>{
+      const items = file.sections[sec.key]||[];
+      let t=0,n=0,s=0;
+      items.forEach(i=>{ t++; if(i.result==='N/A') n++; else if(i.result==='To Standard') s++; });
+      const a=t-n;
+      if(sec.bonus){
+        const pts = a ? `${s}/${a} pts` : '—';
+        const bonus = a ? Math.round((s/a)*10*10)/10+'%' : null;
+        html+=`<div class="saf-sec-score-row saf-sec-bonus-row">
+          <span class="saf-sec-key saf-bonus-gold">${sec.key}</span>
+          <span class="saf-sec-score-label">${sec.title.replace(/^Section I — /,'')}</span>
+          <span class="saf-sec-pct saf-bonus-gold">${bonus!==null?'+'+bonus:'—'}</span>
+        </div>`;
+      } else {
+        const pct=a?Math.round(s/a*100):null;
+        const b=safBand(pct);
+        html+=`<div class="saf-sec-score-row">
+          <span class="saf-sec-key ${b.cls}">${sec.key}</span>
+          <span class="saf-sec-score-label">${sec.title.replace(/^Section [A-H] — /,'')}</span>
+          <span class="saf-sec-pct ${b.cls}">${pct!==null?pct+'%':'—'}</span>
+        </div>`;
+      }
+    });
+    secEl.innerHTML=html;
+  }
+}
+
+/* ── header read/fill ───────────────────────────────── */
+
+function safReadHeader(file){
+  const g=id=>(document.getElementById(id)?.value||'').trim();
+  const n=id=>parseInt(document.getElementById(id)?.value)||0;
+  file.contractor=g('sah-contractor'); file.contractorRep=g('sah-rep');
+  file.appointee162=g('sah-appointee'); file.auditDate=g('sah-date');
+  file.region=g('sah-region'); file.auditTeam=g('sah-team');
+  file.scopeOfWork=g('sah-scope'); file.manpower=n('sah-manpower');
+  file.supervisors=n('sah-supervisors'); file.sheReps=n('sah-shereps');
+  file.firstAiders=n('sah-firstaiders'); file.auditorName=g('sah-auditor-name');
+  file.signOffDate=g('sah-signoff-date');
+}
+
+function safFillHeader(file){
+  const s=(id,v)=>{const e=document.getElementById(id);if(e)e.value=v||'';};
+  s('sah-contractor',file.contractor); s('sah-rep',file.contractorRep);
+  s('sah-appointee',file.appointee162); s('sah-date',file.auditDate);
+  s('sah-region',file.region); s('sah-team',file.auditTeam);
+  s('sah-scope',file.scopeOfWork); s('sah-manpower',file.manpower||0);
+  s('sah-supervisors',file.supervisors||0); s('sah-shereps',file.sheReps||0);
+  s('sah-firstaiders',file.firstAiders||0); s('sah-auditor-name',file.auditorName);
+  s('sah-signoff-date',file.signOffDate);
+}
+
+/* ── actions (called from handleAction) ─────────────── */
+
+function newSafetyAudit(){
+  safEnsureIdField();
+  const inp = document.getElementById('saf-current-id');
+  if(inp) inp.value='';
+  document.getElementById('saf-page-title').textContent='New Safety Audit';
+  const today=localDateStr();
+  const fields=['sah-contractor','sah-rep','sah-appointee','sah-region','sah-team','sah-scope','sah-auditor-name'];
+  fields.forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  ['sah-manpower','sah-supervisors','sah-shereps','sah-firstaiders'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='0';});
+  document.getElementById('sah-date').value=today;
+  document.getElementById('sah-signoff-date').value=today;
+  safBuildSections();
+  safUpdateScore();
+  showPortalPage('p-safety-audit',null);
+}
+
+async function saveSafetyDraft(){
+  const contractor=(document.getElementById('sah-contractor')?.value||'').trim();
+  if(!contractor){toast('Contractor name is required','err');return;}
+  const id=safCurrentId();
+  const mem=safGetOrInitFile();
+  if(!mem){toast('No active audit','err');return;}
+  safReadHeader(mem);
+  mem.status='Draft';
+  const body=_safBuildApiBody(mem,'Draft');
+  let r;
+  if(!id||id==='null'||id===''){
+    r=await api('POST','safety.php',body);
+  } else {
+    r=await api('PUT','safety.php?id='+id,body);
+  }
+  if(!r.success){toast(r.error||'Save failed','err');return;}
+  const saved=normalizeSafetyFile(r.data);
+  _safMergeToDb(saved);
+  document.getElementById('saf-current-id').value=saved.id;
+  document.getElementById('saf-page-title').textContent='Edit — '+saved.id;
+  renderSafetyFiles(); updateBadges();
+  audit('SAVE','Safety draft '+saved.id);
+  toast(saved.id+' saved as Draft','ok');
+}
+
+async function submitSafetyAudit(){
+  const contractor=(document.getElementById('sah-contractor')?.value||'').trim();
+  if(!contractor){toast('Contractor name is required','err');return;}
+  const id=safCurrentId();
+  const mem=safGetOrInitFile();
+  if(!mem){toast('No active audit','err');return;}
+  safReadHeader(mem);
+  mem.status='Submitted';
+  const body=_safBuildApiBody(mem,'Submitted');
+  let r;
+  if(!id||id==='null'||id===''){
+    r=await api('POST','safety.php',body);
+  } else {
+    r=await api('PUT','safety.php?id='+id,body);
+  }
+  if(!r.success){toast(r.error||'Submit failed','err');return;}
+  const saved=normalizeSafetyFile(r.data);
+  _safMergeToDb(saved);
+  renderSafetyFiles(); updateBadges();
+  audit('SUBMIT','Safety audit '+saved.id);
+  toast(saved.id+' submitted','ok');
+  showPortalPage('p-safety',null);
+}
+
+async function editSafetyFile(){
+  const id=document.getElementById('saf-detail-content')?.dataset?.fileId;
+  if(!id){toast('No file selected','err');return;}
+  let file=proxyDB.safetyFiles.find(f=>f.id===id);
+  if(!file){toast('File not found','err');return;}
+  // Load full item data if not yet in memory
+  if(!file.sections){
+    const r=await api('GET','safety.php?id='+id);
+    if(!r.success){toast(r.error||'Could not load file','err');return;}
+    const raw=DB.safetyFiles.find(f=>(f.ref_id||f.id)===id);
+    if(raw) raw.sections=r.data.sections;
+    file=normalizeSafetyFile(r.data);
+  }
+  document.getElementById('saf-page-title').textContent='Edit — '+file.id;
+  safEnsureIdField();
+  document.getElementById('saf-current-id').value=id;
+  safFillHeader(file);
+  // Sync sections to the in-memory working file
+  const mem=safGetOrInitFile();
+  if(mem&&file.sections) mem.sections=file.sections;
+  safBuildSections();
+  safUpdateScore();
+  showPortalPage('p-safety-audit',null);
+}
+
+/* ── API body builder ───────────────────────────────── */
+
+function _safBuildApiBody(file, status){
+  const body={
+    contractor:    file.contractor,    contractor_rep: file.contractorRep,
+    appointee162:  file.appointee162,  audit_date:     file.auditDate,
+    region:        file.region,        audit_team:     file.auditTeam,
+    scope_of_work: file.scopeOfWork,   manpower:       file.manpower,
+    supervisors:   file.supervisors,   she_reps:       file.sheReps,
+    first_aiders:  file.firstAiders,   auditor_name:   file.auditorName,
+    sign_off_date: file.signOffDate,   status:         status,
+  };
+  // Build sections from in-memory item state
+  const sections={};
+  SAFETY_SECTIONS.forEach(sec=>{
+    sections[sec.key]=(file.sections[sec.key]||[]).map(item=>({
+      no:         item.no,
+      result:     item.result||null,
+      appointee:  item.appointee||'',
+      comments:   item.comments||'',
+      ap_status:  item.apStatus||item.ap_status||'Open',
+    }));
+  });
+  body.sections=sections;
+  return body;
+}
+
+function _safMergeToDb(normalized){
+  if(!DB.safetyFiles) DB.safetyFiles=[];
+  const idx=DB.safetyFiles.findIndex(f=>(f.ref_id||f.id)===normalized.id);
+  if(idx>=0){
+    // Preserve the raw ref_id shape the API returned
+    const raw=DB.safetyFiles[idx];
+    DB.safetyFiles[idx]={...raw, ...{
+      ref_id:normalized.id, contractor:normalized.contractor,
+      status:normalized.status, score:normalized.score,
+      updated_at:normalized.updatedAt,
+    }};
+  } else {
+    DB.safetyFiles.unshift({ref_id:normalized.id,...normalized});
+  }
+}
+
+/* ── dashboard render ───────────────────────────────── */
+
+function _safScore(f){
+  if(f.sections) return safCalcScore(f);
+  const s=f.score!==null&&f.score!==undefined?Number(f.score):null;
+  const std    = f.toStdCount  !== null && f.toStdCount  !== undefined ? f.toStdCount  : 0;
+  const notStd = f.notStdCount !== null && f.notStdCount !== undefined ? f.notStdCount : 0;
+  const na     = f.naCount     !== null && f.naCount     !== undefined ? f.naCount     : 0;
+  return {score:s, std, notStd, na, total: std+notStd+na};
+}
+
+function renderSafetyFiles(search){
+  if(search===undefined) search=(document.querySelector('#p-safety .sinput')||{}).value||'';
+  // Populate contractor datalist from all known safety files
+  const contractorDl=document.getElementById('sah-contractor-dl');
+  if(contractorDl){
+    const names=[...new Set(proxyDB.safetyFiles.map(f=>f.contractor).filter(Boolean))];
+    contractorDl.innerHTML=names.map(n=>`<option value="${esc(n)}">`).join('');
+  }
+  const statusFilter=document.getElementById('sf-filter-status')?.value||'';
+  let files=[...proxyDB.safetyFiles];
+  if(statusFilter) files=files.filter(f=>f.status===statusFilter);
+  if(search) files=files.filter(f=>
+    (f.contractor||'').toLowerCase().includes(search.toLowerCase())||
+    (f.id||'').toLowerCase().includes(search.toLowerCase())
+  );
+
+  const remDiv=document.getElementById('safety-reminders');
+  if(remDiv){
+    const overdue=proxyDB.safetyFiles.filter(f=>{
+      const {score}=_safScore(f); const band=safBand(score);
+      if(!band.actionDays||!f.auditDate) return false;
+      const due=new Date(f.auditDate+'T00:00:00');
+      due.setDate(due.getDate()+band.actionDays);
+      return new Date()>due && f.status!=='Approved';
+    });
+    remDiv.innerHTML=overdue.length
+      ? `<div class="alert-strip alert-err">Action plan overdue for: ${overdue.map(f=>f.id).join(', ')}</div>`
+      : '';
+  }
+
+  const grid=document.getElementById('safety-files-grid');
+  if(!grid) return;
+  if(!files.length){
+    grid.classList.remove('safety-grid--single');
+    grid.innerHTML=`<div class="empty-state"><div class="empty-icon" style="font-size:40px;margin-bottom:8px">🛡</div><div>No safety files — start a new audit.</div></div>`;
+    return;
+  }
+  grid.classList.toggle('safety-grid--single', files.length===1);
+  grid.innerHTML=files.map(f=>{
+    const {score,std,notStd,na}=_safScore(f);
+    const band=safBand(score);
+    const scoreDisp=score!==null?Math.round(score)+' pts':'—';
+    const dateDisp=f.auditDate?fmtD(f.auditDate):'No date';
+    const polBadge=f.policyEmailSent?`<span class="saf-pol-badge">Policy sent</span>`:'';
+    const isSubmitted = f.status === 'Submitted' || f.status === 'Approved';
+    const submissionBar = isSubmitted && f.updatedAt
+      ? `<div class="saf-submission-bar">&#10003; Submitted ${fmtDT(f.updatedAt)} &middot; Audit Score: ${scoreDisp}</div>`
+      : '';
+    return `<div class="saf-card" onclick="safViewFile('${f.id}')">
+      <div class="saf-card-hdr">
+        <div class="saf-card-id">${esc(f.id)}</div>
+        <div class="saf-status-pill saf-status-${(f.status||'draft').toLowerCase().replace(/ /g,'-')}">${esc(f.status||'Draft')}</div>
+      </div>
+      <div class="saf-card-contractor">${esc(f.contractor||'Untitled')}</div>
+      <div class="saf-card-scope">${esc((f.scopeOfWork||'').substring(0,80))||'&mdash;'}</div>
+      <div class="saf-card-meta"><span>${dateDisp}</span><span>${esc(f.region||'')}</span>${polBadge}</div>
+      <div class="saf-card-score-row">
+        <div class="saf-score-chip ${band.cls}">${scoreDisp}</div>
+        <div class="saf-band-label">${band.label}</div>
+      </div>
+      <div class="saf-card-stats">
+        <span class="saf-stat saf-stat-ts">${std} To Std</span>
+        <span class="saf-stat saf-stat-nts">${notStd} Not to Std</span>
+        <span class="saf-stat saf-stat-na">${na} N/A</span>
+      </div>
+      ${submissionBar}
+    </div>`;
+  }).join('');
+}
+
+/* ── detail view ────────────────────────────────────── */
+
+async function safViewFile(id){
+  try {
+  let file=proxyDB.safetyFiles.find(f=>f.id===id);
+  if(!file){toast('File not found','err');return;}
+  if(!file.sections){
+    const r=await api('GET','safety.php?id='+id);
+    if(!r.success){
+      const msg = r.error && r.error.startsWith('SyntaxError') ? 'Server error — check PHP logs or run safety migration SQL' : (r.error||'Could not load file');
+      toast(msg,'err'); return;
+    }
+    const full=normalizeSafetyFile(r.data);
+    // Store sections on the raw DB record
+    const raw=DB.safetyFiles.find(f=>(f.ref_id||f.id)===id);
+    if(raw) raw.sections=r.data.sections;
+    file=full;
+  }
+  const {score,mainScore,bonusScore,std,notStd,na,total,bApplicable,bStd,allTotal,allFilled,completionPct}=safCalcScore(file);
+  const band=safBand(score);
+  const scoreDisp=score!==null?Math.round(score)+' pts':'—';
+  const mainDisp =mainScore!==null?Math.round(mainScore)+' pts':'—';
+  const bonusDisp=bApplicable?'+'+Math.round(bonusScore*10)/10+' pts':'';
+
+  document.getElementById('saf-detail-title').textContent=file.id+' — '+(file.contractor||'Untitled');
+  document.getElementById('saf-detail-sub').textContent=(file.status||'DRAFT').toUpperCase()+'  ·  '+(file.auditDate||'No date')+'  ·  Audit Score: '+scoreDisp+(bonusDisp?' ('+mainDisp+' A–H '+bonusDisp+' bonus)':'')+'  ·  '+completionPct+'% complete';
+
+  const content=document.getElementById('saf-detail-content');
+  content.dataset.fileId=id;
+  _safUpdateApproveBtn(id);
+  _safUpdateDeactivateBtn(id);
+
+  let sumRows='';
+  SAFETY_SECTIONS.forEach(sec=>{
+    const items=file.sections[sec.key]||[];
+    let t=0,n=0,s=0,ns=0;
+    items.forEach(i=>{ t++; if(i.result==='N/A') n++; else if(i.result==='To Standard') s++; else if(i.result==='Not to Standard') ns++; });
+    const bonusTag=sec.bonus?` <span class="saf-bonus-tag">Bonus</span>`:'';
+    sumRows+=`<tr${sec.bonus?' class="saf-sum-bonus-row"':''} id="sum-row-${sec.key}">
+      <td>${esc(sec.title)}${bonusTag}</td><td>${t}</td><td>${n}</td><td>${ns}</td><td>${s}</td>
+      <td class="saf-sec-doc-cell" id="saf-sec-doc-${sec.key}">
+        <input type="file" id="saf-sec-file-${sec.key}" style="display:none" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.png" onchange="safSectionUpload(this,'${id}','${sec.key}')">
+        <button class="btn btn-g btn-xs saf-sec-doc-btn" onclick="document.getElementById('saf-sec-file-${sec.key}').click()" title="Upload combined sign-off document for this section">&#128196; Upload</button>
+      </td>
+    </tr>`;
+  });
+
+  let actionRows='';
+  SAFETY_SECTIONS.forEach(sec=>{
+    const saved=file.sections[sec.key]||[];
+    sec.items.forEach((item,idx)=>{
+      const s=saved[idx]||{};
+      if(s.result==='Not to Standard'){
+        const bonusLabel=sec.bonus?` <span class="saf-bonus-tag">Bonus</span>`:'';
+        actionRows+=`<tr${sec.bonus?' class="saf-ap-bonus-row"':''}>
+          <td>${esc(sec.key+'.'+item.no)}${bonusLabel}</td>
+          <td>${esc(item.ref||'')}</td>
+          <td>${esc(item.criteria)}</td>
+          <td>${esc(s.comments||'')}</td>
+          <td><select class="finput finput-sm" style="width:100px" onchange="safApSetStatus('${id}','${sec.key}',${idx},this.value)">
+            <option ${!s.apStatus||s.apStatus==='Open'?'selected':''}>Open</option>
+            <option ${s.apStatus==='In Progress'?'selected':''}>In Progress</option>
+            <option ${s.apStatus==='Resolved'?'selected':''}>Resolved</option>
+          </select></td>
+        </tr>`;
+      }
+    });
+  });
+
+  let checkHtml='';
+  SAFETY_SECTIONS.forEach(sec=>{
+    const saved=file.sections[sec.key]||[];
+    let t=0,n=0,s=0;
+    saved.forEach(i=>{ t++; if(i.result==='N/A') n++; else if(i.result==='To Standard') s++; });
+    const a=t-n; const pct=a?Math.round(s/a*100):null;
+    const rptBonusLabel = sec.bonus ? ` <span class="saf-bonus-tag">Bonus +10%</span>` : '';
+    const rptPctLabel   = sec.bonus
+      ? (a ? `<span class="saf-sec-pct saf-bonus-gold">+${Math.round((s/a)*10*10)/10}%</span>` : '')
+      : (pct!==null ? `<span class="saf-sec-pct ${safBand(pct).cls}">${pct}%</span>` : '');
+    checkHtml+=`<div class="saf-rpt-section${sec.bonus?' saf-rpt-section-bonus':''}">
+      <div class="saf-rpt-sec-hdr">${esc(sec.title)}${rptBonusLabel} ${rptPctLabel}</div>
+      <table class="saf-rpt-tbl">
+        <thead><tr><th>#</th><th>Ref</th><th>Criteria</th><th>Result</th>${sec.key==='H'?'<th>Appointee</th>':''}<th>Comments</th></tr></thead>
+        <tbody>`;
+    sec.items.forEach((item,idx)=>{
+      const sv=saved[idx]||{};
+      const resCls=sv.result==='To Standard'?'saf-ts':sv.result==='Not to Standard'?'saf-nts-text':sv.result==='N/A'?'saf-na-text':'';
+      checkHtml+=`<tr>
+        <td>${item.no}</td><td>${esc(item.ref||'')}</td><td>${esc(item.criteria)}</td>
+        <td class="${resCls}">${esc(sv.result||'—')}</td>
+        ${sec.key==='H'?`<td>${esc(sv.appointee||'')}</td>`:''}
+        <td>${esc(sv.comments||'')}</td>
+      </tr>`;
+    });
+    checkHtml+=`</tbody></table></div>`;
+  });
+
+  const isSubmitted = file.status === 'Submitted' || file.status === 'Approved';
+  const submissionBanner = isSubmitted
+    ? `<div class="saf-submission-banner">
+        <div class="saf-sb-icon">&#10003;</div>
+        <div class="saf-sb-meta">
+          <strong>Safety File ${esc(file.status)}</strong>
+          <span>Submitted ${fmtDT(file.updatedAt)} &middot; Score at submission: ${scoreDisp} (${band.label})</span>
+        </div>
+        <div class="saf-sb-score-pill">${scoreDisp}</div>
+      </div>`
+    : '';
+
+  content.innerHTML=`
+    ${submissionBanner}
+    <div class="panel mt0 saf-att-section">
+      <div class="ph">
+        <div class="ph-title">Supporting Documents</div>
+        <div>
+          <input type="file" id="saf-det-upload" style="display:none" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.png" onchange="safDetailUpload(this)">
+          <button class="btn btn-g btn-s" onclick="document.getElementById('saf-det-upload').click()">+ Upload Document</button>
+        </div>
+      </div>
+      <div class="pb" id="saf-att-panel"><div class="saf-att-empty">Loading documents…</div></div>
+    </div>
+    <div class="panel mt2 saf-personnel-section">
+      <div class="ph">
+        <div class="ph-title">Personnel on File</div>
+        <button class="btn btn-g btn-s" onclick="safAddPersonnel('${id}')">+ Add Person</button>
+      </div>
+      <div class="pb" id="saf-personnel-panel"><div class="saf-att-empty">Loading personnel…</div></div>
+    </div>
+    <div class="panel mt2 saf-linked-users-section">
+      <div class="ph">
+        <div class="ph-title">Portal Users on File</div>
+        <button class="btn btn-g btn-s" onclick="safLinkPortalUser('${id}')">+ Link User</button>
+      </div>
+      <div class="pb" id="saf-linked-users-panel"><div class="saf-att-empty">Loading linked users…</div></div>
+    </div>
+    <div class="panel mt2 saf-compliance-section">
+      <div class="ph">
+        <div class="ph-title">Training &amp; Compliance Tracking</div>
+        <button class="btn btn-g btn-s" onclick="safAddCompliance('${id}')">+ Add Record</button>
+      </div>
+      <div class="pb" id="saf-compliance-panel"><div class="saf-att-empty">Loading compliance records…</div></div>
+    </div>
+    <div class="panel mt2 saf-policy-ack-section">
+      <div class="ph">
+        <div class="ph-title">Policies &amp; Procedures — Acknowledgments</div>
+        <button class="btn btn-g btn-s" onclick="safAddPolicyAck('${id}')">+ Send Policy</button>
+      </div>
+      <div class="pb" id="saf-policy-ack-panel"><div class="saf-att-empty">Loading policy acknowledgments…</div></div>
+    </div>
+    <div class="panel saf-detail-cover">
+      <div class="saf-cover-grid">
+        <div><span class="saf-cover-lbl">Contractor</span><span class="saf-cover-val">${esc(file.contractor||'—')}</span></div>
+        <div><span class="saf-cover-lbl">Contractor Rep</span><span class="saf-cover-val">${esc(file.contractorRep||'—')}</span></div>
+        <div><span class="saf-cover-lbl">16.2 Appointee</span><span class="saf-cover-val">${esc(file.appointee162||'—')}</span></div>
+        <div><span class="saf-cover-lbl">Audit Team</span><span class="saf-cover-val">${esc(file.auditTeam||'—')}</span></div>
+        <div><span class="saf-cover-lbl">Audit Date</span><span class="saf-cover-val">${file.auditDate?fmtD(file.auditDate):'—'}</span></div>
+        <div><span class="saf-cover-lbl">Region / Site</span><span class="saf-cover-val">${esc(file.region||'—')}</span></div>
+        <div><span class="saf-cover-lbl">Scope of Work</span><span class="saf-cover-val">${esc(file.scopeOfWork||'—')}</span></div>
+        <div><span class="saf-cover-lbl">Manpower</span><span class="saf-cover-val">${file.manpower||0} total (Supervisors: ${file.supervisors||0}, SHE Reps: ${file.sheReps||0}, First Aiders: ${file.firstAiders||0})</span></div>
+        <div><span class="saf-cover-lbl">Auditor</span><span class="saf-cover-val">${esc(file.auditorName||'—')}</span></div>
+        <div><span class="saf-cover-lbl">Sign-Off Date</span><span class="saf-cover-val">${file.signOffDate?fmtD(file.signOffDate):'—'}</span></div>
+      </div>
+      <div class="saf-cover-score-block ${band.cls}">
+        <div class="saf-cover-score-lbl">Audit Score</div>
+        <div class="saf-cover-score">${scoreDisp}</div>
+        <div class="saf-cover-band">${band.label}</div>
+        ${bonusDisp?`<div class="saf-cover-breakdown">${mainDisp} A–H &nbsp;|&nbsp; <span class="saf-bonus-gold">${bonusDisp} bonus</span></div>`:''}
+        ${band.note?`<div class="saf-cover-note">${esc(band.note)}</div>`:''}
+        <div class="saf-cover-completion">Completion: ${allFilled}/${allTotal} items rated (${completionPct}%)</div>
+        <div id="saf-comp-health-block" class="saf-ch-loading">Checking compliance health…</div>
+        <div class="saf-cover-doc">Doc No: BF-SHE-FRM-010 Rev 01</div>
+      </div>
+    </div>
+
+    <div class="panel mt2">
+      <div class="ph"><div class="ph-title">Summary of Compliance</div></div>
+      <div class="tw"><table class="saf-sum-tbl">
+        <thead><tr><th>Section</th><th>Total Items</th><th>N/A</th><th>Not to Std</th><th>To Std</th><th>Combined Sign-Off</th></tr></thead>
+        <tbody>${sumRows}</tbody>
+        <tfoot><tr><td><strong>Total</strong></td><td><strong>${total}</strong></td><td><strong>${na}</strong></td><td><strong>${notStd}</strong></td><td><strong>${std}</strong></td></tr></tfoot>
+      </table></div>
+    </div>
+
+    ${actionRows?`<div class="panel mt2">
+      <div class="ph"><div class="ph-title">Action Plan — Items Not to Standard</div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          ${band.actionDays?`<div class="saf-ap-deadline ${band.cls}">Action required within ${band.actionDays} ${band.note&&band.note.includes('working')?'working ':'calendar '}days</div>`:''}
+          <button class="btn btn-g btn-s" onclick="safGenDocs('${id}')" title="Generate template documents for all Not to Standard items">&#128196; Generate Docs</button>
+        </div>
+      </div>
+      <div class="tw"><table class="saf-ap-tbl">
+        <thead><tr><th>Item</th><th>Ref</th><th>Criteria</th><th>Findings</th><th>Status</th></tr></thead>
+        <tbody>${actionRows}</tbody>
+      </table></div>
+    </div>`:''}
+
+    <div class="mt2 saf-rpt-full">${checkHtml}</div>
+  `;
+
+  showPortalPage('p-safety-detail',null);
+  // Load all async panels after page is shown
+  _safComplianceCache = null; _safPersonnelCache = null; _safLinkedUsersCache = null;
+  safLoadAttachments(id).then(atts=>safRenderAttachments(id, atts));
+  safLoadPersonnel(id).then(p=>safRenderPersonnel(id,p));
+  safLoadCompliance(id).then(recs=>safRenderCompliance(id,recs));
+  safLoadLinkedUsers(id).then(lu=>safRenderLinkedUsers(id,lu));
+  safLoadPolicyAcks(id).then(acks=>safRenderPolicyAcks(id,acks));
+  } catch(e) { toast('Error loading file: '+e.message,'err'); console.error('safViewFile error:',e); }
+}
+
+function safGenDocs(fileId){
+  if(!fileId || fileId==='_new_' || fileId==='null') {
+    toast('Save the safety file before generating documents.','warn'); return;
+  }
+  const url = 'api/safety_doc_gen.php?file_ref=' + encodeURIComponent(fileId);
+  window.open(url, '_blank');
+}
+
+async function safApSetStatus(fileId, sec, idx, val){
+  const file=proxyDB.safetyFiles.find(f=>f.id===fileId);
+  if(!file||!file.sections[sec]) return;
+  file.sections[sec][idx].apStatus=val;
+  file.updatedAt=new Date().toISOString();
+  save();
+  audit('ACTION_PLAN',`${fileId} ${sec}.${idx+1} → ${val}`);
+  try {
+    await api('PUT','safety.php?id='+encodeURIComponent(fileId),
+      {action:'update_ap_status',section_key:sec,item_no:idx+1,ap_status:val});
+  } catch(e){
+    toast('Status saved locally — sync failed, will retry on next save','warn');
+  }
+}
+
+/* ── policy email ───────────────────────────────────── */
+
+function sendPolicyEmail(){
+  const id=document.getElementById('saf-detail-content')?.dataset?.fileId;
+  const file=id?proxyDB.safetyFiles.find(f=>f.id===id):null;
+  if(!file){toast('No file selected','err');return;}
+  openModal('Send Policy Acknowledgment Email',`
+    <p style="margin-bottom:12px;color:var(--muted)">Send an email to the contractor requesting confirmation that they have read and accept the relevant H&amp;S policies for this audit.</p>
+    <div class="fgrid">
+      <div class="fgroup ffull"><label class="flbl">Contractor</label><input class="finput" value="${esc(file.contractor)}" disabled></div>
+      <div class="fgroup ffull"><label class="flbl">Recipient Email <span style="color:var(--ember)">*</span></label><input class="finput" id="pol-email" type="email" placeholder="contractor@company.co.za"></div>
+      <div class="fgroup ffull"><label class="flbl">Policy Reference</label><input class="finput" id="pol-ref" value="BF-SHE-FRM-010 — Contractor Safety File Checklist Rev 01"></div>
+      <div class="fgroup ffull"><label class="flbl">Message (optional)</label><textarea class="finput" id="pol-msg" rows="3" placeholder="Additional notes..."></textarea></div>
+    </div>
+    <div class="mt2 flex-end"><button class="btn btn-p" onclick="safSendPolicyEmailConfirm('${id}')">Send Email</button></div>
+  `);
+}
+
+async function safSendPolicyEmailConfirm(fileId){
+  const email=(document.getElementById('pol-email')?.value||'').trim();
+  if(!email){toast('Email address required','err');return;}
+  const polRef=(document.getElementById('pol-ref')?.value||'BF-SHE-FRM-010 — Contractor Safety File Checklist Rev 01').trim();
+  const msg=(document.getElementById('pol-msg')?.value||'').trim();
+  const r=await api('PUT','safety.php?id='+fileId,{
+    action:'send_policy_email',
+    policy_email_to: email,
+    policy_ref: polRef,
+    message: msg,
+  });
+  if(!r.success){toast(r.error||'Email failed','err');return;}
+  // Update in-memory record
+  const raw=DB.safetyFiles.find(f=>(f.ref_id||f.id)===fileId);
+  if(raw){ raw.policy_email_sent=1; raw.policy_email_date=localDateStr(); }
+  toast('Policy email sent to '+email,'ok');
+  closeModal(null);
+  renderSafetyFiles();
+}
+
+/* ── print ──────────────────────────────────────────── */
+
+/* ── generate downloadable action-plan tracker ───────── */
+
+async function safGenerateTracker(id) {
+  if (!id) { toast('No file open', 'err'); return; }
+  let file = proxyDB.safetyFiles.find(f => f.id === id);
+  if (!file) { toast('File not found', 'err'); return; }
+  if (!file.sections) {
+    const r = await api('GET', 'safety.php?id=' + id);
+    if (!r.success) { toast(r.error || 'Could not load file', 'err'); return; }
+    const full = normalizeSafetyFile(r.data);
+    const raw = DB.safetyFiles.find(f => (f.ref_id || f.id) === id);
+    if (raw) raw.sections = r.data.sections;
+    file = full;
+  }
+
+  const PRI = { A:'high', B:'high', C:'med', D:'high', E:'high', F:'med', G:'high', H:'med' };
+  const sections = [];
+  let origPass = 0, origApplicable = 0;
+
+  SAFETY_SECTIONS.filter(s => !s.bonus).forEach(sec => {
+    const saved = file.sections[sec.key] || [];
+    const failItems = [];
+    sec.items.forEach((item, idx) => {
+      const sv = saved[idx] || {};
+      if (sv.result === 'N/A') return;
+      origApplicable++;
+      if (sv.result === 'To Standard') { origPass++; return; }
+      if (sv.result === 'Not to Standard') {
+        failItems.push({
+          id:       sec.key + item.no,
+          ref:      item.ref || '—',
+          criteria: item.criteria,
+          comment:  sv.comments || 'Not to Standard — action required',
+          priority: PRI[sec.key] || 'med',
+        });
+      }
+    });
+    if (failItems.length) sections.push({ id: sec.key, label: sec.title, items: failItems });
+  });
+
+  if (!sections.length) {
+    toast('No non-conformances to track — all scored items are To Standard or N/A', 'ok');
+    return;
+  }
+
+  const html = _buildTrackerHTML({
+    fileId:          id,
+    contractor:      file.contractor || 'Contractor',
+    auditDate:       file.auditDate ? fmtD(file.auditDate) : '—',
+    region:          file.region    || '',
+    auditorName:     file.auditorName || '',
+    sections,
+    totalApplicable: sections.reduce((t, s) => t + s.items.length, 0),
+    origPass,
+    origApplicable,
+  });
+
+  const blob   = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const blobUrl = URL.createObjectURL(blob);
+  const fname   = id + '_Action_Tracker.html';
+
+  openModal('Action Plan Tracker — ' + id, `
+    <div style="padding:8px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:2px;margin-bottom:16px;font-size:11px">
+      <strong>${esc(file.contractor || id)}</strong> — ${sections.reduce((t,s)=>t+s.items.length,0)} non-conformance${sections.reduce((t,s)=>t+s.items.length,0)===1?'':'s'} across ${sections.length} section${sections.length===1?'':'s'}
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn btn-p" onclick="window.open('${blobUrl}','_blank');URL.revokeObjectURL('${blobUrl}')">&#128065; Preview in Browser</button>
+      <a class="btn btn-g" id="tracker-dl-btn" href="${blobUrl}" download="${esc(fname)}" style="text-decoration:none" onclick="setTimeout(()=>URL.revokeObjectURL('${blobUrl}'),2000)">&#8595; Download</a>
+    </div>
+    <div style="font-size:10px;color:var(--muted);margin-top:10px">The tracker opens as a self-contained page — no internet connection required.</div>
+  `);
+}
+
+function _buildTrackerHTML(o) {
+  const esc   = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const base  = o.origApplicable ? (o.origPass / o.origApplicable * 100).toFixed(2) : '0.00';
+  const secOpts = o.sections.map(s =>
+    `<option value="${s.id}">${s.id} — ${s.label.replace(/^Section [A-I] — /,'')}</option>`
+  ).join('');
+  const sectionsJson      = JSON.stringify(o.sections);
+  const totalApplicable   = o.totalApplicable;
+  const origPass          = o.origPass;
+  const origApplicable    = o.origApplicable;
+  const baselineScore     = base;
+  const storageKey        = 'bf_tracker_' + o.fileId;
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BF-SHE-FRM-010 · Action Tracker — ${esc(o.contractor)}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F5F1EA;--surface:#FFFFFF;--surface2:#EDE8DE;--surface3:#E4DED2;
+  --border:#C8C1B3;--border2:#B8B1A3;
+  --text:#1A1814;--text2:#4A4638;--muted:#7A7566;--muted2:#5A5448;
+  --accent:#C94A10;--accent2:#E05A1A;
+  --red:#A82A1E;--red-bg:rgba(168,42,30,.08);--red-bdr:rgba(168,42,30,.25);
+  --amber:#9A6A0A;--amber-bg:rgba(212,138,21,.1);--amber-bdr:rgba(212,138,21,.28);
+  --green:#1A6633;--green-bg:rgba(26,122,64,.08);--green-bdr:rgba(26,122,64,.25);
+  --blue:#2563EB;--blue-bg:rgba(59,130,246,.07);--blue-bdr:rgba(59,130,246,.2);
+  --row-odd:#FAFAF8;--row-even:#FFFFFF;--row-hover:rgba(200,193,179,.28);
+  --scrolltrack:#EDE8DE;--scrollthumb:#C8C1B3;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'Instrument Sans',system-ui,sans-serif;font-size:13px;background:var(--bg);color:var(--text);min-height:100vh;position:relative}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:40px 40px;opacity:.18}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:var(--scrolltrack)}
+::-webkit-scrollbar-thumb{background:var(--scrollthumb);border-radius:2px}
+.topbar{position:sticky;top:0;z-index:300;background:var(--surface);border-bottom:2px solid var(--accent);box-shadow:0 1px 8px rgba(0,0,0,.08);display:flex;align-items:center;justify-content:space-between;padding:10px 24px;gap:16px;flex-wrap:wrap}
+.brand{font-size:15px;font-weight:700;letter-spacing:.01em;color:var(--accent)}
+.brand small{display:block;font-size:11px;font-weight:400;color:var(--muted)}
+.score-block{display:flex;align-items:center;gap:14px}
+.ring-wrap{position:relative;width:64px;height:64px;flex-shrink:0}
+.ring-wrap svg{transform:rotate(-90deg)}
+.ring-bg{fill:none;stroke:var(--surface3);stroke-width:6}
+.ring-fill{fill:none;stroke-width:6;stroke-linecap:round;transition:stroke-dashoffset .6s ease,stroke .4s}
+.ring-label{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1}
+.ring-pct{font-size:13px;font-weight:700}
+.ring-tag{font-size:8px;color:var(--muted);font-weight:600;letter-spacing:.04em}
+.score-meta{font-size:11px;color:var(--muted2);line-height:1.9}
+.score-meta strong{color:var(--accent)}
+.submit-banner{display:none;align-items:center;gap:16px;padding:11px 24px;background:var(--green-bg);border-bottom:2px solid var(--green-bdr);position:relative;z-index:1;flex-wrap:wrap}
+.sb-check{font-size:20px;color:var(--green);flex-shrink:0;line-height:1}
+.sb-meta{flex:1;min-width:180px}
+.sb-meta strong{font-size:13px;color:var(--green);display:block;line-height:1.4}
+.sb-meta span{font-size:11px;color:var(--muted2)}
+.sb-score-pill{background:var(--green);color:#fff;padding:5px 14px;border-radius:20px;font-size:13px;font-weight:700;white-space:nowrap;flex-shrink:0}
+.sb-resubmit{font-size:11px;font-family:inherit;font-weight:600;padding:5px 12px;border-radius:5px;border:1px solid var(--green-bdr);background:transparent;color:var(--green);cursor:pointer;white-space:nowrap;transition:all .15s;flex-shrink:0}
+.sb-resubmit:hover{background:var(--green);color:#fff}
+.prog-bar-wrap{background:var(--surface2);position:relative;z-index:1}
+.prog-bar-bg{height:3px;background:var(--surface3)}
+.prog-bar-fill{height:3px;background:var(--accent);transition:width .5s ease}
+.controls{padding:10px 24px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;gap:8px;align-items:center;position:relative;z-index:1}
+.controls select,.controls input{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:5px;font-family:inherit;font-size:12px;transition:border-color .15s}
+.controls select:focus,.controls input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(201,74,16,.12)}
+.btn{font-size:12px;font-family:inherit;font-weight:600;padding:6px 16px;border-radius:5px;border:none;cursor:pointer;white-space:nowrap;transition:all .15s}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:var(--accent2)}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border)}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+.ctrl-spacer{flex:1}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:11px;color:var(--muted);padding:8px 24px;border-bottom:1px solid var(--border);background:var(--surface);position:relative;z-index:1}
+.legend span{display:flex;align-items:center;gap:5px}
+.section-group{margin:20px 24px 0;position:relative;z-index:1}
+.section-head{display:flex;align-items:center;gap:10px;padding:9px 16px;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:6px 6px 0 0;cursor:pointer;user-select:none;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.section-head h2{font-size:12px;font-weight:700;color:var(--accent);flex:1;letter-spacing:.01em;text-transform:uppercase}
+.section-head .s-stats{font-size:10px;color:var(--muted);display:flex;gap:8px;flex-wrap:wrap}
+.section-head .chevron{font-size:11px;color:var(--muted);transition:transform .2s}
+.section-head.collapsed .chevron{transform:rotate(-90deg)}
+.section-head.collapsed{border-radius:6px}
+.tbl-wrap{overflow-x:auto;border:1px solid var(--border);border-top:none;border-radius:0 0 6px 6px;margin-bottom:6px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+table{border-collapse:collapse;width:100%;min-width:720px}
+thead th{background:var(--surface2);color:var(--text2);padding:8px 14px;text-align:left;border-right:1px solid var(--border);border-bottom:1px solid var(--border);white-space:nowrap;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+tbody td{padding:8px 14px;border-right:1px solid var(--surface3);border-bottom:1px solid var(--surface3);vertical-align:top;color:var(--text2);font-size:12px}
+tbody tr:nth-child(odd) td{background:var(--row-odd)}
+tbody tr:nth-child(even) td{background:var(--row-even)}
+tbody tr:hover td{background:var(--row-hover)}
+tbody tr.hidden{display:none}
+td.num{color:var(--muted);width:48px;text-align:center;font-size:11px;font-weight:600}
+td.criteria{max-width:260px;line-height:1.55;color:var(--text)}
+td.comment{max-width:220px;color:var(--muted2);font-size:11px;line-height:1.5;font-style:italic}
+td.status-cell{width:130px}
+td.rejection-cell{min-width:160px;background:rgba(168,42,30,.04)}
+td.notes-cell{min-width:160px}
+.rejection-in{border-color:var(--red-bdr)!important;color:var(--red)!important}
+.rejection-in:placeholder-shown{color:var(--border2)!important;border-color:transparent!important}
+.rejection-in:not(:placeholder-shown){background:var(--red-bg)!important}
+.status-sel{width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:4px;font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s}
+.status-sel:focus{outline:none}
+.status-sel.s-open{background:var(--red-bg);border-color:var(--red-bdr);color:var(--red)}
+.status-sel.s-wip{background:var(--amber-bg);border-color:var(--amber-bdr);color:var(--amber)}
+.status-sel.s-done{background:var(--green-bg);border-color:var(--green-bdr);color:var(--green)}
+.status-sel.s-na{background:var(--surface2);border-color:var(--border);color:var(--muted)}
+.notes-in{width:100%;background:transparent;border:1px solid transparent;color:var(--muted2);padding:4px 6px;border-radius:4px;font-family:inherit;font-size:11px;resize:none;transition:border-color .15s}
+.notes-in:focus{outline:none;border-color:var(--border);background:var(--surface);box-shadow:0 0 0 2px rgba(201,74,16,.08)}
+.notes-in::placeholder{color:var(--border2)}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;flex-shrink:0;vertical-align:middle}
+.p-high .dot{background:var(--red)}
+.p-med .dot{background:var(--amber)}
+.p-low .dot{background:var(--blue)}
+.pill{display:inline-block;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700;letter-spacing:.03em;text-transform:uppercase}
+.pill-fail{background:var(--red-bg);color:var(--red);border:1px solid var(--red-bdr)}
+.pill-pass{background:var(--green-bg);color:var(--green);border:1px solid var(--green-bdr)}
+.pill-na{background:var(--surface2);color:var(--muted);border:1px solid var(--border)}
+.pill-wip{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-bdr)}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--text);color:var(--surface);padding:10px 18px;border-radius:6px;font-size:12px;font-weight:500;opacity:0;pointer-events:none;transition:opacity .3s;z-index:999;box-shadow:0 4px 16px rgba(0,0,0,.2)}
+.toast.show{opacity:1}
+#content{padding-bottom:40px}
+@media print{
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  body::before{display:none}
+  .topbar{position:static!important;box-shadow:none}
+  .controls,.prog-bar-wrap,.submit-banner{display:none!important}
+  .section-group{page-break-inside:avoid;margin:12px 0}
+  .tbl-wrap{box-shadow:none}
+}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="brand">
+    BF-SHE-FRM-010 · Action Tracker
+    <small>${esc(o.contractor)}${o.region ? ' · ' + esc(o.region) : ''} · Audit: ${esc(o.auditDate)}${o.auditorName ? ' · ' + esc(o.auditorName) : ''}</small>
+  </div>
+  <div class="score-block">
+    <div class="ring-wrap">
+      <svg viewBox="0 0 64 64" width="64" height="64">
+        <circle class="ring-bg" cx="32" cy="32" r="27"/>
+        <circle class="ring-fill" id="ringFill" cx="32" cy="32" r="27" stroke-dasharray="169.6" stroke-dashoffset="169.6"/>
+      </svg>
+      <div class="ring-label">
+        <span class="ring-pct" id="ringPct">0%</span>
+        <span class="ring-tag" id="ringTag">RED</span>
+      </div>
+    </div>
+    <div class="score-meta" id="scoreMeta">Loading…</div>
+  </div>
+</div>
+<div class="prog-bar-wrap">
+  <div class="prog-bar-bg"><div class="prog-bar-fill" id="progBar" style="width:0%"></div></div>
+</div>
+<div class="submit-banner" id="submitBanner">
+  <div class="sb-check">&#10003;</div>
+  <div class="sb-meta">
+    <strong>File Submitted to AST</strong>
+    <span id="sbDetail">—</span>
+  </div>
+  <div class="sb-score-pill" id="sbScorePill">—</div>
+  <button class="sb-resubmit" onclick="submitFile()">Re-Submit</button>
+</div>
+<div class="controls">
+  <select id="filterSection"><option value="">All Sections</option>${secOpts}</select>
+  <select id="filterStatus">
+    <option value="">All Statuses</option>
+    <option value="open">Open</option>
+    <option value="wip">In Progress</option>
+    <option value="done">Fixed</option>
+    <option value="na">N/A</option>
+  </select>
+  <input type="text" id="search" placeholder="Search items…" style="min-width:160px">
+  <div class="ctrl-spacer"></div>
+  <button class="btn btn-ghost" onclick="resetAll()">Reset</button>
+  <button class="btn btn-ghost" id="btnSubmit" onclick="submitFile()" style="border-color:var(--green-bdr);color:var(--green)">Submit to AST</button>
+  <button class="btn btn-primary" onclick="window.print()">Print / PDF</button>
+</div>
+<div class="legend">
+  <span><span style="width:9px;height:9px;border-radius:2px;background:var(--red);display:inline-block"></span> Open</span>
+  <span><span style="width:9px;height:9px;border-radius:2px;background:var(--amber);display:inline-block"></span> In Progress</span>
+  <span><span style="width:9px;height:9px;border-radius:2px;background:var(--green);display:inline-block"></span> Fixed</span>
+  <span><span style="width:9px;height:9px;border-radius:2px;background:var(--border2);display:inline-block"></span> N/A</span>
+  <span style="margin-left:14px"><span class="dot" style="background:var(--red)"></span> High priority</span>
+  <span><span class="dot" style="background:var(--amber)"></span> Medium</span>
+</div>
+<div id="content"></div>
+<div class="toast" id="toast"></div>
+<script>
+const SECTIONS = ${sectionsJson};
+const TOTAL_APPLICABLE = ${totalApplicable};
+const ORIG_PASS = ${origPass};
+const ORIG_APPLICABLE = ${origApplicable};
+const BASELINE = ${baselineScore};
+const KEY = '${storageKey}';
+
+function loadState(){ try{ return JSON.parse(localStorage.getItem(KEY)||'{}'); } catch{ return {}; } }
+function saveState(s){ localStorage.setItem(KEY, JSON.stringify(s)); }
+let state = loadState();
+function getStatus(id)     { return state[id]?.status     ||'open'; }
+function getNotes(id)      { return state[id]?.notes      ||''; }
+function getRejection(id)  { return state[id]?.rejection  ||''; }
+function setStatus(id,v)    { state[id]={...(state[id]||{}),status:v};    saveState(state); updateScore(); applyFilters(); }
+function setNotes(id,v)     { state[id]={...(state[id]||{}),notes:v};     saveState(state); }
+function setRejection(id,v) { state[id]={...(state[id]||{}),rejection:v}; saveState(state); }
+
+function render(){
+  const c=document.getElementById('content'); c.innerHTML='';
+  SECTIONS.forEach(sec=>{
+    const g=document.createElement('div'); g.className='section-group'; g.dataset.section=sec.id;
+    const h=document.createElement('div'); h.className='section-head';
+    h.innerHTML='<h2>'+sec.label+'</h2><div class="s-stats" id="stats-'+sec.id+'"></div><span class="chevron">▾</span>';
+    h.onclick=()=>{ const b=document.getElementById('tbody-'+sec.id).closest('.tbl-wrap'); const col=h.classList.toggle('collapsed'); b.style.display=col?'none':''; };
+    const w=document.createElement('div'); w.className='tbl-wrap';
+    w.innerHTML='<table><thead><tr><th style="width:36px">#</th><th style="width:60px">Ref</th><th>Criteria / Requirement</th><th>Audit Finding</th><th>AST Rejection Note</th><th style="width:130px">Status</th><th>Notes / Action</th></tr></thead><tbody id="tbody-'+sec.id+'"></tbody></table>';
+    g.appendChild(h); g.appendChild(w); c.appendChild(g);
+    const tb=document.getElementById('tbody-'+sec.id);
+    sec.items.forEach(item=>{
+      const tr=document.createElement('tr');
+      tr.className='p-'+item.priority; tr.dataset.id=item.id; tr.dataset.section=sec.id;
+      tr.dataset.criteria=item.criteria.toLowerCase(); tr.dataset.comment=(item.comment||'').toLowerCase();
+      const st=getStatus(item.id); const nt=getNotes(item.id); const rj=getRejection(item.id);
+      tr.innerHTML='<td class="num"><span class="dot"></span>'+item.id+'</td>'
+        +'<td style="font-size:9px;color:var(--muted);white-space:nowrap">'+escH(item.ref)+'</td>'
+        +'<td class="criteria">'+escH(item.criteria)+'</td>'
+        +'<td class="comment">'+escH(item.comment)+'</td>'
+        +'<td class="rejection-cell"><textarea class="notes-in rejection-in" rows="2" data-id="'+item.id+'" placeholder="Rejection note from AST…" onchange="rejectionChanged(this)">'+escH(rj)+'</textarea></td>'
+        +'<td class="status-cell"><select class="status-sel s-'+st+'" data-id="'+item.id+'" onchange="statusChanged(this)">'
+        +'<option value="open" '+(st==='open'?'selected':'')+'>Open</option>'
+        +'<option value="wip" '+(st==='wip'?'selected':'')+'>In Progress</option>'
+        +'<option value="done" '+(st==='done'?'selected':'')+'>Fixed ✓</option>'
+        +'<option value="na" '+(st==='na'?'selected':'')+'>N/A</option>'
+        +'</select></td>'
+        +'<td class="notes-cell"><textarea class="notes-in" rows="2" data-id="'+item.id+'" placeholder="Action / owner / date…" onchange="notesChanged(this)">'+escH(nt)+'</textarea></td>';
+      tb.appendChild(tr);
+    });
+  });
+  updateScore();
+}
+function escH(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function statusChanged(sel){ const id=sel.dataset.id; sel.className='status-sel s-'+sel.value; setStatus(id,sel.value); toast(id+' → '+sel.options[sel.selectedIndex].text); }
+function notesChanged(ta)     { setNotes(ta.dataset.id,ta.value); }
+function rejectionChanged(ta) { setRejection(ta.dataset.id,ta.value); }
+
+function updateScore(){
+  let done=0,wip=0,open=0,na=0;
+  SECTIONS.forEach(sec=>{
+    let sd=0,sw=0,so=0,sna=0;
+    sec.items.forEach(item=>{
+      const st=getStatus(item.id);
+      if(st==='done'){done++;sd++;} else if(st==='wip'){wip++;sw++;} else if(st==='na'){na++;sna++;} else{open++;so++;}
+    });
+    const el=document.getElementById('stats-'+sec.id);
+    if(el) el.innerHTML=(so?'<span class="pill pill-fail">'+so+' open</span>':'')+
+      (sw?'<span class="pill pill-wip">'+sw+' wip</span>':'')+
+      (sd?'<span class="pill pill-pass">'+sd+' fixed</span>':'')+
+      (sna?'<span class="pill pill-na">'+sna+' n/a</span>':'');
+  });
+  const applicable=TOTAL_APPLICABLE-na;
+  const pct=applicable>0?Math.round((done/applicable)*100):0;
+  const newPass=ORIG_PASS+done;
+  const projectedScore=ORIG_APPLICABLE?Math.round((newPass/ORIG_APPLICABLE)*100*100)/100:0;
+  const rf=document.getElementById('ringFill'),rp=document.getElementById('ringPct'),rt=document.getElementById('ringTag'),se=document.getElementById('scoreMeta'),pb=document.getElementById('progBar');
+  const circ=169.6; rf.style.strokeDashoffset=circ-(projectedScore/100)*circ;
+  let color,tag;
+  if(projectedScore>=90){color='#22c55e';tag='GREEN';} else if(projectedScore>=75){color='#f59e0b';tag='YELLOW';} else if(projectedScore>=51){color='#f97316';tag='ORANGE';} else{color='#ef4444';tag='RED';}
+  rf.style.stroke=color; rp.style.color=color; rp.textContent=projectedScore.toFixed(1)+'%'; rt.textContent=tag; rt.style.color=color;
+  pb.style.width=pct+'%'; pb.style.background=color;
+  const sub=state._submission;
+  const subLine=sub?'Submitted: <strong style="color:var(--green)">'+sub.score.toFixed(1)+'% ('+sub.tag+')</strong> on '+fmtDate(sub.at)+'<br>':'';
+  se.innerHTML='Projected score: <strong>'+projectedScore.toFixed(1)+'%</strong> ('+tag+')<br>'
+    +'Baseline audit: <strong>'+BASELINE+'%</strong><br>'
+    +subLine
+    +'Fixed: <strong style="color:var(--green)">'+done+'</strong> / '+TOTAL_APPLICABLE
+    +' &nbsp;WIP: <strong style="color:var(--amber)">'+wip+'</strong>'
+    +' &nbsp;Open: <strong style="color:var(--red)">'+open+'</strong>';
+}
+
+function fmtDate(iso){ const d=new Date(iso); return d.toLocaleDateString('en-ZA',{day:'numeric',month:'short',year:'numeric'})+' '+d.toLocaleTimeString('en-ZA',{hour:'2-digit',minute:'2-digit'}); }
+
+function applyFilters(){
+  const sec=document.getElementById('filterSection').value;
+  const st=document.getElementById('filterStatus').value;
+  const q=document.getElementById('search').value.toLowerCase();
+  document.querySelectorAll('.section-group').forEach(grp=>{
+    const gid=grp.dataset.section; let any=false;
+    grp.querySelectorAll('tbody tr').forEach(tr=>{
+      const ms=!sec||tr.dataset.section===sec;
+      const mst=!st||getStatus(tr.dataset.id)===st;
+      const mq=!q||tr.dataset.criteria.includes(q)||tr.dataset.comment.includes(q)||tr.dataset.id.toLowerCase().includes(q);
+      const show=ms&&mst&&mq; tr.classList.toggle('hidden',!show); if(show) any=true;
+    });
+    grp.style.display=(!sec||gid===sec)?'':'none';
+  });
+}
+document.getElementById('filterSection').onchange=applyFilters;
+document.getElementById('filterStatus').onchange=applyFilters;
+document.getElementById('search').oninput=applyFilters;
+
+function resetAll(){
+  if(!confirm('Reset all statuses and notes?')) return;
+  state={}; saveState(state); render(); renderSubmission(); toast('Reset.');
+}
+
+function submitFile(){
+  let done=0,applicable=0;
+  SECTIONS.forEach(s=>s.items.forEach(i=>{ const st=getStatus(i.id); if(st!=='na') applicable++; if(st==='done') done++; }));
+  const pct=parseFloat(document.getElementById('ringPct').textContent);
+  const tag=document.getElementById('ringTag').textContent;
+  const lbl=state._submission?'Re-submit':'Submit';
+  if(!confirm(lbl+' this action plan at '+pct.toFixed(1)+'% ('+tag+')?\\n\\nThis records the current score and date for AST.')) return;
+  state._submission={at:new Date().toISOString(),score:pct,tag,done,applicable};
+  saveState(state); renderSubmission(); updateScore();
+  toast('Submitted at '+pct.toFixed(1)+'%');
+}
+
+function renderSubmission(){
+  const banner=document.getElementById('submitBanner');
+  const btn=document.getElementById('btnSubmit');
+  const sub=state._submission;
+  if(!sub){ banner.style.display='none'; if(btn) btn.textContent='Submit to AST'; return; }
+  document.getElementById('sbDetail').textContent='Submitted '+fmtDate(sub.at)+' · '+sub.done+' of '+sub.applicable+' items resolved';
+  document.getElementById('sbScorePill').textContent=sub.score.toFixed(1)+'% '+sub.tag;
+  banner.style.display='flex'; if(btn) btn.textContent='Re-Submit';
+}
+
+let _tt;
+function toast(msg){ const e=document.getElementById('toast'); e.textContent=msg; e.classList.add('show'); clearTimeout(_tt); _tt=setTimeout(()=>e.classList.remove('show'),2200); }
+
+render();
+renderSubmission();
+</script>
+</body>
+</html>`;
+}
+
+function safPrintReport(){
+  const id=document.getElementById('saf-detail-content')?.dataset?.fileId;
+  if(!id){toast('No file open','err');return;}
+  toast('Opening print dialog…','ok');
+  setTimeout(()=>window.print(),400);
+}
+
+/* ── approve ────────────────────────────────────────── */
+
+async function approveSafetyFile(){
+  const id=document.getElementById('saf-detail-content')?.dataset?.fileId;
+  if(!id){toast('No file open','err');return;}
+  const file=proxyDB.safetyFiles.find(f=>f.id===id);
+  if(!file){toast('File not found','err');return;}
+  if(!confirm(`Approve safety file ${id} for ${file.contractor||'this contractor'}?\n\nThis will change the status to Approved.`)) return;
+  const r=await api('PUT','safety.php?id='+id,{action:'approve'});
+  if(!r.success){toast(r.error||'Approval failed','err');return;}
+  const raw=DB.safetyFiles.find(f=>(f.ref_id||f.id)===id);
+  if(raw) raw.status='Approved';
+  toast(id+' approved','ok');
+  renderSafetyFiles();
+  updateBadges();
+  // Refresh the detail header status text and button state
+  const sub=document.getElementById('saf-detail-sub');
+  if(sub) sub.textContent=sub.textContent.replace(/^[A-Z ]+(?=\s·)/,'APPROVED');
+  _safUpdateApproveBtn(id);
+}
+
+function _safUpdateApproveBtn(fileId){
+  const btn=document.getElementById('saf-approve-btn');
+  if(!btn) return;
+  const file=proxyDB.safetyFiles.find(f=>f.id===fileId);
+  const st=file?.status||'';
+  btn.style.display=(st==='Submitted'||st==='In Progress')?'':'none';
+}
+
+function _safUpdateDeactivateBtn(fileId){
+  const btn=document.getElementById('saf-deactivate-btn');
+  if(!btn) return;
+  const canDel=can('security.users')||can('safety.delete');
+  btn.style.display=canDel&&fileId?'':'none';
+}
+
+async function deactivateSafetyFile(){
+  const id=document.getElementById('saf-detail-content')?.dataset?.fileId;
+  const file=id?proxyDB.safetyFiles.find(f=>f.id===id):null;
+  if(!file){toast('No file open','err');return;}
+  if(!confirm('Deactivate safety file '+id+' for '+esc(file.contractor||'this contractor')+'?\n\nThe record will be hidden from the list but retained for audit purposes.\nContact an administrator to restore it if needed.')) return;
+  const r=await api('DELETE','safety.php?id='+encodeURIComponent(id),{});
+  if(!r.success){toast(r.error||'Failed to deactivate','err');return;}
+  const idx=DB.safetyFiles.findIndex(f=>(f.ref_id||f.id)===id);
+  if(idx!==-1) DB.safetyFiles.splice(idx,1);
+  toast(id+' deactivated — record retained for audit','info');
+  showPortalPage('p-safety',null);
+  renderSafetyFiles();
+  updateBadges();
+}
+
+/* ── attachments (detail view) ──────────────────────── */
+
+async function safLoadAttachments(fileId){
+  const r=await api('GET',`files.php?action=list&entity_type=safety_file&entity_ref=${encodeURIComponent(fileId)}`);
+  return r.success?(r.data?.attachments||r.attachments||[]):[];
+}
+
+function safRenderAttachments(fileId, attachments){
+  const panel=document.getElementById('saf-att-panel');
+  if(!panel) return;
+  if(!attachments.length){
+    panel.innerHTML=`<div class="saf-att-empty">No documents uploaded yet. Use the button above to attach supporting documents.</div>`;
+    return;
+  }
+  function fmtSize(b){ return b>1048576?(b/1048576).toFixed(1)+' MB':(b/1024).toFixed(0)+' KB'; }
+  function rowHtml(a){
+    return `<div class="saf-att-row">
+      <span class="saf-att-icon">${a.mime_type==='application/pdf'?'📄':a.mime_type?.includes('image')?'🖼':'📁'}</span>
+      <span class="saf-att-name">${esc(a.original_name)}</span>
+      <span class="saf-att-meta">${fmtSize(a.file_size)} · ${esc(a.uploaded_by)} · ${fmtD(a.created_at?.split(' ')[0])}</span>
+      ${(a.mime_type==='application/pdf'||a.mime_type?.startsWith('image/'))?`<button class="btn btn-g btn-xs" onclick="openDocViewer(${a.id},'${esc(a.original_name)}','${esc(a.mime_type)}')">&#128065; View</button>`:''}
+      <a class="btn btn-g btn-xs saf-att-dl" href="api/files.php?action=download&id=${a.id}" download="${esc(a.original_name)}">&#8595; Download</a>
+      <button class="btn btn-xs saf-att-del" onclick="safDeleteAttachment(${a.id},'${esc(fileId)}')">&#10005;</button>
+    </div>`;
+  }
+  // Build a key→title lookup from the global section list
+  const secTitles = {};
+  SAFETY_SECTIONS.forEach(s=>{ secTitles[s.key]=s.title; });
+  // Group by section: first char A-I + second char is digit
+  const groups={}, general=[];
+  const secRecords={}; // section key → combined sign-off attachment (A00_record_* naming)
+  attachments.forEach(a=>{
+    const n=a.original_name||'';
+    const k=n[0]?.toUpperCase();
+    if(k&&/[A-I]/.test(k)&&/\d/.test(n[1]||'')){
+      // Identify section sign-off record: second and third chars are "00"
+      if(n[1]==='0'&&n[2]==='0'){
+        secRecords[k]=a; // only one section sign-off per section
+      } else {
+        if(!groups[k]) groups[k]=[];
+        groups[k].push(a);
+      }
+    } else general.push(a);
+  });
+  let html='';
+  Object.keys(groups).sort().forEach(k=>{
+    html+=`<div class="saf-att-sec-hdr">${esc(secTitles[k]||'Section '+k)}<span class="saf-att-sec-count">${groups[k].length}</span></div>`;
+    html+=groups[k].map(rowHtml).join('');
+  });
+  if(general.length){
+    if(Object.keys(groups).length) html+=`<div class="saf-att-sec-hdr">General / Unclassified<span class="saf-att-sec-count">${general.length}</span></div>`;
+    html+=general.map(rowHtml).join('');
+  }
+  panel.innerHTML=html;
+  // Update section sign-off cells in the compliance summary table
+  SAFETY_SECTIONS.forEach(sec=>{
+    const cell=document.getElementById('saf-sec-doc-'+sec.key);
+    if(!cell) return;
+    const rec=secRecords[sec.key];
+    if(rec){
+      const canView=rec.mime_type==='application/pdf'||rec.mime_type?.startsWith('image/');
+      cell.innerHTML=`<span class="saf-sec-doc-link">
+        ${canView?`<button class="btn btn-g btn-xs" onclick="openDocViewer(${rec.id},'${esc(rec.original_name)}','${esc(rec.mime_type||'')}')">&#128065; View</button>`:''}
+        <a class="btn btn-g btn-xs" href="api/files.php?action=download&id=${rec.id}" download="${esc(rec.original_name)}">&#8595; Download</a>
+        <button class="btn btn-xs saf-cs-del-btn" onclick="safDeleteAttachment(${rec.id},'${esc(fileId)}')" title="Remove sign-off document">&#10005;</button>
+      </span>`;
+    } else {
+      cell.innerHTML=`<input type="file" id="saf-sec-file-${sec.key}" style="display:none" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.png" onchange="safSectionUpload(this,'${esc(fileId)}','${sec.key}')"><button class="btn btn-g btn-xs saf-sec-doc-btn" onclick="document.getElementById('saf-sec-file-${sec.key}').click()" title="Upload combined sign-off for all employees">&#128196; Upload</button>`;
+    }
+  });
+}
+
+async function safDetailUpload(input){
+  const fileId=document.getElementById('saf-detail-content')?.dataset?.fileId;
+  if(!fileId){toast('No file open','err');return;}
+  const file=proxyDB.safetyFiles.find(f=>f.id===fileId);
+  if(!file||fileId==='_new_'){toast('Save the audit before uploading','err');input.value='';return;}
+  if(!input.files.length) return;
+  let uploaded=0;
+  for(const f of input.files){
+    const finalName = await safRenameModal(_safSlugifyName(f.name)+'.'+f.name.split('.').pop().toLowerCase(), f.name);
+    if(finalName===null){ input.value=''; return; }
+    const renamed = new File([f], finalName, {type: f.type});
+    const fd=new FormData();
+    fd.append('entity_type','safety_file');
+    fd.append('entity_ref', fileId);
+    fd.append('file', renamed);
+    const r=await _safUploadFd(fd);
+    if(r.success) uploaded++;
+    else toast('Upload failed: '+esc(f.name),'err');
+  }
+  if(uploaded) toast(uploaded+' document(s) uploaded','ok');
+  input.value='';
+  const atts=await safLoadAttachments(fileId);
+  safRenderAttachments(fileId, atts);
+}
+
+async function safDeleteAttachment(attId, fileId){
+  if(!confirm('Remove this document from the safety file?')) return;
+  const r=await api('DELETE','files.php?id='+attId);
+  if(!r.success){toast(r.error||'Delete failed','err');return;}
+  toast('Document removed','ok');
+  const atts=await safLoadAttachments(fileId);
+  safRenderAttachments(fileId, atts);
+}
+
+/* ── section combined sign-off upload ───────────────── */
+
+async function safSectionUpload(input, fileId, sectionKey){
+  const f=input.files[0];
+  if(!f){input.value='';return;}
+  const file=proxyDB.safetyFiles.find(x=>x.id===fileId);
+  if(!file||fileId==='_new_'){toast('Save the audit before uploading','err');input.value='';return;}
+  const ext=f.name.split('.').pop().toLowerCase();
+  const canonName=sectionKey+'00_record_section-combined-signoff.'+ext;
+  const renamed=new File([f],canonName,{type:f.type});
+  const fd=new FormData();
+  fd.append('file',renamed);
+  fd.append('entity_type','safety_file');
+  fd.append('entity_ref',fileId);
+  toast('Uploading section record…','info');
+  try{
+    const r=await _safUploadFd(fd);
+    if(!r.success){toast(r.error||'Upload failed','err');input.value='';return;}
+    toast('Section '+sectionKey+' sign-off document uploaded','ok');
+    const atts=await safLoadAttachments(fileId);
+    safRenderAttachments(fileId,atts);
+  }catch(e){toast('Upload error: '+e.message,'err');}
+  input.value='';
+}
+
+/* ── personnel & compliance ─────────────────────────── */
+
+const COMPLIANCE_TYPES=[
+  {type:'AECI Site Induction',        category:'Induction',     scope:'Person',  months:12},
+  {type:'First Aid Certificate',      category:'Certification', scope:'Person',  months:36},
+  {type:'Fire Fighting Certificate',  category:'Certification', scope:'Person',  months:24},
+  {type:'Working at Heights',         category:'Certification', scope:'Person',  months:24},
+  {type:'Confined Space Entry',       category:'Certification', scope:'Person',  months:24},
+  {type:'COIDA Good Standing',        category:'Submission',    scope:'Company', months:12},
+  {type:'Public Liability Insurance', category:'Permit',        scope:'Company', months:12},
+  {type:'H&S Policy Review',          category:'Policy',        scope:'Company', months:12},
+  {type:'Risk Assessment Review',     category:'Submission',    scope:'Company', months:12},
+  {type:'Legal Appointment (16.2)',   category:'Submission',    scope:'Company', months:0},
+];
+
+function _complianceStatus(expiryDate){
+  if(!expiryDate) return {label:'No Expiry',cls:'saf-cs-none',days:null};
+  const today=new Date(); const exp=new Date(expiryDate);
+  today.setHours(0,0,0,0); exp.setHours(0,0,0,0);
+  const days=Math.round((exp-today)/86400000);
+  if(days<0)   return {label:'Overdue', cls:'saf-cs-overdue',days};
+  if(days<=30) return {label:'Due Soon',cls:'saf-cs-soon',   days};
+  return {label:'Current',cls:'saf-cs-ok',days};
+}
+
+/* Personnel */
+
+async function safLoadPersonnel(fileId){
+  const r=await api('GET','safety_personnel.php?file_ref='+encodeURIComponent(fileId));
+  return r.success?(r.data||[]):[];
+}
+
+function safRenderPersonnel(fileId,people){
+  const panel=document.getElementById('saf-personnel-panel');
+  if(!panel) return;
+  const active=people.filter(p=>p.is_active==1);
+  const gone  =people.filter(p=>p.is_active==0);
+
+  const activeRows=active.map(p=>`<tr>
+    <td>${esc(p.full_name)}</td>
+    <td>${esc(p.id_number||'—')}</td>
+    <td>${esc(p.role)}</td>
+    <td>${esc(p.company||'—')}</td>
+    <td><button class="btn btn-g btn-xs" onclick="safRemovePerson(${p.id},'${esc(fileId)}','${esc(p.full_name)}')">Remove</button></td>
+  </tr>`).join('');
+
+  let formerHtml='';
+  if(gone.length){
+    const rows=gone.map(p=>`<tr class="saf-prs-inactive-row">
+      <td>${esc(p.full_name)}</td>
+      <td>${esc(p.id_number||'—')}</td>
+      <td>${esc(p.role)}</td>
+      <td>${esc(p.company||'—')}</td>
+      <td>${p.removed_at?fmtD(p.removed_at):'—'}</td>
+      <td>${esc(p.removed_reason||'—')}</td>
+      <td><button class="btn btn-g btn-xs" onclick="safReinstatePerson(${p.id},'${esc(fileId)}')">Reinstate</button></td>
+    </tr>`).join('');
+    formerHtml=`<details class="saf-former-toggle mt1">
+      <summary>Former Personnel (${gone.length}) — retained for audit</summary>
+      <div class="tw mt1"><table class="saf-prs-tbl">
+        <thead><tr><th>Name</th><th>ID/Passport</th><th>Role</th><th>Company</th><th>Removed</th><th>Reason</th><th></th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>
+    </details>`;
+  }
+
+  panel.innerHTML=active.length?`
+    <div class="tw"><table class="saf-prs-tbl">
+      <thead><tr><th>Name</th><th>ID / Passport</th><th>Role</th><th>Company</th><th></th></tr></thead>
+      <tbody>${activeRows}</tbody>
+    </table></div>${formerHtml}`
+    :`<div class="saf-att-empty">No active personnel on file.${gone.length?' See former personnel below.':''}</div>${formerHtml}`;
+  _safPersonnelCache = people;
+  safUpdateComplianceHealth();
+}
+
+async function safAddPersonnel(fileId){
+  // Gather existing names from all safety files for datalist suggestions
+  const existing=[...new Set(
+    (proxyDB.safetyFiles||[]).flatMap(f=>(f._personnel||[]).map(p=>p.full_name)).filter(Boolean)
+      .concat((_safPersonnelCache||[]).map(p=>p.full_name))
+  )];
+  const dlOpts=existing.map(n=>`<option value="${esc(n)}">`).join('');
+  openModal('Add Person to Safety File',`
+    <div class="fgrid">
+      <div class="fgroup ffull"><label class="flbl">Full Name <span style="color:var(--ember)">*</span></label>
+        <input class="finput" id="prs-name" list="prs-name-dl" placeholder="Type or select name" autofocus autocomplete="off">
+        <datalist id="prs-name-dl">${dlOpts}</datalist>
+        <small class="flbl" style="color:var(--muted)">Select existing or type a new name to create a new record</small></div>
+      <div class="fgroup"><label class="flbl">ID / Passport No.</label>
+        <input class="finput" id="prs-id" placeholder="8001015009087"></div>
+      <div class="fgroup"><label class="flbl">Role <span style="color:var(--ember)">*</span></label>
+        <select class="finput" id="prs-role">
+          <option>Employee</option><option>Subcontractor</option><option>Supervisor</option>
+          <option>SHE Rep</option><option>First Aider</option><option>Other</option>
+        </select></div>
+      <div class="fgroup ffull"><label class="flbl">Company (if different from contractor)</label>
+        <input class="finput" id="prs-co" list="prs-co-dl" placeholder="Leave blank if same as contractor" autocomplete="off">
+        <datalist id="prs-co-dl">${[...new Set((proxyDB.safetyFiles||[]).map(f=>f.contractor).filter(Boolean))].map(n=>`<option value="${esc(n)}">`).join('')}</datalist></div>
+    </div>
+    <div class="mt2 flex-end"><button class="btn btn-p" onclick="safSavePersonnel('${fileId}')">Add Person</button></div>
+  `);
+}
+
+async function safSavePersonnel(fileId){
+  const name=(document.getElementById('prs-name')?.value||'').trim();
+  if(!name){toast('Name is required','err');return;}
+  const idNo =(document.getElementById('prs-id')?.value||'').trim();
+  const role = document.getElementById('prs-role')?.value||'Employee';
+  const co   =(document.getElementById('prs-co')?.value||'').trim();
+  const r=await api('POST','safety_personnel.php',{file_ref:fileId,full_name:name,id_number:idNo,role,company:co});
+  if(!r.success){toast(r.error||'Failed to add person','err');return;}
+  toast('Person added');
+  closeModalDirect();
+  const people=await safLoadPersonnel(fileId);
+  safRenderPersonnel(fileId,people);
+}
+
+async function safRemovePerson(id,fileId,name){
+  openModal('Remove Person from File',`
+    <p style="margin-bottom:12px;color:var(--muted)">
+      The record for <strong>${esc(name)}</strong> will be marked inactive but <em>kept for audit purposes</em>.<br>
+      This complies with the BF-SHE-FRM-010 audit trail requirement.
+    </p>
+    <div class="fgroup ffull"><label class="flbl">Reason for removal <span style="color:var(--ember)">*</span></label>
+      <input class="finput" id="prs-reason" placeholder="e.g. Left employment 2026-05-21" autofocus></div>
+    <div class="mt2 flex-end">
+      <button class="btn btn-g btn-s" onclick="closeModalDirect()" style="margin-right:8px">Cancel</button>
+      <button class="btn" style="background:#fee2e2;border-color:#dc2626;color:#dc2626"
+        onclick="safConfirmRemovePerson(${id},'${esc(fileId)}','${esc(name)}')">Remove from File</button>
+    </div>
+  `);
+}
+
+async function safConfirmRemovePerson(id,fileId,name){
+  const reason=(document.getElementById('prs-reason')?.value||'').trim();
+  if(!reason){toast('Reason is required','err');return;}
+  const r=await api('PUT',`safety_personnel.php?id=${id}&action=remove`,{reason});
+  if(!r.success){toast(r.error||'Failed','err');return;}
+  toast(name+' removed — record retained for audit','info');
+  closeModalDirect();
+  const people=await safLoadPersonnel(fileId);
+  safRenderPersonnel(fileId,people);
+}
+
+async function safReinstatePerson(id,fileId){
+  const r=await api('PUT',`safety_personnel.php?id=${id}&action=reinstate`,{});
+  if(!r.success){toast(r.error||'Failed','err');return;}
+  toast('Person reinstated');
+  const people=await safLoadPersonnel(fileId);
+  safRenderPersonnel(fileId,people);
+}
+
+/* ── compliance health ───────────────────────────── */
+
+let _safComplianceCache  = null;
+let _safPersonnelCache   = null;
+let _safLinkedUsersCache = null;
+
+function _calcComplianceHealth(records, people, linkedUsers, file) {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const blockers = [];
+
+  // ── 1. Expired or due-soon certificates ─────────────
+  records.forEach(rec => {
+    if (!rec.expiry_date) return;
+    const exp = new Date(rec.expiry_date); exp.setHours(0,0,0,0);
+    const days = Math.round((exp - today) / 86400000);
+    const who = rec.full_name ? rec.full_name : 'Company';
+    if (days < 0) {
+      blockers.push({
+        severity: 'expired',
+        label: `${rec.compliance_type} — ${who}`,
+        detail: `Expired ${Math.abs(days)} day${Math.abs(days)!==1?'s':''} ago (${fmtD(rec.expiry_date)})`
+      });
+    } else if (days <= 30) {
+      blockers.push({
+        severity: 'due_soon',
+        label: `${rec.compliance_type} — ${who}`,
+        detail: `Expires in ${days} day${days!==1?'s':''} (${fmtD(rec.expiry_date)})`
+      });
+    }
+  });
+
+  const active = people.filter(p => p.is_active == 1);
+
+  // ── 2. Active person missing AECI induction ──────────
+  active.forEach(person => {
+    const hasInduction = records.some(r => r.personnel_id == person.id && r.compliance_type === 'AECI Site Induction');
+    if (!hasInduction) {
+      blockers.push({
+        severity: 'missing',
+        label: `AECI induction missing — ${person.full_name}`,
+        detail: `${person.role||'Employee'} must have a valid AECI Site Induction on file`
+      });
+    }
+  });
+
+  // ── 3. Linked portal user not on active roster ───────
+  (linkedUsers || []).forEach(lu => {
+    const onFile = people.some(p => p.portal_user_id == lu.user_id && p.is_active == 1);
+    if (!onFile) {
+      blockers.push({
+        severity: 'missing',
+        label: `Portal user not on safety file — ${lu.name}`,
+        detail: `${lu.title||lu.role||'Portal user'} is linked but not in the active personnel roster`
+      });
+    }
+  });
+
+  if (file) {
+    // ── 4. Manpower count vs active roster ────────────
+    if (file.manpower > 0 && active.length < file.manpower) {
+      blockers.push({
+        severity: 'missing',
+        label: `Personnel roster incomplete (${active.length}/${file.manpower})`,
+        detail: `File declares ${file.manpower} workers but only ${active.length} are on the active roster`
+      });
+    }
+
+    // ── 5. Required roles ─────────────────────────────
+    if (file.sheReps > 0 && !active.some(p => /she.?rep/i.test(p.role))) {
+      blockers.push({
+        severity: 'missing',
+        label: 'SHE Rep not on personnel list',
+        detail: `${file.sheReps} SHE Rep(s) declared in header but none found in the active roster`
+      });
+    }
+    if (file.firstAiders > 0 && !active.some(p => /first.?aid/i.test(p.role))) {
+      blockers.push({
+        severity: 'missing',
+        label: 'First Aider not on personnel list',
+        detail: `${file.firstAiders} First Aider(s) declared in header but none found in the active roster`
+      });
+    }
+
+    // ── 6. Required company compliance records ────────
+    ['COIDA Good Standing','Public Liability Insurance','H&S Policy Review'].forEach(type => {
+      if (!records.some(r => r.scope === 'Company' && r.compliance_type === type)) {
+        blockers.push({
+          severity: 'missing',
+          label: `Company record missing — ${type}`,
+          detail: 'Required company-scope compliance document not yet on file'
+        });
+      }
+    });
+
+    // ── 7. Audit date > 12 months → re-audit due ─────
+    if (file.auditDate) {
+      const audited = new Date(file.auditDate); audited.setHours(0,0,0,0);
+      const daysSince = Math.round((today - audited) / 86400000);
+      if (daysSince > 365) {
+        blockers.push({
+          severity: 'expired',
+          label: 'Safety file review overdue',
+          detail: `Last audited ${fmtD(file.auditDate)} — ${Math.floor(daysSince/30)} months ago (review required every 12 months)`
+        });
+      } else if (daysSince > 335) {
+        blockers.push({
+          severity: 'due_soon',
+          label: 'Safety file review due soon',
+          detail: `Last audited ${fmtD(file.auditDate)} — annual review due in ${365 - daysSince} days`
+        });
+      }
+    }
+
+    // ── 8. Action plan items Open past deadline ───────
+    if (file.sections && file.auditDate) {
+      const band = safBand(safCalcScore(file).score);
+      if (band.actionDays) {
+        const auditD = new Date(file.auditDate); auditD.setHours(0,0,0,0);
+        const deadline = new Date(auditD); deadline.setDate(deadline.getDate() + band.actionDays);
+        if (today > deadline) {
+          let openCount = 0;
+          SAFETY_SECTIONS.forEach(sec => {
+            (file.sections[sec.key] || []).forEach(item => {
+              if (item.result === 'Not to Standard' && (!item.apStatus || item.apStatus === 'Open')) openCount++;
+            });
+          });
+          if (openCount > 0) {
+            blockers.push({
+              severity: 'expired',
+              label: `Action plan overdue — ${openCount} item${openCount!==1?'s':''} still Open`,
+              detail: `Deadline was ${fmtD(deadline.toISOString().slice(0,10))} (audit date + ${band.actionDays} working days)`
+            });
+          }
+        }
+      }
+    }
+  }
+
+  const critical = blockers.filter(b => b.severity === 'expired' || b.severity === 'missing');
+  const warnings = blockers.filter(b => b.severity === 'due_soon');
+  const status = critical.length ? 'non_compliant' : warnings.length ? 'warning' : 'compliant';
+  return { status, blockers, critical, warnings };
+}
+
+function safUpdateComplianceHealth() {
+  if (_safComplianceCache === null || _safPersonnelCache === null || _safLinkedUsersCache === null) return;
+  const el = document.getElementById('saf-comp-health-block');
+  if (!el) return;
+  const fileId = document.getElementById('saf-detail-content')?.dataset?.fileId;
+  const file = fileId ? proxyDB.safetyFiles.find(f => f.id === fileId) : null;
+  const { status, blockers, critical, warnings } = _calcComplianceHealth(
+    _safComplianceCache, _safPersonnelCache, _safLinkedUsersCache, file
+  );
+  if (status === 'compliant') {
+    el.className = 'saf-ch-block saf-ch-compliant';
+    el.innerHTML = '<div class="saf-ch-title">&#10003; Compliance records current</div>';
+    return;
+  }
+  const cls = status === 'non_compliant' ? 'saf-ch-non-compliant' : 'saf-ch-warning';
+  const title = status === 'non_compliant'
+    ? `&#9888; NON-COMPLIANT — ${critical.length} issue${critical.length!==1?'s':''}`
+    : `&#9888; ACTION REQUIRED — ${warnings.length} expir${warnings.length!==1?'ies':'y'} within 30 days`;
+  const items = blockers.map(b =>
+    `<div class="saf-ch-item"><strong>${esc(b.label)}</strong><br><span class="saf-ch-item-detail">${esc(b.detail)}</span></div>`
+  ).join('');
+  el.className = `saf-ch-block ${cls}`;
+  el.innerHTML = `<div class="saf-ch-title">${title}</div>${items}`;
+}
+
+/* ── linked portal users ──────────────────────────── */
+
+async function safLoadLinkedUsers(fileId) {
+  const r = await api('GET', 'safety_personnel.php?action=linked_users&file_ref=' + encodeURIComponent(fileId));
+  return r.success ? (r.data || []) : [];
+}
+
+function safRenderLinkedUsers(fileId, linkedUsers) {
+  const panel = document.getElementById('saf-linked-users-panel');
+  if (!panel) return;
+  _safLinkedUsersCache = linkedUsers;
+  safUpdateComplianceHealth();
+  if (!linkedUsers.length) {
+    panel.innerHTML = '<div class="saf-att-empty">No portal users linked. Click "+ Link User" to associate on-site portal accounts with this file.</div>';
+    return;
+  }
+  const rows = linkedUsers.map(lu => `<tr>
+    <td>${esc(lu.name)}</td>
+    <td>${esc(lu.username)}</td>
+    <td>${esc(lu.title || lu.role || '—')}</td>
+    <td><button class="btn btn-xs saf-cs-del-btn" onclick="safUnlinkUser(${lu.user_id},'${esc(fileId)}','${esc(lu.name)}')">&#10005;</button></td>
+  </tr>`).join('');
+  panel.innerHTML = `<div class="tw"><table class="saf-prs-tbl">
+    <thead><tr><th>Name</th><th>Username</th><th>Role / Title</th><th></th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>`;
+}
+
+async function safLinkPortalUser(fileId) {
+  const allUsers = proxyDB.users || [];
+  const linked   = _safLinkedUsersCache || [];
+  const linkedIds = new Set(linked.map(lu => lu.user_id));
+  const available = allUsers.filter(u => u.active != 0 && !linkedIds.has(u.id));
+  if (!available.length) { toast('No available portal users to link', 'info'); return; }
+  const opts = available.map(u => `<option value="${u.id}">${esc(u.name)} (${esc(u.role||u.title||'—')})</option>`).join('');
+  openModal('Link Portal User to Safety File', `
+    <p style="margin-bottom:10px;color:var(--muted);font-size:.88rem">
+      Linking a user adds them to the personnel roster and triggers the AECI induction check.
+    </p>
+    <div class="fgroup ffull">
+      <label class="flbl">Portal User <span style="color:var(--ember)">*</span></label>
+      <select class="finput" id="link-user-sel">
+        <option value="">— Select user —</option>
+        ${opts}
+      </select>
+    </div>
+    <div class="mt2 flex-end">
+      <button class="btn btn-g btn-s" onclick="closeModalDirect()" style="margin-right:8px">Cancel</button>
+      <button class="btn btn-p" onclick="safConfirmLinkUser('${fileId}')">Link User</button>
+    </div>
+  `);
+}
+
+async function safConfirmLinkUser(fileId) {
+  const uid = parseInt(document.getElementById('link-user-sel')?.value || '0');
+  if (!uid) { toast('Select a user', 'err'); return; }
+  const r = await api('POST', 'safety_personnel.php', { action: 'link_user', file_ref: fileId, user_id: uid });
+  if (!r.success) { toast(r.error || 'Failed to link user', 'err'); return; }
+  toast('User linked — added to personnel roster', 'ok');
+  closeModalDirect();
+  const [people, linked] = await Promise.all([safLoadPersonnel(fileId), safLoadLinkedUsers(fileId)]);
+  safRenderPersonnel(fileId, people);
+  safRenderLinkedUsers(fileId, linked);
+}
+
+async function safUnlinkUser(userId, fileId, name) {
+  if (!confirm(`Unlink ${name} from this safety file? Their personnel record will be marked inactive.`)) return;
+  const r = await api('DELETE', `safety_personnel.php?action=unlink_user&file_ref=${encodeURIComponent(fileId)}&user_id=${userId}`, {});
+  if (!r.success) { toast(r.error || 'Failed to unlink', 'err'); return; }
+  toast(name + ' unlinked', 'info');
+  const [people, linked] = await Promise.all([safLoadPersonnel(fileId), safLoadLinkedUsers(fileId)]);
+  safRenderPersonnel(fileId, people);
+  safRenderLinkedUsers(fileId, linked);
+}
+
+/* Compliance */
+
+async function safLoadCompliance(fileId){
+  const r=await api('GET','safety_compliance.php?file_ref='+encodeURIComponent(fileId));
+  return r.success?(r.data||[]):[];
+}
+
+function safRenderCompliance(fileId,records){
+  const panel=document.getElementById('saf-compliance-panel');
+  if(!panel) return;
+  _safComplianceCache = records;
+  safUpdateComplianceHealth();
+  if(!records.length){
+    panel.innerHTML='<div class="saf-att-empty">No compliance records yet. Add AECI inductions, certifications, and yearly submissions above.</div>';
+    return;
+  }
+  const rows=records.map(rec=>{
+    const st=_complianceStatus(rec.expiry_date);
+    const dNote=st.days!==null?(st.days<0?`${Math.abs(st.days)}d overdue`:`${st.days}d left`):'';
+    const holder=rec.full_name?`${esc(rec.full_name)} <span class="saf-cs-role">${esc(rec.role||'')}</span>`:'<em>Company</em>';
+    const hasDoc=rec.att_id;
+    const docCell=hasDoc
+      ?`<span class="saf-doc-badge" title="${esc(rec.att_name||'')}">
+           📄 ${(rec.att_mime==='application/pdf'||rec.att_mime?.startsWith('image/'))?`<button class="btn btn-xs" onclick="openDocViewer(${rec.att_id},'${esc(rec.att_name||'document')}','${esc(rec.att_mime||'')}')" title="View document">&#128065;</button>`:''}
+           <a class="saf-doc-dl" href="api/files.php?action=download&id=${rec.att_id}" download="${esc(rec.att_name||'document')}">↓</a>
+           <button class="btn btn-xs saf-cs-del-btn" onclick="safReplaceComplianceDoc(${rec.id},'${esc(fileId)}',${rec.att_id})" title="Replace document">↺</button>
+         </span>`
+      :`<input type="file" id="saf-cdoc-${rec.id}" style="display:none" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                onchange="safUploadComplianceDoc(${rec.id},'${esc(fileId)}',this)">
+         <button class="btn btn-g btn-xs" onclick="document.getElementById('saf-cdoc-${rec.id}').click()" title="Attach one document">+ Doc</button>`;
+    return `<tr>
+      <td>${esc(rec.compliance_type)}<br><small class="saf-cs-cat">${esc(rec.category)}</small></td>
+      <td>${holder}</td>
+      <td>${rec.issue_date?fmtD(rec.issue_date):'—'}</td>
+      <td>${rec.expiry_date?fmtD(rec.expiry_date):'—'}</td>
+      <td><span class="saf-cs-badge ${st.cls}">${st.label}</span>${dNote?` <small class="saf-cs-days">${dNote}</small>`:''}</td>
+      <td class="saf-doc-cell">${docCell}</td>
+      <td>
+        <button class="btn btn-g btn-xs" onclick="safEditCompliance(${rec.id},'${esc(fileId)}')">Edit</button>
+        <button class="btn btn-xs saf-cs-del-btn" onclick="safDeleteCompliance(${rec.id},'${esc(fileId)}')">&#10005;</button>
+      </td>
+    </tr>`;
+  }).join('');
+  panel.innerHTML=`<div class="tw"><table class="saf-comp-tbl">
+    <thead><tr><th>Type / Category</th><th>Holder</th><th>Issued</th><th>Expires</th><th>Status</th><th>Doc</th><th></th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>`;
+}
+
+async function safAddCompliance(fileId){
+  const people=await safLoadPersonnel(fileId);
+  const active=people.filter(p=>p.is_active==1);
+  // Datalist with active personnel names — allow typing a new name to create on the fly
+  const prsOpts=active.map(p=>`<option data-id="${p.id}" value="${esc(p.full_name)}">`).join('');
+  const typeOpts=COMPLIANCE_TYPES.map((t,i)=>
+    `<option value="${i}" data-cat="${t.category}" data-scope="${t.scope}" data-months="${t.months}">${t.type}</option>`
+  ).join('');
+
+  openModal('Add Training / Compliance Record',`
+    <div class="fgrid">
+      <div class="fgroup ffull">
+        <label class="flbl">Type <span style="color:var(--ember)">*</span></label>
+        <select class="finput" id="cmp-type-sel" onchange="safCmpTypeChanged()">
+          <option value="">— Select standard type —</option>
+          ${typeOpts}
+          <option value="custom">Custom / Other…</option>
+        </select>
+      </div>
+      <div class="fgroup ffull" id="cmp-custom-row" style="display:none">
+        <label class="flbl">Custom type name</label>
+        <input class="finput" id="cmp-custom-name" placeholder="e.g. Rigging Certificate">
+      </div>
+      <div class="fgroup">
+        <label class="flbl">Category</label>
+        <select class="finput" id="cmp-category">
+          <option>Induction</option><option>Certification</option><option>Submission</option>
+          <option>Permit</option><option>Policy</option><option selected>Other</option>
+        </select>
+      </div>
+      <div class="fgroup">
+        <label class="flbl">Scope</label>
+        <select class="finput" id="cmp-scope" onchange="safCmpScopeChanged()">
+          <option>Person</option><option>Company</option>
+        </select>
+      </div>
+      <div class="fgroup ffull" id="cmp-person-row">
+        <label class="flbl">Person (leave blank for company-level)</label>
+        <input class="finput" id="cmp-person" list="cmp-person-dl" placeholder="Type or select person name, or leave blank" autocomplete="off">
+        <datalist id="cmp-person-dl"><option value="">${prsOpts}</datalist>
+        <small class="flbl" style="color:var(--muted)">Type a new name to add them to the personnel roster automatically</small>
+      </div>
+      <div class="fgroup">
+        <label class="flbl">Issue / Completion Date <span style="color:var(--ember)">*</span></label>
+        <input class="finput" type="date" id="cmp-issue" onchange="safCmpCalcExpiry()">
+      </div>
+      <div class="fgroup">
+        <label class="flbl">Renewal cycle (months, 0 = never expires)</label>
+        <input class="finput" type="number" id="cmp-months" value="12" min="0" onchange="safCmpCalcExpiry()">
+      </div>
+      <div class="fgroup ffull">
+        <label class="flbl">Expiry / Renewal date (auto-calculated — override if needed)</label>
+        <input class="finput" type="date" id="cmp-expiry">
+      </div>
+      <div class="fgroup ffull">
+        <label class="flbl">Notes</label>
+        <input class="finput" id="cmp-notes" placeholder="e.g. Certificate no., training provider">
+      </div>
+    </div>
+    <div class="mt2 flex-end"><button class="btn btn-p" onclick="safSaveCompliance('${fileId}')">Add Record</button></div>
+  `);
+}
+
+function safCmpTypeChanged(){
+  const sel=document.getElementById('cmp-type-sel');
+  const val=sel.value;
+  document.getElementById('cmp-custom-row').style.display=val==='custom'?'':'none';
+  if(val===''||val==='custom') return;
+  const t=COMPLIANCE_TYPES[parseInt(val)];
+  if(!t) return;
+  document.getElementById('cmp-category').value=t.category;
+  document.getElementById('cmp-scope').value=t.scope;
+  document.getElementById('cmp-months').value=t.months;
+  safCmpScopeChanged();
+  safCmpCalcExpiry();
+}
+
+function safCmpScopeChanged(){
+  const scope=document.getElementById('cmp-scope')?.value;
+  const row=document.getElementById('cmp-person-row');
+  if(row) row.style.display=scope==='Company'?'none':'';
+}
+
+function safCmpCalcExpiry(){
+  const issue=document.getElementById('cmp-issue')?.value;
+  const months=parseInt(document.getElementById('cmp-months')?.value||'0');
+  if(!issue||!months) return;
+  const d=new Date(issue);
+  d.setMonth(d.getMonth()+months);
+  document.getElementById('cmp-expiry').value=d.toISOString().split('T')[0];
+}
+
+async function safSaveCompliance(fileId){
+  const sel=document.getElementById('cmp-type-sel');
+  const val=sel?.value||'';
+  let cType,category,scope;
+  if(val==='custom'){
+    cType=(document.getElementById('cmp-custom-name')?.value||'').trim();
+    if(!cType){toast('Enter a type name','err');return;}
+  } else if(val!==''){
+    cType=COMPLIANCE_TYPES[parseInt(val)]?.type;
+  } else {toast('Select a compliance type','err');return;}
+  category=document.getElementById('cmp-category')?.value||'Other';
+  scope   =document.getElementById('cmp-scope')?.value||'Person';
+  const issueDate =(document.getElementById('cmp-issue')?.value||null);
+  const expiryDate=(document.getElementById('cmp-expiry')?.value||null);
+  const months    =parseInt(document.getElementById('cmp-months')?.value||'12');
+  const personName=(document.getElementById('cmp-person')?.value||'').trim();
+  const notes     =(document.getElementById('cmp-notes')?.value||'').trim();
+  if(!issueDate){toast('Issue date is required','err');return;}
+  // Resolve person name → personnel ID; create if not on file yet
+  let personId = null;
+  if(personName && scope!=='Company'){
+    const existing=(_safPersonnelCache||[]).find(p=>p.full_name===personName&&p.is_active==1);
+    if(existing){
+      personId=existing.id;
+    } else {
+      const nr=await api('POST','safety_personnel.php',{file_ref:fileId,full_name:personName,id_number:'',role:'Employee',company:''});
+      if(!nr.success){toast('Could not create personnel record for '+personName,'err');return;}
+      personId=nr.data?.id||null;
+      // Refresh cache so health check sees the new person
+      const freshPeople=await safLoadPersonnel(fileId);
+      safRenderPersonnel(fileId,freshPeople);
+    }
+  }
+  const r=await api('POST','safety_compliance.php',{
+    file_ref:fileId,compliance_type:cType,category,scope,
+    issue_date:issueDate,expiry_date:expiryDate,renewal_months:months,
+    personnel_id:personId,notes
+  });
+  if(!r.success){toast(r.error||'Failed','err');return;}
+  toast('Compliance record added');
+  closeModalDirect();
+  const recs=await safLoadCompliance(fileId);
+  safRenderCompliance(fileId,recs);
+}
+
+async function safEditCompliance(id,fileId){
+  const r=await api('GET','safety_compliance.php?file_ref='+encodeURIComponent(fileId));
+  if(!r.success) return;
+  const rec=(r.data||[]).find(x=>x.id==id);
+  if(!rec) return;
+  openModal('Edit Compliance Record',`
+    <div class="fgrid">
+      <div class="fgroup ffull"><label class="flbl">Type</label>
+        <input class="finput" id="cedit-type" value="${esc(rec.compliance_type)}" placeholder="Type name"></div>
+      <div class="fgroup">
+        <label class="flbl">Issue Date</label>
+        <input class="finput" type="date" id="cedit-issue" value="${rec.issue_date||''}" onchange="safCEditCalcExpiry()">
+      </div>
+      <div class="fgroup">
+        <label class="flbl">Renewal (months)</label>
+        <input class="finput" type="number" id="cedit-months" value="${rec.renewal_months||12}" min="0" onchange="safCEditCalcExpiry()">
+      </div>
+      <div class="fgroup ffull">
+        <label class="flbl">Expiry Date</label>
+        <input class="finput" type="date" id="cedit-expiry" value="${rec.expiry_date||''}">
+      </div>
+      <div class="fgroup ffull"><label class="flbl">Notes</label>
+        <input class="finput" id="cedit-notes" value="${esc(rec.notes||'')}" placeholder="Notes"></div>
+    </div>
+    <div class="mt2 flex-end"><button class="btn btn-p" onclick="safSaveEditCompliance(${id},'${esc(fileId)}')">Save</button></div>
+  `);
+}
+
+function safCEditCalcExpiry(){
+  const issue=document.getElementById('cedit-issue')?.value;
+  const months=parseInt(document.getElementById('cedit-months')?.value||'0');
+  if(!issue||!months) return;
+  const d=new Date(issue);
+  d.setMonth(d.getMonth()+months);
+  document.getElementById('cedit-expiry').value=d.toISOString().split('T')[0];
+}
+
+async function safSaveEditCompliance(id,fileId){
+  const cType=(document.getElementById('cedit-type')?.value||'').trim();
+  if(!cType){toast('Type name required','err');return;}
+  const issueDate  =document.getElementById('cedit-issue')?.value||null;
+  const expiryDate =document.getElementById('cedit-expiry')?.value||null;
+  const months     =parseInt(document.getElementById('cedit-months')?.value||'12');
+  const notes      =(document.getElementById('cedit-notes')?.value||'').trim();
+  const r=await api('PUT','safety_compliance.php?id='+id,{
+    compliance_type:cType,issue_date:issueDate,expiry_date:expiryDate,renewal_months:months,notes
+  });
+  if(!r.success){toast(r.error||'Failed','err');return;}
+  toast('Record updated');
+  closeModalDirect();
+  const recs=await safLoadCompliance(fileId);
+  safRenderCompliance(fileId,recs);
+}
+
+async function safUploadComplianceDoc(recId, fileId, input){
+  if(!input.files.length) return;
+  const fd=new FormData();
+  fd.append('entity_type','safety_compliance');
+  fd.append('entity_ref', String(recId));
+  fd.append('file', input.files[0]);
+  input.value='';
+  const r=await _safUploadFd(fd);
+  if(!r.success){toast(r.error||'Upload failed','err');return;}
+  toast('Document attached','ok');
+  const recs=await safLoadCompliance(fileId);
+  safRenderCompliance(fileId,recs);
+}
+
+async function safReplaceComplianceDoc(recId, fileId, attId){
+  if(!confirm('Remove the existing document and attach a new one?')) return;
+  const del=await api('DELETE','files.php?id='+attId);
+  if(!del.success){toast(del.error||'Delete failed','err');return;}
+  // Open file picker to immediately upload the replacement
+  const inp=document.createElement('input');
+  inp.type='file';
+  inp.accept='.pdf,.doc,.docx,.jpg,.jpeg,.png';
+  inp.onchange=()=>safUploadComplianceDoc(recId,fileId,inp);
+  inp.click();
+}
+
+async function safDeleteCompliance(id,fileId){
+  if(!confirm('Delete this compliance record?')) return;
+  const r=await api('DELETE','safety_compliance.php?id='+id);
+  if(!r.success){toast(r.error||'Failed','err');return;}
+  toast('Record deleted');
+  const recs=await safLoadCompliance(fileId);
+  safRenderCompliance(fileId,recs);
+}
+
+/* ── policy acknowledgments ─────────────────────────── */
+
+async function safLoadPolicyAcks(fileId){
+  const r=await api('GET','safety_policy.php?file_ref='+encodeURIComponent(fileId));
+  return r.success?(r.data||[]):[];
+}
+
+function safRenderPolicyAcks(fileId,acks){
+  const panel=document.getElementById('saf-policy-ack-panel');
+  if(!panel) return;
+  if(!acks.length){
+    panel.innerHTML='<div class="saf-att-empty">No policy acknowledgment requests yet. Use "+ Send Policy" to create one.</div>';
+    return;
+  }
+  const stMap={Pending:'saf-cs-none',Sent:'saf-cs-soon',Acknowledged:'saf-cs-ok',Declined:'saf-cs-overdue'};
+  const rows=acks.map(a=>{
+    const st=stMap[a.status]||'saf-cs-none';
+    const acked=a.acked_at?fmtD(a.acked_at.split(' ')[0]):'—';
+    return `<tr>
+      <td>${esc(a.policy_title)}</td>
+      <td>${esc(a.recipient_name)}</td>
+      <td>${esc(a.recipient_email||'—')}</td>
+      <td><span class="saf-cs-badge ${st}">${esc(a.status)}</span></td>
+      <td>${acked}</td>
+      <td>
+        ${a.status!=='Acknowledged'&&a.status!=='Declined'?`<button class="btn btn-g btn-xs" onclick="safManualAck(${a.id},'${esc(fileId)}')">&#10003; Mark Ack'd</button>`:''}
+        ${a.recipient_email&&a.status!=='Acknowledged'?`<button class="btn btn-g btn-xs" onclick="safResendPolicyAck(${a.id},'${esc(fileId)}')">&#9993; Resend</button>`:''}
+        <button class="btn btn-xs saf-cs-del-btn" onclick="safDeletePolicyAck(${a.id},'${esc(fileId)}')">&#10005;</button>
+      </td>
+    </tr>`;
+  }).join('');
+  panel.innerHTML=`<div class="tw"><table class="saf-comp-tbl">
+    <thead><tr><th>Policy</th><th>Recipient</th><th>Email</th><th>Status</th><th>Acknowledged</th><th></th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>`;
+}
+
+function safAddPolicyAck(fileId){
+  const file=proxyDB.safetyFiles.find(f=>f.id===fileId);
+  const people=_safPersonnelCache||[];
+  const active=people.filter(p=>p.is_active==1);
+  const dlOpts=active.map(p=>`<option value="${esc(p.full_name)}">`).join('');
+  const COMMON_POLICIES=[
+    'Health & Safety Policy','PPE Policy & Procedure','Emergency Evacuation Procedure',
+    'Incident & Near-Miss Reporting Procedure','Contractor Site Rules & Induction',
+    'Working at Heights Procedure','Hazardous Chemical Handling Procedure',
+    'Toolbox Talk — General Site Safety',
+  ];
+  const polOpts=COMMON_POLICIES.map(p=>`<option value="${esc(p)}">`).join('');
+  openModal('Send Policy for Acknowledgment',`
+    <div class="fgrid">
+      <div class="fgroup ffull"><label class="flbl">Policy / Procedure Title <span style="color:var(--ember)">*</span></label>
+        <input class="finput" id="pak-title" list="pak-title-dl" placeholder="Select or type policy name" autocomplete="off" autofocus>
+        <datalist id="pak-title-dl">${polOpts}</datalist></div>
+      <div class="fgroup ffull"><label class="flbl">Policy Content / Summary (optional — shown to recipient)</label>
+        <textarea class="finput" id="pak-body" rows="4" placeholder="Paste key points or summary of the policy..."></textarea></div>
+      <div class="fgroup"><label class="flbl">Recipient Name <span style="color:var(--ember)">*</span></label>
+        <input class="finput" id="pak-name" list="pak-name-dl" placeholder="Type or select person" autocomplete="off">
+        <datalist id="pak-name-dl">${dlOpts}</datalist></div>
+      <div class="fgroup"><label class="flbl">Recipient Email (optional — leave blank for in-person sign-off)</label>
+        <input class="finput" id="pak-email" type="email" placeholder="employee@company.co.za"></div>
+    </div>
+    <div class="mt2 flex-end">
+      <button class="btn btn-g btn-s" onclick="closeModalDirect()" style="margin-right:8px">Cancel</button>
+      <button class="btn btn-p" onclick="safSavePolicyAck('${fileId}')">Create &amp; Send</button>
+    </div>
+  `);
+}
+
+async function safSavePolicyAck(fileId){
+  const title=(document.getElementById('pak-title')?.value||'').trim();
+  const body =(document.getElementById('pak-body')?.value||'').trim();
+  const name =(document.getElementById('pak-name')?.value||'').trim();
+  const email=(document.getElementById('pak-email')?.value||'').trim();
+  if(!title){toast('Policy title is required','err');return;}
+  if(!name) {toast('Recipient name is required','err');return;}
+  const r=await api('POST','safety_policy.php',{file_ref:fileId,policy_title:title,policy_body:body,recipient_name:name,recipient_email:email});
+  if(!r.success){toast(r.error||'Failed','err');return;}
+  toast(email?'Policy sent to '+email:'Acknowledgment request created — mark acknowledged when signed','ok');
+  closeModalDirect();
+  const acks=await safLoadPolicyAcks(fileId);
+  safRenderPolicyAcks(fileId,acks);
+}
+
+async function safManualAck(id,fileId){
+  if(!confirm('Mark this policy as acknowledged (in-person sign-off)?\n\nThis records the acknowledgment with the current date and time.')) return;
+  const r=await api('PUT','safety_policy.php?id='+id,{action:'manual_ack'});
+  if(!r.success){toast(r.error||'Failed','err');return;}
+  toast('Acknowledgment recorded','ok');
+  const acks=await safLoadPolicyAcks(fileId);
+  safRenderPolicyAcks(fileId,acks);
+}
+
+async function safResendPolicyAck(id,fileId){
+  const r=await api('PUT','safety_policy.php?id='+id,{action:'resend'});
+  if(!r.success){toast(r.error||'Failed to resend email','err');return;}
+  toast('Email resent','ok');
+  const acks=await safLoadPolicyAcks(fileId);
+  safRenderPolicyAcks(fileId,acks);
+}
+
+async function safDeletePolicyAck(id,fileId){
+  if(!confirm('Remove this policy acknowledgment record?')) return;
+  const r=await api('DELETE','safety_policy.php?id='+id);
+  if(!r.success){toast(r.error||'Failed','err');return;}
+  toast('Record removed');
+  const acks=await safLoadPolicyAcks(fileId);
+  safRenderPolicyAcks(fileId,acks);
+}
+
+/* ── badge count ────────────────────────────────────── */
+
+function safBadgeCount(){
+  if(!proxyDB.safetyFiles) return 0;
+  return proxyDB.safetyFiles.filter(f=>f.status==='Submitted').length;
+}

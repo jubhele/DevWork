@@ -93,8 +93,9 @@ return [
     'app_name'     => 'Umlilo Portal',
     'app_version'  => '1.1',
     'app_env'      => 'production',
-    'base_url'     => 'https://blackfiresolutions.co.za',
-    'api_base'     => 'https://blackfiresolutions.co.za/api',
+    'base_url'        => 'https://blackfiresolutions.co.za',
+    'api_base'        => 'https://blackfiresolutions.co.za/api',
+    'portal_base_url' => 'https://blackfiresolutions.co.za',
 
     // �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
     // SECURITY & SESSION

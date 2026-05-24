@@ -2,7 +2,8 @@
 ob_start();
 /**
  * Umlilo Portal — Audit Log API
- * GET /api/audit.php
+ * GET  /api/audit.php         — list entries (requires security.audit)
+ * POST /api/audit.php         — submit a page suggestion (any authenticated user)
  */
 
 require_once __DIR__ . '/../includes/db.php';
@@ -12,6 +13,17 @@ require_once __DIR__ . '/../includes/helpers.php';
 $cfg = require __DIR__ . '/../config/config.php';
 date_default_timezone_set($cfg['timezone'] ?? 'Africa/Johannesburg');
 api_headers();
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $user    = require_auth();
+    $body    = get_body();
+    $comment = clean($body['comment'] ?? '', 500);
+    $page    = clean($body['page']    ?? '', 100);
+    if (!$comment) json_err('Comment is required');
+    audit($user['username'], 'PAGE_SUGGESTION', "[{$page}] {$comment}");
+    json_ok(['ok' => true]);
+}
+
 require_perm('security.audit');
 
 $pg     = get_pagination();

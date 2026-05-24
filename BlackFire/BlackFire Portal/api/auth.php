@@ -65,7 +65,7 @@ if ($action === 'login' && $method === 'POST') {
 
     // Rate limiting (simple: lock account after 10 fails — via failed_attempts column)
     $row = db_row(
-        "SELECT id, username, password_hash, name, role, title, active FROM bf_users WHERE username = ?",
+        "SELECT id, username, password_hash, name, role, title, active, client_id FROM bf_users WHERE username = ?",
         [$username]
     );
 
@@ -86,11 +86,12 @@ if ($action === 'login' && $method === 'POST') {
 
     // Build session user object
     $session_user = [
-        'id'       => (int) $row['id'],
-        'username' => $row['username'],
-        'name'     => $row['name'],
-        'role'     => $row['role'],
-        'title'    => $row['title'],
+        'id'        => (int) $row['id'],
+        'username'  => $row['username'],
+        'name'      => $row['name'],
+        'role'      => $row['role'],
+        'title'     => $row['title'],
+        'client_id' => $row['client_id'] !== null ? (int)$row['client_id'] : null,
     ];
 
     bf_session_start();

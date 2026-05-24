@@ -5,6 +5,21 @@ ob_start();
  * PDO singleton with UTF-8 MB4
  */
 
+// Catch any unhandled exception or fatal error and return JSON so the client
+// always gets a parseable response instead of an empty 500 body.
+set_exception_handler(function (Throwable $e): void {
+    ob_end_clean();
+    if (!headers_sent()) {
+        http_response_code(500);
+        header('Content-Type: application/json');
+    }
+    $msg = (ini_get('display_errors') || (defined('APP_DEBUG') && APP_DEBUG))
+        ? $e->getMessage()
+        : 'Server error';
+    echo json_encode(['success' => false, 'error' => $msg]);
+    exit;
+});
+
 function get_db(): PDO {
     static $pdo = null;
     if ($pdo !== null) return $pdo;
@@ -25,6 +40,7 @@ function get_db(): PDO {
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             PDO::ATTR_EMULATE_PREPARES   => false,
         ]);
+        $pdo->exec("SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci");
     } catch (PDOException $e) {
         // Don't expose connection details in output
         http_response_code(503);
@@ -83,7 +99,7 @@ function next_ref_id(string $type, ?string $date = null): string {
     $stmt->execute([$type]);
     $row    = db_row("SELECT current_value FROM bf_counters WHERE counter_type = ?", [$type]);
     $n      = $row['current_value'] ?? 1;
-    $prefix = ['co' => 'CO', 'q' => 'Q', 'inv' => 'INV', 'stmt' => 'STMT'][$type] ?? strtoupper($type);
+    $prefix = ['co' => 'CO', 'q' => 'Q', 'inv' => 'INV', 'stmt' => 'STMT', 'saf' => 'SAF'][$type] ?? strtoupper($type);
     $dmy    = (new DateTime($date ?? 'now'))->format('dmy');
     return $prefix . '-' . $dmy . '-' . str_pad($n, 4, '0', STR_PAD_LEFT);
 }

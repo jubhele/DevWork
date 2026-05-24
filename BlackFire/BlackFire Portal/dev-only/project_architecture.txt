@@ -1,0 +1,747 @@
+=========================================
+       PROJECT ARCHITECTURE REPORT       
+=========================================
+
+--- DIRECTORY TREE ---
+[DIR] BlackFire Portal/
+    .htaccess
+    a - Copy.py
+    a.py
+    approve.php
+    bhekani_bo.php
+    error_log
+    index.php
+    portal - Copy.css
+    portal - Copy.js
+    portal - Copy.php
+    portal.css
+    portal.js
+    portal.php
+    refactor_portal.py
+    [DIR] .well-known/
+        [DIR] acme-challenge/
+    [DIR] api/
+        .env
+        .htaccess
+        admin.php
+        approvals.php
+        approve.php
+        audit.php
+        auth.php
+        callouts.php
+        clients.php
+        dashboard.php
+        error_log
+        files.php
+        index.php
+        invoices.php
+        payments.php
+        portal.css
+        portal.js
+        portal.php
+        portal_refactored.php
+        quotes.php
+        refactor_portal.py
+        safety.php
+        safety_compliance.php
+        safety_personnel.php
+        statements.php
+        transactions.php
+        users.php
+        [DIR] _backups/
+            portal_backup_20260521_003532.php
+    [DIR] cgi-bin/
+    [DIR] config/
+        .htaccess
+        config.php
+    [DIR] includes/
+        .htaccess
+        auth.php
+        db.php
+        helpers.php
+        mailer.php
+    [DIR] install/
+        add_pay_counter.sql
+        clients_migration.sql
+        drop_seed_backups.sql
+        link_users_migration.sql
+        personnel_compliance_migration.sql
+        rbac_full_migration.sql
+        relationships_migration.sql
+        safety_attachments_seed.sql
+        safety_migration.sql
+        safety_seed_astute.sql
+    [DIR] uploads/
+        [DIR] attachments/
+            .htaccess
+        [DIR] pending_approval/
+    [DIR] _backups/
+        api_portal_css_backup_20260520_232759.css
+        audit_backup_20260521_232353.php
+        auth_backup_20260521_031506.php
+        auth_backup_20260521_214416.php
+        bhekani_bo_backup_20260521_071516.php
+        bhekani_bo_backup_20260521_072253.php
+        bhekani_bo_backup_20260521_205612.php
+        bhekani_bo_backup_20260521_210252.php
+        bhekani_bo_backup_20260521_222418.php
+        bheka_Bo_backup_20260521_062444.php
+        callouts_backup_20260521_214416.php
+        callouts_backup_20260521_220107.php
+        db_backup_20260521_082834.php
+        files_backup_20260521_082834.php
+        files_backup_20260521_193125.php
+        files_backup_20260522_013022.php
+        invoices_backup_20260521_214416.php
+        invoices_backup_20260521_220107.php
+        mailer_backup_20260521_082834.php
+        payments_backup_20260521_220107.php
+        portal.css_backup_20260521_222411.css
+        portal_backup_20260520_214409.php
+        portal_backup_20260520_215333.php
+        portal_backup_20260520_233943.php
+        portal_backup_20260521_011127.php
+        portal_backup_20260521_014433.css
+        portal_backup_20260521_020624.css
+        portal_backup_20260521_020624.php
+        portal_backup_20260521_023722.css
+        portal_backup_20260521_024651.php
+        portal_backup_20260521_025042.css
+        portal_backup_20260521_031506.css
+        portal_backup_20260521_031506.js
+        portal_backup_20260521_044910.css
+        portal_backup_20260521_045840.css
+        portal_backup_20260521_045840.php
+        portal_backup_20260521_053141.css
+        portal_backup_20260521_053141.js
+        portal_backup_20260521_053141.php
+        portal_backup_20260521_080039.css
+        portal_backup_20260521_080039.js
+        portal_backup_20260521_080039.php
+        portal_backup_20260521_082834.js
+        portal_backup_20260521_092603.js
+        portal_backup_20260521_184323.css
+        portal_backup_20260521_184323.js
+        portal_backup_20260521_191849.js
+        portal_backup_20260521_193125.js
+        portal_backup_20260521_193522.css
+        portal_backup_20260521_193522.js
+        portal_backup_20260521_194625.css
+        portal_backup_20260521_194625.js
+        portal_backup_20260521_200735.js
+        portal_backup_20260521_200735.php
+        portal_backup_20260521_201225.js
+        portal_backup_20260521_201436.php
+        portal_backup_20260521_205612.js
+        portal_backup_20260521_214416.php
+        portal_backup_20260521_220107.php
+        portal_backup_20260521_221629.css
+        portal_backup_20260521_221629.js
+        portal_backup_20260521_221629.php
+        portal_backup_20260521_222411.js
+        portal_backup_20260521_230742.js
+        portal_backup_20260521_232334.css
+        portal_backup_20260521_232334.js
+        portal_backup_20260521_232353.css
+        portal_backup_20260521_232353.js
+        portal_backup_20260521_232353.php
+        portal_backup_20260522_013007.js
+        portal_backup_20260522_013129.php
+        portal_backup_20260522_050810.php
+        portal_backup_20260522_050942.js
+        portal_css_backup_20260520_215333.css
+        portal_css_backup_20260520_221235.css
+        portal_css_backup_20260520_232759.css
+        portal_css_backup_20260521_092603.css
+        portal_css_backup_20260521_191849.css
+        portal_css_backup_20260521_193125.css
+        portal_js_backup_20260520_214409.js
+        portal_js_backup_20260521_214416.js
+        portal_js_backup_20260521_220107.js
+        quotes_backup_20260521_214416.php
+        quotes_backup_20260521_220107.php
+        safety_api_backup_20260521_092603.php
+        safety_backup_20260521_200735.php
+        safety_backup_20260521_230742.php
+        safety_compliance_backup_20260521_193125.php
+        safety_compliance_backup_20260521_200735.php
+        safety_personnel_backup_20260521_194625.php
+        seed_safety_docs_backup_20260521_191557.ps1
+        statements_backup_20260521_031506.php
+    [DIR] _sample_docs/
+        [DIR] safety/
+    [DIR] _scripts/
+        seed_safety_docs.ps1
+
+
+--- FILE CONNECTIONS & DEPENDENCIES ---
+
+[approve.php]
+  -> JS Fetches / API: `/api/approvals.php?token=${encodeURIComponent(token)}`);
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                const json = await resp.json();
+                if (!json.success) throw new Error(json.error || 
+  -> JS Fetches / API: `/api/approvals.php?token=${encodeURIComponent(token)}`, {
+                    method: 
+
+[bhekani_bo.php]
+  -> JS Fetches / API: ?
+  -> JS Fetches / API: ?_logout=1
+
+[portal - Copy.js]
+  -> HTML Styles: https://fonts.googleapis.com
+  -> HTML Styles: https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap
+  -> HTML Styles: https://fonts.gstatic.com
+  -> JS Fetches / API: ) to /api/ endpoints
+═══════════════════════════════════════════════════════ */
+
+const API_BASE = (() => {
+  // Derive API base relative to current page so it works both locally and in production
+  const p = window.location.pathname.replace(/\/[^\/]*$/, 
+  -> JS Fetches / API: API_BASE + 
+
+[portal - Copy.php]
+  -> HTML Scripts: portal.js?v=<?= filemtime(__DIR__.
+  -> HTML Styles: ./apple-touch-icon.png?v=20260521
+  -> HTML Styles: ./favicon-16x16.png?v=20260521
+  -> HTML Styles: ./favicon-32x32.png?v=20260521
+  -> HTML Styles: ./favicon-512x512.png?v=20260521
+  -> HTML Styles: ./favicon.ico?v=20260521
+  -> HTML Styles: https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@400;600;700;900&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap
+  -> HTML Styles: portal.css?v=<?= filemtime(__DIR__.
+
+[portal.js]
+  -> HTML Styles: https://fonts.googleapis.com
+  -> HTML Styles: https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap
+  -> HTML Styles: https://fonts.gstatic.com
+  -> JS Fetches / API: ) to /api/ endpoints
+═══════════════════════════════════════════════════════ */
+
+const API_BASE = (() => {
+  // Derive API base relative to current page so it works both locally and in production
+  const p = window.location.pathname.replace(/\/[^\/]*$/, 
+  -> JS Fetches / API: API_BASE + 
+
+[portal.php]
+  -> HTML Scripts: portal.js?v=<?= filemtime(__DIR__.
+  -> HTML Styles: ./apple-touch-icon.png?v=20260521
+  -> HTML Styles: ./favicon-16x16.png?v=20260521
+  -> HTML Styles: ./favicon-32x32.png?v=20260521
+  -> HTML Styles: ./favicon-512x512.png?v=20260521
+  -> HTML Styles: ./favicon.ico?v=20260521
+  -> HTML Styles: https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@400;600;700;900&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap
+  -> HTML Styles: portal.css?v=<?= filemtime(__DIR__.
+
+[api\approve.php]
+  -> JS Fetches / API: `/api/approvals.php?token=${encodeURIComponent(token)}`);
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                const json = await resp.json();
+                if (!json.success) throw new Error(json.error || 
+  -> JS Fetches / API: `/api/approvals.php?token=${encodeURIComponent(token)}`, {
+                    method: 
+
+[api\portal.js]
+  -> JS Fetches / API: ) to /api/ endpoints
+═══════════════════════════════════════════════════════ */
+
+const API_BASE = (() => {
+  // Derive API base relative to current page so it works both locally and in production
+  const p = window.location.pathname.replace(/\/[^\/]*$/, 
+  -> JS Fetches / API: API_BASE + 
+
+[api\portal.php]
+  -> HTML Styles: ./apple-touch-icon.png?v=20260518-2
+  -> HTML Styles: ./favicon-16x16.png?v=20260518-2
+  -> HTML Styles: ./favicon-32x32.png?v=20260518-2
+  -> HTML Styles: ./favicon.ico?v=20260518-2
+  -> HTML Styles: https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@400;600;700;900&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap
+  -> JS Fetches / API: ) to /api/ endpoints
+═══════════════════════════════════════════════════════ */
+
+const API_BASE = (() => {
+  // Derive API base relative to current page so it works both locally and in production
+  const p = window.location.pathname.replace(/\/[^\/]*$/, 
+  -> JS Fetches / API: API_BASE + 
+
+[api\portal_refactored.php]
+  -> HTML Scripts: portal.js
+  -> HTML Styles: ./apple-touch-icon.png?v=20260518-2
+  -> HTML Styles: ./favicon-16x16.png?v=20260518-2
+  -> HTML Styles: ./favicon-32x32.png?v=20260518-2
+  -> HTML Styles: ./favicon.ico?v=20260518-2
+  -> HTML Styles: https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@400;600;700;900&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap
+  -> HTML Styles: portal.css
+
+[api\_backups\portal_backup_20260521_003532.php]
+  -> HTML Styles: ./apple-touch-icon.png?v=20260518-2
+  -> HTML Styles: ./favicon-16x16.png?v=20260518-2
+  -> HTML Styles: ./favicon-32x32.png?v=20260518-2
+  -> HTML Styles: ./favicon.ico?v=20260518-2
+  -> HTML Styles: https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@400;600;700;900&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap
+  -> JS Fetches / API: ) to /api/ endpoints
+═══════════════════════════════════════════════════════ */
+
+const API_BASE = (() => {
+  // Derive API base relative to current page so it works both locally and in production
+  const p = window.location.pathname.replace(/\/[^\/]*$/, 
+  -> JS Fetches / API: API_BASE + 
+
+[includes\db.php]
+  -> JS Fetches / API: );
+    return $row ?: null;
+}
+
+/**
+ * Execute INSERT/UPDATE/DELETE, return affected rows
+ */
+function db_exec(string $sql, array $params = []): int {
+    $stmt = get_db()->prepare($sql);
+    $stmt->execute($params);
+    return $stmt->rowCount();
+}
+
+/**
+ * Execute INSERT, return last insert ID
+ */
+function db_insert(string $sql, array $params = []): int {
+    $stmt = get_db()->prepare($sql);
+    $stmt->execute($params);
+    return (int) get_db()->lastInsertId();
+}
+
+/**
+ * Generate next reference ID in format [TYPE]-[ddmmyy]-[counter]
+ * e.g. CO-190526-0042, Q-190526-0002, INV-190526-0042
+ * Uses atomic counter in DB. Date defaults to today; pass a date string to override.
+ */
+function next_ref_id(string $type, ?string $date = null): string {
+    $stmt = get_db()->prepare(
+
+[_backups\bhekani_bo_backup_20260521_072253.php]
+  -> JS Fetches / API: ?_logout=1
+
+[_backups\bhekani_bo_backup_20260521_205612.php]
+  -> JS Fetches / API: ?_logout=1
+
+[_backups\bhekani_bo_backup_20260521_210252.php]
+  -> JS Fetches / API: ?_logout=1
+
+[_backups\bhekani_bo_backup_20260521_222418.php]
+  -> JS Fetches / API: ?_logout=1
+
+[_backups\db_backup_20260521_082834.php]
+  -> JS Fetches / API: );
+    return $row ?: null;
+}
+
+/**
+ * Execute INSERT/UPDATE/DELETE, return affected rows
+ */
+function db_exec(string $sql, array $params = []): int {
+    $stmt = get_db()->prepare($sql);
+    $stmt->execute($params);
+    return $stmt->rowCount();
+}
+
+/**
+ * Execute INSERT, return last insert ID
+ */
+function db_insert(string $sql, array $params = []): int {
+    $stmt = get_db()->prepare($sql);
+    $stmt->execute($params);
+    return (int) get_db()->lastInsertId();
+}
+
+/**
+ * Generate next reference ID in format [TYPE]-[ddmmyy]-[counter]
+ * e.g. CO-190526-0042, Q-190526-0002, INV-190526-0042
+ * Uses atomic counter in DB. Date defaults to today; pass a date string to override.
+ */
+function next_ref_id(string $type, ?string $date = null): string {
+    $stmt = get_db()->prepare(
+
+[_backups\portal_backup_20260520_214409.php]
+  -> HTML Scripts: portal.js
+  -> HTML Styles: ./apple-touch-icon.png?v=20260518-2
+  -> HTML Styles: ./favicon-16x16.png?v=20260518-2
+  -> HTML Styles: ./favicon-32x32.png?v=20260518-2
+  -> HTML Styles: ./favicon.ico?v=20260518-2
+  -> HTML Styles: https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@400;600;700;900&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap
+  -> HTML Styles: portal.css
+
+[_backups\portal_backup_20260520_215333.php]
+  -> HTML Scripts: portal.js
+  -> HTML Styles: ./apple-touch-icon.png?v=20260518-2
+  -> HTML Styles: ./favicon-16x16.png?v=20260518-2
+  -> HTML Styles: ./favicon-32x32.png?v=20260518-2
+  -> HTML Styles: ./favicon.ico?v=20260518-2
+  -> HTML Styles: https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@400;600;700;900&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap
+  -> HTML Styles: portal.css
+
+[_backups\portal_backup_20260520_233943.php]
+  -> HTML Scripts: portal.js
+  -> HTML Styles: ./apple-touch-icon.png?v=20260518-2
+  -> HTML Styles: ./favicon-16x16.png?v=20260518-2
+  -> HTML Styles: ./favicon-32x32.png?v=20260518-2
+  -> HTML Styles: ./favicon.ico?v=20260518-2
+  -> HTML Styles: https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@400;600;700;900&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap
+  -> HTML Styles: portal.css
+
+[_backups\portal_backup_20260521_011127.php]
+  -> HTML Scripts: portal.js
+  -> HTML Styles: ./apple-touch-icon.png?v=20260518-2
+  -> HTML Styles: ./favicon-16x16.png?v=20260518-2
+  -> HTML Styles: ./favicon-32x32.png?v=20260518-2
+  -> HTML Styles: ./favicon.ico?v=20260518-2
+  -> HTML Styles: https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@400;600;700;900&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap
+  -> HTML Styles: portal.css
+
+[_backups\portal_backup_20260521_020624.php]
+  -> HTML Scripts: portal.js
+  -> HTML Styles: ./apple-touch-icon.png?v=20260518-2
+  -> HTML Styles: ./favicon-16x16.png?v=20260518-2
+  -> HTML Styles: ./favicon-32x32.png?v=20260518-2
+  -> HTML Styles: ./favicon.ico?v=20260518-2
+  -> HTML Styles: https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@400;600;700;900&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap
+  -> HTML Styles: portal.css
+
+[_backups\portal_backup_20260521_024651.php]
+  -> HTML Scripts: portal.js
+  -> HTML Styles: ./apple-touch-icon.png?v=20260518-2
+  -> HTML Styles: ./favicon-16x16.png?v=20260518-2
+  -> HTML Styles: ./favicon-32x32.png?v=20260518-2
+  -> HTML Styles: ./favicon.ico?v=20260518-2
+  -> HTML Styles: https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@400;600;700;900&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap
+  -> HTML Styles: portal.css
+
+[_backups\portal_backup_20260521_031506.js]
+  -> JS Fetches / API: ) to /api/ endpoints
+═══════════════════════════════════════════════════════ */
+
+const API_BASE = (() => {
+  // Derive API base relative to current page so it works both locally and in production
+  const p = window.location.pathname.replace(/\/[^\/]*$/, 
+  -> JS Fetches / API: API_BASE + 
+
+[_backups\portal_backup_20260521_045840.php]
+  -> HTML Scripts: portal.js
+  -> HTML Styles: ./apple-touch-icon.png?v=20260521
+  -> HTML Styles: ./favicon-16x16.png?v=20260521
+  -> HTML Styles: ./favicon-32x32.png?v=20260521
+  -> HTML Styles: ./favicon-512x512.png?v=20260521
+  -> HTML Styles: ./favicon.ico?v=20260521
+  -> HTML Styles: https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@400;600;700;900&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap
+  -> HTML Styles: portal.css
+
+[_backups\portal_backup_20260521_053141.js]
+  -> JS Fetches / API: ) to /api/ endpoints
+═══════════════════════════════════════════════════════ */
+
+const API_BASE = (() => {
+  // Derive API base relative to current page so it works both locally and in production
+  const p = window.location.pathname.replace(/\/[^\/]*$/, 
+  -> JS Fetches / API: API_BASE + 
+
+[_backups\portal_backup_20260521_053141.php]
+  -> HTML Scripts: portal.js
+  -> HTML Styles: ./apple-touch-icon.png?v=20260521
+  -> HTML Styles: ./favicon-16x16.png?v=20260521
+  -> HTML Styles: ./favicon-32x32.png?v=20260521
+  -> HTML Styles: ./favicon-512x512.png?v=20260521
+  -> HTML Styles: ./favicon.ico?v=20260521
+  -> HTML Styles: https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@400;600;700;900&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap
+  -> HTML Styles: portal.css
+
+[_backups\portal_backup_20260521_080039.js]
+  -> JS Fetches / API: ) to /api/ endpoints
+═══════════════════════════════════════════════════════ */
+
+const API_BASE = (() => {
+  // Derive API base relative to current page so it works both locally and in production
+  const p = window.location.pathname.replace(/\/[^\/]*$/, 
+  -> JS Fetches / API: API_BASE + 
+
+[_backups\portal_backup_20260521_080039.php]
+  -> HTML Scripts: portal.js
+  -> HTML Styles: ./apple-touch-icon.png?v=20260521
+  -> HTML Styles: ./favicon-16x16.png?v=20260521
+  -> HTML Styles: ./favicon-32x32.png?v=20260521
+  -> HTML Styles: ./favicon-512x512.png?v=20260521
+  -> HTML Styles: ./favicon.ico?v=20260521
+  -> HTML Styles: https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@400;600;700;900&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap
+  -> HTML Styles: portal.css
+
+[_backups\portal_backup_20260521_082834.js]
+  -> JS Fetches / API: ) to /api/ endpoints
+═══════════════════════════════════════════════════════ */
+
+const API_BASE = (() => {
+  // Derive API base relative to current page so it works both locally and in production
+  const p = window.location.pathname.replace(/\/[^\/]*$/, 
+  -> JS Fetches / API: API_BASE + 
+
+[_backups\portal_backup_20260521_092603.js]
+  -> JS Fetches / API: ) to /api/ endpoints
+═══════════════════════════════════════════════════════ */
+
+const API_BASE = (() => {
+  // Derive API base relative to current page so it works both locally and in production
+  const p = window.location.pathname.replace(/\/[^\/]*$/, 
+  -> JS Fetches / API: API_BASE + 
+
+[_backups\portal_backup_20260521_184323.js]
+  -> JS Fetches / API: ) to /api/ endpoints
+═══════════════════════════════════════════════════════ */
+
+const API_BASE = (() => {
+  // Derive API base relative to current page so it works both locally and in production
+  const p = window.location.pathname.replace(/\/[^\/]*$/, 
+  -> JS Fetches / API: API_BASE + 
+
+[_backups\portal_backup_20260521_191849.js]
+  -> JS Fetches / API: ) to /api/ endpoints
+═══════════════════════════════════════════════════════ */
+
+const API_BASE = (() => {
+  // Derive API base relative to current page so it works both locally and in production
+  const p = window.location.pathname.replace(/\/[^\/]*$/, 
+  -> JS Fetches / API: API_BASE + 
+
+[_backups\portal_backup_20260521_193125.js]
+  -> JS Fetches / API: ) to /api/ endpoints
+═══════════════════════════════════════════════════════ */
+
+const API_BASE = (() => {
+  // Derive API base relative to current page so it works both locally and in production
+  const p = window.location.pathname.replace(/\/[^\/]*$/, 
+  -> JS Fetches / API: API_BASE + 
+
+[_backups\portal_backup_20260521_193522.js]
+  -> JS Fetches / API: ) to /api/ endpoints
+═══════════════════════════════════════════════════════ */
+
+const API_BASE = (() => {
+  // Derive API base relative to current page so it works both locally and in production
+  const p = window.location.pathname.replace(/\/[^\/]*$/, 
+  -> JS Fetches / API: API_BASE + 
+
+[_backups\portal_backup_20260521_194625.js]
+  -> JS Fetches / API: ) to /api/ endpoints
+═══════════════════════════════════════════════════════ */
+
+const API_BASE = (() => {
+  // Derive API base relative to current page so it works both locally and in production
+  const p = window.location.pathname.replace(/\/[^\/]*$/, 
+  -> JS Fetches / API: API_BASE + 
+
+[_backups\portal_backup_20260521_200735.js]
+  -> JS Fetches / API: ) to /api/ endpoints
+═══════════════════════════════════════════════════════ */
+
+const API_BASE = (() => {
+  // Derive API base relative to current page so it works both locally and in production
+  const p = window.location.pathname.replace(/\/[^\/]*$/, 
+  -> JS Fetches / API: API_BASE + 
+
+[_backups\portal_backup_20260521_200735.php]
+  -> HTML Scripts: portal.js
+  -> HTML Styles: ./apple-touch-icon.png?v=20260521
+  -> HTML Styles: ./favicon-16x16.png?v=20260521
+  -> HTML Styles: ./favicon-32x32.png?v=20260521
+  -> HTML Styles: ./favicon-512x512.png?v=20260521
+  -> HTML Styles: ./favicon.ico?v=20260521
+  -> HTML Styles: https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@400;600;700;900&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap
+  -> HTML Styles: portal.css
+
+[_backups\portal_backup_20260521_201225.js]
+  -> JS Fetches / API: ) to /api/ endpoints
+═══════════════════════════════════════════════════════ */
+
+const API_BASE = (() => {
+  // Derive API base relative to current page so it works both locally and in production
+  const p = window.location.pathname.replace(/\/[^\/]*$/, 
+  -> JS Fetches / API: API_BASE + 
+
+[_backups\portal_backup_20260521_201436.php]
+  -> HTML Scripts: portal.js
+  -> HTML Styles: ./apple-touch-icon.png?v=20260521
+  -> HTML Styles: ./favicon-16x16.png?v=20260521
+  -> HTML Styles: ./favicon-32x32.png?v=20260521
+  -> HTML Styles: ./favicon-512x512.png?v=20260521
+  -> HTML Styles: ./favicon.ico?v=20260521
+  -> HTML Styles: https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@400;600;700;900&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap
+  -> HTML Styles: portal.css
+
+[_backups\portal_backup_20260521_205612.js]
+  -> JS Fetches / API: ) to /api/ endpoints
+═══════════════════════════════════════════════════════ */
+
+const API_BASE = (() => {
+  // Derive API base relative to current page so it works both locally and in production
+  const p = window.location.pathname.replace(/\/[^\/]*$/, 
+  -> JS Fetches / API: API_BASE + 
+
+[_backups\portal_backup_20260521_214416.php]
+  -> HTML Scripts: portal.js
+  -> HTML Styles: ./apple-touch-icon.png?v=20260521
+  -> HTML Styles: ./favicon-16x16.png?v=20260521
+  -> HTML Styles: ./favicon-32x32.png?v=20260521
+  -> HTML Styles: ./favicon-512x512.png?v=20260521
+  -> HTML Styles: ./favicon.ico?v=20260521
+  -> HTML Styles: https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@400;600;700;900&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap
+  -> HTML Styles: portal.css
+
+[_backups\portal_backup_20260521_220107.php]
+  -> HTML Scripts: portal.js
+  -> HTML Styles: ./apple-touch-icon.png?v=20260521
+  -> HTML Styles: ./favicon-16x16.png?v=20260521
+  -> HTML Styles: ./favicon-32x32.png?v=20260521
+  -> HTML Styles: ./favicon-512x512.png?v=20260521
+  -> HTML Styles: ./favicon.ico?v=20260521
+  -> HTML Styles: https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@400;600;700;900&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap
+  -> HTML Styles: portal.css
+
+[_backups\portal_backup_20260521_221629.js]
+  -> JS Fetches / API: ) to /api/ endpoints
+═══════════════════════════════════════════════════════ */
+
+const API_BASE = (() => {
+  // Derive API base relative to current page so it works both locally and in production
+  const p = window.location.pathname.replace(/\/[^\/]*$/, 
+  -> JS Fetches / API: API_BASE + 
+
+[_backups\portal_backup_20260521_221629.php]
+  -> HTML Scripts: portal.js
+  -> HTML Styles: ./apple-touch-icon.png?v=20260521
+  -> HTML Styles: ./favicon-16x16.png?v=20260521
+  -> HTML Styles: ./favicon-32x32.png?v=20260521
+  -> HTML Styles: ./favicon-512x512.png?v=20260521
+  -> HTML Styles: ./favicon.ico?v=20260521
+  -> HTML Styles: https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@400;600;700;900&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap
+  -> HTML Styles: portal.css
+
+[_backups\portal_backup_20260521_222411.js]
+  -> JS Fetches / API: ) to /api/ endpoints
+═══════════════════════════════════════════════════════ */
+
+const API_BASE = (() => {
+  // Derive API base relative to current page so it works both locally and in production
+  const p = window.location.pathname.replace(/\/[^\/]*$/, 
+  -> JS Fetches / API: API_BASE + 
+
+[_backups\portal_backup_20260521_230742.js]
+  -> HTML Styles: https://fonts.googleapis.com
+  -> HTML Styles: https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap
+  -> HTML Styles: https://fonts.gstatic.com
+  -> JS Fetches / API: ) to /api/ endpoints
+═══════════════════════════════════════════════════════ */
+
+const API_BASE = (() => {
+  // Derive API base relative to current page so it works both locally and in production
+  const p = window.location.pathname.replace(/\/[^\/]*$/, 
+  -> JS Fetches / API: API_BASE + 
+
+[_backups\portal_backup_20260521_232334.js]
+  -> HTML Styles: https://fonts.googleapis.com
+  -> HTML Styles: https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap
+  -> HTML Styles: https://fonts.gstatic.com
+  -> JS Fetches / API: ) to /api/ endpoints
+═══════════════════════════════════════════════════════ */
+
+const API_BASE = (() => {
+  // Derive API base relative to current page so it works both locally and in production
+  const p = window.location.pathname.replace(/\/[^\/]*$/, 
+  -> JS Fetches / API: API_BASE + 
+
+[_backups\portal_backup_20260521_232353.js]
+  -> HTML Styles: https://fonts.googleapis.com
+  -> HTML Styles: https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap
+  -> HTML Styles: https://fonts.gstatic.com
+  -> JS Fetches / API: ) to /api/ endpoints
+═══════════════════════════════════════════════════════ */
+
+const API_BASE = (() => {
+  // Derive API base relative to current page so it works both locally and in production
+  const p = window.location.pathname.replace(/\/[^\/]*$/, 
+  -> JS Fetches / API: API_BASE + 
+
+[_backups\portal_backup_20260521_232353.php]
+  -> HTML Scripts: portal.js
+  -> HTML Styles: ./apple-touch-icon.png?v=20260521
+  -> HTML Styles: ./favicon-16x16.png?v=20260521
+  -> HTML Styles: ./favicon-32x32.png?v=20260521
+  -> HTML Styles: ./favicon-512x512.png?v=20260521
+  -> HTML Styles: ./favicon.ico?v=20260521
+  -> HTML Styles: https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@400;600;700;900&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap
+  -> HTML Styles: portal.css
+
+[_backups\portal_backup_20260522_013007.js]
+  -> HTML Styles: https://fonts.googleapis.com
+  -> HTML Styles: https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap
+  -> HTML Styles: https://fonts.gstatic.com
+  -> JS Fetches / API: ) to /api/ endpoints
+═══════════════════════════════════════════════════════ */
+
+const API_BASE = (() => {
+  // Derive API base relative to current page so it works both locally and in production
+  const p = window.location.pathname.replace(/\/[^\/]*$/, 
+  -> JS Fetches / API: API_BASE + 
+
+[_backups\portal_backup_20260522_013129.php]
+  -> HTML Scripts: portal.js
+  -> HTML Styles: ./apple-touch-icon.png?v=20260521
+  -> HTML Styles: ./favicon-16x16.png?v=20260521
+  -> HTML Styles: ./favicon-32x32.png?v=20260521
+  -> HTML Styles: ./favicon-512x512.png?v=20260521
+  -> HTML Styles: ./favicon.ico?v=20260521
+  -> HTML Styles: https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@400;600;700;900&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap
+  -> HTML Styles: portal.css
+
+[_backups\portal_backup_20260522_050810.php]
+  -> HTML Scripts: portal.js
+  -> HTML Styles: ./apple-touch-icon.png?v=20260521
+  -> HTML Styles: ./favicon-16x16.png?v=20260521
+  -> HTML Styles: ./favicon-32x32.png?v=20260521
+  -> HTML Styles: ./favicon-512x512.png?v=20260521
+  -> HTML Styles: ./favicon.ico?v=20260521
+  -> HTML Styles: https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@400;600;700;900&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap
+  -> HTML Styles: portal.css
+
+[_backups\portal_backup_20260522_050942.js]
+  -> HTML Styles: https://fonts.googleapis.com
+  -> HTML Styles: https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap
+  -> HTML Styles: https://fonts.gstatic.com
+  -> JS Fetches / API: ) to /api/ endpoints
+═══════════════════════════════════════════════════════ */
+
+const API_BASE = (() => {
+  // Derive API base relative to current page so it works both locally and in production
+  const p = window.location.pathname.replace(/\/[^\/]*$/, 
+  -> JS Fetches / API: API_BASE + 
+
+[_backups\portal_js_backup_20260520_214409.js]
+  -> JS Fetches / API: ) to /api/ endpoints
+═══════════════════════════════════════════════════════ */
+
+const API_BASE = (() => {
+  // Derive API base relative to current page so it works both locally and in production
+  const p = window.location.pathname.replace(/\/[^\/]*$/, 
+  -> JS Fetches / API: API_BASE + 
+
+[_backups\portal_js_backup_20260521_214416.js]
+  -> JS Fetches / API: ) to /api/ endpoints
+═══════════════════════════════════════════════════════ */
+
+const API_BASE = (() => {
+  // Derive API base relative to current page so it works both locally and in production
+  const p = window.location.pathname.replace(/\/[^\/]*$/, 
+  -> JS Fetches / API: API_BASE + 
+
+[_backups\portal_js_backup_20260521_220107.js]
+  -> JS Fetches / API: ) to /api/ endpoints
+═══════════════════════════════════════════════════════ */
+
+const API_BASE = (() => {
+  // Derive API base relative to current page so it works both locally and in production
+  const p = window.location.pathname.replace(/\/[^\/]*$/, 
+  -> JS Fetches / API: API_BASE + 

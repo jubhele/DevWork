@@ -56,18 +56,30 @@ if ($method === 'GET') {
 if ($method === 'POST') {
     $usr = require_perm('quote.create');
     $b   = get_body();
-    require_fields($b, ['client_name', 'items']);
+    require_fields($b, ['items']);
 
     $items = is_array($b['items']) ? $b['items'] : [];
     if (!$items) json_err('Quote must have at least one line item');
+
+    // Resolve client: accept client_id (FK) or fallback to plain client_name
+    $client_id    = isset($b['client_id']) && $b['client_id'] ? (int)$b['client_id'] : null;
+    $client_name  = clean($b['client_name'] ?? '', 255);
+    $client_email = clean($b['client_email'] ?? '', 150);
+
+    if ($client_id) {
+        $cl = db_row("SELECT name, email FROM bf_clients WHERE id = ? AND is_active = 1", [$client_id]);
+        if (!$cl) json_err('Client not found', 404);
+        $client_name  = $cl['name'];
+        $client_email = $cl['email'];
+    } elseif (!$client_name) {
+        json_err('client_id or client_name is required');
+    }
 
     // Calculate total
     $total = 0;
     foreach ($items as $item) {
         $total += ((float)($item['qty'] ?? 1)) * ((float)($item['unit'] ?? 0));
     }
-
-    $client_email = clean($b['client_email'] ?? '', 150);
 
     // Determine approval status
     $approval_status = null;
@@ -79,26 +91,41 @@ if ($method === 'POST') {
         $approval_status = 'pending';
     }
 
+    // Resolve linked callout FK
+    $callout_ref_str = clean($b['callout_ref'] ?? '', 30);
+    $callout_id_fk   = null;
+    if ($callout_ref_str) {
+        $co = db_row("SELECT id FROM bf_callouts WHERE ref_id = ? LIMIT 1", [$callout_ref_str]);
+        $callout_id_fk = $co ? (int)$co['id'] : null;
+    }
+
     $ref = next_ref_id('q');
-    
+
     try {
         db_begin();
-        
+
         $id = db_insert(
-            "INSERT INTO bf_quotes (ref_id, client_name, client_email, status, valid_until, quote_date, submitted_by, source, approval_status, notes, total_amount)
-             VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+            "INSERT INTO bf_quotes
+             (ref_id, client_id, client_name, client_email, status, valid_until, quote_date,
+              submitted_by, submitted_by_user_id, source, approval_status, notes, total_amount,
+              callout_ref, callout_id)
+             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             [
                 $ref,
-                clean($b['client_name']),
+                $client_id,
+                $client_name,
                 $client_email,
                 $status,
                 valid_date($b['valid_until'] ?? null) ? $b['valid_until'] : null,
                 date('Y-m-d'),
                 $usr['username'],
+                (int)$usr['id'],
                 clean($b['source'] ?? 'staff'),
                 $approval_status,
                 clean($b['notes'] ?? '', 2000),
                 $total,
+                $callout_ref_str,
+                $callout_id_fk,
             ]
         );
 

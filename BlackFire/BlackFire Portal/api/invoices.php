@@ -43,26 +43,62 @@ if ($method === 'GET') {
 if ($method === 'POST') {
     $usr = require_perm('invoice.create');
     $b   = get_body();
-    require_fields($b, ['client_name', 'amount', 'due_date']);
+    require_fields($b, ['amount', 'due_date']);
 
     $amount = (float)($b['amount'] ?? 0);
     if ($amount < 0) json_err('Amount cannot be negative');
 
+    // Resolve client: accept client_id (FK) or fallback to plain client_name
+    $client_id    = isset($b['client_id']) && $b['client_id'] ? (int)$b['client_id'] : null;
+    $client_name  = clean($b['client_name'] ?? '', 255);
+    $client_email = clean($b['client_email'] ?? '', 150);
+
+    if ($client_id) {
+        $cl = db_row("SELECT name, email FROM bf_clients WHERE id = ? AND is_active = 1", [$client_id]);
+        if (!$cl) json_err('Client not found', 404);
+        $client_name  = $cl['name'];
+        $client_email = $cl['email'];
+    } elseif (!$client_name) {
+        json_err('client_id or client_name is required');
+    }
+
+    // Resolve linked quote FK
+    $quote_ref_str = clean($b['quote_ref']   ?? '', 30);
+    $co_ref_str    = clean($b['callout_ref'] ?? '', 30);
+    $quote_id_fk   = null;
+    $callout_id_fk = null;
+
+    if ($quote_ref_str) {
+        $qrow = db_row("SELECT id FROM bf_quotes WHERE ref_id = ? LIMIT 1", [$quote_ref_str]);
+        $quote_id_fk = $qrow ? (int)$qrow['id'] : null;
+    }
+    if ($co_ref_str) {
+        $crow = db_row("SELECT id FROM bf_callouts WHERE ref_id = ? LIMIT 1", [$co_ref_str]);
+        $callout_id_fk = $crow ? (int)$crow['id'] : null;
+    }
+
     $ref = next_ref_id('inv');
     $id  = db_insert(
-        "INSERT INTO bf_invoices (ref_id, client_name, client_email, amount, due_date, status, quote_ref, callout_ref, po, invoice_date)
-         VALUES (?,?,?,?,?,?,?,?,?,?)",
+        "INSERT INTO bf_invoices
+         (ref_id, client_id, client_name, client_email, amount, due_date, status,
+          quote_ref, quote_id, callout_ref, callout_id, po, invoice_date, sent_by, sent_by_user_id)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
         [
             $ref,
-            clean($b['client_name']),
-            clean($b['client_email'] ?? '', 150),
+            $client_id,
+            $client_name,
+            $client_email,
             $amount,
             $b['due_date'],
             clean($b['status'] ?? 'Draft'),
-            clean($b['quote_ref']   ?? ''),
-            clean($b['callout_ref'] ?? ''),
+            $quote_ref_str,
+            $quote_id_fk,
+            $co_ref_str,
+            $callout_id_fk,
             clean($b['po'] ?? ''),
             date('Y-m-d'),
+            $usr['username'],
+            (int)$usr['id'],
         ]
     );
 

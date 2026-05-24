@@ -23,7 +23,7 @@ $base = rtrim($cfg['base_url'] ?? '', '/');
 <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png?v=20260521">
 <link rel="shortcut icon" href="./favicon.ico?v=20260521">
 <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@400;600;700;900&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="portal.css">
+<link rel="stylesheet" href="portal.css?v=<?= filemtime(__DIR__.'/portal.css') ?>">
 </head>
 <body>
 
@@ -348,30 +348,40 @@ $base = rtrim($cfg['base_url'] ?? '', '/');
 </div>
 
 <!-- ═══════════════════════════════════════════════════════
-
-<!-- ═══════════════════════════════════════════════════════
      ■ PORTAL SHELL - v9  -  Dynamic RBAC Nav
 ═══════════════════════════════════════════════════════ -->
 <div id="portal-shell">
 
-  <!-- Portal Nav Rail — full-height left sidebar, logo at top -->
-  <nav id="pnav-bar">
-    <div id="pnav-logo" onclick="pubNav('home')" title="Home">
-      <img src="./blackfire_logo_transparent.png" class="bf-logo-dark"><img src="./blackfire_logo_transparent.png" class="bf-logo-light">
-    </div>
-    <div id="pnav-links"></div><!-- filled by buildNav() -->
-    <div id="pnav-right">
-      <span id="pnav-user"></span>
+  <!-- Portal Top Bar — logo + identity -->
+  <div id="portal-topbar">
+    <img src="./blackfire_logo_transparent.png" alt="BlackFire Solutions" height="50" class="bf-logo-dark">
+    <img src="./blackfire_logo_transparent.png" alt="BlackFire Solutions" height="50" class="bf-logo-light">
+    <div class="ptb-right">
+      <span id="ptb-user"></span>
       <button class="theme-btn" data-action="toggleTheme">
         <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
         <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>
+      </button>
+      <button class="info-btn" id="info-mode-btn" data-action="toggleInfoMode" title="Page Guide — how-to help for each screen">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="8.01"/><polyline points="11 12 12 12 12 16"/></svg>
+        GUIDE
       </button>
       <button id="pnav-signout" data-action="doLogout">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="signout-icon"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         Sign Out
       </button>
     </div>
-  </nav>
+  </div>
+
+  <!-- Primary Nav Bar — floating bar with group tabs -->
+  <div id="pnav-primary-bar">
+    <nav id="pnav-primary"></nav><!-- filled by buildNav() -->
+  </div>
+
+  <!-- Sub-Nav Strip — child pages for active group -->
+  <div id="pnav-bar">
+    <div id="pnav-links"></div><!-- filled by activateNavGroup() -->
+  </div>
 
   <!-- ═══ PORTAL PAGES ═══ -->
   <div id="pmain">
@@ -432,6 +442,13 @@ $base = rtrim($cfg['base_url'] ?? '', '/');
         <div class="kcard k4"><div class="klbl">Net Balance</div><div class="kval" id="kv-bal">R0</div><div class="ksub">Credits − Debits</div></div>
       </div>
       <div class="alert-strip" id="dash-alerts"></div>
+      <div class="panel mt2" id="dash-comp-widget" style="display:none">
+        <div class="ph">
+          <div class="ph-title">Compliance Alerts</div>
+          <button class="btn btn-g btn-s" onclick="showPortalPage('p-safety',null)">View Safety Files</button>
+        </div>
+        <div id="dash-comp-body"></div>
+      </div>
       <div class="twocol">
         <div class="panel">
           <div class="ph"><div class="ph-title">Recent Callouts</div><button class="btn btn-g btn-s" onclick="showPortalPage('p-callouts',null)">View All</button></div>
@@ -520,7 +537,7 @@ $base = rtrim($cfg['base_url'] ?? '', '/');
       <div class="ptitle">Log Call</div><div class="psub">CREATE JOB TICKET</div>
       <div class="panel"><div class="pb">
         <div class="fgrid">
-          <div class="fgroup"><label class="flbl">Client</label><input class="finput" id="nc-client" value="AECI Chempark" placeholder="Client name"></div>
+          <div class="fgroup"><label class="flbl">Client</label><select class="finput" id="nc-client"><option value="">— Select Client —</option></select></div>
           <div class="fgroup"><label class="flbl">Service / Fault Type</label><input class="finput" id="nc-service" placeholder="e.g. Armed Response, Alarm Fault"></div>
           <div class="fgroup"><label class="flbl">Site / Location</label><input class="finput" id="nc-location" placeholder="e.g. Gate 2, Sector C"></div>
           <div class="fgroup"><label class="flbl">Priority</label><select class="finput" id="nc-priority"><option>Normal</option><option>Urgent</option><option>Emergency</option></select></div>
@@ -549,9 +566,9 @@ $base = rtrim($cfg['base_url'] ?? '', '/');
       </div>
       <div class="panel"><div class="pb">
         <div class="fgrid">
-          <div class="fgroup"><label class="flbl">Client</label><input class="finput" id="nq-client" value="AECI Chempark"></div>
+          <div class="fgroup"><label class="flbl">Client</label><select class="finput" id="nq-client"><option value="">— Select Client —</option></select></div>
           <div class="fgroup"><label class="flbl">Valid Until</label><input type="date" class="finput" id="nq-valid"></div>
-          <div class="fgroup"><label class="flbl">Linked Job ID</label><input class="finput" id="nq-jobref" placeholder="e.g. JOB-003 (optional)"></div>
+          <div class="fgroup"><label class="flbl">Linked Callout</label><select class="finput" id="nq-callout-ref"><option value="">— None (standalone quote) —</option></select></div>
           <div class="fgroup" id="nq-status-group"><label class="flbl">Status</label><select class="finput" id="nq-status"><option>Draft</option><option>Sent</option></select></div>
         </div>
         <div class="divider"></div>
@@ -568,12 +585,13 @@ $base = rtrim($cfg['base_url'] ?? '', '/');
       <div class="ptitle">New Invoice</div><div class="psub">CREATE TAX INVOICE</div>
       <div class="panel"><div class="pb">
         <div class="fgrid">
-          <div class="fgroup"><label class="flbl">Client</label><input class="finput" id="ni-client" value="AECI Chempark"></div>
+          <div class="fgroup"><label class="flbl">Client</label><select class="finput" id="ni-client"><option value="">— Select Client —</option></select></div>
           <div class="fgroup"><label class="flbl">Amount (incl. VAT)</label><input type="number" class="finput" id="ni-amount" placeholder="0.00"></div>
           <div class="fgroup"><label class="flbl">Due Date</label><input type="date" class="finput" id="ni-due"></div>
           <div class="fgroup"><label class="flbl">Status</label><select class="finput" id="ni-status"><option>Draft</option><option>Sent</option></select></div>
           <div class="fgroup"><label class="flbl">PO Reference</label><input class="finput" id="ni-po" placeholder="PO number if applicable"></div>
-          <div class="fgroup"><label class="flbl">Linked Quote / Job ID</label><input class="finput" id="ni-ref" placeholder="e.g. QTE-001 or JOB-003"></div>
+          <div class="fgroup"><label class="flbl">Linked Quote</label><select class="finput" id="ni-quote-ref"><option value="">— None —</option></select></div>
+          <div class="fgroup"><label class="flbl">Linked Callout</label><select class="finput" id="ni-callout-ref"><option value="">— None —</option></select></div>
         </div>
         <div class="mt3 flex-end"><button class="btn btn-p" data-action="saveInvoice">Create Invoice</button></div>
       </div></div>
@@ -596,6 +614,177 @@ $base = rtrim($cfg['base_url'] ?? '', '/');
       </div></div>
     </div>
 
+    <!-- ═══════════════════════════════════════════════════════
+         ■ CLIENTS
+    ═══════════════════════════════════════════════════════ -->
+
+    <!-- CLIENTS LIST -->
+    <div id="p-clients" class="ppage">
+      <div class="ptitle">Clients</div>
+      <div class="psub">CLIENT ACCOUNTS  -  CONTACT RECORDS</div>
+      <div class="srow">
+        <input type="text" class="sinput" placeholder="Search clients..." oninput="renderClients(this.value)">
+        <button class="btn btn-p btn-s" onclick="openClientModal(null)">+ Add Client</button>
+      </div>
+      <div class="panel">
+        <div class="tw">
+          <table>
+            <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Contact Person</th><th>VAT No.</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="clients-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- CLIENT ADD/EDIT MODAL -->
+    <div id="client-modal" class="modal" style="display:none">
+      <div class="modal-box modal-box--lg">
+        <div class="modal-hdr">
+          <div class="modal-title" id="client-modal-title">Add Client</div>
+          <button class="modal-close" onclick="closeClientModal()">&#x2715;</button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="cm-id">
+          <div class="fgrid">
+            <div class="fgroup ffull"><label class="flbl">Client Name <span class="req">*</span></label><input class="finput" id="cm-name" placeholder="Company or client name"></div>
+            <div class="fgroup"><label class="flbl">Email</label><input type="email" class="finput" id="cm-email" placeholder="billing@company.co.za"></div>
+            <div class="fgroup"><label class="flbl">Phone</label><input class="finput" id="cm-phone" placeholder="+27 11 000 0000"></div>
+            <div class="fgroup"><label class="flbl">VAT Number</label><input class="finput" id="cm-vat" placeholder="4XXXXXXXXX"></div>
+            <div class="fgroup ffull"><label class="flbl">Address</label><textarea class="finput" id="cm-address" rows="2" placeholder="Street, suburb, city, postal code"></textarea></div>
+            <div class="fgroup"><label class="flbl">Contact Person</label><input class="finput" id="cm-contact" placeholder="Primary contact name"></div>
+            <div class="fgroup ffull"><label class="flbl">Contact Details</label><textarea class="finput" id="cm-contact-details" rows="2" placeholder="Direct phone, mobile, alternate email..."></textarea></div>
+            <div class="fgroup ffull"><label class="flbl">Notes</label><textarea class="finput" id="cm-notes" rows="3" placeholder="Internal notes, contract details, billing terms..."></textarea></div>
+          </div>
+        </div>
+        <div class="modal-footer flex-end">
+          <button class="btn btn-g" onclick="closeClientModal()">Cancel</button>
+          <button class="btn btn-p" onclick="saveClient()">Save Client</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         ■ SAFETY FILES MODULE  (BF-SHE-FRM-010)
+    ═══════════════════════════════════════════════════════ -->
+
+    <!-- SAFETY DASHBOARD -->
+    <div id="p-safety" class="ppage">
+      <div class="ptitle">Safety Files</div>
+      <div class="psub">CONTRACTOR SHE &mdash; BF-SHE-FRM-010</div>
+      <div class="srow">
+        <input type="text" class="sinput" placeholder="Search contractors..." oninput="renderSafetyFiles(this.value)">
+        <select class="sinput sinput-narrow" id="sf-filter-status" onchange="renderSafetyFiles()">
+          <option value="">All Files</option>
+          <option value="Draft">Draft</option>
+          <option value="In Progress">In Progress</option>
+          <option value="Submitted">Submitted</option>
+          <option value="Approved">Approved</option>
+        </select>
+        <button class="btn btn-p btn-s" data-action="newSafetyAudit">+ New Audit</button>
+      </div>
+      <div id="safety-reminders" class="safety-reminders"></div>
+      <div id="safety-files-grid" class="safety-grid"></div>
+    </div>
+
+    <!-- SAFETY AUDIT FORM (create / edit) -->
+    <div id="p-safety-audit" class="ppage">
+      <div class="ptitle" id="saf-page-title">New Safety Audit</div>
+      <div class="psub">BF-SHE-FRM-010 &mdash; CONTRACTOR FILE REVIEW</div>
+      <div class="safety-audit-layout">
+
+        <!-- Main form column -->
+        <div class="safety-audit-main">
+
+          <!-- Header panel -->
+          <div class="panel">
+            <div class="ph"><div class="ph-title">Audit Header</div></div>
+            <div class="pb">
+              <div class="fgrid">
+                <div class="fgroup"><label class="flbl">Contractor <span class="req">*</span></label><input class="finput" id="sah-contractor" list="sah-contractor-dl" placeholder="Type or select contractor" autocomplete="off"><datalist id="sah-contractor-dl"></datalist></div>
+                <div class="fgroup"><label class="flbl">Contractor Rep</label><input class="finput" id="sah-rep" placeholder="Name"></div>
+                <div class="fgroup"><label class="flbl">16.2 Appointee</label><input class="finput" id="sah-appointee" placeholder="Name"></div>
+                <div class="fgroup"><label class="flbl">Audit Date <span class="req">*</span></label><input type="date" class="finput" id="sah-date"></div>
+                <div class="fgroup"><label class="flbl">Region / Site</label><input class="finput" id="sah-region" placeholder="e.g. AECI Chempark"></div>
+                <div class="fgroup"><label class="flbl">Audit Team</label><input class="finput" id="sah-team" placeholder="Auditor name(s)"></div>
+                <div class="fgroup ffull"><label class="flbl">Scope of Work</label><input class="finput" id="sah-scope" placeholder="Describe contractor's scope of work..."></div>
+                <div class="fgroup"><label class="flbl">Manpower Total</label><input type="number" class="finput" id="sah-manpower" min="0" value="0"></div>
+                <div class="fgroup"><label class="flbl">Supervisors</label><input type="number" class="finput" id="sah-supervisors" min="0" value="0"></div>
+                <div class="fgroup"><label class="flbl">SHE Reps</label><input type="number" class="finput" id="sah-shereps" min="0" value="0"></div>
+                <div class="fgroup"><label class="flbl">First Aiders</label><input type="number" class="finput" id="sah-firstaiders" min="0" value="0"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Checklist sections (rendered by JS) -->
+          <div id="safety-sections" class="safety-sections-wrap"></div>
+
+          <!-- Sign-off -->
+          <div class="panel mt2">
+            <div class="ph"><div class="ph-title">Audit Sign-Off</div></div>
+            <div class="pb">
+              <div class="fgrid">
+                <div class="fgroup"><label class="flbl">Auditor Name &amp; Surname</label><input class="finput" id="sah-auditor-name"></div>
+                <div class="fgroup"><label class="flbl">Sign-Off Date</label><input type="date" class="finput" id="sah-signoff-date"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt3 saf-action-row">
+            <button class="btn btn-g" onclick="showPortalPage('p-safety',null); renderSafetyFiles()">Cancel</button>
+            <button class="btn btn-g" data-action="saveSafetyDraft">Save Draft</button>
+            <button class="btn btn-p" data-action="submitSafetyAudit">Submit Audit</button>
+          </div>
+        </div><!-- /safety-audit-main -->
+
+        <!-- Score sidebar -->
+        <div class="safety-score-sidebar">
+          <div class="panel safety-score-panel">
+            <div class="ph"><div class="ph-title">Live Score</div></div>
+            <div class="pb">
+              <div class="saf-score-label-top">Audit Score</div>
+              <div class="safety-score-big" id="saf-score-val">—</div>
+              <div class="safety-score-label" id="saf-score-band"></div>
+              <div class="safety-score-rule" id="saf-score-rule"></div>
+              <div id="saf-bonus-score" class="saf-bonus-score-row"></div>
+              <div class="saf-completion-bar" id="saf-completion-pct"></div>
+              <div class="divider"></div>
+              <div id="saf-section-scores" class="saf-section-scores"></div>
+            </div>
+          </div>
+          <div class="panel mt2">
+            <div class="ph"><div class="ph-title">Legend</div></div>
+            <div class="pb saf-legend">
+              <div class="saf-leg-item"><span class="saf-dot saf-green"></span>90–100 Complying</div>
+              <div class="saf-leg-item"><span class="saf-dot saf-yellow"></span>75–89 Minor concerns</div>
+              <div class="saf-leg-item"><span class="saf-dot saf-orange"></span>51–74 Not complying</div>
+              <div class="saf-leg-item"><span class="saf-dot saf-red"></span>0–50 Critical</div>
+            </div>
+          </div>
+        </div><!-- /safety-score-sidebar -->
+
+      </div><!-- /safety-audit-layout -->
+    </div><!-- /p-safety-audit -->
+
+    <!-- SAFETY FILE DETAIL / REPORT VIEW -->
+    <div id="p-safety-detail" class="ppage">
+      <div id="saf-detail-header" class="saf-detail-header">
+        <div>
+          <div class="ptitle" id="saf-detail-title">Safety File</div>
+          <div class="psub" id="saf-detail-sub"></div>
+        </div>
+        <div class="saf-detail-actions">
+          <button class="btn btn-g btn-s" onclick="showPortalPage('p-safety',null); renderSafetyFiles()">&#8592; Back</button>
+          <button class="btn btn-g btn-s" data-action="editSafetyFile">Edit</button>
+          <button class="btn btn-g btn-s" data-action="sendPolicyEmail">Send Policy Email</button>
+          <button class="btn btn-g btn-s" onclick="safGenerateTracker(document.getElementById('saf-detail-content').dataset.fileId)" title="Generate contractor action-plan tracker as a downloadable HTML file">&#8659; Tracker</button>
+          <button class="btn btn-s saf-approve-btn" id="saf-approve-btn" style="display:none;background:var(--grn-glow,#dcfce7);border-color:var(--green,#16a34a);color:var(--green,#16a34a)" onclick="approveSafetyFile()">&#10003; Approve</button>
+          <button class="btn btn-s" id="saf-deactivate-btn" style="display:none;background:#fee2e2;border-color:#dc2626;color:#dc2626" onclick="deactivateSafetyFile()" title="Deactivate this safety file — record is retained for audit">&#128465; Deactivate</button>
+          <button class="btn btn-p btn-s" onclick="safPrintReport()">Print / Download Pack</button>
+        </div>
+      </div>
+      <div id="saf-detail-content"></div>
+    </div><!-- /p-safety-detail -->
+
     <!-- AUDIT LOG -->
     <div id="p-audit" class="ppage">
       <div class="ptitle">Audit Log</div><div class="psub">SECURITY  -  ACCESS RECORDS</div>
@@ -609,13 +798,58 @@ $base = rtrim($cfg['base_url'] ?? '', '/');
       <div id="users-create-bar" style="display:none">
         <button class="btn-create-user" data-action="openCreateUserModal">+ New User</button>
       </div>
-      <div class="panel"><div class="tw"><table><thead>
-        <tr><th>Username</th><th>Name</th><th>Role</th><th>Can Create Callout</th><th>Update Status</th><th>Assign PO</th><th>Finance</th><th>Submit Quote</th><th>Approve Quote</th></tr>
-      </thead><tbody id="users-table-body"></tbody></table></div></div>
+      <div class="panel">
+        <div class="perm-toggle-bar">
+          <button class="btn btn-g btn-s" id="perm-cols-btn" onclick="togglePermCols()">&#9664; Collapse Permissions</button>
+        </div>
+        <div class="tw"><table id="users-rbac-table"><thead>
+          <tr>
+            <th>Username</th><th>Name</th><th>Role</th>
+            <th class="perm-col">Can Create Callout</th>
+            <th class="perm-col">Update Status</th>
+            <th class="perm-col">Assign PO</th>
+            <th class="perm-col">Finance</th>
+            <th class="perm-col">Submit Quote</th>
+            <th class="perm-col">Approve Quote</th>
+            <th class="perm-col">Sys Admin</th>
+            <th id="users-th-actions" style="display:none">Actions</th>
+          </tr>
+        </thead><tbody id="users-table-body"></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         ■ SECTION LANDING DASHBOARDS
+    ═══════════════════════════════════════════════════════ -->
+
+    <!-- OPERATIONS LANDING DASHBOARD -->
+    <div id="p-ops-dashboard" class="ppage">
+      <div class="ptitle">Operations</div>
+      <div class="psub">FIELD OPERATIONS  ·  OVERVIEW</div>
+      <div id="ops-dash-content"></div>
+    </div>
+
+    <!-- FINANCE LANDING DASHBOARD -->
+    <div id="p-finance-dashboard" class="ppage">
+      <div class="ptitle">Finance</div>
+      <div class="psub">FINANCIAL MANAGEMENT  ·  OVERVIEW</div>
+      <div id="fin-dash-content"></div>
+    </div>
+
+    <!-- SUPPORT LANDING DASHBOARD -->
+    <div id="p-support-dashboard" class="ppage">
+      <div class="ptitle">Support</div>
+      <div class="psub">ADMINISTRATION  ·  OVERVIEW</div>
+      <div id="sup-dash-content"></div>
     </div>
 
   </div><!-- /pmain -->
 </div><!-- /portal-shell -->
+
+<!-- INFO / GUIDE PANEL -->
+<div id="info-panel" role="complementary" aria-label="Page Guide">
+  <div id="info-panel-inner"></div>
+</div>
 
 <!-- MODAL -->
 <div id="modal-overlay" onclick="closeModal(event)">
@@ -626,10 +860,10 @@ $base = rtrim($cfg['base_url'] ?? '', '/');
 <div id="toaster"></div>
 
 
-<script src="portal.js"></script>
-
 <!-- Back to top button -->
 <button id="back-to-top" data-action="scrollToTop" title="Back to top"></button>
+
+<script src="portal.js?v=<?= filemtime(__DIR__.'/portal.js') ?>"></script>
 
 
 

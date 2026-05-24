@@ -1,0 +1,8 @@
+/* ═══════════════════════════════════════════════════════
+   THERMAL GEOMETRY - BRAND TOKEN SYSTEM
+   Dark + Light  -  Shared across all states
+═══════════════════════════════════════════════════════ */
+:root{
+  --ember:#C0392B;--orange:#E05A1A;--amber:#F07820;--gold:#F5A623;
+  --green:#1A7A40;--warn:#E67E22;--blue:#3B82F6;
+}
