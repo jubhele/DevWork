@@ -5,9 +5,11 @@ ob_start();
  *
  * GET    /api/safety_personnel.php?file_ref=SAF-xxx        → list all personnel (active + inactive)
  * POST   /api/safety_personnel.php                         → add person to file
+ * POST   /api/safety_personnel.php {action:link_user}      → link portal user (creates/reactivates personnel row)
  * PUT    /api/safety_personnel.php?id=123                  → update person details
  * PUT    /api/safety_personnel.php?id=123&action=remove    → soft-delete (record retained for audit)
  * PUT    /api/safety_personnel.php?id=123&action=reinstate → reactivate
+ * DELETE /api/safety_personnel.php?action=unlink_user      → unlink portal user (soft-removes personnel row)
  * DELETE /api/safety_personnel.php?id=123                  → hard delete (admin only)
  */
 
@@ -28,22 +30,8 @@ const VALID_ROLES = ['Employee','Subcontractor','Supervisor','SHE Rep','First Ai
 
 /* ── GET ──────────────────────────────────────────────── */
 if ($method === 'GET') {
-    $action   = clean($_GET['action'] ?? '', 30);
     $file_ref = clean($_GET['file_ref'] ?? '', 30);
     if (!$file_ref) json_err('Missing file_ref');
-
-    if ($action === 'linked_users') {
-        $rows = db_select(
-            "SELECT fu.id AS link_id, fu.file_ref, fu.user_id,
-                    u.name, u.role, u.title, u.username
-               FROM bf_safety_file_users fu
-               JOIN bf_users u ON fu.user_id = u.id
-              WHERE fu.file_ref = ?
-              ORDER BY u.name ASC",
-            [$file_ref]
-        );
-        json_ok(['data' => $rows]);
-    }
 
     $rows = db_select(
         "SELECT * FROM bf_safety_personnel
@@ -74,19 +62,13 @@ if ($method === 'POST') {
         );
         if (!$pu) json_err('Portal user not found or inactive', 404);
 
-        if (db_row("SELECT id FROM bf_safety_file_users WHERE file_ref = ? AND user_id = ?", [$file_ref, $uid]))
-            json_err('User already linked to this file');
-
-        db_insert(
-            "INSERT INTO bf_safety_file_users (file_ref, user_id, added_by) VALUES (?, ?, ?)",
-            [$file_ref, $uid, $user['username']]
-        );
-
-        // Auto-create or reactivate the personnel entry
         $existing = db_row(
-            "SELECT id FROM bf_safety_personnel WHERE file_ref = ? AND portal_user_id = ?",
+            "SELECT id, is_active FROM bf_safety_personnel WHERE file_ref = ? AND portal_user_id = ?",
             [$file_ref, $uid]
         );
+
+        if ($existing && $existing['is_active']) json_err('User already linked to this file');
+
         if ($existing) {
             db_exec(
                 "UPDATE bf_safety_personnel
@@ -108,12 +90,9 @@ if ($method === 'POST') {
         audit($user['username'], 'LINK_USER', "Portal user {$pu['name']} linked to $file_ref");
 
         $rows = db_select(
-            "SELECT fu.id AS link_id, fu.file_ref, fu.user_id,
-                    u.name, u.role, u.title, u.username
-               FROM bf_safety_file_users fu
-               JOIN bf_users u ON fu.user_id = u.id
-              WHERE fu.file_ref = ?
-              ORDER BY u.name ASC",
+            "SELECT * FROM bf_safety_personnel
+              WHERE file_ref = ?
+              ORDER BY is_active DESC, full_name ASC",
             [$file_ref]
         );
         json_ok(['data' => $rows], "User linked to safety file");
@@ -129,14 +108,15 @@ if ($method === 'POST') {
 
     $new_id = db_insert(
         "INSERT INTO bf_safety_personnel
-         (file_ref, full_name, id_number, role, company, created_by)
-         VALUES (?, ?, ?, ?, ?, ?)",
+         (file_ref, full_name, id_number, role, company, email, created_by)
+         VALUES (?, ?, ?, ?, ?, ?, ?)",
         [
             $file_ref,
             clean($b['full_name'], 255),
             clean($b['id_number'] ?? '', 30),
             $role,
             clean($b['company'] ?? '', 255),
+            clean($b['email'] ?? '', 255),
             $user['username'],
         ]
     );
@@ -190,6 +170,7 @@ if ($method === 'PUT') {
         $sets[] = 'role = ?'; $params[] = $b['role'];
     }
     if (array_key_exists('company', $b)) { $sets[] = 'company = ?'; $params[] = clean($b['company'], 255); }
+    if (array_key_exists('email', $b))   { $sets[] = 'email = ?';   $params[] = clean($b['email'], 255); }
 
     if ($sets) {
         $params[] = $id;
@@ -210,28 +191,20 @@ if ($method === 'DELETE') {
         $uid      = (int)($_GET['user_id'] ?? 0);
         if (!$file_ref || !$uid) json_err('Missing file_ref or user_id');
 
-        $link = db_row(
-            "SELECT id FROM bf_safety_file_users WHERE file_ref = ? AND user_id = ?",
-            [$file_ref, $uid]
-        );
-        if (!$link) json_err('Link not found', 404);
-
-        db_exec("DELETE FROM bf_safety_file_users WHERE file_ref = ? AND user_id = ?", [$file_ref, $uid]);
-
         $prs = db_row(
             "SELECT id FROM bf_safety_personnel
              WHERE file_ref = ? AND portal_user_id = ? AND is_active = 1",
             [$file_ref, $uid]
         );
-        if ($prs) {
-            db_exec(
-                "UPDATE bf_safety_personnel
-                 SET is_active = 0, removed_at = CURDATE(),
-                     removed_reason = 'Portal user unlinked', removed_by = ?
-                 WHERE id = ?",
-                [$user['username'], $prs['id']]
-            );
-        }
+        if (!$prs) json_err('Link not found', 404);
+
+        db_exec(
+            "UPDATE bf_safety_personnel
+             SET is_active = 0, removed_at = CURDATE(),
+                 removed_reason = 'Portal user unlinked', removed_by = ?
+             WHERE id = ?",
+            [$user['username'], $prs['id']]
+        );
 
         $pu = db_row("SELECT name FROM bf_users WHERE id = ?", [$uid]);
         audit($user['username'], 'UNLINK_USER',

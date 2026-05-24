@@ -59,6 +59,15 @@ SET @sql = IF(
   'SELECT ''No seed backup tables found'' AS result'
 );
 
+SELECT @sql AS generated_drop_statement;
+
 PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
+
+-- Step 3 — verify cleanup: should return 0 rows if all seed backup tables were dropped:
+SELECT TABLE_NAME, CREATE_TIME
+  FROM information_schema.TABLES
+ WHERE TABLE_SCHEMA = DATABASE()
+   AND TABLE_NAME REGEXP '_seed_bak_[0-9]{8}_[0-9]{6}$'
+ ORDER BY TABLE_NAME;

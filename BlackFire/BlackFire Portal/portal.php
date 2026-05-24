@@ -362,10 +362,10 @@ $base = rtrim($cfg['base_url'] ?? '', '/');
         <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
         <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>
       </button>
-      <button class="info-btn" id="info-mode-btn" data-action="toggleInfoMode" title="Page Guide — how-to help for each screen">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="8.01"/><polyline points="11 12 12 12 12 16"/></svg>
-        GUIDE
+      <button class="refresh-btn" data-action="refreshPage" title="Refresh this section">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
       </button>
+      <button class="info-btn" id="info-mode-btn" data-action="toggleInfoMode" title="Page Guide — how-to help for each screen">?</button>
       <button id="pnav-signout" data-action="doLogout">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="signout-icon"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         Sign Out
@@ -433,32 +433,16 @@ $base = rtrim($cfg['base_url'] ?? '', '/');
 
     <!-- DASHBOARD -->
     <div id="p-dashboard" class="ppage active">
-      <div class="ptitle">Dashboard</div>
-      <div class="psub" id="dash-sub">AECI CHEMPARK  -  OVERVIEW</div>
-      <div class="kgrid">
-        <div class="kcard k1"><div class="klbl">Open Callouts</div><div class="kval" id="kv-co">0</div><div class="ksub">Active on site</div></div>
-        <div class="kcard k2"><div class="klbl">Invoiced MTD</div><div class="kval" id="kv-rev">R0</div><div class="ksub">Month to date</div></div>
-        <div class="kcard k3"><div class="klbl">Pending Quotes</div><div class="kval" id="kv-q">0</div><div class="ksub">Awaiting approval</div></div>
-        <div class="kcard k4"><div class="klbl">Net Balance</div><div class="kval" id="kv-bal">R0</div><div class="ksub">Credits − Debits</div></div>
-      </div>
-      <div class="alert-strip" id="dash-alerts"></div>
-      <div class="panel mt2" id="dash-comp-widget" style="display:none">
-        <div class="ph">
-          <div class="ph-title">Compliance Alerts</div>
-          <button class="btn btn-g btn-s" onclick="showPortalPage('p-safety',null)">View Safety Files</button>
+      <div class="dash-ptitle-row">
+        <div>
+          <div class="ptitle">Dashboard</div>
+          <div class="psub" id="dash-sub">AECI CHEMPARK  -  OVERVIEW</div>
         </div>
-        <div id="dash-comp-body"></div>
+        <button class="btn btn-g btn-s dash-edit-btn" onclick="showDashEditor()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="vertical-align:-2px;margin-right:5px"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit Layout
+        </button>
       </div>
-      <div class="twocol">
-        <div class="panel">
-          <div class="ph"><div class="ph-title">Recent Callouts</div><button class="btn btn-g btn-s" onclick="showPortalPage('p-callouts',null)">View All</button></div>
-          <div class="tw"><table><thead><tr><th>Job ID</th><th>Service</th><th>Status</th></tr></thead><tbody id="dash-co-tbl"></tbody></table></div>
-        </div>
-        <div class="panel" id="dash-rev-panel">
-          <div class="ph"><div class="ph-title">Revenue - 6 Months</div></div>
-          <div class="rev-chart-wrap"><div class="chart-bars" id="rev-chart"></div></div>
-        </div>
-      </div>
+      <div id="dash-main-content"></div>
     </div>
 
     <!-- TRANSACTIONS -->
@@ -775,11 +759,10 @@ $base = rtrim($cfg['base_url'] ?? '', '/');
         <div class="saf-detail-actions">
           <button class="btn btn-g btn-s" onclick="showPortalPage('p-safety',null); renderSafetyFiles()">&#8592; Back</button>
           <button class="btn btn-g btn-s" data-action="editSafetyFile">Edit</button>
-          <button class="btn btn-g btn-s" data-action="sendPolicyEmail">Send Policy Email</button>
           <button class="btn btn-g btn-s" onclick="safGenerateTracker(document.getElementById('saf-detail-content').dataset.fileId)" title="Generate contractor action-plan tracker as a downloadable HTML file">&#8659; Tracker</button>
           <button class="btn btn-s saf-approve-btn" id="saf-approve-btn" style="display:none;background:var(--grn-glow,#dcfce7);border-color:var(--green,#16a34a);color:var(--green,#16a34a)" onclick="approveSafetyFile()">&#10003; Approve</button>
           <button class="btn btn-s" id="saf-deactivate-btn" style="display:none;background:#fee2e2;border-color:#dc2626;color:#dc2626" onclick="deactivateSafetyFile()" title="Deactivate this safety file — record is retained for audit">&#128465; Deactivate</button>
-          <button class="btn btn-p btn-s" onclick="safPrintReport()">Print / Download Pack</button>
+          <button class="btn btn-p btn-s" onclick="safDownloadPack(document.getElementById('saf-detail-content').dataset.fileId)" title="Download full safety file report as standalone HTML">&#8595; Download Pack</button>
         </div>
       </div>
       <div id="saf-detail-content"></div>
@@ -847,7 +830,15 @@ $base = rtrim($cfg['base_url'] ?? '', '/');
 </div><!-- /portal-shell -->
 
 <!-- INFO / GUIDE PANEL -->
+<div id="info-overlay" onclick="toggleInfoMode()"></div>
 <div id="info-panel" role="complementary" aria-label="Page Guide">
+  <div id="info-panel-hdr">
+    <div>
+      <div id="info-panel-hdr-title">Page Guide</div>
+      <div id="info-panel-hdr-sub"></div>
+    </div>
+    <button id="info-panel-close" data-action="toggleInfoMode" aria-label="Close guide">&times;</button>
+  </div>
   <div id="info-panel-inner"></div>
 </div>
 
