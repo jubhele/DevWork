@@ -20,7 +20,14 @@
 set -euo pipefail
 
 # ── Config ────────────────────────────────────────────────────────
-GITHUB_PAT=$(cat ~/.bf_pat 2>/dev/null || echo "")
+# Read PAT from blackfire_secrets.php (preferred) or ~/.bf_pat fallback
+GITHUB_PAT=$(php -r "
+  \$s = getenv('HOME').'/../blackfire_secrets.php';
+  if (!file_exists(\$s)) \$s = getenv('HOME').'/blackfire_secrets.php';
+  if (file_exists(\$s)) { require_once \$s; echo defined('BF_GITHUB_PAT') ? BF_GITHUB_PAT : ''; }
+" 2>/dev/null)
+# Fallback to ~/.bf_pat
+[[ -z "\$GITHUB_PAT" ]] && GITHUB_PAT=$(cat ~/.bf_pat 2>/dev/null || echo "")
 REPO_URL="https://${GITHUB_PAT}@github.com/jubhele/BlackFire.git"
 BRANCH="ndlunkulu"
 REPO_SUBDIR="BlackFire/BlackFire Portal"   # path inside repo to deploy
@@ -43,7 +50,7 @@ echo -e "${AMBER}BLKFR · $(date '+%Y-%m-%d %H:%M:%S')${RESET}"
 echo "────────────────────────────────────────"
 
 [[ -z "$GITHUB_PAT" ]] && \
-  fail "PAT not found. Run: echo 'YOUR_PAT' > ~/.bf_pat && chmod 600 ~/.bf_pat"
+  fail "PAT not found. Add BF_GITHUB_PAT to ~/blackfire_secrets.php or run: echo 'YOUR_PAT' > ~/.bf_pat"
 
 command -v git  >/dev/null 2>&1 || fail "git not found. Contact Afrihost support."
 command -v rsync >/dev/null 2>&1 || { warn "rsync not found — using cp instead"; USE_CP=1; }
