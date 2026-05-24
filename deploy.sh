@@ -20,7 +20,7 @@
 set -euo pipefail
 
 # ── Config ────────────────────────────────────────────────────────
-GITHUB_PAT="REPLACE_WITH_YOUR_PAT"
+GITHUB_PAT=$(cat ~/.bf_pat 2>/dev/null || echo "")
 REPO_URL="https://${GITHUB_PAT}@github.com/jubhele/BlackFire.git"
 BRANCH="ndlunkulu"
 REPO_SUBDIR="BlackFire/BlackFire Portal"   # path inside repo to deploy
@@ -42,8 +42,8 @@ echo -e "${BOLD}BlackFire Portal — Deploy Script${RESET}"
 echo -e "${AMBER}BLKFR · $(date '+%Y-%m-%d %H:%M:%S')${RESET}"
 echo "────────────────────────────────────────"
 
-[[ "$GITHUB_PAT" == "REPLACE_WITH_YOUR_PAT" ]] && \
-  fail "Set your GitHub PAT in GITHUB_PAT at the top of this script."
+[[ -z "$GITHUB_PAT" ]] && \
+  fail "PAT not found. Run: echo 'YOUR_PAT' > ~/.bf_pat && chmod 600 ~/.bf_pat"
 
 command -v git  >/dev/null 2>&1 || fail "git not found. Contact Afrihost support."
 command -v rsync >/dev/null 2>&1 || { warn "rsync not found — using cp instead"; USE_CP=1; }
