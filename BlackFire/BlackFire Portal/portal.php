@@ -15,8 +15,8 @@ $base = rtrim($cfg['base_url'] ?? '', '/');
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <!-- Primary SEO -->
-<meta name="description" content="BlackFire Solutions — PSIRA registered security company headquartered in Gauteng, operating nationwide across South Africa. 24/7 armed response, CCTV, access control, guard services. 500+ active clients. Call +27 68 912 6581.">
-<meta name="keywords" content="security company South Africa, armed response Gauteng, CCTV installation Johannesburg, access control nationwide, security guards South Africa, PSIRA registered, BlackFire Solutions">
+<meta name="description" content="BlackFire Solutions — PSIRA registered security company headquartered in Gauteng, operating nationwide. Specialists in next-generation security: drone surveillance, AI-powered CCTV, access control, armed response and integrated security systems across South Africa. 500+ clients. Call +27 68 912 6581.">
+<meta name="keywords" content="security company South Africa, armed response Gauteng, drone security South Africa, drone surveillance Johannesburg, aerial security monitoring, CCTV installation South Africa, AI security systems, smart security Gauteng, access control nationwide, security guards South Africa, PSIRA registered security, integrated security solutions, remote monitoring South Africa, thermal imaging security, perimeter detection, electronic security Gauteng, event security South Africa, industrial security, commercial security Johannesburg, BlackFire Solutions">
 <meta name="robots" content="index, follow">
 <meta name="author" content="BlackFire Solutions (Pty) Ltd">
 <link rel="canonical" href="https://blackfiresolutions.co.za/">
@@ -24,7 +24,7 @@ $base = rtrim($cfg['base_url'] ?? '', '/');
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://blackfiresolutions.co.za/">
 <meta property="og:title" content="BlackFire Solutions — Security Engineered to Protect">
-<meta property="og:description" content="PSIRA registered security company headquartered in Gauteng, operating nationwide. 24/7 armed response, CCTV, access control, guard deployment across South Africa. 500+ clients. 55+ services.">
+<meta property="og:description" content="PSIRA registered security company headquartered in Gauteng, operating nationwide. Specialists in drone surveillance, AI-powered CCTV, access control, armed response and integrated security technology across South Africa. 500+ clients. 55+ services.">
 <meta property="og:image" content="https://blackfiresolutions.co.za/blackfire_logo_transparent.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -33,7 +33,7 @@ $base = rtrim($cfg['base_url'] ?? '', '/');
 <!-- Twitter Card -->
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="BlackFire Solutions — Security Engineered to Protect">
-<meta name="twitter:description" content="PSIRA registered. 24/7 armed response nationwide. Based in Gauteng, operating across South Africa. CCTV, access control, guard services. +27 68 912 6581">
+<meta name="twitter:description" content="PSIRA registered. Drone surveillance, AI CCTV, armed response nationwide. Based in Gauteng, operating across South Africa. Next-gen security technology. +27 68 912 6581">
 <meta name="twitter:image" content="https://blackfiresolutions.co.za/blackfire_logo_transparent.png">
 <!-- JSON-LD Structured Data -->
 <script type="application/ld+json">
@@ -46,7 +46,7 @@ $base = rtrim($cfg['base_url'] ?? '', '/');
   "url": "https://blackfiresolutions.co.za",
   "logo": "https://blackfiresolutions.co.za/blackfire_logo_transparent.png",
   "image": "https://blackfiresolutions.co.za/blackfire_logo_transparent.png",
-  "description": "PSIRA registered security company headquartered in Gauteng, providing 24/7 armed response, CCTV installation, access control, guard deployment and electronic security services nationwide across South Africa.",
+  "description": "PSIRA registered security company headquartered in Gauteng, providing next-generation security solutions nationwide. Specialising in drone surveillance, AI-powered CCTV, access control, armed response, perimeter detection, thermal imaging and integrated security systems across South Africa.",
   "telephone": "+27689126581",
   "email": "info@blackfiresolutions.co.za",
   "address": {
@@ -84,7 +84,14 @@ $base = rtrim($cfg['base_url'] ?? '', '/');
       { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Alarm Systems" } },
       { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Risk Assessment" } },
       { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Event Security" } },
-      { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Electronic Security" } }
+      { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Electronic Security" } },
+      { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Drone Surveillance" } },
+      { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Aerial Security Monitoring" } },
+      { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "AI-Powered CCTV" } },
+      { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Thermal Imaging" } },
+      { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Perimeter Detection" } },
+      { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Remote Monitoring" } },
+      { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Integrated Security Systems" } }
     ]
   }
 }
