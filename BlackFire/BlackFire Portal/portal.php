@@ -14,6 +14,75 @@ $base = rtrim($cfg['base_url'] ?? '', '/');
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<!-- Primary SEO -->
+<meta name="description" content="BlackFire Solutions — PSIRA registered security company in Gauteng. 24/7 armed response, CCTV, access control, guard services across Johannesburg, Sandton, Midrand and Ekurhuleni. 500+ active clients. Call +27 68 912 6581.">
+<meta name="keywords" content="security company Gauteng, armed response Johannesburg, CCTV installation Sandton, access control Midrand, security guards Gauteng, PSIRA registered, BlackFire Solutions">
+<meta name="robots" content="index, follow">
+<meta name="author" content="BlackFire Solutions (Pty) Ltd">
+<link rel="canonical" href="https://blackfiresolutions.co.za/">
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://blackfiresolutions.co.za/">
+<meta property="og:title" content="BlackFire Solutions — Security Engineered to Protect">
+<meta property="og:description" content="PSIRA registered security company in Gauteng. 24/7 armed response, CCTV, access control, guard deployment across Johannesburg and Sandton. 500+ clients. 55+ services.">
+<meta property="og:image" content="https://blackfiresolutions.co.za/blackfire_logo_transparent.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:site_name" content="BlackFire Solutions">
+<meta property="og:locale" content="en_ZA">
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="BlackFire Solutions — Security Engineered to Protect">
+<meta name="twitter:description" content="PSIRA registered. 24/7 armed response across Gauteng. CCTV, access control, guard services. +27 68 912 6581">
+<meta name="twitter:image" content="https://blackfiresolutions.co.za/blackfire_logo_transparent.png">
+<!-- JSON-LD Structured Data -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "LocalBusiness",
+  "@id": "https://blackfiresolutions.co.za/",
+  "name": "BlackFire Solutions (Pty) Ltd",
+  "alternateName": "BlackFire Solutions",
+  "url": "https://blackfiresolutions.co.za",
+  "logo": "https://blackfiresolutions.co.za/blackfire_logo_transparent.png",
+  "image": "https://blackfiresolutions.co.za/blackfire_logo_transparent.png",
+  "description": "PSIRA registered security company in Gauteng offering 24/7 armed response, CCTV installation, access control, guard deployment and electronic security services across Johannesburg, Sandton, Midrand and Ekurhuleni.",
+  "telephone": "+27689126581",
+  "email": "info@blackfiresolutions.co.za",
+  "address": {
+    "@type": "PostalAddress",
+    "addressLocality": "Johannesburg",
+    "addressRegion": "Gauteng",
+    "addressCountry": "ZA"
+  },
+  "areaServed": [
+    { "@type": "City", "name": "Johannesburg" },
+    { "@type": "City", "name": "Sandton" },
+    { "@type": "City", "name": "Midrand" },
+    { "@type": "City", "name": "Ekurhuleni" }
+  ],
+  "openingHoursSpecification": {
+    "@type": "OpeningHoursSpecification",
+    "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"],
+    "opens": "00:00",
+    "closes": "23:59"
+  },
+  "hasOfferCatalog": {
+    "@type": "OfferCatalog",
+    "name": "Security Services",
+    "itemListElement": [
+      { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Armed Response" } },
+      { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "CCTV Installation" } },
+      { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Access Control" } },
+      { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Guard Services" } },
+      { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Alarm Systems" } },
+      { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Risk Assessment" } },
+      { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Event Security" } },
+      { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Electronic Security" } }
+    ]
+  }
+}
+</script>
 <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; img-src 'self' data:; script-src 'self' 'unsafe-inline'; connect-src 'self'; object-src 'none';">
 <title>BlackFire Solutions - Fire, taught to behave.</title>
 <link rel="icon" href="./favicon.ico?v=20260521" sizes="any">
