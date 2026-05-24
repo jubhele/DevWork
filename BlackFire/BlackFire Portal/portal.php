@@ -1,13 +1,12 @@
 <?php
-ob_start(); // Buffer output so headers can be sent from API calls
 /**
- * BlackFire Solutions Portal - Main Portal PHP
- * This file outputs the full portal HTML, with the JS data layer
- * replaced by API calls to the PHP/MySQL backend.
+ * BlackFire Solutions Portal
+ * HTML shell — public site + authenticated portal pages.
+ * All data via fetch() → api/*.php endpoints.
  */
 $cfg = require __DIR__ . '/config/config.php';
 date_default_timezone_set($cfg['timezone'] ?? 'Africa/Johannesburg');
-$base = rtrim($cfg['base_url'] ?? '', '/');
+$cspNonce = base64_encode(random_bytes(16));
 ?>
 <!DOCTYPE html>
 <html lang="en" data-theme="light" data-state="public">
@@ -36,7 +35,7 @@ $base = rtrim($cfg['base_url'] ?? '', '/');
 <meta name="twitter:description" content="PSIRA registered. Drone surveillance, AI CCTV, armed response nationwide. Based in Gauteng, operating across South Africa. Next-gen security technology. +27 68 912 6581">
 <meta name="twitter:image" content="https://blackfiresolutions.co.za/blackfire_logo_transparent.png">
 <!-- JSON-LD Structured Data -->
-<script type="application/ld+json">
+<script type="application/ld+json" nonce="<?= $cspNonce ?>">
 {
   "@context": "https://schema.org",
   "@type": "LocalBusiness",
@@ -96,7 +95,7 @@ $base = rtrim($cfg['base_url'] ?? '', '/');
   }
 }
 </script>
-<meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; img-src 'self' data:; script-src 'self' 'unsafe-inline'; connect-src 'self'; object-src 'none';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; script-src 'self' 'nonce-<?= $cspNonce ?>'; connect-src 'self'; object-src 'none';">
 <title>BlackFire Solutions - Fire, taught to behave.</title>
 <link rel="icon" href="./favicon.ico?v=20260521" sizes="any">
 <link rel="icon" type="image/png" sizes="512x512" href="./favicon-512x512.png?v=20260521">
@@ -937,9 +936,3 @@ $base = rtrim($cfg['base_url'] ?? '', '/');
 <button id="back-to-top" data-action="scrollToTop" title="Back to top"></button>
 
 <script src="portal.js?v=<?= filemtime(__DIR__.'/portal.js') ?>"></script>
-
-
-
-
-
-
