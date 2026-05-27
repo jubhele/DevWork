@@ -113,7 +113,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url('./blackfire
 .theme-btn .sun{display:block}.theme-btn .moon{display:none}
 [data-theme="light"] .theme-btn .sun{display:none}
 [data-theme="light"] .theme-btn .moon{display:block}
-@media(max-width:768px){.pub-nav-links{display:none}}
+@media(max-width:768px){.pub-nav-links{display:none}.pub-ham-btn{display:flex!important}}
 
 /* ── Public Pages ── */
 .pub-page{display:none;position:relative;z-index:1}
@@ -903,19 +903,61 @@ textarea.saf-cmt { resize:vertical; min-height:28px; width:100% }
 .saf-rename-hint code { background:rgba(255,255,255,.06); border-radius:3px; padding:1px 4px }
 .saf-rename-btns   { display:flex; gap:10px; justify-content:flex-end }
 
-/* ── Print styles ── */
+/* ── Print styles — comprehensive (safety, invoices, quotes, statements, public) ── */
 @media print {
-  #pub-nav, #pnav-bar, #pnav-primary-bar, #portal-topbar, #toaster, #back-to-top,
-  .saf-detail-actions, .srow, #safety-reminders { display:none !important }
-  #pmain  { margin:0 !important; padding:0 !important }
-  #p-safety-detail { display:block !important }
-  .ppage:not(#p-safety-detail) { display:none !important }
+  /* hide chrome */
+  #pub-nav,#pnav-bar,#pnav-primary-bar,#portal-topbar,#toaster,#back-to-top,
+  #info-panel,#info-overlay,#modal-overlay,.pub-mob-login-btn,#pub-mob-nav,
+  .saf-detail-actions,.srow,#safety-reminders,.bgrp,.refresh-btn,.info-btn,
+  .theme-btn,#pnav-signout,.saf-action-row,.saf-rename-overlay,
+  .pub-nav-right,.btn-login,.pub-ham-btn { display:none !important }
+
+  /* page setup */
+  html,body { font-size:11pt;background:#fff!important;color:#000!important }
+  body::before { display:none }
+  * { box-shadow:none!important;animation:none!important;transition:none!important }
+
+  /* portal shell */
+  #pmain { margin:0!important;padding:0!important;max-width:none!important }
+  #portal-shell { min-height:0 }
+  .ppage-hdr { position:static!important }
+
+  /* safety detail */
+  #p-safety-detail { display:block!important }
+  .ppage:not(#p-safety-detail) { display:none!important }
   .saf-detail-header { margin-bottom:10px }
-  .panel  { box-shadow:none !important; border:1px solid #ccc !important }
-  .saf-rpt-tbl, .saf-sum-tbl, .saf-ap-tbl { page-break-inside:auto }
-  .saf-rpt-section { page-break-inside:avoid }
-  body    { font-size:11px }
   .safety-audit-layout { grid-template-columns:1fr }
+  .safety-score-sidebar { position:static }
+  .saf-sec-body.collapsed { display:table!important }
+  .saf-criteria-tbl { min-width:0;font-size:9pt }
+  .saf-rpt-tbl,.saf-sum-tbl,.saf-ap-tbl { page-break-inside:auto }
+  .saf-rpt-section { page-break-inside:avoid }
+
+  /* invoices & quotes */
+  .doc-preview { box-shadow:none;border:none;padding:0;page-break-inside:avoid }
+  .doc-t td,.doc-t th { font-size:9.5pt }
+  .liitems th,.liitems td { font-size:9.5pt;padding:4px 7px }
+
+  /* statements & transactions */
+  table th,table td { font-size:9.5pt;padding:5px 8px }
+  .kgrid { grid-template-columns:repeat(4,1fr) }
+  .kcard { page-break-inside:avoid }
+
+  /* panels */
+  .panel { box-shadow:none!important;border:1px solid #ccc!important;page-break-inside:avoid }
+  .ph { background:#f5f5f5!important;border-bottom:1px solid #ccc!important }
+  .pill { border:1px solid #ccc;background:#f5f5f5;color:#000 }
+  .twocol { grid-template-columns:1fr 1fr }
+  .fgrid { grid-template-columns:1fr 1fr }
+  h1,h2,.ptitle { page-break-after:avoid }
+  a { color:#000;text-decoration:none }
+
+  /* public site pages */
+  #pub-site { display:block!important }
+  .pub-page.active { display:block!important }
+  .hero-section { min-height:0;padding:20px 0 }
+  .live-bar { display:none!important }
+  .emergency-bar { -webkit-print-color-adjust:exact;print-color-adjust:exact }
 }
 
 /* ── Button size xs ── */
@@ -1211,4 +1253,124 @@ textarea.saf-cmt { resize:vertical; min-height:28px; width:100% }
 .dwt-switch input:checked + .dwt-track { background:var(--ember) }
 .dwt-track::after           { content:''; position:absolute; top:3px; left:3px; width:16px; height:16px; background:#fff; border-radius:50%; box-shadow:0 1px 3px rgba(0,0,0,.25); transition:transform .2s }
 .dwt-switch input:checked + .dwt-track::after { transform:translateX(18px) }
+
+/* ═══════════════════════════════════════════════════════
+   ■ MOBILE — HAMBURGER NAV  +  FULL RESPONSIVE PASS
+═══════════════════════════════════════════════════════ */
+
+/* ── Hamburger button (hidden on desktop, shown by media query above) ── */
+.pub-ham-btn{
+  display:none;flex-direction:column;justify-content:center;
+  gap:5px;padding:8px;background:none;border:none;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+.pub-ham-btn span{display:block;width:22px;height:2px;background:var(--text);border-radius:1px;transition:all .25s}
+.pub-ham-btn.open span:nth-child(1){transform:translateY(7px) rotate(45deg)}
+.pub-ham-btn.open span:nth-child(2){opacity:0;transform:scaleX(0)}
+.pub-ham-btn.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
+
+/* ── Mobile nav dropdown ── */
+#pub-mob-nav{
+  display:none;
+  position:fixed;top:60px;left:0;right:0;z-index:99;
+  background:var(--surface);border-bottom:2px solid var(--accent);
+  box-shadow:0 8px 24px rgba(0,0,0,.18);
+  padding:6px 0 14px;
+}
+#pub-mob-nav.open{display:block;animation:mobNavIn .2s ease}
+@keyframes mobNavIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.pub-mob-nav-link{
+  display:block;padding:13px clamp(16px,5vw,32px);
+  font-size:14px;font-weight:500;color:var(--text2);
+  cursor:pointer;border-left:3px solid transparent;
+  transition:all .15s;-webkit-tap-highlight-color:transparent;
+}
+.pub-mob-nav-link:hover,.pub-mob-nav-link.active{
+  color:var(--text);border-left-color:var(--accent);background:var(--surface2);
+}
+.pub-mob-nav-divider{height:1px;background:var(--border);margin:6px clamp(16px,5vw,32px)}
+.pub-mob-login-btn{
+  display:block;margin:8px clamp(16px,5vw,32px) 0;
+  padding:13px;background:var(--accent);color:#fff;border:none;cursor:pointer;
+  font-family:'IBM Plex Mono',monospace;font-size:11px;
+  letter-spacing:2px;text-transform:uppercase;border-radius:2px;
+  text-align:center;width:calc(100% - 2*clamp(16px,5vw,32px));
+  -webkit-tap-highlight-color:transparent;
+}
+
+/* ── Touch targets — 44px minimum on mobile ── */
+@media(max-width:768px){
+  .btn{min-height:44px;padding:10px 18px}
+  .btn-s{min-height:36px;padding:6px 12px}
+  .btn-xs{min-height:30px}
+  .pnitem{height:44px}
+  .pnav-group{height:52px}
+  .filter-chip{padding:9px 16px;font-size:10px}
+  .pub-nav-link{padding:10px 16px}
+}
+
+/* ── kgrid: 2-col stays down to 480px, then single on very small ── */
+@media(max-width:400px){
+  .kgrid,.kgrid--auto{grid-template-columns:1fr}
+  .alert-strip{flex-direction:column}
+}
+
+/* ── Modal near-full-screen on very small screens ── */
+@media(max-width:480px){
+  #modal-overlay{padding:8px}
+  .modal{max-width:100%;max-height:96vh}
+  .mbdy{padding:14px}
+  .mhdr{padding:12px 14px}
+  .mttl{font-size:18px}
+}
+
+/* ── Toast: full-width strip on small phones ── */
+@media(max-width:480px){
+  #toaster{left:12px;right:12px;bottom:16px}
+  .toast{max-width:100%}
+}
+
+/* ── Info panel: full width on phones ── */
+@media(max-width:480px){
+  #info-panel{width:100%;border-left:none;border-top:2px solid var(--accent)}
+}
+
+/* ── Hero section on phones ── */
+@media(max-width:480px){
+  .hero-title{font-size:clamp(40px,13vw,64px)}
+  .hero-stats{gap:20px}
+  .hero-stat-val{font-size:28px}
+  .hero-actions{flex-direction:column}
+  .btn-primary-lg,.btn-outline-lg{width:100%;text-align:center;padding:14px}
+}
+
+/* ── Services / contact extra padding fix ── */
+@media(max-width:480px){
+  .services-header{padding:80px 16px 24px}
+  .services-grid-wrap{padding:20px 16px}
+  .services-grid{grid-template-columns:1fr}
+  #pub-contact > div{padding-top:80px}
+}
+
+/* ── Emergency bar: stack on very small ── */
+@media(max-width:380px){
+  .emergency-bar{flex-direction:column;align-items:flex-start;gap:4px;padding:10px 16px}
+}
+
+/* ── Portal extra-small (< 380px) ── */
+@media(max-width:380px){
+  #portal-topbar{padding:0 12px}
+  [data-state="portal"] #pmain{padding:160px 8px 20px}
+  .ptitle{font-size:26px}
+  .psub{font-size:10px;letter-spacing:.5px}
+  .pnav-group{padding:0 6px;font-size:8px;letter-spacing:.2px}
+  .pnitem{padding:0 7px;font-size:9px}
+  .kval{font-size:32px}
+}
+
+/* ── Public footer stack on small phones ── */
+@media(max-width:480px){
+  .pub-footer{padding:32px 16px 20px}
+  .footer-bottom{flex-direction:column;gap:4px;text-align:center}
+}
 

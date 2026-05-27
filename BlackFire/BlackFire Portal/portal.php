@@ -46,8 +46,20 @@ $base = rtrim($cfg['base_url'] ?? '', '/');
       <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>
     </button>
     <button class="btn-login" data-action="goLogin">Umlilo Portal</button>
+    <button class="pub-ham-btn" data-action="toggleMobileMenu" aria-label="Open menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
   </div>
 </nav>
+
+<!-- Mobile nav dropdown (public site only, hidden until hamburger tapped) -->
+<div id="pub-mob-nav" role="navigation" aria-label="Mobile navigation">
+  <div class="pub-mob-nav-link" id="pmnl-home"     onclick="pubNav('home');closeMobileMenu()">Home</div>
+  <div class="pub-mob-nav-link" id="pmnl-services"  onclick="pubNav('services');closeMobileMenu()">Services</div>
+  <div class="pub-mob-nav-link" id="pmnl-contact"   onclick="pubNav('contact');closeMobileMenu()">Contact</div>
+  <div class="pub-mob-nav-divider"></div>
+  <button class="pub-mob-login-btn" data-action="goLogin" onclick="closeMobileMenu()">Umlilo Portal →</button>
+</div>
 
 <div id="pub-site">
 

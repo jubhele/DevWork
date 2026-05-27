@@ -71,11 +71,19 @@ async function apiUpload(entityType, entityRef, fileInput) {
 
 /* ── data-action click dispatcher ──────────────────────────────────── */
 document.addEventListener('click', function(e) {
+  // Close mobile nav when tapping outside it
+  const mobNav = document.getElementById('pub-mob-nav');
+  if (mobNav && mobNav.classList.contains('open')) {
+    if (!mobNav.contains(e.target) && !e.target.closest('.pub-ham-btn')) {
+      closeMobileMenu();
+    }
+  }
   const el = e.target.closest('[data-action]');
   if (!el) return;
   const action = el.dataset.action;
   switch (action) {
     case 'toggleTheme':         toggleTheme(); break;
+    case 'toggleMobileMenu':    toggleMobileMenu(); break;
     case 'toggleInfoMode':      toggleInfoMode(); break;
     case 'goLogin':             goLogin(); break;
     case 'goPublic':            goPublic(); break;
@@ -1541,12 +1549,33 @@ async function submitInfoSuggestion(pageId){
    PUBLIC NAVIGATION
 ═══════════════════════════════════════════════════════ */
 function pubNav(page){
+  closeMobileMenu();
   document.querySelectorAll('.pub-page').forEach(p=>p.classList.remove('active'));
   document.getElementById('pub-'+page).classList.add('active');
   document.querySelectorAll('.pub-nav-link').forEach(l=>l.classList.remove('active'));
   const lnk=document.getElementById('pnl-'+page);if(lnk)lnk.classList.add('active');
+  // sync mobile nav active state
+  document.querySelectorAll('.pub-mob-nav-link').forEach(l=>l.classList.remove('active'));
+  const ml=document.getElementById('pmnl-'+page);if(ml)ml.classList.add('active');
   window.scrollTo(0,0);
   if(page==='services') buildSvcGrid('pub');
+}
+function toggleMobileMenu(){
+  const nav=document.getElementById('pub-mob-nav');
+  const btn=document.querySelector('.pub-ham-btn');
+  if(!nav||!btn) return;
+  const opening=!nav.classList.contains('open');
+  nav.classList.toggle('open',opening);
+  btn.classList.toggle('open',opening);
+  btn.setAttribute('aria-expanded', opening ? 'true' : 'false');
+}
+function closeMobileMenu(){
+  const nav=document.getElementById('pub-mob-nav');
+  const btn=document.querySelector('.pub-ham-btn');
+  if(!nav||!btn) return;
+  nav.classList.remove('open');
+  btn.classList.remove('open');
+  btn.setAttribute('aria-expanded','false');
 }
 function goPublicFullscreen(){
   document.documentElement.dataset.state='public';
@@ -1622,6 +1651,7 @@ function submitContact(){
    AUTH
 ═══════════════════════════════════════════════════════ */
 function goLogin(){
+  closeMobileMenu();
   document.documentElement.dataset.state='login';
   // Check for reset_token in URL
   const params = new URLSearchParams(window.location.search);
@@ -1793,7 +1823,7 @@ function renderDashboard(){
   else if(panelL)         html+=panelL;
   else if(panelR)         html+=panelR;
 
-  if(!kpiCards.length&&!alertsHtml&&!showComp&&!panelL&&!panelR)
+  if(!kpiCards.length&&!showAlrt&&!showComp&&!panelL&&!panelR)
     html=`<div class="dash-empty-state"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg><p>Your dashboard is empty.<br><button class="btn btn-g btn-s" onclick="showDashEditor()">Edit Layout</button> to add widgets.</p></div>`;
 
   container.innerHTML=html;
@@ -3071,8 +3101,9 @@ document.addEventListener('DOMContentLoaded', async ()=>{
     document.getElementById('newpass-panel').style.display = '';
     return;
   }
-  // Restore session on page reload — check server for active session
-  const me = await api('GET','auth.php?action=me');
+  // Restore session on page reload — skip probe (and its 401) when no session hint cookie exists
+  const hasHint = document.cookie.split(';').some(c => c.trim().startsWith('bf_session_hint='));
+  const me = hasHint ? await api('GET','auth.php?action=me') : { success: false };
   if(me.success && me.user){
     SESSION = me.user;
     buildNav();

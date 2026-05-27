@@ -42,6 +42,7 @@ if ($action === 'logout') {
     if ($user) audit($user['username'], 'LOGOUT', $user['username'] . ' signed out');
     bf_session_start();
     session_destroy();
+    setcookie('bf_session_hint', '', ['expires' => time() - 3600, 'path' => '/', 'httponly' => false, 'samesite' => 'Lax']);
     json_ok([], 'Logged out');
 }
 
@@ -100,6 +101,8 @@ if ($action === 'login' && $method === 'POST') {
     $_SESSION['bf_expires'] = time() + 7200; // 2 hours
     $csrf = csrf_token();
 
+    $isSecure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (($_SERVER['SERVER_PORT'] ?? 80) == 443);
+    setcookie('bf_session_hint', '1', ['expires' => time() + 7200, 'path' => '/', 'secure' => $isSecure, 'httponly' => false, 'samesite' => 'Lax']);
     audit($username, 'LOGIN', "{$row['name']} signed in as {$row['role']}");
     json_ok(['user' => $session_user, 'csrf_token' => $csrf], 'Login successful');
 }

@@ -53,6 +53,7 @@ function current_user(): ?array {
     if (!isset($_SESSION['bf_user']) || !is_array($_SESSION['bf_user'])) return null;
     if (!isset($_SESSION['bf_expires']) || $_SESSION['bf_expires'] < time()) {
         session_destroy();
+        setcookie('bf_session_hint', '', ['expires' => time() - 3600, 'path' => '/', 'httponly' => false, 'samesite' => 'Lax']);
         return null;
     }
     $_SESSION['bf_expires'] = time() + 7200;
