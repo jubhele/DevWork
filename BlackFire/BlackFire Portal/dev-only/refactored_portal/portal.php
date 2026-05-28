@@ -1,4 +1,4 @@
-<?php require_once __DIR__ . '/includes/portal_header.php'; ?>
+﻿<?php require_once __DIR__ . '/includes/portal_header.php'; ?>
 
 
 <!-- ═══════════════════════════════════════════════════════
@@ -6,13 +6,13 @@
 ═══════════════════════════════════════════════════════ -->
 <!-- Public Nav — always visible across all states -->
 <nav id="pub-nav">
-  <div class="pub-brand" onclick="pubNav('home')">
+  <div class="pub-brand" data-action="pubNav" data-pub-page="home">
     <img src="./blackfire_logo_transparent.png" class="bf-logo-dark" height="60"><img src="./blackfire_logo_transparent.png" class="bf-logo-light" height="60">
   </div>
   <div class="pub-nav-links">
-    <div class="pub-nav-link active" id="pnl-home" onclick="pubNav('home')">Home</div>
-    <div class="pub-nav-link" id="pnl-services" onclick="pubNav('services')">Services</div>
-    <div class="pub-nav-link" id="pnl-contact" onclick="pubNav('contact')">Contact</div>
+    <div class="pub-nav-link active" id="pnl-home" data-action="pubNav" data-pub-page="home">Home</div>
+    <div class="pub-nav-link" id="pnl-services" data-action="pubNav" data-pub-page="services">Services</div>
+    <div class="pub-nav-link" id="pnl-contact" data-action="pubNav" data-pub-page="contact">Contact</div>
   </div>
   <div class="pub-nav-right">
     <button class="theme-btn" data-action="toggleTheme">
@@ -20,8 +20,20 @@
       <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>
     </button>
     <button class="btn-login" data-action="goLogin">Umlilo Portal</button>
+    <button class="pub-ham-btn" data-action="toggleMobileMenu" aria-label="Open menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
   </div>
 </nav>
+
+<!-- Mobile nav dropdown (public site only, hidden until hamburger tapped) -->
+<div id="pub-mob-nav" role="navigation" aria-label="Mobile navigation">
+  <div class="pub-mob-nav-link" id="pmnl-home"     data-action="pubNavMobile" data-pub-page="home">Home</div>
+  <div class="pub-mob-nav-link" id="pmnl-services"  data-action="pubNavMobile" data-pub-page="services">Services</div>
+  <div class="pub-mob-nav-link" id="pmnl-contact"   data-action="pubNavMobile" data-pub-page="contact">Contact</div>
+  <div class="pub-mob-nav-divider"></div>
+  <button class="pub-mob-login-btn" data-action="goLoginMobile">Umlilo Portal →</button>
+</div>
 
 <div id="pub-site">
 
@@ -39,8 +51,8 @@
         <h1 class="hero-title">Security<br><span class="accent">engineered</span><br>to <span class="ember">protect.</span></h1>
         <p class="hero-sub">Integrated security services across Gauteng. Armed response, CCTV, access control, guard deployment - purpose-built for industrial, commercial and residential environments.</p>
         <div class="hero-actions">
-          <button class="btn-primary-lg" onclick="pubNav('contact')">Request a Quote</button>
-          <button class="btn-outline-lg" onclick="pubNav('services')">Our Services</button>
+          <button class="btn-primary-lg" data-action="pubNav" data-pub-page="contact">Request a Quote</button>
+          <button class="btn-outline-lg" data-action="pubNav" data-pub-page="services">Our Services</button>
         </div>
         <div class="hero-stats">
           <div class="hero-stat"><div class="hero-stat-val">500+</div><div class="hero-stat-label">Active Clients</div></div>
@@ -81,7 +93,7 @@
       <div class="section-eyebrow">Protect What Matters</div>
       <h2 class="h2-display">Ready to secure your site?</h2>
       <p class="text-intro">Get a tailored security assessment and quote within 24 hours.</p>
-      <button class="btn-primary-lg" onclick="pubNav('contact')">Get a Free Assessment</button>
+      <button class="btn-primary-lg" data-action="pubNav" data-pub-page="contact">Get a Free Assessment</button>
       <div class="site-tagline">Fire, taught to behave.</div>
     </div>
 
@@ -95,11 +107,11 @@
         </div>
         <div>
           <div class="footer-col-title">Services</div>
-          <div class="footer-link" onclick="pubNav('services')">Armed Response</div>
-          <div class="footer-link" onclick="pubNav('services')">CCTV & Surveillance</div>
-          <div class="footer-link" onclick="pubNav('services')">Access Control</div>
-          <div class="footer-link" onclick="pubNav('services')">Guard Services</div>
-          <div class="footer-link" onclick="pubNav('services')">Electronic Security</div>
+          <div class="footer-link" data-action="pubNav" data-pub-page="services">Armed Response</div>
+          <div class="footer-link" data-action="pubNav" data-pub-page="services">CCTV & Surveillance</div>
+          <div class="footer-link" data-action="pubNav" data-pub-page="services">Access Control</div>
+          <div class="footer-link" data-action="pubNav" data-pub-page="services">Guard Services</div>
+          <div class="footer-link" data-action="pubNav" data-pub-page="services">Electronic Security</div>
         </div>
         <div>
           <div class="footer-col-title">Contact</div>
@@ -132,7 +144,7 @@
     </div>
     <div class="svc-cta">
       <p class="text-intro">Need a custom solution? Let's talk.</p>
-      <button class="btn-primary-lg" onclick="pubNav('contact')">Request a Quote</button>
+      <button class="btn-primary-lg" data-action="pubNav" data-pub-page="contact">Request a Quote</button>
     </div>
     <!-- Footer -->
     <div class="pub-footer">
@@ -144,11 +156,11 @@
         </div>
         <div>
           <div class="footer-col-title">Services</div>
-          <div class="footer-link" onclick="pubNav('services')">Armed Response</div>
-          <div class="footer-link" onclick="pubNav('services')">CCTV &amp; Surveillance</div>
-          <div class="footer-link" onclick="pubNav('services')">Access Control</div>
-          <div class="footer-link" onclick="pubNav('services')">Guard Services</div>
-          <div class="footer-link" onclick="pubNav('services')">Electronic Security</div>
+          <div class="footer-link" data-action="pubNav" data-pub-page="services">Armed Response</div>
+          <div class="footer-link" data-action="pubNav" data-pub-page="services">CCTV &amp; Surveillance</div>
+          <div class="footer-link" data-action="pubNav" data-pub-page="services">Access Control</div>
+          <div class="footer-link" data-action="pubNav" data-pub-page="services">Guard Services</div>
+          <div class="footer-link" data-action="pubNav" data-pub-page="services">Electronic Security</div>
         </div>
         <div>
           <div class="footer-col-title">Contact</div>
@@ -201,7 +213,7 @@
           <div class="form-actions">
             <button class="btn-primary-lg btn-full" data-action="submitContact">Send Request</button>
           </div>
-          <div id="cf-success" style="display:none">
+          <div id="cf-success">
             ✓ Thank you - we'll be in touch within 24 hours.
           </div>
         </div>
@@ -217,11 +229,11 @@
         </div>
         <div>
           <div class="footer-col-title">Services</div>
-          <div class="footer-link" onclick="pubNav('services')">Armed Response</div>
-          <div class="footer-link" onclick="pubNav('services')">CCTV &amp; Surveillance</div>
-          <div class="footer-link" onclick="pubNav('services')">Access Control</div>
-          <div class="footer-link" onclick="pubNav('services')">Guard Services</div>
-          <div class="footer-link" onclick="pubNav('services')">Electronic Security</div>
+          <div class="footer-link" data-action="pubNav" data-pub-page="services">Armed Response</div>
+          <div class="footer-link" data-action="pubNav" data-pub-page="services">CCTV &amp; Surveillance</div>
+          <div class="footer-link" data-action="pubNav" data-pub-page="services">Access Control</div>
+          <div class="footer-link" data-action="pubNav" data-pub-page="services">Guard Services</div>
+          <div class="footer-link" data-action="pubNav" data-pub-page="services">Electronic Security</div>
         </div>
         <div>
           <div class="footer-col-title">Contact</div>
@@ -258,15 +270,15 @@
       <div id="login-error" class="login-error">Incorrect username or password.</div>
       <div class="login-group">
         <label class="login-label">Username</label>
-        <input class="login-input" id="l-user" placeholder="username" onkeydown="if(event.key==='Enter') doLogin()">
+        <input class="login-input" id="l-user" placeholder="username">
       </div>
       <div class="login-group">
         <label class="login-label">Password</label>
-        <input class="login-input" type="password" id="l-pass" placeholder="password" onkeydown="if(event.key==='Enter') doLogin()">
+        <input class="login-input" type="password" id="l-pass" placeholder="password">
       </div>
       <div class="login-group">
         <label class="login-label" id="captcha-question">Security check: loading…</label>
-        <input class="login-input" type="number" id="l-captcha" placeholder="answer" onkeydown="if(event.key==='Enter') doLogin()" autocomplete="off">
+        <input class="login-input" type="number" id="l-captcha" placeholder="answer" autocomplete="off">
       </div>
       <button class="btn-login-submit" data-action="doLogin">Sign In</button>
       <div class="login-footer">
@@ -277,7 +289,7 @@
     </div>
   </div>
   <!-- ── Forgot Password Panel ── -->
-  <div class="login-card" id="forgot-panel" style="display:none">
+  <div class="login-card" id="forgot-panel">
     <div class="login-header">
       <div class="login-mark" data-action="goPublic" title="Back to home">
         <img src="./blackfire_logo_transparent.png" class="bf-logo-dark" height="74"><img src="./blackfire_logo_transparent.png" class="bf-logo-light" height="74">
@@ -286,10 +298,10 @@
       <div class="login-sub">ENTER YOUR USERNAME</div>
     </div>
     <div class="login-body">
-      <div id="forgot-msg" class="login-error" style="display:none;"></div>
+      <div id="forgot-msg" class="login-error"></div>
       <div class="login-group">
         <label class="login-label">Username</label>
-        <input class="login-input" id="fp-user" placeholder="your username" onkeydown="if(event.key==='Enter') doRequestReset()">
+        <input class="login-input" id="fp-user" placeholder="your username">
       </div>
       <button class="btn-login-submit" data-action="doRequestReset">Send Reset Email</button>
       <div class="login-footer">
@@ -298,7 +310,7 @@
     </div>
   </div>
   <!-- ── New Password Panel (token from URL) ── -->
-  <div class="login-card" id="newpass-panel" style="display:none">
+  <div class="login-card" id="newpass-panel">
     <div class="login-header">
       <div class="login-mark" data-action="goPublic" title="Back to home">
         <img src="./blackfire_logo_transparent.png" class="bf-logo-dark" height="74"><img src="./blackfire_logo_transparent.png" class="bf-logo-light" height="74">
@@ -307,14 +319,14 @@
       <div class="login-sub">CHOOSE A NEW PASSWORD</div>
     </div>
     <div class="login-body">
-      <div id="newpass-msg" class="login-error" style="display:none"></div>
+      <div id="newpass-msg" class="login-error"></div>
       <div class="login-group">
         <label class="login-label">New Password</label>
-        <input class="login-input" type="password" id="np-pass1" placeholder="new password" onkeydown="if(event.key==='Enter') doResetPassword()">
+        <input class="login-input" type="password" id="np-pass1" placeholder="new password">
       </div>
       <div class="login-group">
         <label class="login-label">Confirm Password</label>
-        <input class="login-input" type="password" id="np-pass2" placeholder="confirm password" onkeydown="if(event.key==='Enter') doResetPassword()">
+        <input class="login-input" type="password" id="np-pass2" placeholder="confirm password">
       </div>
       <button class="btn-login-submit" data-action="doResetPassword">Set New Password</button>
     </div>
@@ -336,10 +348,10 @@
         <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
         <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>
       </button>
-      <button class="info-btn" id="info-mode-btn" data-action="toggleInfoMode" title="Page Guide — how-to help for each screen">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="8.01"/><polyline points="11 12 12 12 12 16"/></svg>
-        GUIDE
+      <button class="refresh-btn" data-action="refreshPage" title="Refresh this section">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
       </button>
+      <button class="info-btn" id="info-mode-btn" data-action="toggleInfoMode" title="Page Guide — how-to help for each screen">?</button>
       <button id="pnav-signout" data-action="doLogout">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="signout-icon"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         Sign Out
@@ -400,39 +412,23 @@
             <div class="fgroup ffull"><label class="flbl">Service</label><select class="finput" id="pcf-svc"><option>Armed Response</option><option>CCTV</option><option>Access Control</option><option>Guard Services</option><option>Risk Assessment</option><option>Other</option></select></div>
             <div class="fgroup ffull"><label class="flbl">Message</label><textarea class="finput" rows="3" placeholder="Requirements..."></textarea></div>
           </div>
-          <div class="mt2"><button class="btn btn-p btn-full" onclick="toast('Enquiry submitted - we\'ll be in touch.','ok')">Submit Enquiry</button></div>
+          <div class="mt2"><button class="btn btn-p btn-full" data-action="submitEnquiry">Submit Enquiry</button></div>
         </div>
       </div>
     </div>
 
     <!-- DASHBOARD -->
     <div id="p-dashboard" class="ppage active">
-      <div class="ptitle">Dashboard</div>
-      <div class="psub" id="dash-sub">AECI CHEMPARK  -  OVERVIEW</div>
-      <div class="kgrid">
-        <div class="kcard k1"><div class="klbl">Open Callouts</div><div class="kval" id="kv-co">0</div><div class="ksub">Active on site</div></div>
-        <div class="kcard k2"><div class="klbl">Invoiced MTD</div><div class="kval" id="kv-rev">R0</div><div class="ksub">Month to date</div></div>
-        <div class="kcard k3"><div class="klbl">Pending Quotes</div><div class="kval" id="kv-q">0</div><div class="ksub">Awaiting approval</div></div>
-        <div class="kcard k4"><div class="klbl">Net Balance</div><div class="kval" id="kv-bal">R0</div><div class="ksub">Credits − Debits</div></div>
-      </div>
-      <div class="alert-strip" id="dash-alerts"></div>
-      <div class="panel mt2" id="dash-comp-widget" style="display:none">
-        <div class="ph">
-          <div class="ph-title">Compliance Alerts</div>
-          <button class="btn btn-g btn-s" onclick="showPortalPage('p-safety',null)">View Safety Files</button>
+      <div class="dash-ptitle-row">
+        <div>
+          <div class="ptitle">Dashboard</div>
+          <div class="psub" id="dash-sub">AECI CHEMPARK  -  OVERVIEW</div>
         </div>
-        <div id="dash-comp-body"></div>
+        <button class="btn btn-g btn-s dash-edit-btn" data-action="showDashEditor">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="svg-icon-inline"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit Layout
+        </button>
       </div>
-      <div class="twocol">
-        <div class="panel">
-          <div class="ph"><div class="ph-title">Recent Callouts</div><button class="btn btn-g btn-s" onclick="showPortalPage('p-callouts',null)">View All</button></div>
-          <div class="tw"><table><thead><tr><th>Job ID</th><th>Service</th><th>Status</th></tr></thead><tbody id="dash-co-tbl"></tbody></table></div>
-        </div>
-        <div class="panel" id="dash-rev-panel">
-          <div class="ph"><div class="ph-title">Revenue - 6 Months</div></div>
-          <div class="rev-chart-wrap"><div class="chart-bars" id="rev-chart"></div></div>
-        </div>
-      </div>
+      <div id="dash-main-content"></div>
     </div>
 
     <!-- TRANSACTIONS -->
@@ -443,7 +439,7 @@
         <div class="kcard kcard--flex kcard--debits"><div class="klbl">Debits</div><div class="kval kval--lg kval--ovr" id="tx-debits">R0</div></div>
         <div class="kcard kcard--flex kcard--net"><div class="klbl">Net</div><div class="kval kval--lg" id="tx-net">R0</div></div>
       </div>
-      <div class="srow"><input type="text" class="sinput" placeholder="Search..." oninput="renderTransactions(this.value)"><button class="btn btn-p btn-s" data-action="openTxModal">+ Log Transaction</button></div>
+      <div class="srow"><input type="text" class="sinput" id="tx-search" placeholder="Search..."><button class="btn btn-p btn-s" data-action="openTxModal">+ Log Transaction</button></div>
       <div class="panel"><div class="tw"><table><thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Ref</th><th>Credit</th><th>Debit</th></tr></thead><tbody id="tx-table"></tbody></table></div></div>
     </div>
 
@@ -451,9 +447,9 @@
     <div id="p-invoices" class="ppage">
       <div class="ptitle">Invoices</div><div class="psub">BILLING  -  PAYMENT TRACKING</div>
       <div class="srow">
-        <input type="text" class="sinput" placeholder="Search invoices..." oninput="renderInvoices(this.value)">
-        <select class="sinput sinput-narrow" onchange="renderInvoices('',this.value)"><option value="">All</option><option>Draft</option><option>Sent</option><option>Paid</option><option>Overdue</option></select>
-        <button class="btn btn-p btn-s" id="btn-newinv" onclick="showPortalPage('p-new-invoice',null)">+ New Invoice</button>
+        <input type="text" class="sinput" id="inv-search" placeholder="Search invoices...">
+        <select class="sinput sinput-narrow" id="inv-filter"><option value="">All</option><option>Draft</option><option>Sent</option><option>Paid</option><option>Overdue</option></select>
+        <button class="btn btn-p btn-s" id="btn-newinv" data-action="navPage" data-page="p-new-invoice">+ New Invoice</button>
       </div>
       <div class="panel"><div class="tw"><table><thead><tr><th>Invoice #</th><th>Client</th><th>Amount</th><th>Due</th><th>Status</th><th>Actions</th></tr></thead><tbody id="inv-table"></tbody></table></div></div>
     </div>
@@ -462,9 +458,9 @@
     <div id="p-quotes" class="ppage">
       <div class="ptitle">Quotes</div><div class="psub">PROPOSALS  -  APPROVALS</div>
       <div class="srow">
-        <input type="text" class="sinput" placeholder="Search quotes..." oninput="renderQuotes(this.value)">
-        <select class="sinput sinput-narrow" onchange="renderQuotes('',this.value)"><option value="">All</option><option>Draft</option><option>Sent</option><option>Pending Approval</option><option>Approved</option><option>Declined</option></select>
-        <button class="btn btn-p btn-s" id="btn-newq" onclick="showPortalPage('p-new-quote',null)">+ New Quote</button>
+        <input type="text" class="sinput" id="qte-search" placeholder="Search quotes...">
+        <select class="sinput sinput-narrow" id="qte-filter"><option value="">All</option><option>Draft</option><option>Sent</option><option>Pending Approval</option><option>Approved</option><option>Declined</option></select>
+        <button class="btn btn-p btn-s" id="btn-newq" data-action="navPage" data-page="p-new-quote">+ New Quote</button>
       </div>
       <div class="panel"><div class="tw"><table><thead><tr><th>Quote #</th><th>Client</th><th>Total</th><th>Submitted By</th><th>Valid Until</th><th>Status</th><th>Actions</th></tr></thead><tbody id="qte-table"></tbody></table></div></div>
     </div>
@@ -473,9 +469,9 @@
     <div id="p-callouts" class="ppage">
       <div class="ptitle">Callouts</div><div class="psub">JOB TICKETS  -  FIELD OPERATIONS</div>
       <div class="srow">
-        <input type="text" class="sinput" placeholder="Search callouts..." oninput="renderCallouts(this.value)">
-        <select class="sinput sinput-narrow" onchange="renderCallouts('',this.value)"><option value="">All</option><option>Open</option><option>In Progress</option><option>Completed</option><option>Invoiced</option></select>
-        <button class="btn btn-p btn-s" id="btn-newco" onclick="showPortalPage('p-new-callout',null)">+ Log Call</button>
+        <input type="text" class="sinput" id="co-search" placeholder="Search callouts...">
+        <select class="sinput sinput-narrow" id="co-filter"><option value="">All</option><option>Open</option><option>In Progress</option><option>Completed</option><option>Invoiced</option></select>
+        <button class="btn btn-p btn-s" id="btn-newco" data-action="navPage" data-page="p-new-callout">+ Log Call</button>
       </div>
       <div class="panel"><div class="tw">
         <table>
@@ -495,6 +491,12 @@
     <div id="p-statement" class="ppage">
       <div class="ptitle">Account Statement</div><div class="psub">AECI CHEMPARK  -  LEDGER</div>
       <div id="stmt-content"></div>
+    </div>
+
+    <!-- RECONCILIATION -->
+    <div id="p-reconcile" class="ppage">
+      <div class="ptitle">Reconciliation</div><div class="psub">PORTAL vs STATEMENT</div>
+      <div id="recon-content"></div>
     </div>
 
     <!-- INCOME STATEMENT -->
@@ -535,7 +537,7 @@
     <div id="p-new-quote" class="ppage">
       <div class="ptitle" id="nq-page-title">New Quote</div>
       <div class="psub" id="nq-page-sub">BUILD PROPOSAL</div>
-      <div id="nq-pending-notice" style="display:none">
+      <div id="nq-pending-notice">
         <strong>Senior Technician:</strong> Quotes you submit will be sent for manager approval before being issued to the client.
       </div>
       <div class="panel"><div class="pb">
@@ -597,8 +599,8 @@
       <div class="ptitle">Clients</div>
       <div class="psub">CLIENT ACCOUNTS  -  CONTACT RECORDS</div>
       <div class="srow">
-        <input type="text" class="sinput" placeholder="Search clients..." oninput="renderClients(this.value)">
-        <button class="btn btn-p btn-s" onclick="openClientModal(null)">+ Add Client</button>
+        <input type="text" class="sinput" id="cli-search" placeholder="Search clients...">
+        <button class="btn btn-p btn-s" data-action="openClientModal">+ Add Client</button>
       </div>
       <div class="panel">
         <div class="tw">
@@ -611,11 +613,11 @@
     </div>
 
     <!-- CLIENT ADD/EDIT MODAL -->
-    <div id="client-modal" class="modal" style="display:none">
+    <div id="client-modal" class="modal">
       <div class="modal-box modal-box--lg">
         <div class="modal-hdr">
           <div class="modal-title" id="client-modal-title">Add Client</div>
-          <button class="modal-close" onclick="closeClientModal()">&#x2715;</button>
+          <button class="modal-close" data-action="closeClientModal">&#x2715;</button>
         </div>
         <div class="modal-body">
           <input type="hidden" id="cm-id">
@@ -631,23 +633,23 @@
           </div>
         </div>
         <div class="modal-footer flex-end">
-          <button class="btn btn-g" onclick="closeClientModal()">Cancel</button>
-          <button class="btn btn-p" onclick="saveClient()">Save Client</button>
+          <button class="btn btn-g" data-action="closeClientModal">Cancel</button>
+          <button class="btn btn-p" data-action="saveClient">Save Client</button>
         </div>
       </div>
     </div>
 
     <!-- ═══════════════════════════════════════════════════════
-         ■ SAFETY FILES MODULE  (APS-EHS-FRM-010)
+         ■ SAFETY FILES MODULE  (BF-SHE-FRM-010)
     ═══════════════════════════════════════════════════════ -->
 
     <!-- SAFETY DASHBOARD -->
     <div id="p-safety" class="ppage">
       <div class="ptitle">Safety Files</div>
-      <div class="psub">CONTRACTOR EHS &mdash; APS-EHS-FRM-010</div>
+      <div class="psub">CONTRACTOR SHE &mdash; BF-SHE-FRM-010</div>
       <div class="srow">
-        <input type="text" class="sinput" placeholder="Search contractors..." oninput="renderSafetyFiles(this.value)">
-        <select class="sinput sinput-narrow" id="sf-filter-status" onchange="renderSafetyFiles()">
+        <input type="text" class="sinput" id="sf-search" placeholder="Search contractors...">
+        <select class="sinput sinput-narrow" id="sf-filter-status">
           <option value="">All Files</option>
           <option value="Draft">Draft</option>
           <option value="In Progress">In Progress</option>
@@ -655,6 +657,7 @@
           <option value="Approved">Approved</option>
         </select>
         <button class="btn btn-p btn-s" data-action="newSafetyAudit">+ New Audit</button>
+        <a class="btn btn-g btn-s" href="reports.php">Reports</a>
       </div>
       <div id="safety-reminders" class="safety-reminders"></div>
       <div id="safety-files-grid" class="safety-grid"></div>
@@ -663,7 +666,7 @@
     <!-- SAFETY AUDIT FORM (create / edit) -->
     <div id="p-safety-audit" class="ppage">
       <div class="ptitle" id="saf-page-title">New Safety Audit</div>
-      <div class="psub">APS-EHS-FRM-010 &mdash; CONTRACTOR FILE REVIEW</div>
+      <div class="psub">BF-SHE-FRM-010 &mdash; CONTRACTOR FILE REVIEW</div>
       <div class="safety-audit-layout">
 
         <!-- Main form column -->
@@ -674,7 +677,7 @@
             <div class="ph"><div class="ph-title">Audit Header</div></div>
             <div class="pb">
               <div class="fgrid">
-                <div class="fgroup"><label class="flbl">Contractor <span class="req">*</span></label><input class="finput" id="sah-contractor" placeholder="Company name"></div>
+                <div class="fgroup"><label class="flbl">Contractor <span class="req">*</span></label><input class="finput" id="sah-contractor" list="sah-contractor-dl" placeholder="Type or select contractor" autocomplete="off"><datalist id="sah-contractor-dl"></datalist></div>
                 <div class="fgroup"><label class="flbl">Contractor Rep</label><input class="finput" id="sah-rep" placeholder="Name"></div>
                 <div class="fgroup"><label class="flbl">16.2 Appointee</label><input class="finput" id="sah-appointee" placeholder="Name"></div>
                 <div class="fgroup"><label class="flbl">Audit Date <span class="req">*</span></label><input type="date" class="finput" id="sah-date"></div>
@@ -704,7 +707,7 @@
           </div>
 
           <div class="mt3 saf-action-row">
-            <button class="btn btn-g" onclick="showPortalPage('p-safety',null); renderSafetyFiles()">Cancel</button>
+            <button class="btn btn-g" data-action="navSafety">Cancel</button>
             <button class="btn btn-g" data-action="saveSafetyDraft">Save Draft</button>
             <button class="btn btn-p" data-action="submitSafetyAudit">Submit Audit</button>
           </div>
@@ -715,10 +718,12 @@
           <div class="panel safety-score-panel">
             <div class="ph"><div class="ph-title">Live Score</div></div>
             <div class="pb">
+              <div class="saf-score-label-top">Audit Score</div>
               <div class="safety-score-big" id="saf-score-val">—</div>
               <div class="safety-score-label" id="saf-score-band"></div>
               <div class="safety-score-rule" id="saf-score-rule"></div>
               <div id="saf-bonus-score" class="saf-bonus-score-row"></div>
+              <div class="saf-completion-bar" id="saf-completion-pct"></div>
               <div class="divider"></div>
               <div id="saf-section-scores" class="saf-section-scores"></div>
             </div>
@@ -745,12 +750,12 @@
           <div class="psub" id="saf-detail-sub"></div>
         </div>
         <div class="saf-detail-actions">
-          <button class="btn btn-g btn-s" onclick="showPortalPage('p-safety',null); renderSafetyFiles()">&#8592; Back</button>
+          <button class="btn btn-g btn-s" data-action="navSafety">&#8592; Back</button>
           <button class="btn btn-g btn-s" data-action="editSafetyFile">Edit</button>
-          <button class="btn btn-g btn-s" data-action="sendPolicyEmail">Send Policy Email</button>
-          <button class="btn btn-g btn-s" onclick="safGenerateTracker(document.getElementById('saf-detail-content').dataset.fileId)" title="Generate contractor action-plan tracker as a downloadable HTML file">&#8659; Tracker</button>
-          <button class="btn btn-s saf-approve-btn" id="saf-approve-btn" style="display:none;background:var(--grn-glow,#dcfce7);border-color:var(--green,#16a34a);color:var(--green,#16a34a)" onclick="approveSafetyFile()">&#10003; Approve</button>
-          <button class="btn btn-p btn-s" onclick="safPrintReport()">Print / Download Pack</button>
+          <button class="btn btn-g btn-s" data-action="safGenerateTracker" title="Generate contractor action-plan tracker as a downloadable HTML file">&#8659; Tracker</button>
+          <button class="btn btn-s saf-approve-btn btn-approve-action" id="saf-approve-btn" data-action="approveSafetyFile">&#10003; Approve</button>
+          <button class="btn btn-s btn-deactivate-action" id="saf-deactivate-btn" data-action="deactivateSafetyFile" title="Deactivate this safety file — record is retained for audit">&#128465; Deactivate</button>
+          <button class="btn btn-p btn-s" data-action="safDownloadPack" title="Download full safety file report as standalone HTML">&#8595; Download Pack</button>
         </div>
       </div>
       <div id="saf-detail-content"></div>
@@ -759,19 +764,34 @@
     <!-- AUDIT LOG -->
     <div id="p-audit" class="ppage">
       <div class="ptitle">Audit Log</div><div class="psub">SECURITY  -  ACCESS RECORDS</div>
-      <div class="srow"><input type="text" class="sinput" placeholder="Filter log..." oninput="filterAudit(this.value)"></div>
+      <div class="srow"><input type="text" class="sinput" id="audit-search" placeholder="Filter log..."></div>
       <div class="panel"><div id="audit-list"></div></div>
     </div>
 
     <!-- USERS & ROLES -->
     <div id="p-users" class="ppage">
       <div class="ptitle">Users & Roles</div><div class="psub">RBAC  -  ACCESS CONTROL MATRIX</div>
-      <div id="users-create-bar" style="display:none">
+      <div id="users-create-bar">
         <button class="btn-create-user" data-action="openCreateUserModal">+ New User</button>
       </div>
-      <div class="panel"><div class="tw"><table><thead>
-        <tr><th>Username</th><th>Name</th><th>Role</th><th>Can Create Callout</th><th>Update Status</th><th>Assign PO</th><th>Finance</th><th>Submit Quote</th><th>Approve Quote</th><th>Sys Admin</th></tr>
-      </thead><tbody id="users-table-body"></tbody></table></div></div>
+      <div class="panel">
+        <div class="perm-toggle-bar">
+          <button class="btn btn-g btn-s" id="perm-cols-btn" data-action="togglePermCols">&#9664; Collapse Permissions</button>
+        </div>
+        <div class="tw"><table id="users-rbac-table"><thead>
+          <tr>
+            <th>Username</th><th>Name</th><th>Role</th>
+            <th class="perm-col">Can Create Callout</th>
+            <th class="perm-col">Update Status</th>
+            <th class="perm-col">Assign PO</th>
+            <th class="perm-col">Finance</th>
+            <th class="perm-col">Submit Quote</th>
+            <th class="perm-col">Approve Quote</th>
+            <th class="perm-col">Sys Admin</th>
+            <th id="users-th-actions">Actions</th>
+          </tr>
+        </thead><tbody id="users-table-body"></tbody></table></div>
+      </div>
     </div>
 
     <!-- ═══════════════════════════════════════════════════════
@@ -803,12 +823,20 @@
 </div><!-- /portal-shell -->
 
 <!-- INFO / GUIDE PANEL -->
+<div id="info-overlay" data-action="toggleInfoMode"></div>
 <div id="info-panel" role="complementary" aria-label="Page Guide">
+  <div id="info-panel-hdr">
+    <div>
+      <div id="info-panel-hdr-title">Page Guide</div>
+      <div id="info-panel-hdr-sub"></div>
+    </div>
+    <button id="info-panel-close" data-action="toggleInfoMode" aria-label="Close guide">&times;</button>
+  </div>
   <div id="info-panel-inner"></div>
 </div>
 
 <!-- MODAL -->
-<div id="modal-overlay" onclick="closeModal(event)">
+<div id="modal-overlay" data-action="closeModalBackdrop">
   <div class="modal"><div class="mhdr"><div class="mttl" id="modal-ttl"></div><button class="mclose" data-action="closeModalDirect">✕</button></div><div class="mbdy" id="modal-bdy"></div></div>
 </div>
 
@@ -818,15 +846,6 @@
 
 <!-- Back to top button -->
 <button id="back-to-top" data-action="scrollToTop" title="Back to top"></button>
-
-<script src="js/portal_api.js"></script>
-<script src="js/portal_state.js"></script>
-<script src="js/portal_main.js"></script>
-
-
-
-
-
 
 
 <?php require_once __DIR__ . '/includes/portal_footer.php'; ?>

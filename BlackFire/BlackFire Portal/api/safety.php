@@ -130,23 +130,39 @@ function build_sections(string $ref_id): array {
             }
         }
     }
+
+    // Load per-item evidence from bf_attachments (entity_ref = "{file_ref}:{sec}:{no}")
+    try {
+        $atts = db_select(
+            "SELECT id, entity_ref, original_name, file_size, mime_type, uploaded_by, created_at
+               FROM bf_attachments
+              WHERE entity_type = 'safety_item' AND entity_ref LIKE ?",
+            [$ref_id . ':%']
+        );
+        foreach ($atts as $att) {
+            $parts = explode(':', $att['entity_ref'], 3);
+            if (count($parts) !== 3) continue;
+            [, $sec, $no_str] = $parts;
+            $no  = (int)$no_str;
+            $idx = $no - 1;
+            if (isset($sections[$sec][$idx])) {
+                $sections[$sec][$idx]['uploads'][] = [
+                    'id'            => (int)$att['id'],
+                    'original_name' => $att['original_name'],
+                    'file_size'     => (int)$att['file_size'],
+                    'mime_type'     => $att['mime_type'],
+                    'uploaded_by'   => $att['uploaded_by'],
+                    'created_at'    => $att['created_at'],
+                ];
+            }
+        }
+    } catch (\Exception $e) {
+        // bf_attachments missing in older installs — uploads stay empty
+    }
+
     return $sections;
 }
 
-function attach_uploads(array &$sections, string $ref_id): void {
-    $atts = db_select(
-        "SELECT original_name, file_size, mime_type, uploaded_by, created_at
-           FROM bf_attachments
-          WHERE entity_type = 'safety_file' AND entity_ref = ?
-          ORDER BY created_at DESC",
-        [$ref_id]
-    );
-    // Attachments are at file level; for now return them all on every item that
-    // has uploads — JS already tracks per-item counts in memory. The API just
-    // returns the full list attached to the file.
-    // Individual item grouping can be added in a future iteration.
-    // (no-op here — uploads array left empty; JS calls files.php separately)
-}
 
 /* ── GET list ──────────────────────────────────────── */
 if ($method === 'GET' && !$ref_id) {

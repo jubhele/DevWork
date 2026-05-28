@@ -1,81 +1,234 @@
-/* MAIN UI & EVENT DISPATCHER */
-'use strict';
-
-/* ── File upload helper (multipart, not JSON) ──────────────────────── */
-async function apiUpload(entityType, entityRef, fileInput) {
-  if (!fileInput.files.length) return { success: false, error: 'No file selected' };
-  const fd = new FormData();
-  fd.append('entity_type', entityType);
-  fd.append('entity_ref',  entityRef);
-  fd.append('file', fileInput.files[0]);
-  try {
-    const res = await fetch(API_BASE + '/files.php', {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: { 'X-Requested-With': 'XMLHttpRequest' },
-      body: fd,
-    });
-    if (res.status === 401) {
-      if (typeof SESSION !== 'undefined' && SESSION) {
-        SESSION = null;
-        document.documentElement.dataset.state = 'login';
-        if (typeof showLoginPanel === 'function') showLoginPanel();
-        if (typeof toast === 'function') toast('Session expired. Please log in again.', 'err');
-      }
-      return { success: false, error: 'Session expired' };
-    }
-    return await res.json();
-  } catch (e) {
-    return { success: false, error: String(e) };
-  }
-}
-
-/* ── data-action click dispatcher ──────────────────────────────────── */
+﻿/* ── data-action click dispatcher ──────────────────────────────────── */
 document.addEventListener('click', function(e) {
+  // Close mobile nav when tapping outside it
+  const mobNav = document.getElementById('pub-mob-nav');
+  if (mobNav && mobNav.classList.contains('open')) {
+    if (!mobNav.contains(e.target) && !e.target.closest('.pub-ham-btn')) {
+      closeMobileMenu();
+    }
+  }
   const el = e.target.closest('[data-action]');
   if (!el) return;
   const action = el.dataset.action;
   switch (action) {
-    case 'toggleTheme':         toggleTheme(); break;
-    case 'toggleInfoMode':      toggleInfoMode(); break;
-    case 'goLogin':             goLogin(); break;
-    case 'goPublic':            goPublic(); break;
-    case 'goPublicFullscreen':  goPublicFullscreen(); break;
-    case 'doLogin':             doLogin(); break;
-    case 'showForgotPassword':  showForgotPassword(); break;
-    case 'showLoginPanel':      showLoginPanel(); break;
-    case 'doRequestReset':      doRequestReset(); break;
-    case 'doResetPassword':     doResetPassword(); break;
-    case 'doLogout':            doLogout(); break;
-    case 'submitContact':       submitContact(); break;
-    case 'openTxModal':         openTxModal(); break;
-    case 'saveCallout':         saveCallout(); break;
-    case 'addLine':             addLine(); break;
-    case 'saveQuote':           saveQuote(); break;
-    case 'saveInvoice':         saveInvoice(); break;
-    case 'logPayment':          logPayment(); break;
-    case 'openCreateUserModal': openCreateUserModal(); break;
-    case 'closeModalDirect':    closeModalDirect(); break;
-    case 'scrollToTop':         scrollToTop(); break;
-    // Clients module
-    case 'saveClient':          saveClient(); break;
-    // Safety module
-    case 'newSafetyAudit':      newSafetyAudit(); break;
-    case 'saveSafetyDraft':     saveSafetyDraft(); break;
-    case 'submitSafetyAudit':   submitSafetyAudit(); break;
-    case 'editSafetyFile':      editSafetyFile(); break;
-    case 'sendPolicyEmail':     sendPolicyEmail(); break;
-    case 'approveSafetyFile':   approveSafetyFile(); break;
+    // Navigation / auth
+    case 'toggleTheme':          toggleTheme(); break;
+    case 'toggleMobileMenu':     toggleMobileMenu(); break;
+    case 'toggleInfoMode':       toggleInfoMode(); break;
+    case 'pubNav':               pubNav(el.dataset.pubPage); break;
+    case 'pubNavMobile':         pubNav(el.dataset.pubPage); closeMobileMenu(); break;
+    case 'goLogin':              goLogin(); break;
+    case 'goLoginMobile':        goLogin(); closeMobileMenu(); break;
+    case 'goPublic':             goPublic(); break;
+    case 'goPublicFullscreen':   goPublicFullscreen(); break;
+    case 'navPage':              showPortalPage(el.dataset.page, null); break;
+    case 'navSafety':            showPortalPage('p-safety', null); renderSafetyFiles(); break;
+    case 'refreshPage':          refreshCurrentPage(el); break;
+    case 'scrollToTop':          scrollToTop(); break;
+    case 'filterSvc':            filterSvc(el, el.dataset.cat, el.dataset.ctx); break;
+    case 'pubNavCat':            pubNav('services'); break;
+    // Auth forms
+    case 'doLogin':              doLogin(); break;
+    case 'showForgotPassword':   showForgotPassword(); break;
+    case 'showLoginPanel':       showLoginPanel(); break;
+    case 'doRequestReset':       doRequestReset(); break;
+    case 'doResetPassword':      doResetPassword(); break;
+    case 'doLogout':             doLogout(); break;
+    // Contact / enquiry
+    case 'submitContact':        submitContact(); break;
+    case 'submitEnquiry':        toast('Enquiry submitted — we\'ll be in touch.', 'ok'); break;
+    // Modals
+    case 'openTxModal':          openTxModal(); break;
+    case 'closeModalDirect':     closeModalDirect(); break;
+    case 'closeModalBackdrop':   if (e.target === el) closeModal(e); break;
+    // Operations — callouts
+    case 'saveCallout':          saveCallout(); break;
+    case 'openStatusModal':      openStatusModal(el.dataset.id); break;
+    case 'saveStatus':           saveStatus(el.dataset.id); break;
+    case 'openAssignPO':         openAssignPO(el.dataset.id); break;
+    case 'assignPO':             assignPO(el.dataset.id); break;
+    case 'openAssignTech':       openAssignTech(el.dataset.id); break;
+    case 'saveTechAssign':       saveTechAssign(el.dataset.id); break;
+    case 'prefillQuoteFromJob':  prefillQuoteFromJob(el.dataset.id); break;
+    case 'openConfirmClosureModal': openConfirmClosureModal(el.dataset.id); break;
+    case 'saveConfirmClosure':   saveConfirmClosure(el.dataset.id); break;
+    case 'deleteCallout':        deleteCallout(el.dataset.id); break;
+    // Operations — quotes
+    case 'addLine':              addLine(); break;
+    case 'removeLine':           el.closest('tr').remove(); recalcQ(); break;
+    case 'saveQuote':            saveQuote(); break;
+    case 'previewQuote':         previewQuote(el.dataset.id); break;
+    case 'approveQuote':         approveQuote(el.dataset.id); break;
+    case 'rejectQuote':          rejectQuote(el.dataset.id); break;
+    case 'convertToInvoice':     convertToInvoice(el.dataset.id); break;
+    case 'deleteQuote':          deleteQuote(el.dataset.id); break;
+    // Operations — invoices
+    case 'saveInvoice':          saveInvoice(); break;
+    case 'previewInvoice':       previewInvoice(el.dataset.id); break;
+    case 'openSendInvoiceModal': openSendInvoiceModal(el.dataset.id); break;
+    case 'markPaid':             markPaid(el.dataset.id); break;
+    case 'deleteInvoice':        deleteInvoice(el.dataset.id); break;
+    case 'sendInvoiceEmail':     sendInvoiceEmail(el.dataset.id); break;
+    // Finance
+    case 'logPayment':           logPayment(); break;
+    case 'saveTx':               saveTx(); break;
+    case 'downloadStatement':    downloadStatement(el.dataset.id); break;
+    case 'openReleaseStatementModal': openReleaseStatementModal(el.dataset.id); break;
+    case 'releaseStatement':     releaseStatement(el.dataset.id); break;
+    case 'generateStatement':    generateStatement(); break;
+    // Files
+    case 'openAttachmentsModal': openAttachmentsModal(el.dataset.entityType, el.dataset.entityRef); break;
+    case 'openDocViewer':        openDocViewer(+el.dataset.id, el.dataset.name, el.dataset.mime); break;
+    case 'deleteAttachment':     deleteAttachment(+el.dataset.id, el.dataset.entityType, el.dataset.entityRef); break;
+    case 'uploadAttachment':     uploadAttachment(el.dataset.entityType, el.dataset.entityRef); break;
+    case 'openBlobPreview':      { const u = el.dataset.blobUrl; window.open(u, '_blank'); URL.revokeObjectURL(u); } break;
+    case 'revokeBlobOnDownload': setTimeout(() => URL.revokeObjectURL(el.dataset.blobUrl), 2000); break;
+    case 'triggerFileInput':     document.getElementById(el.dataset.targetId)?.click(); break;
+    case 'printPage':            window.print(); break;
+    // Users
+    case 'openCreateUserModal':  openCreateUserModal(); break;
+    case 'openEditUserModal':    openEditUserModal(+el.dataset.id); break;
+    case 'toggleUserActive':     toggleUserActive(+el.dataset.id, +el.dataset.active); break;
+    case 'saveNewUser':          saveNewUser(); break;
+    case 'saveEditUser':         saveEditUser(); break;
+    case 'togglePermCols':       togglePermCols(); break;
+    // Dashboard
+    case 'showDashEditor':       showDashEditor(); break;
+    case 'saveDashEditorPrefs':  saveDashEditorPrefs(); break;
+    // Clients
+    case 'openClientModal':      openClientModal(el.dataset.id ? +el.dataset.id : null); break;
+    case 'closeClientModal':     closeClientModal(); break;
+    case 'saveClient':           saveClient(); break;
+    case 'deactivateClient':     deactivateClient(+el.dataset.id); break;
+    // Safety
+    case 'newSafetyAudit':       newSafetyAudit(); break;
+    case 'saveSafetyDraft':      saveSafetyDraft(); break;
+    case 'submitSafetyAudit':    submitSafetyAudit(); break;
+    case 'editSafetyFile':       editSafetyFile(); break;
+    case 'approveSafetyFile':    approveSafetyFile(); break;
+    case 'deactivateSafetyFile': deactivateSafetyFile(); break;
+    case 'safGenerateTracker':   safGenerateTracker(document.getElementById('saf-detail-content')?.dataset.fileId); break;
+    case 'safDownloadPack':      safDownloadPack(document.getElementById('saf-detail-content')?.dataset.fileId); break;
+    case 'safViewFile':          safViewFile(el.dataset.id); break;
+    case 'safToggleSection':     safToggleSection(el.dataset.sectionKey); break;
+    case 'safSaveSection':       e.stopPropagation(); safSaveSection(el.dataset.sectionKey); break;
+    case 'safSendPolicyToPersonnel': safSendPolicyToPersonnel(+el.dataset.id); break;
+    case 'safAddPersonnel':      safAddPersonnel(el.dataset.id); break;
+    case 'safLinkPortalUser':    safLinkPortalUser(el.dataset.id); break;
+    case 'safAddCompliance':     safAddCompliance(el.dataset.id); break;
+    case 'safAddPolicyAck':      safAddPolicyAck(el.dataset.id); break;
+    case 'safGenDocs':           safGenDocs(el.dataset.id); break;
+    case 'safSavePersonnel':     safSavePersonnel(el.dataset.id); break;
+    case 'safConfirmRemovePerson': safConfirmRemovePerson(+el.dataset.id, el.dataset.fileId, el.dataset.name); break;
+    case 'safConfirmLinkUser':   safConfirmLinkUser(el.dataset.id); break;
+    case 'safDeleteCompliance':  safDeleteCompliance(+el.dataset.id, el.dataset.fileId); break;
+    case 'safEditCompliance':    safEditCompliance(+el.dataset.id, el.dataset.fileId); break;
+    case 'safReplaceComplianceDoc': safReplaceComplianceDoc(+el.dataset.id, el.dataset.fileId, +el.dataset.attId); break;
+    case 'safSaveCompliance':    safSaveCompliance(el.dataset.id); break;
+    case 'safSaveEditCompliance':safSaveEditCompliance(+el.dataset.id, el.dataset.fileId); break;
+    case 'safManualAck':         safManualAck(+el.dataset.id, el.dataset.fileId); break;
+    case 'safResendPolicyAck':   safResendPolicyAck(+el.dataset.id, el.dataset.fileId); break;
+    case 'safDeletePolicyAck':   safDeletePolicyAck(+el.dataset.id, el.dataset.fileId); break;
+    case 'safSavePolicyAck':     safSavePolicyAck(el.dataset.id); break;
+    case 'safDeleteAttachment':  safDeleteAttachment(+el.dataset.id, el.dataset.fileId); break;
+    case 'safPersonnelSendPolicy': safPersonnelSendPolicy(+el.dataset.id); break;
+    case 'safUnlinkUser':        safUnlinkUser(+el.dataset.id, el.dataset.fileId, el.dataset.name); break;
+    case 'safRemovePerson':      safRemovePerson(+el.dataset.id, el.dataset.fileId, el.dataset.name); break;
+    case 'safReinstatePerson':   safReinstatePerson(+el.dataset.id, el.dataset.fileId); break;
     // Info/guide panel
     case 'submitInfoSuggestion': submitInfoSuggestion(el.dataset.page); break;
-    case 'navPage':              showPortalPage(el.dataset.page, null); break;
+    case 'activateNavGroupAndNavigate': activateNavGroupAndNavigate(el.dataset.group); break;
   }
+});
+
+/* ── Post-render helpers for dynamic styles ────────────────────────── */
+function applyProgFills(root) {
+  (root||document).querySelectorAll('.prog-fill[data-w]').forEach(el => {
+    el.style.width = el.dataset.w + '%';
+    if (el.dataset.bg) el.style.background = el.dataset.bg;
+  });
+}
+
+/* ── input / change event delegation ───────────────────────────────── */
+document.addEventListener('input', function(e) {
+  const t = e.target;
+  if (t.id === 'tx-search')    { renderTransactions(t.value); return; }
+  if (t.id === 'inv-search')   { renderInvoices(t.value); return; }
+  if (t.id === 'qte-search')   { renderQuotes(t.value); return; }
+  if (t.id === 'co-search')    { renderCallouts(t.value); return; }
+  if (t.id === 'cli-search')   { renderClients(t.value); return; }
+  if (t.id === 'sf-search')    { renderSafetyFiles(t.value); return; }
+  if (t.id === 'audit-search') { filterAudit(t.value); return; }
+  if (t.matches('.li-qty,.li-price,.liinput')) { recalcQ(); return; }
+  if (t.dataset.action === 'safAppointeeChanged') {
+    safAppointeeChanged(t.dataset.sectionKey, +t.dataset.itemIdx, t); return;
+  }
+  if (t.dataset.action === 'safCommentChanged') {
+    safCommentChanged(t.dataset.sectionKey, +t.dataset.itemIdx, t); return;
+  }
+});
+
+document.addEventListener('change', function(e) {
+  const t = e.target;
+  if (t.id === 'inv-filter')       { renderInvoices('', t.value); return; }
+  if (t.id === 'qte-filter')       { renderQuotes('', t.value); return; }
+  if (t.id === 'co-filter')        { renderCallouts('', t.value); return; }
+  if (t.id === 'sf-filter-status') { renderSafetyFiles(); return; }
+  if (t.id === 'saf-det-upload')   { safDetailUpload(t); return; }
+  if (t.id === 'cmp-type-sel')     { safCmpTypeChanged(); return; }
+  if (t.id === 'cmp-scope')        { safCmpScopeChanged(); return; }
+  if (t.id === 'cmp-issue')        { safCmpCalcExpiry(); return; }
+  if (t.id === 'cmp-months')       { safCmpCalcExpiry(); return; }
+  if (t.id === 'cedit-issue')      { safCEditCalcExpiry(); return; }
+  if (t.id === 'cedit-months')     { safCEditCalcExpiry(); return; }
+  if (t.dataset.action === 'safItemChanged') {
+    safItemChanged(t.dataset.sectionKey, +t.dataset.itemIdx, t); return;
+  }
+  if (t.dataset.action === 'safHandleUpload') {
+    safHandleUpload(t.dataset.sectionKey, +t.dataset.itemIdx, t); return;
+  }
+  if (t.dataset.action === 'safSectionUpload') {
+    safSectionUpload(t, t.dataset.fileId, t.dataset.sectionKey); return;
+  }
+  if (t.dataset.action === 'safUploadComplianceDoc') {
+    safUploadComplianceDoc(+t.dataset.id, t.dataset.fileId, t); return;
+  }
+  if (t.dataset.action === 'safApSetStatus') {
+    safApSetStatus(t.dataset.fileId, t.dataset.sectionKey, +t.dataset.itemIdx, t.value); return;
+  }
+});
+
+/* ── Login / reset keydown wiring (runs after DOM is ready) ─────────── */
+document.addEventListener('DOMContentLoaded', function() {
+  const loginEnter = e => { if (e.key === 'Enter') doLogin(); };
+  ['l-user', 'l-pass', 'l-captcha'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('keydown', loginEnter);
+  });
+  const fpEl = document.getElementById('fp-user');
+  if (fpEl) fpEl.addEventListener('keydown', e => { if (e.key === 'Enter') doRequestReset(); });
+  const resetEnter = e => { if (e.key === 'Enter') doResetPassword(); };
+  ['np-pass1', 'np-pass2'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('keydown', resetEnter);
+  });
 });
 
 /* ── Attachments modal / panel ─────────────────────────────────────── */
 function openAttachmentsModal(entityType, entityRef) {
+  let ctxHtml = '';
+  if (entityType === 'callout') {
+    const c = proxyDB.callouts.find(x => x.id === entityRef);
+    if (c) ctxHtml = `<div class="att-ctx"><span class="fw-600">${esc(c.service)}</span>  —  ${esc(c.location||'')}  ·  ${fmtD(c.date)}</div>`;
+  } else if (entityType === 'quote') {
+    const q = proxyDB.quotes.find(x => x.id === entityRef);
+    if (q) ctxHtml = `<div class="att-ctx"><span class="fw-600">${esc(q.client)}</span>  —  Quote ${esc(q.id)}  ·  ${fmtD(q.date)}</div>`;
+  } else if (entityType === 'invoice') {
+    const inv = proxyDB.invoices.find(x => x.id === entityRef);
+    if (inv) ctxHtml = `<div class="att-ctx"><span class="fw-600">${esc(inv.client)}</span>  —  Invoice ${esc(inv.id)}  ·  ${fmt(inv.amount)}</div>`;
+  }
   openModal('Attachments — ' + entityRef,
-    `<div id="attach-modal-area"></div>`);
+    `${ctxHtml}<div id="attach-modal-area"></div>`);
   loadAttachments(entityType, entityRef);
 }
 
@@ -88,27 +241,27 @@ async function loadAttachments(entityType, entityRef) {
   const fileIcon = m => m === 'application/pdf' ? '📄' : m.includes('sheet') || m.includes('excel') ? '📊' : m.includes('word') ? '📝' : m.includes('image') ? '🖼' : '📎';
   const fmtBytes = b => b < 1024 ? b + ' B' : b < 1048576 ? (b/1024).toFixed(1) + ' KB' : (b/1048576).toFixed(1) + ' MB';
   area.innerHTML = `
-    <div style="margin-bottom:12px">
-      <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:8px">📎 Files (${list.length})</div>
+    <div class="mb-12">
+      <div class="att-slbl">📎 Files (${list.length})</div>
       ${list.length ? list.map(a => `
-        <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:2px;margin-bottom:6px">
-          <span style="font-size:18px">${fileIcon(a.mime_type)}</span>
-          <div style="flex:1;min-width:0">
-            <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(a.original_name)}</div>
-            <div style="font-size:10px;color:var(--muted)">${fmtBytes(a.file_size)} · ${esc(a.uploaded_by)} · ${(a.created_at||'').slice(0,10)}</div>
+        <div class="att-row">
+          <span class="att-icon">${fileIcon(a.mime_type)}</span>
+          <div class="att-info">
+            <div class="att-name">${esc(a.original_name)}</div>
+            <div class="att-meta">${fmtBytes(a.file_size)} · ${esc(a.uploaded_by)} · ${(a.created_at||'').slice(0,10)}</div>
           </div>
-          <a href="${API_BASE}/files.php?action=download&id=${a.id}" target="_blank" class="btn btn-g btn-s" style="text-decoration:none">↓ Download</a>
-          ${canDel ? `<button class="btn btn-g btn-s" style="color:var(--ember)" onclick="deleteAttachment(${a.id},'${esc(entityType)}','${esc(entityRef)}')">✕</button>` : ''}
-        </div>`).join('') : '<div style="font-size:11px;color:var(--muted);font-style:italic;margin-bottom:8px">No files attached yet</div>'}
+          ${(a.mime_type==='application/pdf'||a.mime_type?.startsWith('image/'))?`<button class="btn btn-g btn-s" data-action="openDocViewer" data-id="${a.id}" data-name="${esc(a.original_name)}" data-mime="${esc(a.mime_type)}">&#128065; View</button>`:''}
+          <a href="${API_BASE}/files.php?action=download&id=${a.id}" target="_blank" class="btn btn-g btn-s">&#8595; Download</a>
+          ${canDel ? `<button class="btn btn-g btn-s att-del" data-action="deleteAttachment" data-id="${a.id}" data-entity-type="${esc(entityType)}" data-entity-ref="${esc(entityRef)}">&#10005;</button>` : ''}
+        </div>`).join('') : '<div class="att-empty">No files attached yet</div>'}
     </div>
-    <div style="padding-top:12px;border-top:1px solid var(--border)">
-      <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:8px">Upload File</div>
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <input type="file" id="attach-file-input" accept=".pdf,.xlsx,.xls,.docx,.doc,.jpg,.jpeg,.png"
-          style="flex:1;min-width:0;font-size:11px;padding:6px;background:var(--surface2);border:1px solid var(--border);border-radius:2px;color:var(--text)">
-        <button class="btn btn-p btn-s" onclick="uploadAttachment('${esc(entityType)}','${esc(entityRef)}')">Upload</button>
+    <div class="att-upsec">
+      <div class="att-slbl">Upload File</div>
+      <div class="att-uprow">
+        <input type="file" id="attach-file-input" accept=".pdf,.xlsx,.xls,.docx,.doc,.jpg,.jpeg,.png" class="att-finp">
+        <button class="btn btn-p btn-s" data-action="uploadAttachment" data-entity-type="${esc(entityType)}" data-entity-ref="${esc(entityRef)}">Upload</button>
       </div>
-      <div style="font-size:10px;color:var(--muted);margin-top:4px">PDF, Excel, Word, JPEG, PNG · Max 10 MB</div>
+      <div class="att-fhint">PDF, Excel, Word, JPEG, PNG · Max 10 MB</div>
     </div>`;
 }
 
@@ -133,6 +286,39 @@ async function deleteAttachment(id, entityType, entityRef) {
   if (!r.success) { toast(r.error || 'Delete failed', 'err'); return; }
   toast('File removed', 'ok');
   await loadAttachments(entityType, entityRef);
+}
+
+/* ── Document viewer (inline PDF / image preview) ─────────────────── */
+function openDocViewer(id, name, mime) {
+  const isPdf = mime === 'application/pdf';
+  const isImg = mime && mime.startsWith('image/');
+  const src   = `${API_BASE}/files.php?action=view&id=${id}`;
+  let body;
+  if (isPdf) {
+    body = `<div class="dv-wrap">
+      <div class="dv-hdr">
+        <span class="dv-name">${esc(name)}</span>
+        <a href="${API_BASE}/files.php?action=download&id=${id}" class="btn btn-g btn-s">&#8595; Download</a>
+      </div>
+      <iframe src="${src}" class="dv-iframe" title="${esc(name)}"></iframe>
+    </div>`;
+  } else if (isImg) {
+    body = `<div class="text-center">
+      <div class="dv-hdr">
+        <span class="dv-name">${esc(name)}</span>
+        <a href="${API_BASE}/files.php?action=download&id=${id}" class="btn btn-g btn-s">&#8595; Download</a>
+      </div>
+      <img src="${src}" alt="${esc(name)}" class="dv-img">
+    </div>`;
+  } else {
+    body = `<div class="dv-unsup">
+      <div class="fs-32 mb-12">📄</div>
+      <div class="fs-13 mb-16">${esc(name)}</div>
+      <p class="fs-11 mb-16">This file type cannot be previewed in the browser.</p>
+      <a href="${API_BASE}/files.php?action=download&id=${id}" class="btn btn-p">&#8595; Download to Open</a>
+    </div>`;
+  }
+  openModal(name, body);
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -172,6 +358,11 @@ const PERMS = {
   'clients.view':              ['admin','sysadmin','manager','admin_clerk','client_support'],
   'clients.create':            ['admin','sysadmin','manager','admin_clerk'],
   'clients.update':            ['admin','sysadmin','manager','admin_clerk'],
+  'safety.view':               ['admin','sysadmin','manager','admin_clerk','safety_officer','junior_tech','senior_tech','call_logger','client_support','viewer'],
+  'safety.create':             ['admin','sysadmin','manager','admin_clerk','safety_officer','senior_tech'],
+  'safety.update':             ['admin','sysadmin','manager','admin_clerk','safety_officer','senior_tech'],
+  'safety.delete':             ['admin','sysadmin','manager'],
+  'safety.approve':            ['admin','sysadmin','manager'],
 };
 function can(perm){ return SESSION?.role==='sysadmin' || (PERMS[perm]||[]).includes(SESSION?.role); }
 
@@ -508,6 +699,7 @@ async function doLogin(){
   const firstPage = {
     call_logger:'p-new-callout', junior_tech:'p-callouts',
     senior_tech:'p-callouts', client_support:'p-dashboard', admin_clerk:'p-callouts',
+    safety_officer:'p-safety',
   }[SESSION.role] || 'p-dashboard';
   showPortalPage(firstPage, null);
   updateBadges();
@@ -567,6 +759,7 @@ const NAV_CONFIG = [
       { id:'p-statement',         label:'Statements',       perm:'finance.statement' },
       { id:'p-transactions',      label:'Transactions',     perm:'finance.transactions' },
       { id:'p-income',            label:'Income Stmt',      perm:'finance.income' },
+      { id:'p-reconcile',         label:'Reconciliation',   perm:'finance.transactions' },
       { id:'p-clients',           label:'Clients',          perm:'clients.view' },
     ],
   },
@@ -576,11 +769,36 @@ const NAV_CONFIG = [
     items: [
       { id:'p-support-dashboard', label:'Overview',      perm: null },
       { id:'p-users',             label:'Users & Roles', perm:'security.users' },
-      { id:'p-safety',            label:'Safety Files',  perm: null, badge:'nb-saf' },
+      { id:'p-safety',            label:'Safety Files',  perm: 'safety.view', badge:'nb-saf' },
       { id:'p-audit',             label:'Audit Log',     perm:'security.audit' },
     ],
   },
 ];
+
+/* ═══════════════════════════════════════════════════════
+   DASHBOARD WIDGET REGISTRY
+   Each entry is a logical card group. Users can toggle
+   any widget their role can see. Prefs stored per-user
+   in localStorage so they survive page reload.
+═══════════════════════════════════════════════════════ */
+const DASH_WIDGETS = [
+  { id:'w-ops',        label:'Operations',         desc:'Open callouts · pending quotes · recent job log',    perm:'callout.view' },
+  { id:'w-fin',        label:'Finance',             desc:'Invoiced MTD · net balance · 6-month revenue chart', perm:'invoice.view' },
+  { id:'w-alerts',     label:'Live Alerts',         desc:'Overdue invoices · urgent callouts · pending approvals', perm: null },
+  { id:'w-compliance', label:'Compliance Alerts',   desc:'Expiring and overdue safety certificates',          perm:'safety.view' },
+];
+
+function getDashPrefs() {
+  try { return JSON.parse(localStorage.getItem('bf_dash_' + (SESSION?.username||'')) || '{}'); }
+  catch { return {}; }
+}
+function saveDashPrefs(prefs) {
+  localStorage.setItem('bf_dash_' + (SESSION?.username||''), JSON.stringify(prefs));
+}
+function isWidgetOn(id) {
+  const p = getDashPrefs();
+  return p[id] !== false;
+}
 
 function findGroupForPage(pageId) {
   return NAV_CONFIG.find(g => g.page === pageId || (g.items||[]).some(i => i.id === pageId));
@@ -608,7 +826,7 @@ function activateNavGroup(groupId) {
   if (subBar) subBar.style.visibility = '';
   linksEl.innerHTML = visible.map(item => {
     const badge = item.badge ? `<span class="pnbadge" id="${item.badge}">0</span>` : '';
-    return `<div class="pnitem" data-page="${item.id}" onclick="showPortalPage('${item.id}',this)">${item.label}${badge}</div>`;
+    return `<div class="pnitem" data-page="${item.id}" data-action="navPage">${item.label}${badge}</div>`;
   }).join('');
 }
 
@@ -626,7 +844,7 @@ function buildNav() {
   NAV_CONFIG.forEach(group => {
     const accessible = (group.items||[]).some(i => !i.perm || can(i.perm)) || (!group.perm || can(group.perm));
     if (!accessible) return;
-    html += `<div class="pnav-group" data-group="${group.id}" onclick="activateNavGroupAndNavigate('${group.id}')">${group.label}</div>`;
+    html += `<div class="pnav-group" data-group="${group.id}" data-action="activateNavGroupAndNavigate">${group.label}</div>`;
   });
   primary.innerHTML = html;
 }
@@ -634,7 +852,7 @@ function buildNav() {
 /* ═══════════════════════════════════════════════════════
    DATA STORE
 ═══════════════════════════════════════════════════════ */
-const STORE='bf_v9';
+const STORE='bf_v10';
 DB = load();
 
 function load(){
@@ -688,19 +906,20 @@ const ROLE_LABELS = {
   sysadmin:'Sys Admin',
   admin:'Admin',manager:'Manager',call_logger:'Call Logger',
   junior_tech:'Junior Tech',senior_tech:'Senior Tech',
-  client_support:'Client Support',admin_clerk:'Admin Clerk',viewer:'Viewer'
+  client_support:'Client Support',admin_clerk:'Admin Clerk',viewer:'Viewer',
+  safety_officer:'Safety Officer'
 };
 const ROLE_COLORS = {
   sysadmin:'emergency',
   admin:'emergency',manager:'progress',call_logger:'open',
   junior_tech:'draft',senior_tech:'sent',client_support:'invoiced',
-  admin_clerk:'paid',viewer:'draft'
+  admin_clerk:'paid',viewer:'draft',safety_officer:'approved'
 };
 
 function pillH(s){
   const m={Open:'open','In Progress':'progress',Completed:'invoiced',Invoiced:'invoiced',Draft:'draft',Sent:'sent',Approved:'approved',Paid:'paid',Overdue:'overdue',Emergency:'emergency',Urgent:'progress',Normal:'draft','Pending Approval':'pending-approval'};
   const cls=m[s]||'draft';
-  if(cls==='pending-approval') return`<span class="pill" style="background:rgba(230,126,34,.1);border-color:rgba(230,126,34,.3);color:var(--warn)">${esc(s)}</span>`;
+  if(cls==='pending-approval') return`<span class="pill pill--pending">${esc(s)}</span>`;
   return`<span class="pill ${cls}">${esc(s)}</span>`;
 }
 function rolePill(role){
@@ -713,7 +932,8 @@ function qtot(items){const s=(items||[]).reduce((a,i)=>a+(+i.qty||0)*(+i.unit||0
 function toast(msg,type=''){
   const c=document.getElementById('toaster');
   const t=document.createElement('div');t.className=`toast ${type}`;t.textContent=msg;
-  c.appendChild(t);setTimeout(()=>t.remove(),3500);
+  c.appendChild(t);
+  setTimeout(()=>{t.classList.add('hiding');setTimeout(()=>t.remove(),400);},6000);
 }
 function audit(action,detail=''){
   AUDIT_LOG.unshift({ts:new Date().toLocaleTimeString('en-ZA',{hour:'2-digit',minute:'2-digit',second:'2-digit'}),user:SESSION?.username||'?',role:SESSION?.role||'?',action,detail,level:'info'});
@@ -954,6 +1174,28 @@ const PAGE_INFO = {
     linked: 'Transactions, Invoices.',
     access: ['admin','sysadmin','manager','admin_clerk'],
   },
+  'p-reconcile': {
+    title: 'Reconciliation',
+    sub: 'Portal vs external statement',
+    purpose: 'Compare the portal\'s transaction total against your bank or client statement to identify missing, duplicate, or incorrect entries.',
+    steps: [
+      'Enter the closing balance from your external statement in the input at the top.',
+      'The portal calculates its own net balance and shows the difference.',
+      'Review the transactions listed — look for duplicates or entries that don\'t match the statement.',
+      'Log any missing transactions via the Transactions page, then refresh.',
+    ],
+    tips: [
+      'A zero difference means the portal matches the statement exactly.',
+      'Positive difference (portal > statement) usually means a duplicate credit in the portal.',
+      'Negative difference (portal < statement) usually means a missing payment entry.',
+    ],
+    faqs: [
+      { q: 'Where does the portal balance come from?', a: 'It is SUM(credit) − SUM(debit) across all rows in the Transactions ledger.' },
+      { q: 'Can I delete a duplicate transaction?', a: 'Only Admins can delete transactions. Use the Transactions page to identify and remove duplicates.' },
+    ],
+    linked: 'Transactions, Income Statement.',
+    access: ['admin','sysadmin','manager','admin_clerk'],
+  },
   'p-clients': {
     title: 'Clients',
     sub: 'Client master records',
@@ -1178,6 +1420,35 @@ const PAGE_INFO = {
     linked: 'Invoices, Transactions.',
     access: ['admin','sysadmin','manager','admin_clerk'],
   },
+  'p-safety-detail': {
+    title: 'Safety File Detail',
+    sub: 'Compliance score & action plan',
+    purpose: 'View and manage the full compliance record for a single safety file — overall audit score, section-by-section breakdown, corrective action plan, personnel, attachments, and policy acknowledgements.',
+    steps: [
+      'Check the audit score badge at the top: GREEN (90%+), YELLOW (75–89%), ORANGE (51–74%), or RED (below 51% — critical).',
+      'Review the Summary of Compliance table to see which sections have the most non-compliant items.',
+      'Expand the Action Plan to see every item not to standard. Assign an owner and target date in the Notes field.',
+      'Use the Status dropdown on each action item to track progress: Open → In Progress → Fixed.',
+      'Upload the signed corrective action documents in the Attachments section.',
+      'Click "Approve" once all items are resolved and the file is ready to be locked as compliant.',
+    ],
+    tips: [
+      'Address RED and ORANGE sections first — these carry the highest legal and compliance risk.',
+      'Always record the corrective action owner and deadline in the Notes field. Vague findings cannot be enforced.',
+      'Use the "Generate Docs" button to create template corrective action documents for all non-compliant items in one step.',
+      'Use the "Tracker" button to download a standalone action tracker you can share with the contractor.',
+      'Print the full pack (Print / Download Pack) before each compliance review meeting.',
+    ],
+    faqs: [
+      { q: 'What do the score colour bands mean?', a: 'GREEN = 90%+ (fully compliant), YELLOW = 75–89% (monitor), ORANGE = 51–74% (action required within 30 days), RED = below 51% (critical — immediate corrective action).' },
+      { q: 'Can I edit the audit once it is submitted?', a: 'Use the Edit button while the file is in Draft or Active status. Once Approved, the record is locked. Contact an Admin if an amendment is genuinely needed.' },
+      { q: 'How do I track corrective actions?', a: 'Use the Status dropdown and Notes field on each Action Plan item. For a printable version to share with the contractor, click the Tracker button.' },
+      { q: 'What is the Baseline audit score?', a: 'The score the file received when it was first submitted to AST. The Projected score updates as you mark items Fixed, showing what the score will be on re-submission.' },
+      { q: 'Who can approve a safety file?', a: 'Only Admin and Manager roles. The approver should verify all corrective actions are closed and supporting documents are attached before approving.' },
+    ],
+    linked: 'Safety Files, Safety Audit, Clients, Audit Log.',
+    access: ['admin','sysadmin','manager','senior_tech'],
+  },
 };
 
 /* Per-page permission capabilities (for role-specific guidance) */
@@ -1253,6 +1524,7 @@ const PAGE_ACTIONS = {
   'p-users':             [{ label:'Audit Log', page:'p-audit', perm:'security.audit' }],
   'p-safety':            [{ label:'+ New Audit', page:'p-safety-audit' }, { label:'Audit Log', page:'p-audit', perm:'security.audit' }],
   'p-safety-audit':      [{ label:'Safety Files', page:'p-safety' }],
+  'p-safety-detail':     [{ label:'Safety Files', page:'p-safety' }, { label:'+ New Audit', page:'p-safety-audit' }],
   'p-audit':             [{ label:'Users', page:'p-users', perm:'security.users' }, { label:'Support', page:'p-support-dashboard' }],
   'p-new-callout':       [{ label:'Call Log', page:'p-callouts', perm:'callout.view' }],
   'p-new-quote':         [{ label:'Quote Log', page:'p-quotes', perm:'quote.view' }],
@@ -1280,6 +1552,13 @@ function renderInfoPanel(pageId){
   const panel = document.getElementById('info-panel-inner');
   if(!panel) return;
   const info = PAGE_INFO[pageId];
+
+  /* Populate sticky header */
+  const hdrTitle = document.getElementById('info-panel-hdr-title');
+  const hdrSub   = document.getElementById('info-panel-hdr-sub');
+  if(hdrTitle) hdrTitle.textContent = info ? (info.title || 'Page Guide') : 'Page Guide';
+  if(hdrSub)   hdrSub.textContent   = info ? (info.sub   || '')           : '';
+
   if(!info){
     panel.innerHTML = `<div class="ipanel-empty">No guide available for this screen yet.</div>`;
     return;
@@ -1294,7 +1573,7 @@ function renderInfoPanel(pageId){
       <div class="ipanel-section-lbl">Your access — ${esc(ROLE_LABELS[SESSION.role]||SESSION.role)}</div>
       ${myCaps.length
         ? myCaps.map(c=>`<div class="ipanel-can"><span class="ipanel-can-icon">✓</span>${esc(c.label)}</div>`).join('')
-        : '<div style="font-size:11px;color:var(--muted);font-style:italic">Read-only access on this page.</div>'}
+        : '<div class="ro-note">Read-only access on this page.</div>'}
       ${notMyCaps.length
         ? `<div class="ipanel-cannot-wrap">${notMyCaps.map(c=>`<div class="ipanel-cannot"><span class="ipanel-cannot-icon">–</span>${esc(c.label)}</div>`).join('')}</div>`
         : ''}
@@ -1337,9 +1616,6 @@ function renderInfoPanel(pageId){
   }).join('');
 
   panel.innerHTML = `
-    <span class="ipanel-badge">Page Guide</span>
-    <div class="ipanel-title">${esc(info.title)}</div>
-    <div class="ipanel-sub">${esc(info.sub||'')}</div>
     <div class="ipanel-section">
       <div class="ipanel-section-lbl">What this page is for</div>
       <div class="ipanel-section-body">${esc(info.purpose)}</div>
@@ -1362,7 +1638,7 @@ function renderInfoPanel(pageId){
     </div>
     <div class="ipanel-divider"></div>
     <div class="ipanel-suggest-lbl">Suggestions &amp; comments</div>
-    <div style="font-size:11px;color:var(--muted);margin-bottom:6px">Your feedback is logged to the audit trail and reviewed by admins.</div>
+    <div class="suggest-hint">Your feedback is logged to the audit trail and reviewed by admins.</div>
     <textarea id="info-suggestion" placeholder="Write a suggestion or note about this page…"></textarea>
     <button id="info-suggest-btn" data-action="submitInfoSuggestion" data-page="${pageId}">Log Suggestion</button>`;
 }
@@ -1390,12 +1666,33 @@ async function submitInfoSuggestion(pageId){
    PUBLIC NAVIGATION
 ═══════════════════════════════════════════════════════ */
 function pubNav(page){
+  closeMobileMenu();
   document.querySelectorAll('.pub-page').forEach(p=>p.classList.remove('active'));
   document.getElementById('pub-'+page).classList.add('active');
   document.querySelectorAll('.pub-nav-link').forEach(l=>l.classList.remove('active'));
   const lnk=document.getElementById('pnl-'+page);if(lnk)lnk.classList.add('active');
+  // sync mobile nav active state
+  document.querySelectorAll('.pub-mob-nav-link').forEach(l=>l.classList.remove('active'));
+  const ml=document.getElementById('pmnl-'+page);if(ml)ml.classList.add('active');
   window.scrollTo(0,0);
   if(page==='services') buildSvcGrid('pub');
+}
+function toggleMobileMenu(){
+  const nav=document.getElementById('pub-mob-nav');
+  const btn=document.querySelector('.pub-ham-btn');
+  if(!nav||!btn) return;
+  const opening=!nav.classList.contains('open');
+  nav.classList.toggle('open',opening);
+  btn.classList.toggle('open',opening);
+  btn.setAttribute('aria-expanded', opening ? 'true' : 'false');
+}
+function closeMobileMenu(){
+  const nav=document.getElementById('pub-mob-nav');
+  const btn=document.querySelector('.pub-ham-btn');
+  if(!nav||!btn) return;
+  nav.classList.remove('open');
+  btn.classList.remove('open');
+  btn.setAttribute('aria-expanded','false');
 }
 function goPublicFullscreen(){
   document.documentElement.dataset.state='public';
@@ -1436,7 +1733,7 @@ const SERVICES=[
   {name:'VIP & Executive Protection',cat:'Event Security'},{name:'Crowd Management',cat:'Event Security'},{name:'Sports Event Security',cat:'Event Security'},
 ];
 function buildHomeCats(){
-  document.getElementById('home-cats').innerHTML=CATEGORIES.map(c=>`<div class="cat-card" onclick="pubNav('services')"><span class="cat-icon">${c.icon}</span><div class="cat-name">${esc(c.name)}</div><div class="cat-count">${c.count} SERVICES</div></div>`).join('');
+  document.getElementById('home-cats').innerHTML=CATEGORIES.map(c=>`<div class="cat-card" data-action="pubNavCat"><span class="cat-icon">${c.icon}</span><div class="cat-name">${esc(c.name)}</div><div class="cat-count">${c.count} SERVICES</div></div>`).join('');
 }
 function buildTicker(){
   const items=SERVICES.slice(0,20).map(s=>`<div class="live-item"><span class="live-dot"></span>${esc(s.name)}</div>`).join('');
@@ -1451,7 +1748,7 @@ function buildSvcGrid(ctx){
     document.getElementById(gridId).innerHTML=items.map(s=>`<div class="svc-card"><div class="svc-cat-dot"></div><div><div class="svc-name">${esc(s.name)}</div><div class="svc-cat">${esc(s.cat)}</div></div></div>`).join('');
   };
   const chips=['All',...CATEGORIES.map(c=>c.name)];
-  document.getElementById(filterId).innerHTML=chips.map(c=>`<div class="filter-chip ${c==='All'?'active':''}" onclick="filterSvc(this,'${esc(c)}','${ctx}')">${esc(c)}</div>`).join('');
+  document.getElementById(filterId).innerHTML=chips.map(c=>`<div class="filter-chip ${c==='All'?'active':''}" data-action="filterSvc" data-cat="${esc(c)}" data-ctx="${ctx}">${esc(c)}</div>`).join('');
   render();
   window._svcF=window._svcF||{};
   window._svcF[ctx]={setActive:(v)=>{active=v==='All'?'all':v;render();}};
@@ -1471,6 +1768,7 @@ function submitContact(){
    AUTH
 ═══════════════════════════════════════════════════════ */
 function goLogin(){
+  closeMobileMenu();
   document.documentElement.dataset.state='login';
   // Check for reset_token in URL
   const params = new URLSearchParams(window.location.search);
@@ -1516,6 +1814,7 @@ function showPortalPage(id, el){
     'p-timeline':     async()=>{ renderTimeline(); },
     'p-statement':    async()=>{ renderStatement(); },
     'p-income':       async()=>{ await Promise.all([refreshInvoices(), refreshTransactions()]); renderIncome(); },
+    'p-reconcile':    async()=>{ await refreshTransactions(); renderReconcile(); },
     'p-log-payment':  async()=>{ await refreshInvoices(); renderPayList(); },
     'p-audit':        async()=>{ const r=await api('GET','audit.php?limit=200'); AUDIT_LOG=(r.data||[]).map(e=>({ts:e.created_at?.slice(11,19)||'',user:e.username,role:'',action:e.action,detail:e.detail,level:'info'})); renderAudit(); },
     'p-home':         async()=>{ renderPortalHome(); },
@@ -1530,6 +1829,16 @@ function showPortalPage(id, el){
   if(renders[id]) renders[id]();
 }
 
+function refreshCurrentPage(btn) {
+  const active = document.querySelector('.ppage.active');
+  if (!active) return;
+  if (btn) {
+    btn.classList.add('spinning');
+    setTimeout(() => btn.classList.remove('spinning'), 800);
+  }
+  showPortalPage(active.id, document.querySelector(`.pnitem[data-page="${active.id}"]`));
+}
+
 function toggleSb(){ }
 function closeSb(){ }
 
@@ -1538,76 +1847,124 @@ function closeSb(){ }
 ═══════════════════════════════════════════════════════ */
 function renderPortalHome(){
   document.getElementById('portal-home-embed').innerHTML=`
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;margin-bottom:20px">
-      ${CATEGORIES.map(c=>`<div class="kcard" style="border-top:2px solid var(--amber);cursor:pointer" onclick="showPortalPage('p-services',null)"><div style="font-size:22px;margin-bottom:6px">${c.icon}</div><div class="klbl">${esc(c.name)}</div><div class="kval" style="font-size:18px">${c.count}</div><div class="ksub">services</div></div>`).join('')}
+    <div class="kcard-cats-grid mb-20">
+      ${CATEGORIES.map(c=>`<div class="kcard kcard-amber" data-action="navPage" data-page="p-services"><div class="fs-22 mb-6">${c.icon}</div><div class="klbl">${esc(c.name)}</div><div class="kval kval-18">${c.count}</div><div class="ksub">services</div></div>`).join('')}
     </div>
-    <div style="padding:18px;background:var(--surface2);border:1px solid var(--border);border-radius:2px;text-align:center">
-      <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ember);letter-spacing:3px;margin-bottom:5px">Fire, taught to behave.</div>
-      <div style="font-family:'Big Shoulders Display',sans-serif;font-size:18px;font-weight:700">BlackFire Solutions</div>
-      <div style="font-size:11px;color:var(--muted);margin-top:3px">Professional Security Services  -  Gauteng  -  24/7</div>
+    <div class="cbar-brand-wrap">
+      <div class="brand-eyebrow">Fire, taught to behave.</div>
+      <div class="brand-display">BlackFire Solutions</div>
+      <div class="brand-sub">Professional Security Services  -  Gauteng  -  24/7</div>
     </div>`;
 }
 
 /* ═══════════════════════════════════════════════════════
-   DASHBOARD
+   DASHBOARD  (fully dynamic — driven by DASH_WIDGETS prefs)
 ═══════════════════════════════════════════════════════ */
 function renderDashboard(){
-  const open=proxyDB.callouts.filter(c=>c.status==='Open'||c.status==='In Progress').length;
-  const now=new Date();
-  const mtd=proxyDB.invoices.filter(i=>{const d=new Date(i.date+'T00:00:00');return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();}).reduce((a,i)=>a+i.amount,0);
-  const pq=proxyDB.quotes.filter(q=>q.status==='Draft'||q.status==='Sent'||q.status==='Pending Approval').length;
-  const net=proxyDB.bank.reduce((a,b)=>a+(b.credit||0)-(b.debit||0),0);
-  document.getElementById('kv-co').textContent=open;
-  document.getElementById('kv-rev').textContent=fmt(mtd);
-  document.getElementById('kv-q').textContent=pq;
-  document.getElementById('kv-bal').textContent=fmt(net);
+  const container = document.getElementById('dash-main-content');
+  if(!container) return;
+
+  // Resolve which widgets are on for this user
+  const showOps  = isWidgetOn('w-ops')        && can('callout.view');
+  const showFin  = isWidgetOn('w-fin')        && (can('invoice.view') || can('finance.income'));
+  const showAlrt = isWidgetOn('w-alerts');
+  const showComp = isWidgetOn('w-compliance') && can('safety.view');
+
+  const now = new Date();
+
+  // Compute data values once
+  const open = proxyDB.callouts.filter(c=>c.status==='Open'||c.status==='In Progress').length;
+  const pq   = proxyDB.quotes.filter(q=>q.status==='Draft'||q.status==='Sent'||q.status==='Pending Approval').length;
+  const mtd  = proxyDB.invoices.filter(i=>{const d=new Date(i.date+'T00:00:00');return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();}).reduce((a,i)=>a+i.amount,0);
+  const net  = proxyDB.bank.reduce((a,b)=>a+(b.credit||0)-(b.debit||0),0);
+
+  // KPI cards — build only the ones the user has on and can see
+  const kpiCards=[];
+  const kv=(v)=>String(v).length>8?' kval--compact':'';
+  if(showOps){
+    const sOpen=String(open), sPq=String(pq);
+    kpiCards.push(`<div class="kcard k1"><div class="klbl">Open Callouts</div><div class="kval${kv(sOpen)}">${sOpen}</div><div class="ksub">Active on site</div></div>`);
+    if(can('quote.view')) kpiCards.push(`<div class="kcard k3"><div class="klbl">Pending Quotes</div><div class="kval${kv(sPq)}">${sPq}</div><div class="ksub">Awaiting approval</div></div>`);
+  }
+  if(showFin){
+    const fmtMtd=fmt(mtd), fmtNet=fmt(net);
+    if(can('invoice.view')) kpiCards.push(`<div class="kcard k2"><div class="klbl">Invoiced MTD</div><div class="kval${kv(fmtMtd)}">${fmtMtd}</div><div class="ksub">Month to date</div></div>`);
+    if(can('finance.income')) kpiCards.push(`<div class="kcard k4"><div class="klbl">Net Balance</div><div class="kval${kv(fmtNet)}">${fmtNet}</div><div class="ksub">Credits − Debits</div></div>`);
+  }
 
   // Alerts
   const overdue=proxyDB.invoices.filter(i=>i.status==='Overdue').length;
-  const urgent=proxyDB.callouts.filter(c=>c.priority==='Urgent'||c.priority==='Emergency').length;
-  const pendingQApproval=proxyDB.quotes.filter(q=>q.approvalStatus==='pending').length;
-  let alerts='';
-  if(overdue>0&&can('invoice.view')) alerts+=`<div class="acard danger"><div class="albl">Overdue Invoices</div><div class="acount">${overdue}</div><div class="adesc">Immediate follow-up</div></div>`;
-  if(urgent>0) alerts+=`<div class="acard warn"><div class="albl">Urgent Callouts</div><div class="acount">${urgent}</div><div class="adesc">Priority dispatch</div></div>`;
-  if(pendingQApproval>0&&can('quote.approve')) alerts+=`<div class="acard info"><div class="albl">Quotes Pending Approval</div><div class="acount">${pendingQApproval}</div><div class="adesc">Tech-submitted, awaiting review</div></div>`;
-  document.getElementById('dash-alerts').innerHTML=alerts;
+  const urgent=proxyDB.callouts.filter(c=>(c.priority==='Urgent'||c.priority==='Emergency')&&(c.status==='Open'||c.status==='In Progress')).length;
+  const pendingQA=proxyDB.quotes.filter(q=>q.approvalStatus==='pending').length;
+  let alertsHtml='';
+  if(showAlrt){
+    if(overdue>0&&can('invoice.view')) alertsHtml+=`<div class="acard danger"><div class="albl">Overdue Invoices</div><div class="acount">${overdue}</div><div class="adesc">Immediate follow-up</div></div>`;
+    if(urgent>0) alertsHtml+=`<div class="acard warn"><div class="albl">Urgent Callouts</div><div class="acount">${urgent}</div><div class="adesc">Priority dispatch</div></div>`;
+    if(pendingQA>0&&can('quote.approve')) alertsHtml+=`<div class="acard info"><div class="albl">Quotes Pending Approval</div><div class="acount">${pendingQA}</div><div class="adesc">Tech-submitted, awaiting review</div></div>`;
+  }
 
   // Recent callouts
   const rc=[...proxyDB.callouts].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5);
-  document.getElementById('dash-co-tbl').innerHTML=rc.length
-    ?rc.map(c=>`<tr><td class="mono">${esc(c.id)}</td><td style="font-size:11px">${esc(c.service.substring(0,30))}${c.service.length>30?'…':''}</td><td>${pillH(c.status)}</td></tr>`).join('')
-    :'<tr><td colspan="3" style="text-align:center;padding:16px;color:var(--muted);font-style:italic">No callouts</td></tr>';
+  const rcRows=rc.length
+    ?rc.map(c=>`<tr><td class="mono">${esc(c.id)}</td><td class="tc-11">${esc(c.service.substring(0,30))}${c.service.length>30?'…':''}</td><td>${pillH(c.status)}</td></tr>`).join('')
+    :'<tr><td colspan="3" class="tc-empty-sm">No callouts</td></tr>';
 
-  // Revenue chart (only for finance roles)
-  const revPanel=document.getElementById('dash-rev-panel');
-  if(revPanel) revPanel.style.display=can('finance.income')?'':'none';
-  if(can('finance.income')){
-    const months=[];const n2=new Date();
-    for(let i=5;i>=0;i--){const dt=new Date(n2.getFullYear(),n2.getMonth()-i,1);months.push({lbl:dt.toLocaleDateString('en-ZA',{month:'short'}),m:dt.getMonth(),y:dt.getFullYear()});}
-    const data=months.map(m=>proxyDB.invoices.filter(i=>{const d=new Date(i.date+'T00:00:00');return d.getMonth()===m.m&&d.getFullYear()===m.y;}).reduce((a,i)=>a+i.amount,0));
-    const max=Math.max(...data,1);
-    document.getElementById('rev-chart').innerHTML=data.map((v,i)=>`
-      <div class="cbar-w">
-        <div class="cval">${v>0?'R'+Math.round(v/1000)+'K':''}</div>
-        <div class="cbar" style="height:${Math.max(4,Math.round((v/max)*100))}px" title="${fmt(v)}"></div>
-        <div class="clbl">${months[i].lbl}</div>
-      </div>`).join('');
-  }
+  // Revenue chart
+  const months=[];
+  for(let i=5;i>=0;i--){const dt=new Date(now.getFullYear(),now.getMonth()-i,1);months.push({lbl:dt.toLocaleDateString('en-ZA',{month:'short'}),m:dt.getMonth(),y:dt.getFullYear()});}
+  const revData=months.map(m=>proxyDB.invoices.filter(i=>{const d=new Date(i.date+'T00:00:00');return d.getMonth()===m.m&&d.getFullYear()===m.y;}).reduce((a,i)=>a+i.amount,0));
+  const maxRev=Math.max(...revData,1);
+  const chartBars=revData.map((v,i)=>`<div class="cbar-w"><div class="cval">${v>0?'R'+Math.round(v/1000)+'K':''}</div><div class="cbar" data-h="${Math.max(4,Math.round((v/maxRev)*100))}" title="${fmt(v)}"></div><div class="clbl">${months[i].lbl}</div></div>`).join('');
 
-  // Nav badges
+  // Build HTML
+  let html='';
+
+  if(kpiCards.length) html+=`<div class="kgrid kgrid--auto">${kpiCards.join('')}</div>`;
+
+  if(showAlrt) html+=`<div class="alert-strip" id="dash-alerts">${alertsHtml}</div>`;
+
+  if(showComp) html+=`<div class="panel mt2 d-none" id="dash-comp-widget">
+    <div class="ph">
+      <div class="ph-title">Compliance Alerts</div>
+      <button class="btn btn-g btn-s" data-action="navPage" data-page="p-safety">View Safety Files</button>
+    </div>
+    <div id="dash-comp-body"></div>
+  </div>`;
+
+  const panelL=showOps?`<div class="panel">
+    <div class="ph"><div class="ph-title">Recent Callouts</div><button class="btn btn-g btn-s" data-action="navPage" data-page="p-callouts">View All</button></div>
+    <div class="tw"><table><thead><tr><th>Job ID</th><th>Service</th><th>Status</th></tr></thead><tbody>${rcRows}</tbody></table></div>
+  </div>`:null;
+  const panelR=(showFin&&can('finance.income'))?`<div class="panel">
+    <div class="ph"><div class="ph-title">Revenue — 6 Months</div></div>
+    <div class="rev-chart-wrap"><div class="chart-bars">${chartBars}</div></div>
+  </div>`:null;
+
+  if(panelL&&panelR)      html+=`<div class="twocol">${panelL}${panelR}</div>`;
+  else if(panelL)         html+=panelL;
+  else if(panelR)         html+=panelR;
+
+  if(!kpiCards.length&&!showAlrt&&!showComp&&!panelL&&!panelR)
+    html=`<div class="dash-empty-state"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg><p>Your dashboard is empty.<br><button class="btn btn-g btn-s" data-action="showDashEditor">Edit Layout</button> to add widgets.</p></div>`;
+
+  container.innerHTML=html;
+  container.querySelectorAll('.cbar[data-h]').forEach(b=>{ b.style.height=b.dataset.h+'px'; });
+
+  // Nav badges (always update regardless of widget visibility)
   const nbCo=document.getElementById('nb-co');if(nbCo)nbCo.textContent=open;
   const nbInv=document.getElementById('nb-inv');if(nbInv)nbInv.textContent=proxyDB.invoices.filter(i=>i.status==='Sent'||i.status==='Overdue').length;
   const nbQte=document.getElementById('nb-qte');if(nbQte)nbQte.textContent=proxyDB.quotes.filter(q=>q.status==='Pending Approval').length;
 }
 
 async function safLoadDashCompliance(){
+  if(!isWidgetOn('w-compliance')||!can('safety.view')) return;
   const panel=document.getElementById('dash-comp-widget');
   const body=document.getElementById('dash-comp-body');
   if(!panel||!body) return;
   try {
     const r=await api('GET','safety_compliance.php?action=due_soon');
     const rows=r.data||[];
-    if(!rows.length){ panel.style.display='none'; return; }
+    if(!rows.length){ panel.classList.add('d-none'); return; }
 
     const today=new Date(); today.setHours(0,0,0,0);
     const isOverdue=row=>{ const e=new Date(row.expiry_date+'T00:00:00'); e.setHours(0,0,0,0); return e<today; };
@@ -1629,24 +1986,22 @@ async function safLoadDashCompliance(){
     let html=`<div class="tw"><table><thead><tr><th>File</th><th>Contractor</th><th>Type</th><th>Person / Scope</th><th>Expiry</th><th>Status</th></tr></thead><tbody>`;
     visible.forEach(row=>{
       const ovr=isOverdue(row);
-      const who=row.full_name?esc(row.full_name):`<span style="color:var(--muted)">Company</span>`;
-      const badge=ovr
-        ?`<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;background:rgba(192,57,43,.15);color:var(--ember);text-transform:uppercase">Overdue</span>`
-        :`<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;background:rgba(240,120,32,.12);color:var(--amber);text-transform:uppercase">Due Soon</span>`;
+      const who=row.full_name?esc(row.full_name):`<span class="text-muted">Company</span>`;
+      const badge=ovr?`<span class="badge-ovr">Overdue</span>`:`<span class="badge-soon">Due Soon</span>`;
       html+=`<tr>
-        <td class="mono" style="font-size:11px">${esc(row.file_ref)}</td>
-        <td style="font-size:11px">${esc(row.contractor||'')}</td>
-        <td style="font-size:11px">${esc(row.compliance_type)}</td>
-        <td style="font-size:11px">${who}</td>
-        <td class="mono" style="font-size:11px">${esc(row.expiry_date)}</td>
+        <td class="mono tc-11">${esc(row.file_ref)}</td>
+        <td class="tc-11">${esc(row.contractor||'')}</td>
+        <td class="tc-11">${esc(row.compliance_type)}</td>
+        <td class="tc-11">${who}</td>
+        <td class="mono tc-11">${esc(row.expiry_date)}</td>
         <td>${badge}</td>
       </tr>`;
     });
     html+='</tbody></table></div>';
-    if(rows.length>15) html+=`<div style="text-align:center;padding:8px 16px;font-size:11px;color:var(--muted)">${rows.length-15} more item${rows.length-15>1?'s':''} — open Safety / EHS for full list</div>`;
+    if(rows.length>15) html+=`<div class="more-items">${rows.length-15} more item${rows.length-15>1?'s':''} — open Safety / EHS for full list</div>`;
 
     body.innerHTML=html;
-    panel.style.display='';
+    panel.classList.remove('d-none');
   } catch(e){ /* compliance widget is non-critical — silent on API failure */ }
 }
 
@@ -1659,7 +2014,7 @@ function renderOpsDashboard() {
   const now = new Date();
   const open       = proxyDB.callouts.filter(c => c.status === 'Open').length;
   const inProg     = proxyDB.callouts.filter(c => c.status === 'In Progress').length;
-  const urgent     = proxyDB.callouts.filter(c => c.priority === 'Urgent' || c.priority === 'Emergency').length;
+  const urgent     = proxyDB.callouts.filter(c => (c.priority === 'Urgent' || c.priority === 'Emergency') && (c.status === 'Open' || c.status === 'In Progress')).length;
   const pendingQA  = proxyDB.quotes.filter(q => q.approvalStatus === 'pending').length;
   const qMTD       = proxyDB.quotes.filter(q => { const d=new Date(q.date+'T00:00:00'); return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear(); }).length;
   const recent     = [...proxyDB.callouts].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,6);
@@ -1670,39 +2025,39 @@ function renderOpsDashboard() {
     const cnt = proxyDB.callouts.filter(c=>c.status===s).length;
     const pct = Math.round(cnt/total*100);
     const col = s==='Open'?'var(--blue)':s==='In Progress'?'var(--amber)':s==='Completed'?'var(--green)':'var(--muted)';
-    return `<div style="margin-bottom:14px">
-      <div style="display:flex;justify-content:space-between;margin-bottom:5px">
-        <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">${s}</span>
-        <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;color:var(--text)">${cnt}</span>
+    return `<div class="mb-14">
+      <div class="flex-sb mb-5">
+        <span class="mlbl-xs">${s}</span>
+        <span class="mlbl-sm">${cnt}</span>
       </div>
-      <div style="height:5px;background:var(--surface3);border-radius:3px">
-        <div style="height:5px;width:${pct}%;background:${col};border-radius:3px;transition:width .4s"></div>
+      <div class="prog-bar">
+        <div class="prog-fill" data-w="${pct}" data-bg="${col}"></div>
       </div>
     </div>`;
   }).join('');
 
   const recentRows = recent.length
     ? recent.map(c=>`<tr>
-        <td class="mono" style="font-size:13px">${esc(c.id)}</td>
-        <td style="font-size:12px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.service)}</td>
+        <td class="mono tc-13">${esc(c.id)}</td>
+        <td class="tc-trunc">${esc(c.service)}</td>
         <td>${pillH(c.priority)}</td>
         <td>${pillH(c.status)}</td>
       </tr>`).join('')
-    : `<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--muted);font-style:italic">No callouts yet</td></tr>`;
+    : `<tr><td colspan="4" class="tc-empty">No callouts yet</td></tr>`;
 
   const qas = can('capture.new_callout') || can('capture.new_quote');
   el.innerHTML = `
     <div class="kgrid">
       <div class="kcard k1"><div class="klbl">Open Callouts</div><div class="kval">${open}</div><div class="ksub">Awaiting dispatch</div></div>
       <div class="kcard k2"><div class="klbl">In Progress</div><div class="kval">${inProg}</div><div class="ksub">Active on site</div></div>
-      <div class="kcard" style="border-top-color:var(--ember)"><div class="klbl">Urgent / Emergency</div><div class="kval" style="color:var(--pill-ovr-txt)">${urgent}</div><div class="ksub">Priority dispatch</div></div>
+      <div class="kcard kcard-ember"><div class="klbl">Urgent / Emergency</div><div class="kval kval-ember">${urgent}</div><div class="ksub">Priority dispatch</div></div>
       <div class="kcard k3"><div class="klbl">Quotes This Month</div><div class="kval">${qMTD}</div><div class="ksub">${pendingQA} pending approval</div></div>
     </div>
     <div class="twocol">
       <div class="panel">
         <div class="ph">
           <div class="ph-title">Recent Callouts</div>
-          <button class="btn btn-g btn-s" onclick="showPortalPage('p-callouts',null)">View All →</button>
+          <button class="btn btn-g btn-s" data-action="navPage" data-page="p-callouts">View All →</button>
         </div>
         <div class="tw"><table><thead><tr><th>Job ID</th><th>Service</th><th>Priority</th><th>Status</th></tr></thead>
           <tbody>${recentRows}</tbody>
@@ -1715,12 +2070,13 @@ function renderOpsDashboard() {
     </div>
     ${qas ? `<div class="panel mt2">
       <div class="ph"><div class="ph-title">Quick Actions</div></div>
-      <div class="pb" style="display:flex;gap:10px;flex-wrap:wrap">
-        ${can('capture.new_callout')?`<button class="btn btn-p" onclick="showPortalPage('p-new-callout',null)">+ Log Call</button>`:''}
-        ${can('capture.new_quote')?`<button class="btn btn-g" onclick="showPortalPage('p-new-quote',null)">+ Submit Quote</button>`:''}
-        <button class="btn btn-g" onclick="showPortalPage('p-timeline',null)">View Timeline →</button>
+      <div class="pb dash-acts">
+        ${can('capture.new_callout')?`<button class="btn btn-p" data-action="navPage" data-page="p-new-callout">+ Log Call</button>`:''}
+        ${can('capture.new_quote')?`<button class="btn btn-g" data-action="navPage" data-page="p-new-quote">+ Submit Quote</button>`:''}
+        <button class="btn btn-g" data-action="navPage" data-page="p-timeline">View Timeline →</button>
       </div>
     </div>` : ''}`;
+  applyProgFills(el);
 }
 
 function renderFinDashboard() {
@@ -1745,20 +2101,20 @@ function renderFinDashboard() {
     const cnt = proxyDB.invoices.filter(i=>i.status===s).length;
     const pct = Math.round(cnt/invTotal*100);
     const col = s==='Paid'?'var(--green)':s==='Overdue'?'var(--ember)':s==='Sent'?'var(--amber)':'var(--muted)';
-    return `<div style="margin-bottom:14px">
-      <div style="display:flex;justify-content:space-between;margin-bottom:5px">
-        <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">${s}</span>
-        <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;color:var(--text)">${cnt}</span>
+    return `<div class="mb-14">
+      <div class="flex-sb mb-5">
+        <span class="mlbl-xs">${s}</span>
+        <span class="mlbl-sm">${cnt}</span>
       </div>
-      <div style="height:5px;background:var(--surface3);border-radius:3px">
-        <div style="height:5px;width:${pct}%;background:${col};border-radius:3px;transition:width .4s"></div>
+      <div class="prog-bar">
+        <div class="prog-fill" data-w="${pct}" data-bg="${col}"></div>
       </div>
     </div>`;
   }).join('');
 
   const chartBars = revData.map((v,i)=>`
     <div class="cbar-w">
-      <div class="cbar" style="height:${Math.max(Math.round(v/maxRev*100),2)}%" title="${fmt(v)}"></div>
+      <div class="cbar" data-h="${Math.max(Math.round(v/maxRev*100),2)}" title="${fmt(v)}"></div>
       <div class="clbl">${months[i].lbl}</div>
       <div class="cval">${v>0?fmt(v):''}</div>
     </div>`).join('');
@@ -1767,7 +2123,7 @@ function renderFinDashboard() {
   el.innerHTML = `
     <div class="kgrid">
       <div class="kcard k2"><div class="klbl">Invoiced MTD</div><div class="kval">${fmt(mtd)}</div><div class="ksub">Month to date</div></div>
-      <div class="kcard" style="border-top-color:var(--ember)"><div class="klbl">Outstanding</div><div class="kval" style="color:var(--pill-ovr-txt)">${fmt(outstanding)}</div><div class="ksub">${overdue.length} overdue · ${sent.length} sent</div></div>
+      <div class="kcard kcard-ember"><div class="klbl">Outstanding</div><div class="kval kval-ember">${fmt(outstanding)}</div><div class="ksub">${overdue.length} overdue · ${sent.length} sent</div></div>
       <div class="kcard k4"><div class="klbl">Net Balance</div><div class="kval">${fmt(net)}</div><div class="ksub">Credits − Debits</div></div>
       <div class="kcard k1"><div class="klbl">Total Invoices</div><div class="kval">${proxyDB.invoices.length}</div><div class="ksub">All time</div></div>
     </div>
@@ -1783,12 +2139,14 @@ function renderFinDashboard() {
     </div>
     ${qas ? `<div class="panel mt2">
       <div class="ph"><div class="ph-title">Quick Actions</div></div>
-      <div class="pb" style="display:flex;gap:10px;flex-wrap:wrap">
-        ${can('capture.new_invoice')?`<button class="btn btn-p" onclick="showPortalPage('p-new-invoice',null)">+ New Invoice</button>`:''}
-        ${can('capture.log_payment')?`<button class="btn btn-g" onclick="showPortalPage('p-log-payment',null)">Log Payment</button>`:''}
-        <button class="btn btn-g" onclick="showPortalPage('p-transactions',null)">View Transactions →</button>
+      <div class="pb dash-acts">
+        ${can('capture.new_invoice')?`<button class="btn btn-p" data-action="navPage" data-page="p-new-invoice">+ New Invoice</button>`:''}
+        ${can('capture.log_payment')?`<button class="btn btn-g" data-action="navPage" data-page="p-log-payment">Log Payment</button>`:''}
+        <button class="btn btn-g" data-action="navPage" data-page="p-transactions">View Transactions →</button>
       </div>
     </div>` : ''}`;
+  el.querySelectorAll('.cbar[data-h]').forEach(b=>{ b.style.height=b.dataset.h+'%'; });
+  applyProgFills(el);
 }
 
 function renderSupDashboard() {
@@ -1806,9 +2164,9 @@ function renderSupDashboard() {
     ? Object.entries(roleGroups).map(([role,cnt])=>`
         <tr>
           <td>${rolePill(role)}</td>
-          <td class="mono" style="font-size:15px">${cnt}</td>
+          <td class="mono tc-15">${cnt}</td>
         </tr>`).join('')
-    : `<tr><td colspan="2" style="text-align:center;padding:14px;color:var(--muted);font-style:italic">No users loaded</td></tr>`;
+    : `<tr><td colspan="2" class="tc-empty-xs">No users loaded</td></tr>`;
 
   // Recent audit
   const auditRows = AUDIT_LOG.slice(0,5).length
@@ -1818,12 +2176,12 @@ function renderSupDashboard() {
           <div class="audit-user">${esc(e.user||'')}</div>
           <div class="audit-action">${esc(e.detail||e.action||'')}</div>
         </div>`).join('')
-    : `<div style="padding:14px;color:var(--muted);font-size:12px;text-align:center;font-style:italic">No recent activity</div>`;
+    : `<div class="p-14 fs-12 text-center italic text-muted">No recent activity</div>`;
 
   el.innerHTML = `
     <div class="kgrid">
-      <div class="kcard" style="border-top-color:var(--blue)"><div class="klbl">Safety Files</div><div class="kval">${safFiles.length}</div><div class="ksub">Total contractor files</div></div>
-      <div class="kcard" style="border-top-color:var(--green)"><div class="klbl">Approved</div><div class="kval" style="color:var(--pill-paid-txt)">${safApproved}</div><div class="ksub">Compliant files</div></div>
+      <div class="kcard kcard-blue"><div class="klbl">Safety Files</div><div class="kval">${safFiles.length}</div><div class="ksub">Total contractor files</div></div>
+      <div class="kcard kcard-green"><div class="klbl">Approved</div><div class="kval kval-paid">${safApproved}</div><div class="ksub">Compliant files</div></div>
       <div class="kcard k3"><div class="klbl">Awaiting Review</div><div class="kval">${safSubmitted}</div><div class="ksub">Submitted for approval</div></div>
       <div class="kcard k1"><div class="klbl">Portal Users</div><div class="kval">${users.length}</div><div class="ksub">Active accounts</div></div>
     </div>
@@ -1831,7 +2189,7 @@ function renderSupDashboard() {
       <div class="panel">
         <div class="ph">
           <div class="ph-title">Users by Role</div>
-          ${can('security.users')?`<button class="btn btn-g btn-s" onclick="showPortalPage('p-users',null)">Manage →</button>`:''}
+          ${can('security.users')?`<button class="btn btn-g btn-s" data-action="navPage" data-page="p-users">Manage →</button>`:''}
         </div>
         <div class="tw"><table><thead><tr><th>Role</th><th>Count</th></tr></thead>
           <tbody>${roleRows}</tbody>
@@ -1840,17 +2198,17 @@ function renderSupDashboard() {
       <div class="panel">
         <div class="ph">
           <div class="ph-title">Recent Audit Activity</div>
-          ${can('security.audit')?`<button class="btn btn-g btn-s" onclick="showPortalPage('p-audit',null)">View All →</button>`:''}
+          ${can('security.audit')?`<button class="btn btn-g btn-s" data-action="navPage" data-page="p-audit">View All →</button>`:''}
         </div>
         ${auditRows}
       </div>
     </div>
     <div class="panel mt2">
       <div class="ph"><div class="ph-title">Quick Actions</div></div>
-      <div class="pb" style="display:flex;gap:10px;flex-wrap:wrap">
-        <button class="btn btn-g" onclick="showPortalPage('p-safety',null)">Safety Files →</button>
-        ${can('security.users')?`<button class="btn btn-g" onclick="showPortalPage('p-users',null)">Manage Users →</button>`:''}
-        ${can('security.audit')?`<button class="btn btn-g" onclick="showPortalPage('p-audit',null)">Audit Log →</button>`:''}
+      <div class="pb dash-acts">
+        <button class="btn btn-g" data-action="navPage" data-page="p-safety">Safety Files →</button>
+        ${can('security.users')?`<button class="btn btn-g" data-action="navPage" data-page="p-users">Manage Users →</button>`:''}
+        ${can('security.audit')?`<button class="btn btn-g" data-action="navPage" data-page="p-audit">Audit Log →</button>`:''}
       </div>
     </div>`;
 }
@@ -1880,44 +2238,43 @@ function renderCallouts(search='',filter=''){
   const tbody=document.getElementById('co-table');
   tbody.innerHTML=items.length?items.map(c=>{
     const poCell=c.po
-      ?`<span class="mono" style="font-size:10px">${esc(c.po)}</span>`
-      :(canPO?`<button class="btn btn-g btn-s" onclick="openAssignPO('${esc(c.id)}')">Assign</button>`:`<span style="color:var(--muted);font-size:11px">-</span>`);
+      ?`<span class="mono fs-10">${esc(c.po)}</span>`
+      :(canPO?`<button class="btn btn-g btn-s" data-action="openAssignPO" data-id="${esc(c.id)}">Assign</button>`:`<span class="text-muted fs-11">-</span>`);
     const loggedByUser=proxyDB.users.find(u=>u.username===c.loggedBy);
     const assignedUser=proxyDB.users.find(u=>u.username===c.assignedTo);
     const assignedDisplay=assignedUser?assignedUser.name:(c.tech||'-');
 
     const actions=[];
-    if(canStatus) actions.push(`<button class="btn btn-g btn-s" onclick="openStatusModal('${esc(c.id)}')">Update Status</button>`);
-    if(canTech&&!c.assignedTo) actions.push(`<button class="btn btn-g btn-s" onclick="openAssignTech('${esc(c.id)}')">Assign Tech</button>`);
-    if(can('capture.new_quote')) actions.push(`<button class="btn btn-g btn-s" onclick="prefillQuoteFromJob('${esc(c.id)}')">Quote</button>`);
-    actions.push(`<button class="btn btn-g btn-s" onclick="openAttachmentsModal('callout','${esc(c.id)}')">Files</button>`);
-    // Confirm Closure: shown when status=Completed, not yet confirmed, invoice not yet generated
+    if(canStatus) actions.push(`<button class="btn btn-g btn-s" data-action="openStatusModal" data-id="${esc(c.id)}">Update Status</button>`);
+    if(canTech&&!c.assignedTo) actions.push(`<button class="btn btn-g btn-s" data-action="openAssignTech" data-id="${esc(c.id)}">Assign Tech</button>`);
+    if(can('capture.new_quote')) actions.push(`<button class="btn btn-g btn-s" data-action="prefillQuoteFromJob" data-id="${esc(c.id)}">Quote</button>`);
+    actions.push(`<button class="btn btn-g btn-s" data-action="openAttachmentsModal" data-entity-type="callout" data-entity-ref="${esc(c.id)}">Files</button>`);
     if(can('callout.confirm_closure')&&c.status==='Completed'&&!c.closureConfirmed&&!c.invoiceGenerated){
-      actions.push(`<button class="btn btn-p btn-s" onclick="openConfirmClosureModal('${esc(c.id)}')">Confirm Closure</button>`);
+      actions.push(`<button class="btn btn-p btn-s" data-action="openConfirmClosureModal" data-id="${esc(c.id)}">Confirm Closure</button>`);
     }
-    if(canDel) actions.push(`<button class="btn btn-g btn-s" onclick="deleteCallout('${esc(c.id)}')">Del</button>`);
+    if(canDel) actions.push(`<button class="btn btn-g btn-s" data-action="deleteCallout" data-id="${esc(c.id)}">Del</button>`);
 
     return`<tr>
       <td class="mono">${esc(c.id)}</td>
-      <td style="font-size:12px;max-width:180px">${esc(c.service)}<div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px">${esc(c.location||'')}</div></td>
-      <td style="font-size:11px">${esc(assignedDisplay)}</td>
+      <td class="tc-12 max-180">${esc(c.service)}<div class="mlbl-9 mt-2">${esc(c.location||'')}</div></td>
+      <td class="tc-11">${esc(assignedDisplay)}</td>
       <td>${poCell}</td>
       <td>${pillH(c.priority)}</td>
       <td>${pillH(c.status)}</td>
-      <td style="font-size:10px;color:var(--muted)">${esc(loggedByUser?.name||c.loggedBy||'-')}</td>
-      <td style="font-size:11px;white-space:nowrap">${fmtD(c.date)}${c.time?'  -  '+esc(c.time):''}</td>
+      <td class="fs-10 text-muted">${esc(loggedByUser?.name||c.loggedBy||'-')}</td>
+      <td class="tc-11 nowrap">${fmtD(c.date)}${c.time?'  -  '+esc(c.time):''}</td>
       <td><div class="bgrp">${actions.join('')}</div></td>
     </tr>`;
-  }).join(''):'<tr><td colspan="9" style="text-align:center;padding:18px;color:var(--muted);font-style:italic">'+(SESSION?.role==='junior_tech'||SESSION?.role==='senior_tech'?'No callouts assigned to you':'No callouts found')+'</td></tr>';
+  }).join(''):'<tr><td colspan="9" class="tc-empty">'+(SESSION?.role==='junior_tech'||SESSION?.role==='senior_tech'?'No callouts assigned to you':'No callouts found')+'</td></tr>';
 }
 
 function openStatusModal(id){
   const c=proxyDB.callouts.find(x=>x.id===id);if(!c)return;
   openModal(`Update Status - ${c.id}`,`
-    <div style="margin-bottom:14px;padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:2px">
-      <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);margin-bottom:4px">Service</div>
-      <div style="font-size:13px;font-weight:600">${esc(c.service)}</div>
-      <div style="font-size:11px;color:var(--muted);margin-top:2px">${esc(c.location||'')}  -  Logged ${fmtD(c.date)}</div>
+    <div class="att-ctx mb-14">
+      <div class="mlbl-9 mb-4">Service</div>
+      <div class="fs-13 fw-600">${esc(c.service)}</div>
+      <div class="fs-11 text-muted mt-2">${esc(c.location||'')}  -  Logged ${fmtD(c.date)}</div>
     </div>
     <div class="fgrid">
       <div class="fgroup"><label class="flbl">New Status</label>
@@ -1932,7 +2289,7 @@ function openStatusModal(id){
       </div>
       <div class="fgroup ffull"><label class="flbl">Update Notes</label><textarea class="finput" id="su-notes" rows="3" placeholder="What was done, findings, next steps...">${esc(c.notes||'')}</textarea></div>
     </div>
-    <div class="mt3 flex-end"><button class="btn btn-p" onclick="saveStatus('${esc(c.id)}')">Save Update</button></div>
+    <div class="mt3 flex-end"><button class="btn btn-p" data-action="saveStatus" data-id="${esc(c.id)}">Save Update</button></div>
   `);
 }
 async function saveStatus(id){
@@ -1952,9 +2309,9 @@ async function saveStatus(id){
 function openAssignPO(id){
   const c=proxyDB.callouts.find(x=>x.id===id);if(!c)return;
   openModal(`Assign PO - ${c.id}`,`
-    <div style="margin-bottom:14px;font-size:12px;color:var(--muted)">Assign a Purchase Order number to this job. The PO will be referenced on the invoice.</div>
+    <div class="fs-12 text-muted mb-14">Assign a Purchase Order number to this job. The PO will be referenced on the invoice.</div>
     <div class="fgroup"><label class="flbl">Purchase Order Number</label><input class="finput" id="po-input" value="${esc(c.po||'')}" placeholder="e.g. PO-2026-045"></div>
-    <div class="mt3 flex-end"><button class="btn btn-p" onclick="assignPO('${esc(c.id)}')">Assign PO</button></div>
+    <div class="mt3 flex-end"><button class="btn btn-p" data-action="assignPO" data-id="${esc(c.id)}">Assign PO</button></div>
   `);
 }
 
@@ -1967,7 +2324,7 @@ function openAssignTech(id){
         ${techs.map(t=>`<option value="${esc(t.username)}">${esc(t.name)}  -  ${esc(ROLE_LABELS[t.role])}</option>`).join('')}
       </select>
     </div>
-    <div class="mt3 flex-end"><button class="btn btn-p" onclick="saveTechAssign('${esc(id)}')">Assign</button></div>
+    <div class="mt3 flex-end"><button class="btn btn-p" data-action="saveTechAssign" data-id="${esc(id)}">Assign</button></div>
   `);
 }
 async function saveTechAssign(id){
@@ -1985,24 +2342,24 @@ async function saveTechAssign(id){
 function openConfirmClosureModal(id){
   const c=proxyDB.callouts.find(x=>x.id===id);if(!c)return;
   openModal(`Confirm Closure — ${c.id}`,`
-    <div style="margin-bottom:14px;padding:12px;background:var(--emb-glow);border:1px solid rgba(192,57,43,.3);border-radius:2px">
-      <div style="font-size:11px;color:var(--pill-ovr-txt);font-family:'IBM Plex Mono',monospace;letter-spacing:1px;margin-bottom:6px">MANAGER CONFIRMATION REQUIRED</div>
-      <div style="font-size:12px;color:var(--text2)">This callout was not closed by the client. A written confirmation and an uploaded document are required before an invoice can be generated.</div>
+    <div class="closure-warn mb-14">
+      <div class="fs-11 text-ovr font-mono ls-1 mb-6">MANAGER CONFIRMATION REQUIRED</div>
+      <div class="fs-12">This callout was not closed by the client. A written confirmation and an uploaded document are required before an invoice can be generated.</div>
     </div>
-    <div style="margin-bottom:12px;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:2px">
-      <div style="font-size:11px;font-weight:600">${esc(c.id)}  —  ${esc(c.service)}</div>
-      <div style="font-size:10px;color:var(--muted)">${esc(c.client)}  ·  ${esc(c.location||'')}  ·  ${fmtD(c.date)}</div>
+    <div class="att-ctx mb-12">
+      <div class="fs-11 fw-600">${esc(c.id)}  —  ${esc(c.service)}</div>
+      <div class="fs-10 text-muted">${esc(c.client)}  ·  ${esc(c.location||'')}  ·  ${fmtD(c.date)}</div>
     </div>
-    <div class="fgroup" style="margin-bottom:12px">
-      <label class="flbl">Confirmation Notes <span style="color:var(--ember)">*</span></label>
+    <div class="fgroup mb-12">
+      <label class="flbl">Confirmation Notes <span class="text-ember">*</span></label>
       <textarea class="finput" id="cc-notes" rows="4" placeholder="Describe why the client did not close this callout and what written confirmation was received..."></textarea>
     </div>
-    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:2px;padding:10px;margin-bottom:14px">
-      <div style="font-size:11px;font-weight:600;margin-bottom:6px">Upload Confirmation Document <span style="color:var(--ember)">*</span></div>
-      <div style="font-size:10px;color:var(--muted);margin-bottom:8px">Upload the signed/written document confirming this closure. PDF, Word, or image accepted.</div>
-      <input type="file" id="cc-doc" accept=".pdf,.docx,.doc,.jpg,.jpeg,.png" style="font-size:11px">
+    <div class="att-ctx mb-14">
+      <div class="fs-11 fw-600 mb-6">Upload Confirmation Document <span class="text-ember">*</span></div>
+      <div class="fs-10 text-muted mb-8">Upload the signed/written document confirming this closure. PDF, Word, or image accepted.</div>
+      <input type="file" id="cc-doc" accept=".pdf,.docx,.doc,.jpg,.jpeg,.png" class="fs-11">
     </div>
-    <div class="mt3 flex-end"><button class="btn btn-p" onclick="saveConfirmClosure('${esc(c.id)}')">Confirm &amp; Generate Invoice</button></div>
+    <div class="mt3 flex-end"><button class="btn btn-p" data-action="saveConfirmClosure" data-id="${esc(c.id)}">Confirm &amp; Generate Invoice</button></div>
   `);
 }
 
@@ -2102,25 +2459,26 @@ function renderQuotes(search='',filter=''){
   document.getElementById('qte-table').innerHTML=items.length?items.map(q=>{
     const{total}=qtot(q.items);
     const submitter=proxyDB.users.find(u=>u.username===q.submittedBy);
-    const submitterCell=submitter?`${esc(submitter.name)}<div style="font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--muted)">${esc(ROLE_LABELS[submitter.role]||submitter.role)}</div>`:'<span style="color:var(--muted)">-</span>';
+    const submitterCell=submitter?`${esc(submitter.name)}<div class="mlbl-9 mt-2">${esc(ROLE_LABELS[submitter.role]||submitter.role)}</div>`:'<span class="text-muted">-</span>';
     const actions=[];
-    actions.push(`<button class="btn btn-g btn-s" onclick="previewQuote('${esc(q.id)}')">View</button>`);
+    actions.push(`<button class="btn btn-g btn-s" data-action="previewQuote" data-id="${esc(q.id)}">View</button>`);
+    actions.push(`<button class="btn btn-g btn-s" data-action="openAttachmentsModal" data-entity-type="quote" data-entity-ref="${esc(q.id)}">Files</button>`);
     if(canApprove&&q.approvalStatus==='pending'){
-      actions.push(`<button class="btn btn-s" style="background:var(--grn-glow);border-color:var(--green);color:var(--pill-paid-txt)" onclick="approveQuote('${esc(q.id)}')">Approve</button>`);
-      actions.push(`<button class="btn btn-s" style="background:var(--emb-glow);border-color:var(--ember);color:var(--pill-ovr-txt)" onclick="rejectQuote('${esc(q.id)}')">Decline</button>`);
+      actions.push(`<button class="btn btn-s bg-grn" data-action="approveQuote" data-id="${esc(q.id)}">Approve</button>`);
+      actions.push(`<button class="btn btn-s bg-emb" data-action="rejectQuote" data-id="${esc(q.id)}">Decline</button>`);
     }
-    if(canConvert&&q.status!=='Pending Approval') actions.push(`<button class="btn btn-g btn-s" onclick="convertToInvoice('${esc(q.id)}')">Invoice</button>`);
-    if(canDel) actions.push(`<button class="btn btn-g btn-s" onclick="deleteQuote('${esc(q.id)}')">Del</button>`);
+    if(canConvert&&q.status!=='Pending Approval') actions.push(`<button class="btn btn-g btn-s" data-action="convertToInvoice" data-id="${esc(q.id)}">Invoice</button>`);
+    if(canDel) actions.push(`<button class="btn btn-g btn-s" data-action="deleteQuote" data-id="${esc(q.id)}">Del</button>`);
     return`<tr>
       <td class="mono">${esc(q.id)}</td>
       <td>${esc(q.client)}</td>
       <td class="amt">${fmt(total)}</td>
-      <td style="font-size:11px">${submitterCell}</td>
-      <td style="font-size:11px;white-space:nowrap">${fmtD(q.validUntil)}</td>
+      <td class="tc-11">${submitterCell}</td>
+      <td class="tc-11 nowrap">${fmtD(q.validUntil)}</td>
       <td>${pillH(q.status)}</td>
       <td><div class="bgrp">${actions.join('')}</div></td>
     </tr>`;
-  }).join(''):'<tr><td colspan="7" style="text-align:center;padding:18px;color:var(--muted);font-style:italic">No quotes</td></tr>';
+  }).join(''):'<tr><td colspan="7" class="tc-empty">No quotes</td></tr>';
 }
 
 function approveQuote(id){
@@ -2143,16 +2501,16 @@ function previewQuote(id){
     <div class="doc-preview">
       <div class="doc-logo-row">
         <div><div class="doc-bname">BLACK<em>FIRE</em></div><div class="doc-btag">Security Solutions</div></div>
-        <div style="text-align:right;font-size:11px;color:#7A7566">+27 68 912 6581<br>info@blackfiresolutions.co.za</div>
+        <div class="doc-contact">+27 68 912 6581<br>info@blackfiresolutions.co.za</div>
       </div>
       <div class="doc-type">QUOTATION</div>
       <div class="doc-meta">
-        <div><div class="dml">Quote #</div><div class="dmv" style="font-family:'IBM Plex Mono',monospace">${esc(q.id)}</div></div>
+        <div><div class="dml">Quote #</div><div class="dmv font-mono">${esc(q.id)}</div></div>
         <div><div class="dml">Client</div><div class="dmv">${esc(q.client)}</div></div>
         <div><div class="dml">Date</div><div class="dmv">${fmtD(q.date)}</div></div>
         <div><div class="dml">Valid Until</div><div class="dmv">${fmtD(q.validUntil)}</div></div>
       </div>
-      ${q.approvalStatus==='pending'?'<div style="padding:8px 12px;background:#fff3e0;border-left:3px solid #E67E22;margin-bottom:14px;font-size:11px;color:#E67E22">⚠ Pending Manager Approval - not yet issued to client</div>':''}
+      ${q.approvalStatus==='pending'?'<div class="qte-pending-warn">⚠ Pending Manager Approval - not yet issued to client</div>':''}
       <table class="doc-t">
         <thead><tr><th>Description</th><th>Qty</th><th>Unit Price</th><th>Total</th></tr></thead>
         <tbody>${(q.items||[]).map(i=>`<tr><td>${esc(i.desc)}</td><td>${i.qty}</td><td>${fmt(i.unit)}</td><td>${fmt(i.qty*i.unit)}</td></tr>`).join('')}</tbody>
@@ -2164,7 +2522,7 @@ function previewQuote(id){
       </div>
       <div class="doc-note">Fire, taught to behave.  -  BlackFire Solutions (Pty) Ltd</div>
     </div>
-    <div id="attach-modal-area" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)"></div>`);
+    <div id="attach-modal-area" class="inv-att-area"></div>`);
   loadAttachments('quote', id);
 }
 
@@ -2197,7 +2555,7 @@ function initNewQuote(){
 }
 function addLine(){
   const r=document.createElement('tr');
-  r.innerHTML=`<td><input class="liinput" placeholder="Service / item description" oninput="recalcQ()"></td><td><input class="liinput" type="number" value="1" min="0" style="width:60px" oninput="recalcQ()"></td><td><input class="liinput" type="number" value="0" min="0" step="0.01" style="width:90px" oninput="recalcQ()"></td><td class="mono lt" style="font-size:11px">R0.00</td><td><button class="btn btn-g btn-s" onclick="this.closest('tr').remove();recalcQ()">✕</button></td>`;
+  r.innerHTML=`<td><input class="liinput" placeholder="Service / item description"></td><td><input class="liinput li-qty" type="number" value="1" min="0"></td><td><input class="liinput li-price" type="number" value="0" min="0" step="0.01"></td><td class="mono lt li-total">R0.00</td><td><button class="btn btn-g btn-s" data-action="removeLine">✕</button></td>`;
   document.getElementById('li-body').appendChild(r);recalcQ();
 }
 function recalcQ(){
@@ -2248,31 +2606,32 @@ function renderInvoices(search='',filter=''){
   const canMod=can('invoice.create');const canPaid=can('invoice.mark_paid');const canDel=can('invoice.delete');const canSend=can('invoice.send');
   const btn=document.getElementById('btn-newinv');if(btn)btn.style.display=canMod?'':'none';
   document.getElementById('inv-table').innerHTML=items.length?items.map(inv=>`
-    <tr><td class="mono">${esc(inv.id)}</td><td>${esc(inv.client)}</td><td class="amt">${fmt(inv.amount)}</td><td style="font-size:11px;white-space:nowrap">${fmtD(inv.dueDate)}</td><td>${pillH(inv.status)}</td>
+    <tr><td class="mono">${esc(inv.id)}</td><td>${esc(inv.client)}</td><td class="amt">${fmt(inv.amount)}</td><td class="tc-11 nowrap">${fmtD(inv.dueDate)}</td><td>${pillH(inv.status)}</td>
     <td><div class="bgrp">
-      <button class="btn btn-g btn-s" onclick="previewInvoice('${esc(inv.id)}')">View</button>
-      ${canSend&&inv.status!=='Paid'&&inv.status!=='Cancelled'&&inv.amount>0?`<button class="btn btn-p btn-s" onclick="openSendInvoiceModal('${esc(inv.id)}')">Send</button>`:''}
-      ${canPaid&&inv.status!=='Paid'?`<button class="btn btn-g btn-s" onclick="markPaid('${esc(inv.id)}')">Paid</button>`:''}
-      ${canDel?`<button class="btn btn-g btn-s" onclick="deleteInvoice('${esc(inv.id)}')">Del</button>`:''}
-    </div></td></tr>`).join(''):'<tr><td colspan="6" style="text-align:center;padding:18px;color:var(--muted);font-style:italic">No invoices</td></tr>';
+      <button class="btn btn-g btn-s" data-action="previewInvoice" data-id="${esc(inv.id)}">View</button>
+      <button class="btn btn-g btn-s" data-action="openAttachmentsModal" data-entity-type="invoice" data-entity-ref="${esc(inv.id)}">Files</button>
+      ${canSend&&inv.status!=='Paid'&&inv.status!=='Cancelled'&&inv.amount>0?`<button class="btn btn-p btn-s" data-action="openSendInvoiceModal" data-id="${esc(inv.id)}">Send</button>`:''}
+      ${canPaid&&inv.status!=='Paid'?`<button class="btn btn-g btn-s" data-action="markPaid" data-id="${esc(inv.id)}">Paid</button>`:''}
+      ${canDel?`<button class="btn btn-g btn-s" data-action="deleteInvoice" data-id="${esc(inv.id)}">Del</button>`:''}
+    </div></td></tr>`).join(''):'<tr><td colspan="6" class="tc-empty">No invoices</td></tr>';
 }
 
 function openSendInvoiceModal(id){
   const inv=proxyDB.invoices.find(x=>x.id===id);if(!inv)return;
   if(inv.amount<=0){toast('Set the invoice amount before sending','err');return;}
   openModal(`Send Invoice — ${inv.id}`,`
-    <div style="margin-bottom:14px;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:2px">
-      <div style="font-size:12px;font-weight:600">${esc(inv.id)}  —  ${esc(inv.client)}</div>
-      <div style="font-size:11px;color:var(--muted);margin-top:2px">Amount: R ${Number(inv.amount).toLocaleString('en-ZA',{minimumFractionDigits:2})}  ·  Due: ${fmtD(inv.dueDate)}</div>
+    <div class="att-ctx mb-14">
+      <div class="fs-12 fw-600">${esc(inv.id)}  —  ${esc(inv.client)}</div>
+      <div class="fs-11 text-muted mt-2">Amount: R ${Number(inv.amount).toLocaleString('en-ZA',{minimumFractionDigits:2})}  ·  Due: ${fmtD(inv.dueDate)}</div>
     </div>
     <div class="fgroup">
-      <label class="flbl">Send to (email address) <span style="color:var(--ember)">*</span></label>
+      <label class="flbl">Send to (email address) <span class="text-ember">*</span></label>
       <input class="finput" id="si-email" type="email" value="${esc(inv.clientEmail||'')}" placeholder="client@company.co.za">
     </div>
-    <div style="font-size:10px;color:var(--muted);margin-top:4px;margin-bottom:14px">
+    <div class="fs-10 text-muted mt-4 mb-14">
       The invoice will be sent from noreply@blackfiresolutions.co.za and the invoice status will change to Sent.
     </div>
-    <div class="mt3 flex-end"><button class="btn btn-p" onclick="sendInvoiceEmail('${esc(inv.id)}')">Send Invoice</button></div>
+    <div class="mt3 flex-end"><button class="btn btn-p" data-action="sendInvoiceEmail" data-id="${esc(inv.id)}">Send Invoice</button></div>
   `);
 }
 
@@ -2293,24 +2652,24 @@ function previewInvoice(id){
     <div class="doc-preview">
       <div class="doc-logo-row">
         <div><div class="doc-bname">BLACK<em>FIRE</em></div><div class="doc-btag">Security Solutions</div></div>
-        <div style="text-align:right;font-size:11px;color:#7A7566">+27 68 912 6581<br>info@blackfiresolutions.co.za</div>
+        <div class="doc-contact">+27 68 912 6581<br>info@blackfiresolutions.co.za</div>
       </div>
       <div class="doc-type">TAX INVOICE</div>
       <div class="doc-meta">
-        <div><div class="dml">Invoice #</div><div class="dmv" style="font-family:'IBM Plex Mono',monospace">${esc(inv.id)}</div></div>
+        <div><div class="dml">Invoice #</div><div class="dmv font-mono">${esc(inv.id)}</div></div>
         <div><div class="dml">Client</div><div class="dmv">${esc(inv.client)}</div></div>
         <div><div class="dml">PO Reference</div><div class="dmv">${esc(inv.po||'N/A')}</div></div>
         <div><div class="dml">Due Date</div><div class="dmv">${fmtD(inv.dueDate)}</div></div>
       </div>
-      <div class="doc-tots" style="width:100%">
+      <div class="doc-tots w-full">
         <div class="doc-tot-row"><span>Excl. VAT</span><span>${fmt(inv.amount/1.15)}</span></div>
         <div class="doc-tot-row"><span>VAT (15%)</span><span>${fmt(inv.amount-inv.amount/1.15)}</span></div>
         <div class="doc-tot-row grand"><span>TOTAL DUE</span><span>${fmt(inv.amount)}</span></div>
       </div>
-      <div style="margin-top:12px">${pillH(inv.status)}</div>
+      <div class="mt-12">${pillH(inv.status)}</div>
       <div class="doc-note">Fire, taught to behave.  -  BlackFire Solutions (Pty) Ltd</div>
     </div>
-    <div id="attach-modal-area" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)"></div>`);
+    <div id="attach-modal-area" class="inv-att-area"></div>`);
   loadAttachments('invoice', id);
 }
 
@@ -2353,9 +2712,9 @@ function renderTransactions(search=''){
   document.getElementById('tx-debits').textContent=fmt(td);
   const nel=document.getElementById('tx-net');nel.textContent=fmt(tn);nel.style.color=tn>=0?'var(--pill-paid-txt)':'var(--pill-ovr-txt)';
   document.getElementById('tx-table').innerHTML=items.length?items.map(b=>`
-    <tr><td style="white-space:nowrap">${fmtD(b.date)}</td><td>${esc(b.desc)}</td><td><span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted)">${esc(b.cat)}</span></td><td class="mono">${esc(b.ref||'-')}</td>
-    <td class="amt" style="color:var(--pill-paid-txt)">${b.credit>0?fmt(b.credit):'-'}</td>
-    <td class="amt" style="color:var(--pill-ovr-txt)">${b.debit>0?fmt(b.debit):'-'}</td></tr>`).join(''):'<tr><td colspan="6" style="text-align:center;padding:18px;color:var(--muted);font-style:italic">No transactions</td></tr>';
+    <tr><td class="nowrap">${fmtD(b.date)}</td><td>${esc(b.desc)}</td><td><span class="mlbl-9">${esc(b.cat)}</span></td><td class="mono">${esc(b.ref||'-')}</td>
+    <td class="amt text-ok">${b.credit>0?fmt(b.credit):'-'}</td>
+    <td class="amt text-ovr">${b.debit>0?fmt(b.debit):'-'}</td></tr>`).join(''):'<tr><td colspan="6" class="tc-empty">No transactions</td></tr>';
 }
 
 function openTxModal(){
@@ -2369,7 +2728,7 @@ function openTxModal(){
       <div class="fgroup"><label class="flbl">Category</label><select class="finput" id="bk-cat">${cats.map(c=>`<option>${c}</option>`).join('')}</select></div>
       <div class="fgroup ffull"><label class="flbl">Reference</label><input class="finput" id="bk-ref" placeholder="e.g. INV-001 or PO-2026-045"></div>
     </div>
-    <div class="mt3 flex-end"><button class="btn btn-p" onclick="saveTx()">Save</button></div>`);
+    <div class="mt3 flex-end"><button class="btn btn-p" data-action="saveTx">Save</button></div>`);
 }
 function saveTx(){
   const desc=document.getElementById('bk-desc').value.trim();
@@ -2384,9 +2743,9 @@ function saveTx(){
    STATEMENT / INCOME
 ═══════════════════════════════════════════════════════ */
 async function renderStatement(){
-  document.getElementById('stmt-content').innerHTML=`<div style="text-align:center;padding:32px;color:var(--muted);font-style:italic">Loading statements…</div>`;
+  document.getElementById('stmt-content').innerHTML=`<div class="stmt-loading">Loading statements…</div>`;
   const r=await api('GET','statements.php?action=list');
-  if(!r.success){document.getElementById('stmt-content').innerHTML=`<div style="padding:16px;color:var(--pill-ovr-txt)">${esc(r.error||'Failed to load statements')}</div>`;return;}
+  if(!r.success){document.getElementById('stmt-content').innerHTML=`<div class="stmt-error">${esc(r.error||'Failed to load statements')}</div>`;return;}
 
   const pending=(r.data||[]).filter(s=>s.status==='pending_approval');
   const released=(r.data||[]).filter(s=>s.status==='released');
@@ -2399,21 +2758,21 @@ async function renderStatement(){
   const outRows=outstanding.map(inv=>`
     <tr>
       <td class="mono">${esc(inv.ref_id)}</td>
-      <td style="font-size:11px">${esc(inv.client_name)}</td>
-      <td style="font-size:11px">${esc(inv.invoice_date||'')}</td>
-      <td style="font-size:11px">${esc(inv.due_date||'')}</td>
+      <td class="tc-11">${esc(inv.client_name)}</td>
+      <td class="tc-11">${esc(inv.invoice_date||'')}</td>
+      <td class="tc-11">${esc(inv.due_date||'')}</td>
       <td>${pillH(inv.status)}</td>
       <td class="amt">${fmt(Number(inv.amount))}</td>
     </tr>`).join('');
 
   const pendingCards=pending.map(s=>`
-    <div style="border:1px solid var(--amber);background:var(--amb-glow);border-radius:2px;padding:14px;margin-bottom:10px">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+    <div class="stmt-pcard">
+      <div class="stmt-pcrd-hdr">
         <div>
-          <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;color:var(--amber)">${esc(s.ref_id)}  ·  PENDING APPROVAL</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px">Generated ${fmtD(s.created_at?.slice(0,10)||'')}  ·  ${s.invoice_refs?.split(',').filter(Boolean).length||0} invoices  ·  Total R ${Number(s.total_outstanding||0).toLocaleString('en-ZA',{minimumFractionDigits:2})}</div>
+          <div class="stmt-pcrd-ref">${esc(s.ref_id)}  ·  PENDING APPROVAL</div>
+          <div class="stmt-pcrd-sub">Generated ${fmtD(s.created_at?.slice(0,10)||'')}  ·  ${s.invoice_refs?.split(',').filter(Boolean).length||0} invoices  ·  Total R ${Number(s.total_outstanding||0).toLocaleString('en-ZA',{minimumFractionDigits:2})}</div>
         </div>
-        ${canRelease?`<button class="btn btn-p btn-s" onclick="openReleaseStatementModal('${esc(s.ref_id)}')">Release Statement</button>`:'<span style="font-size:10px;color:var(--muted)">Awaiting release by authorised user</span>'}
+        ${canRelease?`<button class="btn btn-p btn-s" data-action="openReleaseStatementModal" data-id="${esc(s.ref_id)}">Release Statement</button>`:'<span class="fs-10 text-muted">Awaiting release by authorised user</span>'}
       </div>
     </div>`).join('');
 
@@ -2425,7 +2784,7 @@ async function renderStatement(){
       <td>${esc(s.from_email||'')}</td>
       <td>${esc(s.to_emails||'')}</td>
       <td class="amt">R ${Number(s.total_outstanding||0).toLocaleString('en-ZA',{minimumFractionDigits:2})}</td>
-      <td><button class="btn btn-g btn-s" onclick="downloadStatement('${esc(s.ref_id)}')">Download</button></td>
+      <td><button class="btn btn-g btn-s" data-action="downloadStatement" data-id="${esc(s.ref_id)}">Download</button></td>
     </tr>`).join('');
 
   const outRowsLimited=outstanding.slice(0,10).map(inv=>`
@@ -2438,45 +2797,39 @@ async function renderStatement(){
       <td class="amt">${fmt(Number(inv.amount))}</td>
     </tr>`).join('');
 
+  const outValClass = outTotal>0?'text-ovr':'text-ok';
+  const pendValClass = pending.length?'text-amber':'text-muted';
+
   document.getElementById('stmt-content').innerHTML=`
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px">
-      <div style="background:var(--surface);border:1px solid var(--border);padding:14px;border-radius:2px">
-        <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px">Outstanding</div>
-        <div style="font-family:'Big Shoulders Display',sans-serif;font-size:26px;font-weight:700;color:${outTotal>0?'var(--pill-ovr-txt)':'var(--pill-paid-txt)'}">R ${outTotal.toLocaleString('en-ZA',{minimumFractionDigits:2})}</div>
-      </div>
-      <div style="background:var(--surface);border:1px solid var(--border);padding:14px;border-radius:2px">
-        <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px">Pending Statements</div>
-        <div style="font-family:'Big Shoulders Display',sans-serif;font-size:26px;font-weight:700;color:${pending.length?'var(--amber)':'var(--muted)'}">${pending.length}</div>
-      </div>
-      <div style="background:var(--surface);border:1px solid var(--border);padding:14px;border-radius:2px">
-        <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px">Statements Sent</div>
-        <div style="font-family:'Big Shoulders Display',sans-serif;font-size:26px;font-weight:700">${released.length}</div>
-      </div>
+    <div class="stmt-kgrid">
+      <div class="stmt-kcard"><div class="stmt-klbl">Outstanding</div><div class="stmt-kval ${outValClass}">R ${outTotal.toLocaleString('en-ZA',{minimumFractionDigits:2})}</div></div>
+      <div class="stmt-kcard"><div class="stmt-klbl">Pending Statements</div><div class="stmt-kval ${pendValClass}">${pending.length}</div></div>
+      <div class="stmt-kcard"><div class="stmt-klbl">Statements Sent</div><div class="stmt-kval">${released.length}</div></div>
     </div>
 
     ${released.length?`
-    <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:2px;margin-bottom:8px">RECENT STATEMENTS SENT</div>
-    <div class="panel" style="margin-bottom:18px"><div class="tw" style="max-height:360px;overflow-y:auto"><table>
+    <div class="stmt-slbl">RECENT STATEMENTS SENT</div>
+    <div class="panel stmt-mb18"><div class="tw stmt-tbl-wrap"><table>
       <thead><tr><th>Ref</th><th>Scheduled</th><th>Released</th><th>From</th><th>To</th><th>Total</th><th></th></tr></thead>
       <tbody>${releasedRows}</tbody>
     </table></div></div>`:''}
 
     ${pending.length?`
-    <div style="margin-bottom:18px">
-      <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:2px;margin-bottom:8px">PENDING RELEASE</div>
+    <div class="stmt-mb18">
+      <div class="stmt-slbl">PENDING RELEASE</div>
       ${pendingCards}
     </div>`:''}
 
     ${canGenerate?`
-    <div style="margin-bottom:18px;padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:2px;display:flex;justify-content:space-between;align-items:center">
-      <div style="font-size:14px;color:var(--text2)">Statements are auto-generated every Monday at 09:00 via cron. You can also generate one manually for current outstanding invoices.</div>
-      <button class="btn btn-g btn-s" onclick="generateStatement()" style="white-space:nowrap;margin-left:16px">Generate Now</button>
+    <div class="stmt-gen-row">
+      <div class="stmt-gen-txt">Statements are auto-generated every Monday at 09:00 via cron. You can also generate one manually for current outstanding invoices.</div>
+      <button class="btn btn-g btn-s stmt-gen-btn" data-action="generateStatement">Generate Now</button>
     </div>`:''}
 
-    <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:2px;margin-bottom:8px">OUTSTANDING INVOICES</div>
-    <div class="panel" style="margin-bottom:18px"><div class="tw" style="max-height:360px;overflow-y:auto"><table>
+    <div class="stmt-slbl">OUTSTANDING INVOICES</div>
+    <div class="panel stmt-mb18"><div class="tw stmt-tbl-wrap"><table>
       <thead><tr><th>Invoice #</th><th>Client</th><th>Date</th><th>Due</th><th>Status</th><th>Amount</th></tr></thead>
-      <tbody>${outRowsLimited||'<tr><td colspan="6" style="text-align:center;padding:18px;color:var(--muted);font-style:italic">No outstanding invoices</td></tr>'}</tbody>
+      <tbody>${outRowsLimited||'<tr><td colspan="6" class="tc-empty">No outstanding invoices</td></tr>'}</tbody>
     </table></div></div>
   `;
 }
@@ -2521,17 +2874,17 @@ async function openReleaseStatementModal(ref_id){
   const toSel=toOpts.map(u=>`<option value="${esc(u.email)}">${esc(u.name)} &lt;${esc(u.email)}&gt;</option>`).join('');
 
   openModal(`Release Statement — ${ref_id}`,`
-    <div style="margin-bottom:14px;font-size:12px;color:var(--text2)">Review the FROM and TO addresses below. The statement will be emailed immediately when you click Release.</div>
+    <div class="fs-12 mb-14">Review the FROM and TO addresses below. The statement will be emailed immediately when you click Release.</div>
     <div class="fgrid">
       <div class="fgroup ffull">
-        <label class="flbl">From Address <span style="color:var(--ember)">*</span></label>
+        <label class="flbl">From Address <span class="text-ember">*</span></label>
         <select class="finput" id="rs-from">${fromSel||'<option value="">No permitted email addresses found</option>'}</select>
-        <div style="font-size:10px;color:var(--muted);margin-top:4px">Only email addresses you are authorised to send from are shown.</div>
+        <div class="fs-10 text-muted mt-4">Only email addresses you are authorised to send from are shown.</div>
       </div>
       <div class="fgroup ffull">
-        <label class="flbl">To Address <span style="color:var(--ember)">*</span></label>
+        <label class="flbl">To Address <span class="text-ember">*</span></label>
         <select class="finput" id="rs-to">${toSel||'<option value="">No users found</option>'}</select>
-        <div style="font-size:10px;color:var(--muted);margin-top:4px">You may also type a custom address below.</div>
+        <div class="fs-10 text-muted mt-4">You may also type a custom address below.</div>
       </div>
       <div class="fgroup ffull">
         <label class="flbl">Additional Recipients (comma-separated)</label>
@@ -2539,8 +2892,8 @@ async function openReleaseStatementModal(ref_id){
       </div>
     </div>
     <div class="mt3 flex-end">
-      <button class="btn btn-g" onclick="closeModalDirect()" style="margin-right:8px">Cancel</button>
-      <button class="btn btn-p" onclick="releaseStatement('${esc(ref_id)}')">Release &amp; Send Statement</button>
+      <button class="btn btn-g mr-8" data-action="closeModalDirect">Cancel</button>
+      <button class="btn btn-p" data-action="releaseStatement" data-id="${esc(ref_id)}">Release &amp; Send Statement</button>
     </div>
   `);
 }
@@ -2565,20 +2918,152 @@ function renderIncome(){
   const rev=proxyDB.invoices.filter(i=>i.status==='Paid').reduce((a,i)=>a+i.amount,0);
   const exp=proxyDB.bank.filter(b=>b.debit>0).reduce((a,b)=>a+b.debit,0);
   const gross=rev-exp;const tax=Math.max(0,gross*.28);const net=gross-tax;
+  const netPos=net>=0;
   document.getElementById('pl-rows').innerHTML=`
-    <div style="background:var(--surface2);padding:8px 16px;font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--muted);letter-spacing:2px;text-transform:uppercase">Revenue</div>
-    <div style="display:flex;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--border);font-size:12px"><span>Paid Invoices</span><span style="font-family:'IBM Plex Mono',monospace">${fmt(rev)}</span></div>
-    <div style="background:var(--surface2);padding:8px 16px;font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--muted);letter-spacing:2px;text-transform:uppercase">Expenses</div>
-    ${proxyDB.bank.filter(b=>b.debit>0).map(b=>`<div style="display:flex;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--border);font-size:12px"><span>${esc(b.desc)}</span><span style="font-family:'IBM Plex Mono',monospace;color:var(--pill-ovr-txt)">(${fmt(b.debit)})</span></div>`).join('')||'<div style="padding:10px 16px;font-size:12px;color:var(--muted);font-style:italic">No expenses recorded</div>'}
-    <div style="display:flex;justify-content:space-between;padding:12px 16px;font-size:13px;font-weight:600;border-top:1px solid var(--border)"><span>Operating Profit</span><span style="font-family:'IBM Plex Mono',monospace">${fmt(gross)}</span></div>
-    <div style="display:flex;justify-content:space-between;padding:10px 16px;font-size:12px;border-top:1px solid var(--border)"><span>Tax (28%)</span><span style="font-family:'IBM Plex Mono',monospace;color:var(--muted)">(${fmt(tax)})</span></div>
-    <div style="display:flex;justify-content:space-between;padding:14px 16px;font-size:14px;font-weight:700;border-top:2px solid ${net>=0?'var(--green)':'var(--ember)'};background:${net>=0?'var(--grn-glow)':'var(--emb-glow)'}"><span>NET ${net>=0?'PROFIT':'LOSS'}</span><span style="font-family:'IBM Plex Mono',monospace;color:${net>=0?'var(--pill-paid-txt)':'var(--pill-ovr-txt)'}">${fmt(Math.abs(net))}</span></div>`;
+    <div class="pl-sec-lbl">Revenue</div>
+    <div class="pl-row pl-row-val"><span>Paid Invoices</span><span class="font-mono">${fmt(rev)}</span></div>
+    <div class="pl-sec-lbl">Expenses</div>
+    ${proxyDB.bank.filter(b=>b.debit>0).map(b=>`<div class="pl-row pl-row-val"><span>${esc(b.desc)}</span><span class="font-mono text-ovr">(${fmt(b.debit)})</span></div>`).join('')||'<div class="pl-row-empty">No expenses recorded</div>'}
+    <div class="pl-row pl-row-gross"><span>Operating Profit</span><span class="font-mono">${fmt(gross)}</span></div>
+    <div class="pl-row pl-row-tax"><span>Tax (28%)</span><span class="font-mono text-muted">(${fmt(tax)})</span></div>
+    <div class="pl-row pl-row-net ${netPos?'pl-net-pos':'pl-net-neg'}"><span>NET ${netPos?'PROFIT':'LOSS'}</span><span class="font-mono">${fmt(Math.abs(net))}</span></div>`;
   document.getElementById('pl-summary').innerHTML=`
     <div class="sumrow"><span>Revenue</span><span class="mono">${fmt(rev)}</span></div>
     <div class="sumrow"><span>Expenses</span><span class="mono">(${fmt(exp)})</span></div>
     <div class="sumrow tot"><span>Gross Profit</span><span class="mono">${fmt(gross)}</span></div>
     <div class="sumrow sm"><span>Tax @ 28%</span><span class="mono">(${fmt(tax)})</span></div>
-    <div class="sumrow tot" style="color:${net>=0?'var(--pill-paid-txt)':'var(--pill-ovr-txt)'}"><span>Net ${net>=0?'Profit':'Loss'}</span><span class="mono">${fmt(Math.abs(net))}</span></div>`;
+    <div class="sumrow tot ${netPos?'text-ok':'text-ovr'}"><span>Net ${netPos?'Profit':'Loss'}</span><span class="mono">${fmt(Math.abs(net))}</span></div>`;
+}
+
+/* ═══════════════════════════════════════════════════════
+   RECONCILIATION
+═══════════════════════════════════════════════════════ */
+function renderReconcile(){
+  const txns = [...proxyDB.bank].sort((a,b)=>a.date.localeCompare(b.date));
+  const totalCredits = txns.reduce((s,t)=>s+(t.credit||0),0);
+  const totalDebits  = txns.reduce((s,t)=>s+(t.debit||0),0);
+  const portalNet    = totalCredits - totalDebits;
+
+  // Duplicate detection: same date + desc + credit + debit
+  const seen = {};
+  txns.forEach(t=>{
+    const k=`${t.date}|${t.desc}|${t.credit||0}|${t.debit||0}`;
+    seen[k]=(seen[k]||0)+1;
+  });
+  const dupeKeys = new Set(Object.keys(seen).filter(k=>seen[k]>1));
+
+  // Category breakdown
+  const byCat = {};
+  txns.forEach(t=>{
+    const c=t.cat||t.category||'Uncategorised';
+    if(!byCat[c]) byCat[c]={cr:0,db:0};
+    byCat[c].cr+=(t.credit||0);
+    byCat[c].db+=(t.debit||0);
+  });
+
+  const savedExternal = parseFloat(localStorage.getItem('bf_recon_ext')||'0');
+
+  document.getElementById('recon-content').innerHTML=`
+    <div class="panel mb2">
+      <div class="ph"><div class="ph-title">Statement Comparison</div></div>
+      <div class="pb">
+        <div class="fgrid" style="max-width:480px">
+          <div class="fgroup ffull">
+            <label class="flbl">External Statement Closing Balance (R)</label>
+            <input type="number" class="finput" id="recon-ext" value="${savedExternal||''}" placeholder="Paste balance from your statement" step="0.01">
+          </div>
+        </div>
+        <div id="recon-diff-box" class="mt2"></div>
+      </div>
+    </div>
+
+    <div class="twocol mb2">
+      <div class="panel">
+        <div class="ph"><div class="ph-title">Portal Totals</div></div>
+        <div class="pb">
+          <div class="sumrow"><span>Total Credits</span><span class="mono text-ok">${fmt(totalCredits)}</span></div>
+          <div class="sumrow"><span>Total Debits</span><span class="mono text-ovr">(${fmt(totalDebits)})</span></div>
+          <div class="sumrow tot"><span>Net Balance</span><span class="mono">${fmt(portalNet)}</span></div>
+          <div class="sumrow sm text-muted"><span>Transactions</span><span class="mono">${txns.length}</span></div>
+          ${dupeKeys.size>0?`<div class="sumrow sm text-ovr"><span>⚠ Possible duplicates</span><span class="mono">${dupeKeys.size} group(s)</span></div>`:''}
+        </div>
+      </div>
+      <div class="panel">
+        <div class="ph"><div class="ph-title">Credits by Category</div></div>
+        <div class="pb">
+          ${Object.entries(byCat).sort((a,b)=>b[1].cr-a[1].cr).map(([cat,v])=>`
+            <div class="sumrow"><span>${esc(cat)}</span><span class="mono ${v.cr>0?'text-ok':'text-ovr'}">${v.cr>0?fmt(v.cr):'('+fmt(v.db)+')'}</span></div>
+          `).join('')||'<div class="pl-row-empty">No data</div>'}
+        </div>
+      </div>
+    </div>
+
+    ${dupeKeys.size>0?`
+    <div class="panel mb2" style="border-top:2px solid var(--pill-ovr)">
+      <div class="ph"><div class="ph-title">⚠ Possible Duplicate Transactions</div></div>
+      <div class="pb">
+        <table class="dtable">
+          <thead><tr><th>Date</th><th>Description</th><th>Credit</th><th>Debit</th><th>Count</th></tr></thead>
+          <tbody>${[...dupeKeys].map(k=>{const [date,desc,cr,db]=k.split('|');return`<tr>
+            <td>${esc(date)}</td><td>${esc(desc)}</td>
+            <td class="amt text-ok">${parseFloat(cr)>0?fmt(parseFloat(cr)):'-'}</td>
+            <td class="amt text-ovr">${parseFloat(db)>0?fmt(parseFloat(db)):'-'}</td>
+            <td style="color:var(--pill-ovr-txt);font-weight:bold">${seen[k]}×</td>
+          </tr>`;}).join('')}</tbody>
+        </table>
+      </div>
+    </div>`:''}
+
+    <div class="panel">
+      <div class="ph"><div class="ph-title">All Transactions — Running Balance</div></div>
+      <div class="pb">
+        <table class="dtable">
+          <thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Ref</th><th>Credit</th><th>Debit</th><th>Running Bal</th></tr></thead>
+          <tbody>${(()=>{
+            let run=0;
+            return txns.map(t=>{
+              run+=(t.credit||0)-(t.debit||0);
+              const k=`${t.date}|${t.desc}|${t.credit||0}|${t.debit||0}`;
+              const isDupe=dupeKeys.has(k);
+              return`<tr ${isDupe?'style="background:rgba(244,67,54,.08)"':''}>
+                <td class="nowrap">${fmtD(t.date)}</td>
+                <td>${esc(t.desc)}${isDupe?' <span style="color:var(--pill-ovr-txt);font-size:10px">DUP</span>':''}</td>
+                <td><span class="mlbl-9">${esc(t.cat||t.category||'')}</span></td>
+                <td class="mono" style="font-size:11px">${esc(t.ref||'-')}</td>
+                <td class="amt text-ok">${(t.credit||0)>0?fmt(t.credit):'-'}</td>
+                <td class="amt text-ovr">${(t.debit||0)>0?fmt(t.debit):'-'}</td>
+                <td class="amt ${run>=0?'text-ok':'text-ovr'}">${fmt(run)}</td>
+              </tr>`;
+            }).join('');
+          })()}</tbody>
+        </table>
+      </div>
+    </div>`;
+
+  // Attach live diff calculator
+  const extInput = document.getElementById('recon-ext');
+  function calcDiff(){
+    const ext = parseFloat(extInput.value)||0;
+    localStorage.setItem('bf_recon_ext', ext);
+    const diff = portalNet - ext;
+    const box  = document.getElementById('recon-diff-box');
+    if(!ext){ box.innerHTML=''; return; }
+    const sign = diff>0?'+':'';
+    const cls  = Math.abs(diff)<0.01?'text-ok':diff>0?'text-ovr':'text-amber';
+    const msg  = Math.abs(diff)<0.01
+      ? '✓ Portal matches statement exactly.'
+      : diff>0
+        ? `Portal is ${fmt(Math.abs(diff))} higher than statement — check for duplicate credits or unmatched debit entries.`
+        : `Portal is ${fmt(Math.abs(diff))} lower than statement — check for missing payment entries.`;
+    box.innerHTML=`<div class="sumbox" style="margin:0">
+      <div class="sumrow"><span>External Statement</span><span class="mono">${fmt(ext)}</span></div>
+      <div class="sumrow"><span>Portal Net Balance</span><span class="mono">${fmt(portalNet)}</span></div>
+      <div class="sumrow tot ${cls}"><span>Difference (Portal − Statement)</span><span class="mono">${sign}${fmt(diff)}</span></div>
+      <div style="margin-top:8px;font-size:12px;color:var(--text-muted)">${msg}</div>
+    </div>`;
+  }
+  extInput.addEventListener('input', calcDiff);
+  if(savedExternal) calcDiff();
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -2592,10 +3077,10 @@ function renderTimeline(){
   ].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,40);
   document.getElementById('timeline-content').innerHTML=all.length?all.map(e=>`
     <div class="timeline-item">
-      <div class="tl-dot" style="background:${e.type==='callout'?'var(--ember)':e.type==='invoice'?'var(--amber)':'var(--green)'}"></div>
+      <div class="tl-dot tl-dot-${e.type}"></div>
       <div class="tl-date">${fmtD(e.date)}</div>
       <div class="tl-content"><div class="tl-title">${esc(e.title)}</div><div class="tl-sub">${esc(e.sub)}</div></div>
-    </div>`).join(''):'<div style="text-align:center;padding:32px;color:var(--muted);font-style:italic">No activity yet</div>';
+    </div>`).join(''):'<div class="stmt-loading">No activity yet</div>';
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -2608,12 +3093,12 @@ function renderPayList(){
   document.getElementById('pay-amount').value='';
   const unpaid=proxyDB.invoices.filter(i=>i.status!=='Paid'&&i.status!=='Cancelled');
   document.getElementById('pay-inv-list').innerHTML=unpaid.length?unpaid.map(inv=>`
-    <label style="display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--border);border-radius:2px;cursor:pointer;margin-bottom:6px;background:var(--surface2)">
-      <input type="checkbox" name="pay-sel" value="${esc(inv.id)}" data-amount="${inv.amount}" style="accent-color:var(--accent);width:16px;height:16px;flex-shrink:0">
-      <span style="flex:1;font-size:12px"><span class="mono">${esc(inv.id)}</span>${inv.po?'  —  PO: '+esc(inv.po):''}</span>
+    <label class="pay-inv-row">
+      <input type="checkbox" name="pay-sel" value="${esc(inv.id)}" data-amount="${inv.amount}" class="pay-inv-cb">
+      <span class="pay-inv-info fs-12"><span class="mono">${esc(inv.id)}</span>${inv.po?'  —  PO: '+esc(inv.po):''}</span>
       <span class="amt">${fmt(inv.amount)}</span>
       <span>${pillH(inv.status)}</span>
-    </label>`).join(''):'<div style="color:var(--muted);font-style:italic;font-size:12px;padding:10px">No outstanding invoices</div>';
+    </label>`).join(''):'<div class="pay-inv-empty">No outstanding invoices</div>';
   function recalcTotal(){
     const boxes=[...document.querySelectorAll('input[name="pay-sel"]:checked')];
     const total=boxes.reduce((s,b)=>s+parseFloat(b.dataset.amount||0),0);
@@ -2640,7 +3125,7 @@ function renderAudit(filter=''){
       <div class="audit-user">${esc(e.user)}</div>
       <div class="audit-action"><strong>${esc(e.action)}</strong> - ${esc(e.detail)}</div>
       <div class="audit-lvl info">${esc(e.role||e.level)}</div>
-    </div>`).join(''):'<div style="text-align:center;padding:32px;color:var(--muted);font-style:italic">No audit records</div>';
+    </div>`).join(''):'<div class="stmt-loading">No audit records</div>';
 }
 function filterAudit(v){ renderAudit(v); }
 
@@ -2659,24 +3144,40 @@ function renderUsers(){
     admin_clerk:   {create:'-',status:'✓',po:'✓',finance:'✓',quote:'-',approve:'-',admin:'-'},
     viewer:        {create:'-',status:'-',po:'-',finance:'View',quote:'-',approve:'-',admin:'-'},
   };
-  const tick=(v)=>v==='✓'?`<span style="color:var(--pill-paid-txt)">✓</span>`:v==='-'?`<span style="color:var(--muted)">-</span>`:`<span style="color:var(--warn);font-size:10px">${v}</span>`;
+  const tick=(v)=>v==='✓'?`<span class="text-ok">✓</span>`:v==='-'?`<span class="text-muted">-</span>`:`<span class="text-warn fs-10">${v}</span>`;
   const bar = document.getElementById('users-create-bar');
   if (bar) bar.style.display = can('user.create') ? '' : 'none';
+  const canEdit = can('user.update');
+  const thActions = document.getElementById('users-th-actions');
+  if (thActions) thActions.style.display = canEdit ? '' : 'none';
   document.getElementById('users-table-body').innerHTML=proxyDB.users.map(u=>{
     const m=matrix[u.role]||{create:'-',status:'-',po:'-',finance:'-',quote:'-',approve:'-',admin:'-'};
-    return`<tr>
+    const actionCell = canEdit ? `<td>
+      <button class="btn btn-g btn-xs" data-action="openEditUserModal" data-id="${u.id}">Edit</button>
+      ${u.active!=0 ? `<button class="btn btn-d btn-xs" data-action="toggleUserActive" data-id="${u.id}" data-active="0">Disable</button>` : `<button class="btn btn-xs btn-enable" data-action="toggleUserActive" data-id="${u.id}" data-active="1">Enable</button>`}
+    </td>` : '';
+    return`<tr${u.active==0?' class="row-inactive"':''}>
       <td class="mono">${esc(u.username)}</td>
       <td>${esc(u.name)}</td>
       <td>${rolePill(u.role)}</td>
-      <td style="text-align:center">${tick(m.create)}</td>
-      <td style="text-align:center">${tick(m.status)}</td>
-      <td style="text-align:center">${tick(m.po)}</td>
-      <td style="text-align:center">${tick(m.finance)}</td>
-      <td style="text-align:center">${tick(m.quote)}</td>
-      <td style="text-align:center">${tick(m.approve)}</td>
-      <td style="text-align:center">${m.admin==='✓'?`<span style="color:var(--ember);font-weight:700">★</span>`:`<span style="color:var(--muted)">-</span>`}</td>
+      <td class="perm-col text-center">${tick(m.create)}</td>
+      <td class="perm-col text-center">${tick(m.status)}</td>
+      <td class="perm-col text-center">${tick(m.po)}</td>
+      <td class="perm-col text-center">${tick(m.finance)}</td>
+      <td class="perm-col text-center">${tick(m.quote)}</td>
+      <td class="perm-col text-center">${tick(m.approve)}</td>
+      <td class="perm-col text-center">${m.admin==='✓'?`<span class="text-ember fw-700">★</span>`:`<span class="text-muted">-</span>`}</td>
+      ${actionCell}
     </tr>`;
   }).join('');
+}
+
+function togglePermCols(){
+  const table = document.getElementById('users-rbac-table');
+  const btn   = document.getElementById('perm-cols-btn');
+  if (!table || !btn) return;
+  const collapsed = table.classList.toggle('perms-collapsed');
+  btn.textContent = collapsed ? '► Expand Permissions' : '◄ Collapse Permissions';
 }
 
 function openCreateUserModal(){
@@ -2691,7 +3192,7 @@ function openCreateUserModal(){
     <div class="login-group"><label class="login-label">Title / Position</label><input class="login-input" id="nu-title" placeholder="e.g. Field Technician"></div>
     <div class="login-group"><label class="login-label">Role</label><select class="login-input" id="nu-role">${opts}</select></div>
     <div class="login-group"><label class="login-label">Password</label><input class="login-input" type="password" id="nu-pass" placeholder="min 8 characters"></div>
-    <button class="btn-login-submit" style="margin-top:8px" onclick="saveNewUser()">Create User</button>
+    <button class="btn-login-submit mt-8" data-action="saveNewUser">Create User</button>
   `);
 }
 
@@ -2710,6 +3211,98 @@ async function saveNewUser(){
   await refreshUsers();
   renderUsers();
   toast(`User ${username} created`, 'ok');
+}
+
+function openEditUserModal(id) {
+  if (!can('user.update')) return;
+  const u = (DB.users || []).find(x => x.id === id);
+  if (!u) return;
+  const roles = ['admin','manager','call_logger','junior_tech','senior_tech','client_support','admin_clerk','viewer'];
+  if (SESSION?.role === 'sysadmin') roles.unshift('sysadmin');
+  const opts = roles.map(r=>`<option value="${r}"${r===u.role?' selected':''}>${r==='sysadmin'?'System Administrator':r.replace(/_/g,' ')}</option>`).join('');
+  openModal(`Edit User — ${esc(u.username)}`, `
+    <input type="hidden" id="eu-id" value="${u.id}">
+    <div class="login-group"><label class="login-label">Username</label><input class="login-input" value="${esc(u.username)}" readonly class="login-input inp-readonly"></div>
+    <div class="login-group"><label class="login-label">Full Name</label><input class="login-input" id="eu-name" value="${esc(u.name)}" placeholder="First Last"></div>
+    <div class="login-group"><label class="login-label">Title / Position</label><input class="login-input" id="eu-title" value="${esc(u.title||'')}" placeholder="e.g. Field Technician"></div>
+    <div class="login-group"><label class="login-label">Role</label><select class="login-input" id="eu-role">${opts}</select></div>
+    <div class="login-group"><label class="login-label">New Password <span class="pass-hint">(leave blank to keep)</span></label><input class="login-input" type="password" id="eu-pass" placeholder="min 8 characters"></div>
+    <button class="btn-login-submit mt-8" data-action="saveEditUser">Save Changes</button>
+  `);
+}
+
+async function saveEditUser() {
+  const id    = parseInt(document.getElementById('eu-id')?.value) || 0;
+  const name  = document.getElementById('eu-name')?.value?.trim();
+  const title = document.getElementById('eu-title')?.value?.trim();
+  const role  = document.getElementById('eu-role')?.value;
+  const pass  = document.getElementById('eu-pass')?.value;
+  if (!id || !name) { toast('Name is required', 'err'); return; }
+  if (pass && pass.length < 8) { toast('Password must be at least 8 characters', 'err'); return; }
+  const payload = { name, title, role };
+  if (pass) payload.password = pass;
+  const r = await api('PUT', `users.php?id=${id}`, payload);
+  if (!r.success) { toast(r.error || 'Error saving user', 'err'); return; }
+  closeModalDirect();
+  await refreshUsers();
+  renderUsers();
+  toast('User updated', 'ok');
+}
+
+async function toggleUserActive(id, active) {
+  if (!can('user.update')) return;
+  const u = (DB.users || []).find(x => x.id === id);
+  const label = active ? 'enable' : 'disable';
+  if (!confirm(`${active?'Enable':'Disable'} user ${u?.username || id}?`)) return;
+  const r = await api('PUT', `users.php?id=${id}`, { active: active ? 1 : 0 });
+  if (!r.success) { toast(r.error || 'Error', 'err'); return; }
+  await refreshUsers();
+  renderUsers();
+  toast(`User ${label}d`, 'ok');
+}
+
+/* ═══════════════════════════════════════════════════════
+   DASHBOARD EDITOR
+═══════════════════════════════════════════════════════ */
+function showDashEditor(){
+  const prefs   = getDashPrefs();
+  const widgets = DASH_WIDGETS.filter(w=>!w.perm||can(w.perm));
+  const rows    = widgets.map(w=>{
+    const on=prefs[w.id]!==false;
+    return `<label class="dash-widget-toggle">
+      <div class="dwt-info">
+        <div class="dwt-label">${esc(w.label)}</div>
+        <div class="dwt-desc">${esc(w.desc)}</div>
+      </div>
+      <div class="dwt-switch">
+        <input type="checkbox" id="dw-${w.id}"${on?' checked':''}>
+        <span class="dwt-track"></span>
+      </div>
+    </label>`;
+  }).join('');
+
+  openModal('Edit Dashboard Layout',`
+    <p class="dash-editor-hint">Choose which sections appear on your dashboard. Changes apply to your account only and persist across sessions.</p>
+    <div class="dash-editor-list">
+      ${rows||'<p class="text-muted text-center p-20">No widgets available for your role.</p>'}
+    </div>
+    <div class="flex-end gap-10 mt-18">
+      <button class="btn btn-g btn-s" data-action="closeModalDirect">Cancel</button>
+      <button class="btn btn-p btn-s" data-action="saveDashEditorPrefs">Save Layout</button>
+    </div>`);
+}
+
+function saveDashEditorPrefs(){
+  const prefs=getDashPrefs();
+  DASH_WIDGETS.forEach(w=>{
+    const cb=document.getElementById('dw-'+w.id);
+    if(cb) prefs[w.id]=cb.checked;
+  });
+  saveDashPrefs(prefs);
+  closeModalDirect();
+  renderDashboard();
+  if(isWidgetOn('w-compliance')&&can('safety.view')) safLoadDashCompliance();
+  toast('Dashboard layout saved','ok');
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -2756,8 +3349,9 @@ document.addEventListener('DOMContentLoaded', async ()=>{
     document.getElementById('newpass-panel').style.display = '';
     return;
   }
-  // Restore session on page reload — check server for active session
-  const me = await api('GET','auth.php?action=me');
+  // Restore session on page reload — skip probe (and its 401) when no session hint cookie exists
+  const hasHint = document.cookie.split(';').some(c => c.trim().startsWith('bf_session_hint='));
+  const me = hasHint ? await api('GET','auth.php?action=me') : { success: false };
   if(me.success && me.user){
     SESSION = me.user;
     buildNav();
@@ -2768,6 +3362,7 @@ document.addEventListener('DOMContentLoaded', async ()=>{
     const firstPage = {
       call_logger:'p-new-callout', junior_tech:'p-callouts',
       senior_tech:'p-callouts', client_support:'p-dashboard', admin_clerk:'p-callouts',
+      safety_officer:'p-safety',
     }[SESSION.role] || 'p-dashboard';
     showPortalPage(firstPage, null);
     updateBadges();
@@ -3074,7 +3669,7 @@ function renderClients(search = '') {
     );
   }
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted)">No clients found</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" class="tbl-empty-cell">No clients found</td></tr>';
     return;
   }
   tbody.innerHTML = rows.map(c => `
@@ -3086,8 +3681,8 @@ function renderClients(search = '') {
       <td>${esc(c.vat_number)}</td>
       <td><span class="badge badge-${c.is_active ? 'ok' : 'grey'}">${c.is_active ? 'Active' : 'Inactive'}</span></td>
       <td>
-        <button class="btn btn-g btn-xs" onclick="openClientModal(${c.id})">Edit</button>
-        ${c.is_active ? `<button class="btn btn-d btn-xs" onclick="deactivateClient(${c.id})">Deactivate</button>` : ''}
+        <button class="btn btn-g btn-xs" data-action="openClientModal" data-id="${c.id}">Edit</button>
+        ${c.is_active ? `<button class="btn btn-d btn-xs" data-action="deactivateClient" data-id="${c.id}">Deactivate</button>` : ''}
       </td>
     </tr>
   `).join('');
@@ -3177,14 +3772,14 @@ if (backToTopBtn) {
 }
 
 /* ═══════════════════════════════════════════════════════
-   ■ SAFETY FILES MODULE  (APS-EHS-FRM-010 Rev 02)
+   ■ SAFETY FILES MODULE  (BF-SHE-FRM-010 Rev 01)
 ═══════════════════════════════════════════════════════ */
 
 const SAFETY_SECTIONS = [
   { key:'A', title:'Section A — Agreement', items:[
     {no:1,  ref:'Optional',               criteria:'Proof of valid/current SHE Management System (e.g. NOSA Grading, ISO Certification, etc.)'},
-    {no:2,  ref:'Sec 37.2',               criteria:'Written contract (SLA or 37.2 agreement) between APS & Contractor'},
-    {no:3,  ref:'CR5',                    criteria:'APS representative must appoint every principal contractor in writing for the project or part thereof on the construction site. Check if the letter is in the file.'},
+    {no:2,  ref:'Sec 37.2',               criteria:'Written contract (SLA or 37.2 agreement) between AST & Contractor'},
+    {no:3,  ref:'CR5',                    criteria:'AST representative must appoint every principal contractor in writing for the project or part thereof on the construction site. Check if the letter is in the file.'},
     {no:4,  ref:'COIDA Sec.89 / CR5(1)j', criteria:'Letter of Good Standing (include Registration No.) including signed WCL 2 form.'},
     {no:5,  ref:'Construction reg 3(1)',  criteria:'Construction work permit — work exceeds 180 days; or involves more than 1800 person days; or contract value ≥ R13M / CIDB grading level 6.'},
     {no:6,  ref:'CR 4(1)',                criteria:'Notification of Construction Work'},
@@ -3214,7 +3809,7 @@ const SAFETY_SECTIONS = [
     {no:6, ref:'',           criteria:'Proof of AECI or site-specific Induction (before commencing work)'},
   ]},
   { key:'E', title:'Section E — Operations (SHE Plan, FPP, Environmental, Incident & PPE)', items:[
-    {no:1,  ref:'CR 7(1)(a)', criteria:'Documented Health & Safety plan based on scope of work. APS to provide site-specific H&S specification.'},
+    {no:1,  ref:'CR 7(1)(a)', criteria:'Documented Health & Safety plan based on scope of work. AST to provide site-specific H&S specification.'},
     {no:2,  ref:'',           criteria:'Documented Environmental Management Plan covering applicable aspects (waste, HCS, monitoring, etc.).'},
     {no:3,  ref:'CR 10(1)a',  criteria:'Documented Fall Protection Plan (by trained Fall Protection Planner) based on scope of work.'},
     {no:4,  ref:'CR 10(1)b',  criteria:'Fall Protection Risk Assessment of all work from fall risk positions with procedures and methods per location.'},
@@ -3314,14 +3909,18 @@ function safBlankFile(id){
 }
 
 function safCalcScore(file){
-  let total=0, na=0, std=0;
-  let bTotal=0, bNa=0, bStd=0;
+  let total=0, na=0, std=0, filled=0;
+  let bTotal=0, bNa=0, bStd=0, bFilled=0;
   SAFETY_SECTIONS.forEach(sec=>{
     (file.sections[sec.key]||[]).forEach(item=>{
       if(sec.bonus){
-        bTotal++; if(item.result==='N/A') bNa++; else if(item.result==='To Standard') bStd++;
+        bTotal++;
+        if(item.result) bFilled++;
+        if(item.result==='N/A') bNa++; else if(item.result==='To Standard') bStd++;
       } else {
-        total++; if(item.result==='N/A') na++; else if(item.result==='To Standard') std++;
+        total++;
+        if(item.result) filled++;
+        if(item.result==='N/A') na++; else if(item.result==='To Standard') std++;
       }
     });
   });
@@ -3332,8 +3931,11 @@ function safCalcScore(file){
   const score = mainScore !== null ? mainScore + bonusScore : null;
   const notStd  = applicable  - std;
   const bNotStd = bApplicable - bStd;
-  // total/na/std/notStd include all items (main+bonus) for display; mainScore/bonusScore for breakdown
-  return { score, mainScore, bonusScore, total: total+bTotal, na: na+bNa, std: std+bStd, notStd: notStd+bNotStd, bApplicable, bStd, bNotStd };
+  // Completion: items with any result filled in (N/A counts as assessed; blank = not yet rated)
+  const allTotal  = total + bTotal;
+  const allFilled = filled + bFilled;
+  const completionPct = allTotal ? Math.round(allFilled / allTotal * 100) : 0;
+  return { score, mainScore, bonusScore, total: total+bTotal, na: na+bNa, std: std+bStd, notStd: notStd+bNotStd, bApplicable, bStd, bNotStd, allTotal, allFilled, completionPct };
 }
 
 function safBand(score){
@@ -3372,14 +3974,14 @@ function safBuildSections(){
       saved.forEach(i=>{ t++; if(i.result==='N/A') n++; else if(i.result==='To Standard') s++; });
       const a=t-n; return a?Math.round(s/a*100):null;
     })();
-    const pctLabel = pct!==null ? `<span class="saf-sec-pct ${safBand(pct).cls}">${pct}%</span>` : '';
+    const pctLabel = `<span class="saf-sec-pct${pct!==null?' '+safBand(pct).cls:''}" id="saf-sec-hdr-pct-${sec.key}">${pct!==null?pct+'%':''}</span>`;
     html += `<div class="panel mt2 saf-section-panel${sec.bonus?' saf-section-bonus':''}" data-sec="${sec.key}">
-      <div class="ph saf-sec-hdr${sec.bonus?' saf-sec-hdr-bonus':''}" onclick="safToggleSection('${sec.key}')">
+      <div class="ph saf-sec-hdr${sec.bonus?' saf-sec-hdr-bonus':''}" data-action="safToggleSection" data-section-key="${sec.key}">
         <div class="ph-title">${esc(sec.title)}</div>
         <div class="saf-sec-hdr-right">
           ${pctLabel}
           <button class="btn btn-g btn-xs saf-sec-save-btn" id="saf-sec-save-${sec.key}"
-                  onclick="event.stopPropagation();safSaveSection('${sec.key}')"
+                  data-action="safSaveSection" data-section-key="${sec.key}"
                   title="Save this section only">Save</button>
           <span class="saf-toggle" id="saf-tog-${sec.key}">&#9660;</span>
         </div>
@@ -3388,15 +3990,15 @@ function safBuildSections(){
         <div class="tw saf-criteria-wrap">
           <table class="saf-criteria-tbl">
             <thead><tr>
-              <th style="width:36px">#</th>
-              <th style="width:90px">Ref</th>
+              <th class="col-num">#</th>
+              <th class="col-ref">Ref</th>
               <th>Criteria</th>
-              <th style="width:60px">N/A</th>
-              <th style="width:100px">Not to Std</th>
-              <th style="width:80px">To Std</th>
-              ${sec.key==='H'?'<th style="width:130px">Appointee</th>':''}
-              <th style="width:180px">Comments / Findings</th>
-              <th style="width:70px">Docs</th>
+              <th class="col-na">N/A</th>
+              <th class="col-nts">Not to Std</th>
+              <th class="col-ts">To Std</th>
+              ${sec.key==='H'?'<th class="col-apo">Appointee</th>':''}
+              <th class="col-cmt">Comments / Findings</th>
+              <th class="col-docs">Docs</th>
             </tr></thead>
             <tbody>`;
     sec.items.forEach((item,idx)=>{
@@ -3412,14 +4014,14 @@ function safBuildSections(){
         <td class="saf-no">${item.no}</td>
         <td class="saf-ref">${esc(item.ref||'')}</td>
         <td class="saf-crit">${esc(item.criteria)}</td>
-        <td class="saf-radio-cell"><label class="saf-radio-lbl"><input type="radio" name="saf_${sec.key}_${idx}" value="N/A" ${rNA} onchange="safItemChanged('${sec.key}',${idx},this)"> N/A</label></td>
-        <td class="saf-radio-cell saf-nts"><label class="saf-radio-lbl"><input type="radio" name="saf_${sec.key}_${idx}" value="Not to Standard" ${rNot} onchange="safItemChanged('${sec.key}',${idx},this)"> NTS</label></td>
-        <td class="saf-radio-cell saf-ts"><label class="saf-radio-lbl"><input type="radio" name="saf_${sec.key}_${idx}" value="To Standard" ${rStd} onchange="safItemChanged('${sec.key}',${idx},this)"> TS</label></td>
-        ${sec.key==='H'?`<td><input class="finput finput-sm" placeholder="Name" value="${apo}" oninput="safAppointeeChanged('${sec.key}',${idx},this)"></td>`:''}
-        <td><textarea class="finput finput-sm saf-cmt" rows="1" placeholder="Findings..." oninput="safCommentChanged('${sec.key}',${idx},this)">${cmt}</textarea></td>
+        <td class="saf-radio-cell"><label class="saf-radio-lbl"><input type="radio" name="saf_${sec.key}_${idx}" value="N/A" ${rNA} data-action="safItemChanged" data-section-key="${sec.key}" data-item-idx="${idx}"> N/A</label></td>
+        <td class="saf-radio-cell saf-nts"><label class="saf-radio-lbl"><input type="radio" name="saf_${sec.key}_${idx}" value="Not to Standard" ${rNot} data-action="safItemChanged" data-section-key="${sec.key}" data-item-idx="${idx}"> NTS</label></td>
+        <td class="saf-radio-cell saf-ts"><label class="saf-radio-lbl"><input type="radio" name="saf_${sec.key}_${idx}" value="To Standard" ${rStd} data-action="safItemChanged" data-section-key="${sec.key}" data-item-idx="${idx}"> TS</label></td>
+        ${sec.key==='H'?`<td><input class="finput finput-sm" placeholder="Name" value="${apo}" data-action="safAppointeeChanged" data-section-key="${sec.key}" data-item-idx="${idx}"></td>`:''}
+        <td><textarea class="finput finput-sm saf-cmt" rows="1" placeholder="Findings..." data-action="safCommentChanged" data-section-key="${sec.key}" data-item-idx="${idx}">${cmt}</textarea></td>
         <td class="saf-upload-cell">
-          <input type="file" id="saf-up-${sec.key}-${idx}" style="display:none" onchange="safHandleUpload('${sec.key}',${idx},this)">
-          <button class="btn btn-g btn-xs" onclick="document.getElementById('saf-up-${sec.key}-${idx}').click()">
+          <input type="file" id="saf-up-${sec.key}-${idx}" class="hidden" data-action="safHandleUpload" data-section-key="${sec.key}" data-item-idx="${idx}">
+          <button class="btn btn-g btn-xs" data-action="triggerFileInput" data-target-id="saf-up-${sec.key}-${idx}">
             ${upCount?`<span class="saf-up-count">${upCount}</span>`:''}+
           </button>
         </td>
@@ -3429,6 +4031,9 @@ function safBuildSections(){
   });
   wrap.innerHTML = html;
   safEnsureIdField();
+  // Restore the ID that innerHTML replacement wiped out
+  const idField = document.getElementById('saf-current-id');
+  if(idField && fileId) idField.value = fileId;
 }
 
 function safToggleSection(key){
@@ -3457,9 +4062,15 @@ function safGetOrInitFile(){
     mem = safBlankFile(id);
     DB.safetyFiles.unshift(mem);
   }
-  // Return normalized view (sections in JS camelCase format)
-  if(mem.sections) return mem;       // already has sections (from API or blank)
-  return normalizeSafetyFile(mem);
+  // Always return the raw record so mutations by safItemChanged persist.
+  // Initialize blank sections in-place when not yet loaded from API.
+  if(!mem.sections){
+    mem.sections = {};
+    SAFETY_SECTIONS.forEach(sec=>{
+      mem.sections[sec.key] = sec.items.map(item=>({no:item.no, result:null, appointee:'', comments:'', uploads:[]}));
+    });
+  }
+  return mem;
 }
 
 function safItemChanged(sec, idx, radio){
@@ -3644,17 +4255,20 @@ async function safHandleUpload(sec, idx, input){
 
 function safUpdateScore(){
   const id = safCurrentId();
-  const file = id && id!=='null' ? proxyDB.safetyFiles.find(f=>f.id===id) : null;
-  if(!file) return;
-  const {score, mainScore, bonusScore, std, notStd, na, bApplicable, bStd} = safCalcScore(file);
+  if(!id) return;
+  const file = safGetOrInitFile();
+  if(!file || !file.sections) return;
+  const {score, mainScore, bonusScore, std, notStd, na, bApplicable, bStd, allTotal, allFilled, completionPct} = safCalcScore(file);
   const band = safBand(score);
   const valEl  = document.getElementById('saf-score-val');
   const bandEl = document.getElementById('saf-score-band');
   const ruleEl = document.getElementById('saf-score-rule');
   const bonusEl = document.getElementById('saf-bonus-score');
-  if(valEl){ valEl.textContent = score!==null ? Math.round(score)+'%' : '—'; valEl.className='safety-score-big '+band.cls; }
+  const compEl  = document.getElementById('saf-completion-pct');
+  if(valEl){ valEl.textContent = score!==null ? Math.round(score)+' pts' : '—'; valEl.className='safety-score-big '+band.cls; }
   if(bandEl) bandEl.textContent = band.label;
   if(ruleEl) ruleEl.textContent = band.note||'';
+  if(compEl) compEl.innerHTML = `<span class="saf-comp-label">Completion:</span> <span class="saf-comp-count">${allFilled}/${allTotal} items rated</span> <span class="saf-comp-pct">(${completionPct}%)</span>`;
   if(bonusEl){
     const mainDisp  = mainScore!==null  ? Math.round(mainScore)+'%'  : '—';
     const bonusDisp = bApplicable ? '+'+Math.round(bonusScore*10)/10+'%' : '+0%';
@@ -3684,6 +4298,8 @@ function safUpdateScore(){
           <span class="saf-sec-score-label">${sec.title.replace(/^Section [A-H] — /,'')}</span>
           <span class="saf-sec-pct ${b.cls}">${pct!==null?pct+'%':'—'}</span>
         </div>`;
+        const hdrPct=document.getElementById('saf-sec-hdr-pct-'+sec.key);
+        if(hdrPct){ hdrPct.textContent=pct!==null?pct+'%':''; hdrPct.className='saf-sec-pct'+(pct!==null?' '+b.cls:''); }
       }
     });
     secEl.innerHTML=html;
@@ -3863,6 +4479,12 @@ function _safScore(f){
 
 function renderSafetyFiles(search){
   if(search===undefined) search=(document.querySelector('#p-safety .sinput')||{}).value||'';
+  // Populate contractor datalist from all known safety files
+  const contractorDl=document.getElementById('sah-contractor-dl');
+  if(contractorDl){
+    const names=[...new Set(proxyDB.safetyFiles.map(f=>f.contractor).filter(Boolean))];
+    contractorDl.innerHTML=names.map(n=>`<option value="${esc(n)}">`).join('');
+  }
   const statusFilter=document.getElementById('sf-filter-status')?.value||'';
   let files=[...proxyDB.safetyFiles];
   if(statusFilter) files=files.filter(f=>f.status===statusFilter);
@@ -3888,20 +4510,22 @@ function renderSafetyFiles(search){
   const grid=document.getElementById('safety-files-grid');
   if(!grid) return;
   if(!files.length){
-    grid.innerHTML=`<div class="empty-state"><div class="empty-icon" style="font-size:40px;margin-bottom:8px">🛡</div><div>No safety files — start a new audit.</div></div>`;
+    grid.classList.remove('safety-grid--single');
+    grid.innerHTML=`<div class="empty-state"><div class="empty-icon empty-icon-lg">🛡</div><div>No safety files — start a new audit.</div></div>`;
     return;
   }
+  grid.classList.toggle('safety-grid--single', files.length===1);
   grid.innerHTML=files.map(f=>{
     const {score,std,notStd,na}=_safScore(f);
     const band=safBand(score);
-    const scoreDisp=score!==null?Math.round(score)+'%':'—';
+    const scoreDisp=score!==null?Math.round(score)+' pts':'—';
     const dateDisp=f.auditDate?fmtD(f.auditDate):'No date';
     const polBadge=f.policyEmailSent?`<span class="saf-pol-badge">Policy sent</span>`:'';
     const isSubmitted = f.status === 'Submitted' || f.status === 'Approved';
     const submissionBar = isSubmitted && f.updatedAt
-      ? `<div class="saf-submission-bar">&#10003; Submitted ${fmtDT(f.updatedAt)} &middot; Score: ${scoreDisp}</div>`
+      ? `<div class="saf-submission-bar">&#10003; Submitted ${fmtDT(f.updatedAt)} &middot; Audit Score: ${scoreDisp}</div>`
       : '';
-    return `<div class="saf-card" onclick="safViewFile('${f.id}')">
+    return `<div class="saf-card" data-action="safViewFile" data-id="${f.id}">
       <div class="saf-card-hdr">
         <div class="saf-card-id">${esc(f.id)}</div>
         <div class="saf-status-pill saf-status-${(f.status||'draft').toLowerCase().replace(/ /g,'-')}">${esc(f.status||'Draft')}</div>
@@ -3926,30 +4550,34 @@ function renderSafetyFiles(search){
 /* ── detail view ────────────────────────────────────── */
 
 async function safViewFile(id){
-  // Fetch full file with items from API if sections not yet loaded
+  try {
   let file=proxyDB.safetyFiles.find(f=>f.id===id);
   if(!file){toast('File not found','err');return;}
   if(!file.sections){
     const r=await api('GET','safety.php?id='+id);
-    if(!r.success){toast(r.error||'Could not load file','err');return;}
+    if(!r.success){
+      const msg = r.error && r.error.startsWith('SyntaxError') ? 'Server error — check PHP logs or run safety migration SQL' : (r.error||'Could not load file');
+      toast(msg,'err'); return;
+    }
     const full=normalizeSafetyFile(r.data);
     // Store sections on the raw DB record
     const raw=DB.safetyFiles.find(f=>(f.ref_id||f.id)===id);
     if(raw) raw.sections=r.data.sections;
     file=full;
   }
-  const {score,mainScore,bonusScore,std,notStd,na,total,bApplicable,bStd}=safCalcScore(file);
+  const {score,mainScore,bonusScore,std,notStd,na,total,bApplicable,bStd,allTotal,allFilled,completionPct}=safCalcScore(file);
   const band=safBand(score);
-  const scoreDisp=score!==null?Math.round(score)+'%':'—';
-  const mainDisp =mainScore!==null?Math.round(mainScore)+'%':'—';
-  const bonusDisp=bApplicable?'+'+Math.round(bonusScore*10)/10+'%':'';
+  const scoreDisp=score!==null?Math.round(score)+' pts':'—';
+  const mainDisp =mainScore!==null?Math.round(mainScore)+' pts':'—';
+  const bonusDisp=bApplicable?'+'+Math.round(bonusScore*10)/10+' pts':'';
 
   document.getElementById('saf-detail-title').textContent=file.id+' — '+(file.contractor||'Untitled');
-  document.getElementById('saf-detail-sub').textContent=(file.status||'DRAFT').toUpperCase()+'  ·  '+(file.auditDate||'No date')+'  ·  Score: '+scoreDisp+(bonusDisp?' ('+mainDisp+' main '+bonusDisp+' bonus)':'');
+  document.getElementById('saf-detail-sub').textContent=(file.status||'DRAFT').toUpperCase()+'  ·  '+(file.auditDate||'No date')+'  ·  Audit Score: '+scoreDisp+(bonusDisp?' ('+mainDisp+' A–H '+bonusDisp+' bonus)':'')+'  ·  '+completionPct+'% complete';
 
   const content=document.getElementById('saf-detail-content');
   content.dataset.fileId=id;
   _safUpdateApproveBtn(id);
+  _safUpdateDeactivateBtn(id);
 
   let sumRows='';
   SAFETY_SECTIONS.forEach(sec=>{
@@ -3957,8 +4585,12 @@ async function safViewFile(id){
     let t=0,n=0,s=0,ns=0;
     items.forEach(i=>{ t++; if(i.result==='N/A') n++; else if(i.result==='To Standard') s++; else if(i.result==='Not to Standard') ns++; });
     const bonusTag=sec.bonus?` <span class="saf-bonus-tag">Bonus</span>`:'';
-    sumRows+=`<tr${sec.bonus?' class="saf-sum-bonus-row"':''}>
+    sumRows+=`<tr${sec.bonus?' class="saf-sum-bonus-row"':''} id="sum-row-${sec.key}">
       <td>${esc(sec.title)}${bonusTag}</td><td>${t}</td><td>${n}</td><td>${ns}</td><td>${s}</td>
+      <td class="saf-sec-doc-cell" id="saf-sec-doc-${sec.key}">
+        <input type="file" id="saf-sec-file-${sec.key}" class="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.png" data-action="safSectionUpload" data-file-id="${id}" data-section-key="${sec.key}">
+        <button class="btn btn-g btn-xs saf-sec-doc-btn" data-action="triggerFileInput" data-target-id="saf-sec-file-${sec.key}" title="Upload combined sign-off document for this section">&#128196; Upload</button>
+      </td>
     </tr>`;
   });
 
@@ -3974,7 +4606,7 @@ async function safViewFile(id){
           <td>${esc(item.ref||'')}</td>
           <td>${esc(item.criteria)}</td>
           <td>${esc(s.comments||'')}</td>
-          <td><select class="finput finput-sm" style="width:100px" onchange="safApSetStatus('${id}','${sec.key}',${idx},this.value)">
+          <td><select class="finput finput-sm saf-ap-sel" data-action="safApSetStatus" data-file-id="${id}" data-section-key="${sec.key}" data-item-idx="${idx}">
             <option ${!s.apStatus||s.apStatus==='Open'?'selected':''}>Open</option>
             <option ${s.apStatus==='In Progress'?'selected':''}>In Progress</option>
             <option ${s.apStatus==='Resolved'?'selected':''}>Resolved</option>
@@ -4030,32 +4662,36 @@ async function safViewFile(id){
       <div class="ph">
         <div class="ph-title">Supporting Documents</div>
         <div>
-          <input type="file" id="saf-det-upload" style="display:none" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.png" onchange="safDetailUpload(this)">
-          <button class="btn btn-g btn-s" onclick="document.getElementById('saf-det-upload').click()">+ Upload Document</button>
+          <input type="file" id="saf-det-upload" class="hidden" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.png">
+          <button class="btn btn-g btn-s" data-action="triggerFileInput" data-target-id="saf-det-upload">+ Upload Document</button>
         </div>
       </div>
       <div class="pb" id="saf-att-panel"><div class="saf-att-empty">Loading documents…</div></div>
     </div>
     <div class="panel mt2 saf-personnel-section">
       <div class="ph">
-        <div class="ph-title">Personnel on File</div>
-        <button class="btn btn-g btn-s" onclick="safAddPersonnel('${id}')">+ Add Person</button>
+        <div class="ph-title">People on File</div>
+        <div class="saf-sec-act">
+          <button class="btn btn-g btn-s" data-action="safSendPolicyToPersonnel" data-id="${id}">&#9993; Send Policy</button>
+          <button class="btn btn-g btn-s" data-action="safAddPersonnel" data-id="${id}">+ Add Person</button>
+          <button class="btn btn-g btn-s" data-action="safLinkPortalUser" data-id="${id}">+ Link Portal User</button>
+        </div>
       </div>
       <div class="pb" id="saf-personnel-panel"><div class="saf-att-empty">Loading personnel…</div></div>
-    </div>
-    <div class="panel mt2 saf-linked-users-section">
-      <div class="ph">
-        <div class="ph-title">Portal Users on File</div>
-        <button class="btn btn-g btn-s" onclick="safLinkPortalUser('${id}')">+ Link User</button>
-      </div>
-      <div class="pb" id="saf-linked-users-panel"><div class="saf-att-empty">Loading linked users…</div></div>
     </div>
     <div class="panel mt2 saf-compliance-section">
       <div class="ph">
         <div class="ph-title">Training &amp; Compliance Tracking</div>
-        <button class="btn btn-g btn-s" onclick="safAddCompliance('${id}')">+ Add Record</button>
+        <button class="btn btn-g btn-s" data-action="safAddCompliance" data-id="${id}">+ Add Record</button>
       </div>
       <div class="pb" id="saf-compliance-panel"><div class="saf-att-empty">Loading compliance records…</div></div>
+    </div>
+    <div class="panel mt2 saf-policy-ack-section">
+      <div class="ph">
+        <div class="ph-title">Policies &amp; Procedures — Acknowledgments</div>
+        <button class="btn btn-g btn-s" data-action="safAddPolicyAck" data-id="${id}">+ Send Policy</button>
+      </div>
+      <div class="pb" id="saf-policy-ack-panel"><div class="saf-att-empty">Loading policy acknowledgments…</div></div>
     </div>
     <div class="panel saf-detail-cover">
       <div class="saf-cover-grid">
@@ -4071,19 +4707,21 @@ async function safViewFile(id){
         <div><span class="saf-cover-lbl">Sign-Off Date</span><span class="saf-cover-val">${file.signOffDate?fmtD(file.signOffDate):'—'}</span></div>
       </div>
       <div class="saf-cover-score-block ${band.cls}">
+        <div class="saf-cover-score-lbl">Audit Score</div>
         <div class="saf-cover-score">${scoreDisp}</div>
         <div class="saf-cover-band">${band.label}</div>
         ${bonusDisp?`<div class="saf-cover-breakdown">${mainDisp} A–H &nbsp;|&nbsp; <span class="saf-bonus-gold">${bonusDisp} bonus</span></div>`:''}
         ${band.note?`<div class="saf-cover-note">${esc(band.note)}</div>`:''}
+        <div class="saf-cover-completion">Completion: ${allFilled}/${allTotal} items rated (${completionPct}%)</div>
         <div id="saf-comp-health-block" class="saf-ch-loading">Checking compliance health…</div>
-        <div class="saf-cover-doc">Doc No: APS-EHS-FRM-010 Rev 02</div>
+        <div class="saf-cover-doc">Doc No: BF-SHE-FRM-010 Rev 01</div>
       </div>
     </div>
 
     <div class="panel mt2">
       <div class="ph"><div class="ph-title">Summary of Compliance</div></div>
       <div class="tw"><table class="saf-sum-tbl">
-        <thead><tr><th>Section</th><th>Total Points</th><th>N/A</th><th>Not to Standard</th><th>To Standard</th></tr></thead>
+        <thead><tr><th>Section</th><th>Total Items</th><th>N/A</th><th>Not to Std</th><th>To Std</th><th>Combined Sign-Off</th></tr></thead>
         <tbody>${sumRows}</tbody>
         <tfoot><tr><td><strong>Total</strong></td><td><strong>${total}</strong></td><td><strong>${na}</strong></td><td><strong>${notStd}</strong></td><td><strong>${std}</strong></td></tr></tfoot>
       </table></div>
@@ -4091,7 +4729,10 @@ async function safViewFile(id){
 
     ${actionRows?`<div class="panel mt2">
       <div class="ph"><div class="ph-title">Action Plan — Items Not to Standard</div>
-        ${band.actionDays?`<div class="saf-ap-deadline ${band.cls}">Action required within ${band.actionDays} ${band.note&&band.note.includes('working')?'working ':'calendar '}days</div>`:''}
+        <div class="flex-row gap-8 flex-wrap">
+          ${band.actionDays?`<div class="saf-ap-deadline ${band.cls}">Action required within ${band.actionDays} ${band.note&&band.note.includes('working')?'working ':'calendar '}days</div>`:''}
+          <button class="btn btn-g btn-s" data-action="safGenDocs" data-id="${id}" title="Generate template documents for all Not to Standard items">&#128196; Generate Docs</button>
+        </div>
       </div>
       <div class="tw"><table class="saf-ap-tbl">
         <thead><tr><th>Item</th><th>Ref</th><th>Criteria</th><th>Findings</th><th>Status</th></tr></thead>
@@ -4103,12 +4744,21 @@ async function safViewFile(id){
   `;
 
   showPortalPage('p-safety-detail',null);
-  // Load attachments, personnel and compliance async after page is shown
+  // Load all async panels after page is shown
   _safComplianceCache = null; _safPersonnelCache = null; _safLinkedUsersCache = null;
   safLoadAttachments(id).then(atts=>safRenderAttachments(id, atts));
   safLoadPersonnel(id).then(p=>safRenderPersonnel(id,p));
   safLoadCompliance(id).then(recs=>safRenderCompliance(id,recs));
-  safLoadLinkedUsers(id).then(lu=>safRenderLinkedUsers(id,lu));
+  safLoadPolicyAcks(id).then(acks=>safRenderPolicyAcks(id,acks));
+  } catch(e) { toast('Error loading file: '+e.message,'err'); console.error('safViewFile error:',e); }
+}
+
+function safGenDocs(fileId){
+  if(!fileId || fileId==='_new_' || fileId==='null') {
+    toast('Save the safety file before generating documents.','warn'); return;
+  }
+  const url = 'api/safety_doc_gen.php?file_ref=' + encodeURIComponent(fileId);
+  window.open(url, '_blank');
 }
 
 async function safApSetStatus(fileId, sec, idx, val){
@@ -4124,44 +4774,6 @@ async function safApSetStatus(fileId, sec, idx, val){
   } catch(e){
     toast('Status saved locally — sync failed, will retry on next save','warn');
   }
-}
-
-/* ── policy email ───────────────────────────────────── */
-
-function sendPolicyEmail(){
-  const id=document.getElementById('saf-detail-content')?.dataset?.fileId;
-  const file=id?proxyDB.safetyFiles.find(f=>f.id===id):null;
-  if(!file){toast('No file selected','err');return;}
-  openModal('Send Policy Acknowledgment Email',`
-    <p style="margin-bottom:12px;color:var(--muted)">Send an email to the contractor requesting confirmation that they have read and accept the relevant H&amp;S policies for this audit.</p>
-    <div class="fgrid">
-      <div class="fgroup ffull"><label class="flbl">Contractor</label><input class="finput" value="${esc(file.contractor)}" disabled></div>
-      <div class="fgroup ffull"><label class="flbl">Recipient Email <span style="color:var(--ember)">*</span></label><input class="finput" id="pol-email" type="email" placeholder="contractor@company.co.za"></div>
-      <div class="fgroup ffull"><label class="flbl">Policy Reference</label><input class="finput" id="pol-ref" value="APS-EHS-FRM-010 — Contractor Safety File Checklist Rev 02"></div>
-      <div class="fgroup ffull"><label class="flbl">Message (optional)</label><textarea class="finput" id="pol-msg" rows="3" placeholder="Additional notes..."></textarea></div>
-    </div>
-    <div class="mt2 flex-end"><button class="btn btn-p" onclick="safSendPolicyEmailConfirm('${id}')">Send Email</button></div>
-  `);
-}
-
-async function safSendPolicyEmailConfirm(fileId){
-  const email=(document.getElementById('pol-email')?.value||'').trim();
-  if(!email){toast('Email address required','err');return;}
-  const polRef=(document.getElementById('pol-ref')?.value||'APS-EHS-FRM-010 — Contractor Safety File Checklist Rev 02').trim();
-  const msg=(document.getElementById('pol-msg')?.value||'').trim();
-  const r=await api('PUT','safety.php?id='+fileId,{
-    action:'send_policy_email',
-    policy_email_to: email,
-    policy_ref: polRef,
-    message: msg,
-  });
-  if(!r.success){toast(r.error||'Email failed','err');return;}
-  // Update in-memory record
-  const raw=DB.safetyFiles.find(f=>(f.ref_id||f.id)===fileId);
-  if(raw){ raw.policy_email_sent=1; raw.policy_email_date=localDateStr(); }
-  toast('Policy email sent to '+email,'ok');
-  closeModal(null);
-  renderSafetyFiles();
 }
 
 /* ── print ──────────────────────────────────────────── */
@@ -4223,14 +4835,20 @@ async function safGenerateTracker(id) {
     origApplicable,
   });
 
-  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href     = url;
-  a.download = id + '_Action_Tracker.html';
-  a.click();
-  URL.revokeObjectURL(url);
-  toast('Tracker downloaded: ' + id + '_Action_Tracker.html', 'ok');
+  const blob   = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const blobUrl = URL.createObjectURL(blob);
+  const fname   = id + '_Action_Tracker.html';
+
+  openModal('Action Plan Tracker — ' + id, `
+    <div class="att-ctx mb-16 fs-11">
+      <strong>${esc(file.contractor || id)}</strong> — ${sections.reduce((t,s)=>t+s.items.length,0)} non-conformance${sections.reduce((t,s)=>t+s.items.length,0)===1?'':'s'} across ${sections.length} section${sections.length===1?'':'s'}
+    </div>
+    <div class="flex-row gap-10 flex-wrap">
+      <button class="btn btn-p" data-action="openBlobPreview" data-blob-url="${blobUrl}">&#128065; Preview in Browser</button>
+      <a class="btn btn-g" id="tracker-dl-btn" href="${blobUrl}" download="${esc(fname)}" data-action="revokeBlobOnDownload" data-blob-url="${blobUrl}">&#8595; Download</a>
+    </div>
+    <div class="fs-10 text-muted mt-10">The tracker opens as a self-contained page — no internet connection required.</div>
+  `);
 }
 
 function _buildTrackerHTML(o) {
@@ -4251,7 +4869,7 @@ function _buildTrackerHTML(o) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>APS-EHS-FRM-010 · Action Tracker — ${esc(o.contractor)}</title>
+<title>BF-SHE-FRM-010 · Action Tracker — ${esc(o.contractor)}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -4359,16 +4977,37 @@ td.notes-cell{min-width:160px}
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
   body::before{display:none}
   .topbar{position:static!important;box-shadow:none}
-  .controls,.prog-bar-wrap,.submit-banner{display:none!important}
+  .controls,.prog-bar-wrap,.submit-banner,.guide-panel,.guide-overlay{display:none!important}
   .section-group{page-break-inside:avoid;margin:12px 0}
   .tbl-wrap{box-shadow:none}
 }
+.guide-overlay{position:fixed;inset:0;background:rgba(0,0,0,.25);z-index:499;display:none}
+.guide-overlay.open{display:block}
+.guide-panel{position:fixed;top:0;right:-400px;width:360px;height:100vh;background:var(--surface);border-left:2px solid var(--accent);box-shadow:-6px 0 28px rgba(0,0,0,.14);z-index:500;display:flex;flex-direction:column;transition:right .3s ease}
+.guide-panel.open{right:0}
+.guide-hdr{background:var(--accent);color:#fff;padding:13px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.guide-hdr h3{font-size:13px;font-weight:700;margin:0;letter-spacing:.02em}
+.guide-hdr small{display:block;font-size:10px;font-weight:400;opacity:.8;margin-top:2px}
+.guide-close{background:transparent;border:none;color:#fff;font-size:20px;cursor:pointer;line-height:1;padding:0 2px;opacity:.85}
+.guide-close:hover{opacity:1}
+.guide-body{overflow-y:auto;padding:16px;flex:1}
+.guide-body::-webkit-scrollbar{width:4px}
+.guide-body::-webkit-scrollbar-track{background:var(--surface2)}
+.guide-body::-webkit-scrollbar-thumb{background:var(--scrollthumb);border-radius:2px}
+.g-section{margin-bottom:18px}
+.g-section h4{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--border)}
+.g-section p{font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:6px}
+.g-section ul{padding-left:15px;margin:4px 0}
+.g-section li{font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:3px}
+.g-band{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text2);margin-bottom:5px}
+.g-band-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.g-tip{background:var(--amber-bg);border:1px solid var(--amber-bdr);border-radius:4px;padding:9px 12px;margin-top:8px;font-size:11px;color:var(--amber);line-height:1.65}
 </style>
 </head>
 <body>
 <div class="topbar">
   <div class="brand">
-    APS-EHS-FRM-010 · Action Tracker
+    BF-SHE-FRM-010 · Action Tracker
     <small>${esc(o.contractor)}${o.region ? ' · ' + esc(o.region) : ''} · Audit: ${esc(o.auditDate)}${o.auditorName ? ' · ' + esc(o.auditorName) : ''}</small>
   </div>
   <div class="score-block">
@@ -4391,7 +5030,7 @@ td.notes-cell{min-width:160px}
 <div class="submit-banner" id="submitBanner">
   <div class="sb-check">&#10003;</div>
   <div class="sb-meta">
-    <strong>File Submitted to APS</strong>
+    <strong>File Submitted to AST</strong>
     <span id="sbDetail">—</span>
   </div>
   <div class="sb-score-pill" id="sbScorePill">—</div>
@@ -4408,8 +5047,9 @@ td.notes-cell{min-width:160px}
   </select>
   <input type="text" id="search" placeholder="Search items…" style="min-width:160px">
   <div class="ctrl-spacer"></div>
+  <button class="btn btn-ghost" onclick="toggleGuide()" title="How to use this tracker" style="padding:6px 11px;font-size:15px;line-height:1">?</button>
   <button class="btn btn-ghost" onclick="resetAll()">Reset</button>
-  <button class="btn btn-ghost" id="btnSubmit" onclick="submitFile()" style="border-color:var(--green-bdr);color:var(--green)">Submit to APS</button>
+  <button class="btn btn-ghost" id="btnSubmit" onclick="submitFile()" style="border-color:var(--green-bdr);color:var(--green)">Submit to AST</button>
   <button class="btn btn-primary" onclick="window.print()">Print / PDF</button>
 </div>
 <div class="legend">
@@ -4422,6 +5062,65 @@ td.notes-cell{min-width:160px}
 </div>
 <div id="content"></div>
 <div class="toast" id="toast"></div>
+<div class="guide-overlay" id="guideOverlay" onclick="toggleGuide()"></div>
+<div class="guide-panel" id="guidePanel" role="complementary" aria-label="How-to Guide">
+  <div class="guide-hdr">
+    <div>
+      <h3>How to use this tracker</h3>
+      <small>BF-SHE-FRM-010 · Action Tracker</small>
+    </div>
+    <button class="guide-close" onclick="toggleGuide()" aria-label="Close guide">&times;</button>
+  </div>
+  <div class="guide-body">
+    <div class="g-section">
+      <h4>Purpose</h4>
+      <p>This standalone tracker lets you record and manage corrective actions for a safety file audit. Share it with the contractor or use it internally to track progress toward re-submission. All changes are saved automatically in your browser.</p>
+    </div>
+    <div class="g-section">
+      <h4>Step-by-step</h4>
+      <ul>
+        <li>Work through each non-conformance item section by section.</li>
+        <li>Set the <strong>Status</strong> dropdown as you address each finding: Open &rarr; In Progress &rarr; Fixed.</li>
+        <li>Record your corrective action, the responsible owner, and target date in the <strong>Notes / Action</strong> column.</li>
+        <li>If AST returned a rejection note for an item, log it in the <strong>AST Rejection Note</strong> column.</li>
+        <li>Use the filters at the top to focus on one section or status at a time.</li>
+        <li>When ready to record progress with AST, click <strong>Submit to AST</strong>.</li>
+        <li>Use <strong>Print / PDF</strong> to generate a printable copy for meetings or filing.</li>
+      </ul>
+    </div>
+    <div class="g-section">
+      <h4>Score bands</h4>
+      <div class="g-band"><span class="g-band-dot" style="background:#22c55e"></span><span><strong>GREEN 90 %+</strong> — Fully compliant</span></div>
+      <div class="g-band"><span class="g-band-dot" style="background:#f59e0b"></span><span><strong>YELLOW 75–89 %</strong> — Monitor, plan improvements</span></div>
+      <div class="g-band"><span class="g-band-dot" style="background:#f97316"></span><span><strong>ORANGE 51–74 %</strong> — Action required within 30 days</span></div>
+      <div class="g-band"><span class="g-band-dot" style="background:#ef4444"></span><span><strong>RED below 51 %</strong> — Critical, immediate corrective action</span></div>
+      <p style="margin-top:8px;font-size:11px;color:var(--muted)">The <em>Projected score</em> updates live as you mark items Fixed. The <em>Baseline</em> is the original audit score.</p>
+    </div>
+    <div class="g-section">
+      <h4>Column guide</h4>
+      <ul>
+        <li><strong>Criteria / Requirement</strong> — The specific clause or standard being assessed.</li>
+        <li><strong>Audit Finding</strong> — The auditor's observation recorded at inspection.</li>
+        <li><strong>AST Rejection Note</strong> — Any rejection feedback received from AST on re-submission.</li>
+        <li><strong>Status</strong> — Open &rarr; In Progress &rarr; Fixed &rarr; N/A.</li>
+        <li><strong>Notes / Action</strong> — Corrective action taken, assigned owner, and target completion date.</li>
+      </ul>
+    </div>
+    <div class="g-section">
+      <h4>Priority dots</h4>
+      <div class="g-band"><span class="g-band-dot" style="background:#A82A1E"></span><span><strong>High</strong> — Legal or safety-critical risk</span></div>
+      <div class="g-band"><span class="g-band-dot" style="background:#9A6A0A"></span><span><strong>Medium</strong> — Significant gap, address within 30 days</span></div>
+    </div>
+    <div class="g-section">
+      <h4>Tips</h4>
+      <div class="g-tip">
+        Address <strong>High priority</strong> (red dot) items first — they carry the greatest legal and compliance risk.<br><br>
+        Always record the <strong>owner and target date</strong> in the Notes field, not just the action description.<br><br>
+        Your data is saved in <strong>this browser only</strong>. If you share the file with someone else, they start fresh — their changes do not affect yours.
+      </div>
+    </div>
+  </div>
+</div>
 <script>
 const SECTIONS = ${sectionsJson};
 const TOTAL_APPLICABLE = ${totalApplicable};
@@ -4448,7 +5147,7 @@ function render(){
     h.innerHTML='<h2>'+sec.label+'</h2><div class="s-stats" id="stats-'+sec.id+'"></div><span class="chevron">▾</span>';
     h.onclick=()=>{ const b=document.getElementById('tbody-'+sec.id).closest('.tbl-wrap'); const col=h.classList.toggle('collapsed'); b.style.display=col?'none':''; };
     const w=document.createElement('div'); w.className='tbl-wrap';
-    w.innerHTML='<table><thead><tr><th style="width:36px">#</th><th style="width:60px">Ref</th><th>Criteria / Requirement</th><th>Audit Finding</th><th>APS Rejection Note</th><th style="width:130px">Status</th><th>Notes / Action</th></tr></thead><tbody id="tbody-'+sec.id+'"></tbody></table>';
+    w.innerHTML='<table><thead><tr><th class="col-num">#</th><th class="col-ref">Ref</th><th>Criteria / Requirement</th><th>Audit Finding</th><th>AST Rejection Note</th><th class="col-status">Status</th><th>Notes / Action</th></tr></thead><tbody id="tbody-'+sec.id+'"></tbody></table>';
     g.appendChild(h); g.appendChild(w); c.appendChild(g);
     const tb=document.getElementById('tbody-'+sec.id);
     sec.items.forEach(item=>{
@@ -4460,7 +5159,7 @@ function render(){
         +'<td style="font-size:9px;color:var(--muted);white-space:nowrap">'+escH(item.ref)+'</td>'
         +'<td class="criteria">'+escH(item.criteria)+'</td>'
         +'<td class="comment">'+escH(item.comment)+'</td>'
-        +'<td class="rejection-cell"><textarea class="notes-in rejection-in" rows="2" data-id="'+item.id+'" placeholder="Rejection note from APS…" onchange="rejectionChanged(this)">'+escH(rj)+'</textarea></td>'
+        +'<td class="rejection-cell"><textarea class="notes-in rejection-in" rows="2" data-id="'+item.id+'" placeholder="Rejection note from AST…" onchange="rejectionChanged(this)">'+escH(rj)+'</textarea></td>'
         +'<td class="status-cell"><select class="status-sel s-'+st+'" data-id="'+item.id+'" onchange="statusChanged(this)">'
         +'<option value="open" '+(st==='open'?'selected':'')+'>Open</option>'
         +'<option value="wip" '+(st==='wip'?'selected':'')+'>In Progress</option>'
@@ -4544,7 +5243,7 @@ function submitFile(){
   const pct=parseFloat(document.getElementById('ringPct').textContent);
   const tag=document.getElementById('ringTag').textContent;
   const lbl=state._submission?'Re-submit':'Submit';
-  if(!confirm(lbl+' this action plan at '+pct.toFixed(1)+'% ('+tag+')?\n\nThis records the current score and date for APS.')) return;
+  if(!confirm(lbl+' this action plan at '+pct.toFixed(1)+'% ('+tag+')?\\n\\nThis records the current score and date for AST.')) return;
   state._submission={at:new Date().toISOString(),score:pct,tag,done,applicable};
   saveState(state); renderSubmission(); updateScore();
   toast('Submitted at '+pct.toFixed(1)+'%');
@@ -4554,7 +5253,7 @@ function renderSubmission(){
   const banner=document.getElementById('submitBanner');
   const btn=document.getElementById('btnSubmit');
   const sub=state._submission;
-  if(!sub){ banner.style.display='none'; if(btn) btn.textContent='Submit to APS'; return; }
+  if(!sub){ banner.style.display='none'; if(btn) btn.textContent='Submit to AST'; return; }
   document.getElementById('sbDetail').textContent='Submitted '+fmtDate(sub.at)+' · '+sub.done+' of '+sub.applicable+' items resolved';
   document.getElementById('sbScorePill').textContent=sub.score.toFixed(1)+'% '+sub.tag;
   banner.style.display='flex'; if(btn) btn.textContent='Re-Submit';
@@ -4562,6 +5261,11 @@ function renderSubmission(){
 
 let _tt;
 function toast(msg){ const e=document.getElementById('toast'); e.textContent=msg; e.classList.add('show'); clearTimeout(_tt); _tt=setTimeout(()=>e.classList.remove('show'),2200); }
+
+function toggleGuide(){
+  document.getElementById('guidePanel').classList.toggle('open');
+  document.getElementById('guideOverlay').classList.toggle('open');
+}
 
 render();
 renderSubmission();
@@ -4575,6 +5279,173 @@ function safPrintReport(){
   if(!id){toast('No file open','err');return;}
   toast('Opening print dialog…','ok');
   setTimeout(()=>window.print(),400);
+}
+
+/* ── download full safety file report pack ───────────── */
+
+async function safDownloadPack(id){
+  if(!id||id==='_new_'||id==='null'){toast('No file open','err');return;}
+  let file=proxyDB.safetyFiles.find(f=>f.id===id);
+  if(!file){toast('File not found','err');return;}
+  if(!file.sections){
+    const r=await api('GET','safety.php?id='+id);
+    if(!r.success){toast(r.error||'Could not load file','err');return;}
+    const full=normalizeSafetyFile(r.data);
+    const raw=DB.safetyFiles.find(f=>(f.ref_id||f.id)===id);
+    if(raw) raw.sections=r.data.sections;
+    file=full;
+  }
+
+  const {score,mainScore,bonusScore,std,notStd,na,total,bApplicable,completionPct}=safCalcScore(file);
+  const band=safBand(score);
+  const scoreDisp=score!==null?Math.round(score)+' pts':'—';
+  const bonusDisp=bApplicable?'+'+Math.round(bonusScore*10)/10+' pts':'';
+  const e=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+  // Summary rows
+  let sumRows='';
+  SAFETY_SECTIONS.forEach(sec=>{
+    const items=file.sections[sec.key]||[];
+    let t=0,n=0,s2=0,ns=0;
+    items.forEach(i=>{ t++; if(i.result==='N/A') n++; else if(i.result==='To Standard') s2++; else if(i.result==='Not to Standard') ns++; });
+    sumRows+=`<tr${sec.bonus?' style="background:#fffdf0"':''}>
+      <td>${e(sec.title)}${sec.bonus?' <span class="bonus-tag">Bonus</span>':''}</td>
+      <td class="num">${t}</td><td class="num">${n}</td><td class="num red">${ns}</td><td class="num grn">${s2}</td>
+    </tr>`;
+  });
+
+  // Action plan rows
+  let apRows='';let apCount=0;
+  SAFETY_SECTIONS.forEach(sec=>{
+    const saved=file.sections[sec.key]||[];
+    sec.items.forEach((item,idx)=>{
+      const sv=saved[idx]||{};
+      if(sv.result==='Not to Standard'){
+        apCount++;
+        apRows+=`<tr>
+          <td>${e(sec.key+'.'+item.no)}</td>
+          <td>${e(item.ref||'')}</td>
+          <td>${e(item.criteria)}</td>
+          <td>${e(sv.comments||'')}</td>
+          <td class="ap-status ap-${(sv.apStatus||'Open').toLowerCase().replace(/ /g,'-')}">${e(sv.apStatus||'Open')}</td>
+        </tr>`;
+      }
+    });
+  });
+
+  // Full checklist
+  let checkHtml='';
+  SAFETY_SECTIONS.forEach(sec=>{
+    const saved=file.sections[sec.key]||[];
+    checkHtml+=`<div class="sec-block${sec.bonus?' sec-bonus':''}">
+      <div class="sec-hdr">${e(sec.title)}${sec.bonus?' <span class="bonus-tag">Bonus +10%</span>':''}</div>
+      <table><thead><tr><th>#</th><th>Ref</th><th>Criteria</th><th>Result</th>${sec.key==='H'?'<th>Appointee</th>':''}<th>Comments</th></tr></thead><tbody>`;
+    sec.items.forEach((item,idx)=>{
+      const sv=saved[idx]||{};
+      const rc=sv.result==='To Standard'?'grn':sv.result==='Not to Standard'?'red':sv.result==='N/A'?'muted':'';
+      checkHtml+=`<tr><td class="num">${item.no}</td><td class="ref">${e(item.ref||'')}</td><td>${e(item.criteria)}</td>
+        <td class="${rc}">${e(sv.result||'—')}</td>${sec.key==='H'?`<td>${e(sv.appointee||'')}</td>`:''}
+        <td class="comment">${e(sv.comments||'')}</td></tr>`;
+    });
+    checkHtml+='</tbody></table></div>';
+  });
+
+  const html=`<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Safety File Report — ${e(file.contractor||id)} — ${e(id)}</title>
+<style>
+:root{--accent:#C94A10;--red:#A82A1E;--grn:#1A6633;--amber:#9A6A0A;--bg:#F5F1EA;--surface:#fff;--border:#C8C1B3;--muted:#7A7566;--text:#1A1814}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;font-size:12px;background:var(--bg);color:var(--text);padding:24px}
+h1{font-size:18px;font-weight:700;color:var(--accent);margin-bottom:4px}
+.sub{font-size:11px;color:var(--muted);margin-bottom:20px}
+.cover{display:grid;grid-template-columns:1fr 1fr;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:16px;margin-bottom:16px}
+.cover-row{display:flex;flex-direction:column;gap:2px}
+.cover-lbl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.cover-val{font-size:12px;font-weight:500}
+.score-box{grid-column:span 2;display:flex;align-items:center;gap:16px;padding:12px;border-top:1px solid var(--border);margin-top:4px}
+.score-pill{font-size:22px;font-weight:700;padding:8px 20px;border-radius:30px;border:2px solid currentColor}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:6px;margin-bottom:16px;overflow:hidden}
+.panel-hdr{padding:10px 14px;border-bottom:1px solid var(--border);font-weight:700;font-size:12px;background:#f9f7f3}
+table{border-collapse:collapse;width:100%}
+th{background:#f0ece4;padding:7px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;border-bottom:1px solid var(--border)}
+td{padding:6px 10px;border-bottom:1px solid #ede8de;vertical-align:top;font-size:11px}
+td.num{text-align:center;width:56px;color:var(--muted);font-weight:600}
+td.ref{white-space:nowrap;width:70px;color:var(--muted)}
+td.comment{max-width:200px;color:var(--muted);font-style:italic}
+td.red{color:var(--red);font-weight:600}
+td.grn{color:var(--grn);font-weight:600}
+td.muted{color:var(--muted)}
+.sec-block{margin-bottom:20px}
+.sec-block.sec-bonus{opacity:.9}
+.sec-hdr{font-weight:700;font-size:12px;padding:8px 12px;background:#f0ece4;border:1px solid var(--border);border-radius:4px 4px 0 0;color:var(--accent)}
+.sec-block table{border:1px solid var(--border);border-top:none;border-radius:0 0 4px 4px}
+.bonus-tag{font-size:9px;font-weight:700;background:#fef3c7;color:#92400e;padding:1px 6px;border-radius:10px;border:1px solid #fcd34d;margin-left:6px;text-transform:uppercase;letter-spacing:.04em}
+.ap-status{font-weight:600;font-size:10px;text-transform:uppercase}
+.ap-open{color:var(--red)}.ap-in-progress{color:var(--amber)}.ap-resolved{color:var(--grn)}
+.saf-band-A{color:var(--grn)}.saf-band-B{color:#2d6a4f}.saf-band-C{color:var(--amber)}.saf-band-D{color:#b45309}.saf-band-E{color:var(--red)}
+@media print{body{padding:8px}h1{font-size:15px}.cover{page-break-inside:avoid}.sec-block{page-break-inside:avoid}}
+</style>
+</head>
+<body>
+<h1>BlackFire Safety File — ${e(id)}</h1>
+<div class="sub">Generated ${new Date().toLocaleString('en-ZA')} &nbsp;|&nbsp; BF-SHE-FRM-010 Rev 01</div>
+
+<div class="cover">
+  <div class="cover-row"><span class="cover-lbl">Contractor</span><span class="cover-val">${e(file.contractor||'—')}</span></div>
+  <div class="cover-row"><span class="cover-lbl">Contractor Rep</span><span class="cover-val">${e(file.contractorRep||'—')}</span></div>
+  <div class="cover-row"><span class="cover-lbl">16.2 Appointee</span><span class="cover-val">${e(file.appointee162||'—')}</span></div>
+  <div class="cover-row"><span class="cover-lbl">Audit Team</span><span class="cover-val">${e(file.auditTeam||'—')}</span></div>
+  <div class="cover-row"><span class="cover-lbl">Audit Date</span><span class="cover-val">${file.auditDate?new Date(file.auditDate+'T00:00:00').toLocaleDateString('en-ZA'):'—'}</span></div>
+  <div class="cover-row"><span class="cover-lbl">Region / Site</span><span class="cover-val">${e(file.region||'—')}</span></div>
+  <div class="cover-row"><span class="cover-lbl">Scope of Work</span><span class="cover-val">${e(file.scopeOfWork||'—')}</span></div>
+  <div class="cover-row"><span class="cover-lbl">Manpower</span><span class="cover-val">${file.manpower||0} total</span></div>
+  <div class="cover-row"><span class="cover-lbl">Auditor</span><span class="cover-val">${e(file.auditorName||'—')}</span></div>
+  <div class="cover-row"><span class="cover-lbl">Status</span><span class="cover-val">${e(file.status||'Draft')}</span></div>
+  <div class="score-box">
+    <div class="score-pill ${band.cls}">${scoreDisp}</div>
+    <div>
+      <div style="font-weight:700;font-size:14px;color:var(--accent)">${e(band.label)}</div>
+      <div style="font-size:11px;color:var(--muted)">${bonusDisp?'Main '+Math.round(mainScore)+' pts A–H &nbsp;|&nbsp; Bonus '+bonusDisp+' &nbsp;|&nbsp; ':''}Completion: ${completionPct}%</div>
+      ${band.note?`<div style="font-size:11px;color:var(--muted);margin-top:2px">${e(band.note)}</div>`:''}
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-hdr">Summary of Compliance</div>
+  <table>
+    <thead><tr><th>Section</th><th class="num">Total</th><th class="num">N/A</th><th class="num">Not to Std</th><th class="num">To Std</th></tr></thead>
+    <tbody>${sumRows}</tbody>
+    <tfoot><tr style="font-weight:700;background:#f0ece4"><td>Total</td><td class="num">${total}</td><td class="num">${na}</td><td class="num red">${notStd}</td><td class="num grn">${std}</td></tr></tfoot>
+  </table>
+</div>
+
+${apCount?`<div class="panel">
+  <div class="panel-hdr">Action Plan — ${apCount} Item${apCount===1?'':'s'} Not to Standard${band.actionDays?' &nbsp;|&nbsp; Action required within '+band.actionDays+' days':''}</div>
+  <table>
+    <thead><tr><th>Item</th><th>Ref</th><th>Criteria</th><th>Findings</th><th>Status</th></tr></thead>
+    <tbody>${apRows}</tbody>
+  </table>
+</div>`:''}
+
+<div style="margin-top:8px;margin-bottom:12px;font-weight:700;font-size:13px;color:var(--accent)">Full Compliance Checklist</div>
+${checkHtml}
+</body>
+</html>`;
+
+  const blob=new Blob([html],{type:'text/html;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=id+'_Safety_File_Report.html';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>{URL.revokeObjectURL(url);document.body.removeChild(a);},2000);
+  toast('Safety file report downloaded','ok');
 }
 
 /* ── approve ────────────────────────────────────────── */
@@ -4606,6 +5477,28 @@ function _safUpdateApproveBtn(fileId){
   btn.style.display=(st==='Submitted'||st==='In Progress')?'':'none';
 }
 
+function _safUpdateDeactivateBtn(fileId){
+  const btn=document.getElementById('saf-deactivate-btn');
+  if(!btn) return;
+  const canDel=can('security.users')||can('safety.delete');
+  btn.style.display=canDel&&fileId?'':'none';
+}
+
+async function deactivateSafetyFile(){
+  const id=document.getElementById('saf-detail-content')?.dataset?.fileId;
+  const file=id?proxyDB.safetyFiles.find(f=>f.id===id):null;
+  if(!file){toast('No file open','err');return;}
+  if(!confirm('Deactivate safety file '+id+' for '+esc(file.contractor||'this contractor')+'?\n\nThe record will be hidden from the list but retained for audit purposes.\nContact an administrator to restore it if needed.')) return;
+  const r=await api('DELETE','safety.php?id='+encodeURIComponent(id),{});
+  if(!r.success){toast(r.error||'Failed to deactivate','err');return;}
+  const idx=DB.safetyFiles.findIndex(f=>(f.ref_id||f.id)===id);
+  if(idx!==-1) DB.safetyFiles.splice(idx,1);
+  toast(id+' deactivated — record retained for audit','info');
+  showPortalPage('p-safety',null);
+  renderSafetyFiles();
+  updateBadges();
+}
+
 /* ── attachments (detail view) ──────────────────────── */
 
 async function safLoadAttachments(fileId){
@@ -4626,8 +5519,9 @@ function safRenderAttachments(fileId, attachments){
       <span class="saf-att-icon">${a.mime_type==='application/pdf'?'📄':a.mime_type?.includes('image')?'🖼':'📁'}</span>
       <span class="saf-att-name">${esc(a.original_name)}</span>
       <span class="saf-att-meta">${fmtSize(a.file_size)} · ${esc(a.uploaded_by)} · ${fmtD(a.created_at?.split(' ')[0])}</span>
+      ${(a.mime_type==='application/pdf'||a.mime_type?.startsWith('image/'))?`<button class="btn btn-g btn-xs" data-action="openDocViewer" data-id="${a.id}" data-name="${esc(a.original_name)}" data-mime="${esc(a.mime_type)}">&#128065; View</button>`:''}
       <a class="btn btn-g btn-xs saf-att-dl" href="api/files.php?action=download&id=${a.id}" download="${esc(a.original_name)}">&#8595; Download</a>
-      <button class="btn btn-xs saf-att-del" onclick="safDeleteAttachment(${a.id},'${esc(fileId)}')">&#10005;</button>
+      <button class="btn btn-xs saf-att-del" data-action="safDeleteAttachment" data-id="${a.id}" data-file-id="${esc(fileId)}">&#10005;</button>
     </div>`;
   }
   // Build a key→title lookup from the global section list
@@ -4635,12 +5529,18 @@ function safRenderAttachments(fileId, attachments){
   SAFETY_SECTIONS.forEach(s=>{ secTitles[s.key]=s.title; });
   // Group by section: first char A-I + second char is digit
   const groups={}, general=[];
+  const secRecords={}; // section key → combined sign-off attachment (A00_record_* naming)
   attachments.forEach(a=>{
     const n=a.original_name||'';
     const k=n[0]?.toUpperCase();
     if(k&&/[A-I]/.test(k)&&/\d/.test(n[1]||'')){
-      if(!groups[k]) groups[k]=[];
-      groups[k].push(a);
+      // Identify section sign-off record: second and third chars are "00"
+      if(n[1]==='0'&&n[2]==='0'){
+        secRecords[k]=a; // only one section sign-off per section
+      } else {
+        if(!groups[k]) groups[k]=[];
+        groups[k].push(a);
+      }
     } else general.push(a);
   });
   let html='';
@@ -4653,6 +5553,22 @@ function safRenderAttachments(fileId, attachments){
     html+=general.map(rowHtml).join('');
   }
   panel.innerHTML=html;
+  // Update section sign-off cells in the compliance summary table
+  SAFETY_SECTIONS.forEach(sec=>{
+    const cell=document.getElementById('saf-sec-doc-'+sec.key);
+    if(!cell) return;
+    const rec=secRecords[sec.key];
+    if(rec){
+      const canView=rec.mime_type==='application/pdf'||rec.mime_type?.startsWith('image/');
+      cell.innerHTML=`<span class="saf-sec-doc-link">
+        ${canView?`<button class="btn btn-g btn-xs" data-action="openDocViewer" data-id="${rec.id}" data-name="${esc(rec.original_name)}" data-mime="${esc(rec.mime_type||'')}">&#128065; View</button>`:''}
+        <a class="btn btn-g btn-xs" href="api/files.php?action=download&id=${rec.id}" download="${esc(rec.original_name)}">&#8595; Download</a>
+        <button class="btn btn-xs saf-cs-del-btn" data-action="safDeleteAttachment" data-id="${rec.id}" data-file-id="${esc(fileId)}" title="Remove sign-off document">&#10005;</button>
+      </span>`;
+    } else {
+      cell.innerHTML=`<input type="file" id="saf-sec-file-${sec.key}" class="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.png" data-action="safSectionUpload" data-file-id="${esc(fileId)}" data-section-key="${sec.key}"><button class="btn btn-g btn-xs saf-sec-doc-btn" data-action="triggerFileInput" data-target-id="saf-sec-file-${sec.key}" title="Upload combined sign-off for all employees">&#128196; Upload</button>`;
+    }
+  });
 }
 
 async function safDetailUpload(input){
@@ -4687,6 +5603,31 @@ async function safDeleteAttachment(attId, fileId){
   toast('Document removed','ok');
   const atts=await safLoadAttachments(fileId);
   safRenderAttachments(fileId, atts);
+}
+
+/* ── section combined sign-off upload ───────────────── */
+
+async function safSectionUpload(input, fileId, sectionKey){
+  const f=input.files[0];
+  if(!f){input.value='';return;}
+  const file=proxyDB.safetyFiles.find(x=>x.id===fileId);
+  if(!file||fileId==='_new_'){toast('Save the audit before uploading','err');input.value='';return;}
+  const ext=f.name.split('.').pop().toLowerCase();
+  const canonName=sectionKey+'00_record_section-combined-signoff.'+ext;
+  const renamed=new File([f],canonName,{type:f.type});
+  const fd=new FormData();
+  fd.append('file',renamed);
+  fd.append('entity_type','safety_file');
+  fd.append('entity_ref',fileId);
+  toast('Uploading section record…','info');
+  try{
+    const r=await _safUploadFd(fd);
+    if(!r.success){toast(r.error||'Upload failed','err');input.value='';return;}
+    toast('Section '+sectionKey+' sign-off document uploaded','ok');
+    const atts=await safLoadAttachments(fileId);
+    safRenderAttachments(fileId,atts);
+  }catch(e){toast('Upload error: '+e.message,'err');}
+  input.value='';
 }
 
 /* ── personnel & compliance ─────────────────────────── */
@@ -4727,13 +5668,25 @@ function safRenderPersonnel(fileId,people){
   const active=people.filter(p=>p.is_active==1);
   const gone  =people.filter(p=>p.is_active==0);
 
-  const activeRows=active.map(p=>`<tr>
+  const activeRows=active.map(p=>{
+    const portalTick = p.portal_user_id
+      ? `<span class="saf-portal-tick" title="Has portal account">&#10003;</span>`
+      : '';
+    const actionBtns = p.portal_user_id
+      ? `<button class="btn btn-g btn-xs" data-action="safPersonnelSendPolicy" data-id="${p.id}" title="Send policy">&#9993;</button>
+         <button class="btn btn-xs saf-cs-del-btn" data-action="safUnlinkUser" data-id="${p.portal_user_id}" data-file-id="${esc(fileId)}" data-name="${esc(p.full_name)}" title="Unlink portal account">&#10005;</button>`
+      : `<button class="btn btn-g btn-xs" data-action="safPersonnelSendPolicy" data-id="${p.id}" title="Send policy">&#9993;</button>
+         <button class="btn btn-g btn-xs" data-action="safRemovePerson" data-id="${p.id}" data-file-id="${esc(fileId)}" data-name="${esc(p.full_name)}">Remove</button>`;
+    return `<tr>
     <td>${esc(p.full_name)}</td>
     <td>${esc(p.id_number||'—')}</td>
     <td>${esc(p.role)}</td>
     <td>${esc(p.company||'—')}</td>
-    <td><button class="btn btn-g btn-xs" onclick="safRemovePerson(${p.id},'${esc(fileId)}','${esc(p.full_name)}')">Remove</button></td>
-  </tr>`).join('');
+    <td>${p.email?`<a href="mailto:${esc(p.email)}" class="text-accent">${esc(p.email)}</a>`:'<span class="text-muted">—</span>'}</td>
+    <td class="saf-portal-col">${portalTick}</td>
+    <td>${actionBtns}</td>
+  </tr>`;
+  }).join('');
 
   let formerHtml='';
   if(gone.length){
@@ -4744,7 +5697,7 @@ function safRenderPersonnel(fileId,people){
       <td>${esc(p.company||'—')}</td>
       <td>${p.removed_at?fmtD(p.removed_at):'—'}</td>
       <td>${esc(p.removed_reason||'—')}</td>
-      <td><button class="btn btn-g btn-xs" onclick="safReinstatePerson(${p.id},'${esc(fileId)}')">Reinstate</button></td>
+      <td><button class="btn btn-g btn-xs" data-action="safReinstatePerson" data-id="${p.id}" data-file-id="${esc(fileId)}">Reinstate</button></td>
     </tr>`).join('');
     formerHtml=`<details class="saf-former-toggle mt1">
       <summary>Former Personnel (${gone.length}) — retained for audit</summary>
@@ -4757,30 +5710,42 @@ function safRenderPersonnel(fileId,people){
 
   panel.innerHTML=active.length?`
     <div class="tw"><table class="saf-prs-tbl">
-      <thead><tr><th>Name</th><th>ID / Passport</th><th>Role</th><th>Company</th><th></th></tr></thead>
+      <thead><tr><th>Name</th><th>ID / Passport</th><th>Role</th><th>Company</th><th>Email</th><th class="saf-portal-col">Portal</th><th></th></tr></thead>
       <tbody>${activeRows}</tbody>
     </table></div>${formerHtml}`
-    :`<div class="saf-att-empty">No active personnel on file.${gone.length?' See former personnel below.':''}</div>${formerHtml}`;
+    :`<div class="saf-att-empty">No active people on file.${gone.length?' See former personnel below.':''}</div>${formerHtml}`;
   _safPersonnelCache = people;
+  _safLinkedUsersCache = active.filter(p => p.portal_user_id).map(p => ({ user_id: p.portal_user_id, name: p.full_name, role: p.role, title: p.role }));
   safUpdateComplianceHealth();
 }
 
 async function safAddPersonnel(fileId){
+  // Gather existing names from all safety files for datalist suggestions
+  const existing=[...new Set(
+    (proxyDB.safetyFiles||[]).flatMap(f=>(f._personnel||[]).map(p=>p.full_name)).filter(Boolean)
+      .concat((_safPersonnelCache||[]).map(p=>p.full_name))
+  )];
+  const dlOpts=existing.map(n=>`<option value="${esc(n)}">`).join('');
   openModal('Add Person to Safety File',`
     <div class="fgrid">
-      <div class="fgroup ffull"><label class="flbl">Full Name <span style="color:var(--ember)">*</span></label>
-        <input class="finput" id="prs-name" placeholder="e.g. Sipho Dlamini" autofocus></div>
+      <div class="fgroup ffull"><label class="flbl">Full Name <span class="text-ember">*</span></label>
+        <input class="finput" id="prs-name" list="prs-name-dl" placeholder="Type or select name" autofocus autocomplete="off">
+        <datalist id="prs-name-dl">${dlOpts}</datalist>
+        <small class="flbl text-muted">Select existing or type a new name to create a new record</small></div>
       <div class="fgroup"><label class="flbl">ID / Passport No.</label>
         <input class="finput" id="prs-id" placeholder="8001015009087"></div>
-      <div class="fgroup"><label class="flbl">Role <span style="color:var(--ember)">*</span></label>
+      <div class="fgroup"><label class="flbl">Role <span class="text-ember">*</span></label>
         <select class="finput" id="prs-role">
           <option>Employee</option><option>Subcontractor</option><option>Supervisor</option>
           <option>SHE Rep</option><option>First Aider</option><option>Other</option>
         </select></div>
       <div class="fgroup ffull"><label class="flbl">Company (if different from contractor)</label>
-        <input class="finput" id="prs-co" placeholder="Leave blank if same as contractor"></div>
+        <input class="finput" id="prs-co" list="prs-co-dl" placeholder="Leave blank if same as contractor" autocomplete="off">
+        <datalist id="prs-co-dl">${[...new Set((proxyDB.safetyFiles||[]).map(f=>f.contractor).filter(Boolean))].map(n=>`<option value="${esc(n)}">`).join('')}</datalist></div>
+      <div class="fgroup ffull"><label class="flbl">Email (used for policy acknowledgments)</label>
+        <input class="finput" id="prs-email" type="email" placeholder="person@company.co.za" autocomplete="off"></div>
     </div>
-    <div class="mt2 flex-end"><button class="btn btn-p" onclick="safSavePersonnel('${fileId}')">Add Person</button></div>
+    <div class="mt2 flex-end"><button class="btn btn-p" data-action="safSavePersonnel" data-id="${fileId}">Add Person</button></div>
   `);
 }
 
@@ -4790,7 +5755,8 @@ async function safSavePersonnel(fileId){
   const idNo =(document.getElementById('prs-id')?.value||'').trim();
   const role = document.getElementById('prs-role')?.value||'Employee';
   const co   =(document.getElementById('prs-co')?.value||'').trim();
-  const r=await api('POST','safety_personnel.php',{file_ref:fileId,full_name:name,id_number:idNo,role,company:co});
+  const email=(document.getElementById('prs-email')?.value||'').trim();
+  const r=await api('POST','safety_personnel.php',{file_ref:fileId,full_name:name,id_number:idNo,role,company:co,email});
   if(!r.success){toast(r.error||'Failed to add person','err');return;}
   toast('Person added');
   closeModalDirect();
@@ -4800,16 +5766,16 @@ async function safSavePersonnel(fileId){
 
 async function safRemovePerson(id,fileId,name){
   openModal('Remove Person from File',`
-    <p style="margin-bottom:12px;color:var(--muted)">
+    <p class="mb-12 text-muted">
       The record for <strong>${esc(name)}</strong> will be marked inactive but <em>kept for audit purposes</em>.<br>
-      This complies with the APS-EHS-FRM-010 audit trail requirement.
+      This complies with the BF-SHE-FRM-010 audit trail requirement.
     </p>
-    <div class="fgroup ffull"><label class="flbl">Reason for removal <span style="color:var(--ember)">*</span></label>
+    <div class="fgroup ffull"><label class="flbl">Reason for removal <span class="text-ember">*</span></label>
       <input class="finput" id="prs-reason" placeholder="e.g. Left employment 2026-05-21" autofocus></div>
     <div class="mt2 flex-end">
-      <button class="btn btn-g btn-s" onclick="closeModalDirect()" style="margin-right:8px">Cancel</button>
-      <button class="btn" style="background:#fee2e2;border-color:#dc2626;color:#dc2626"
-        onclick="safConfirmRemovePerson(${id},'${esc(fileId)}','${esc(name)}')">Remove from File</button>
+      <button class="btn btn-g btn-s mr-8" data-action="closeModalDirect">Cancel</button>
+      <button class="btn btn-remove-person"
+        data-action="safConfirmRemovePerson" data-id="${id}" data-file-id="${esc(fileId)}" data-name="${esc(name)}">Remove from File</button>
     </div>
   `);
 }
@@ -4978,13 +5944,14 @@ function _calcComplianceHealth(records, people, linkedUsers, file) {
 }
 
 function safUpdateComplianceHealth() {
-  if (_safComplianceCache === null || _safPersonnelCache === null || _safLinkedUsersCache === null) return;
+  if (_safComplianceCache === null || _safPersonnelCache === null) return;
   const el = document.getElementById('saf-comp-health-block');
   if (!el) return;
   const fileId = document.getElementById('saf-detail-content')?.dataset?.fileId;
   const file = fileId ? proxyDB.safetyFiles.find(f => f.id === fileId) : null;
+  const linkedUsers = _safPersonnelCache.filter(p => p.portal_user_id).map(p => ({ user_id: p.portal_user_id, name: p.full_name, role: p.role, title: p.role }));
   const { status, blockers, critical, warnings } = _calcComplianceHealth(
-    _safComplianceCache, _safPersonnelCache, _safLinkedUsersCache, file
+    _safComplianceCache, _safPersonnelCache, linkedUsers, file
   );
   if (status === 'compliant') {
     el.className = 'saf-ch-block saf-ch-compliant';
@@ -5002,55 +5969,27 @@ function safUpdateComplianceHealth() {
   el.innerHTML = `<div class="saf-ch-title">${title}</div>${items}`;
 }
 
-/* ── linked portal users ──────────────────────────── */
-
-async function safLoadLinkedUsers(fileId) {
-  const r = await api('GET', 'safety_personnel.php?action=linked_users&file_ref=' + encodeURIComponent(fileId));
-  return r.success ? (r.data || []) : [];
-}
-
-function safRenderLinkedUsers(fileId, linkedUsers) {
-  const panel = document.getElementById('saf-linked-users-panel');
-  if (!panel) return;
-  _safLinkedUsersCache = linkedUsers;
-  safUpdateComplianceHealth();
-  if (!linkedUsers.length) {
-    panel.innerHTML = '<div class="saf-att-empty">No portal users linked. Click "+ Link User" to associate on-site portal accounts with this file.</div>';
-    return;
-  }
-  const rows = linkedUsers.map(lu => `<tr>
-    <td>${esc(lu.name)}</td>
-    <td>${esc(lu.username)}</td>
-    <td>${esc(lu.title || lu.role || '—')}</td>
-    <td><button class="btn btn-xs saf-cs-del-btn" onclick="safUnlinkUser(${lu.user_id},'${esc(fileId)}','${esc(lu.name)}')">&#10005;</button></td>
-  </tr>`).join('');
-  panel.innerHTML = `<div class="tw"><table class="saf-prs-tbl">
-    <thead><tr><th>Name</th><th>Username</th><th>Role / Title</th><th></th></tr></thead>
-    <tbody>${rows}</tbody>
-  </table></div>`;
-}
 
 async function safLinkPortalUser(fileId) {
   const allUsers = proxyDB.users || [];
-  const linked   = _safLinkedUsersCache || [];
-  const linkedIds = new Set(linked.map(lu => lu.user_id));
+  const linkedIds = new Set((_safPersonnelCache || []).filter(p => p.portal_user_id && p.is_active == 1).map(p => p.portal_user_id));
   const available = allUsers.filter(u => u.active != 0 && !linkedIds.has(u.id));
   if (!available.length) { toast('No available portal users to link', 'info'); return; }
   const opts = available.map(u => `<option value="${u.id}">${esc(u.name)} (${esc(u.role||u.title||'—')})</option>`).join('');
   openModal('Link Portal User to Safety File', `
-    <p style="margin-bottom:10px;color:var(--muted);font-size:.88rem">
+    <p class="mb-10 text-muted fs-sm">
       Linking a user adds them to the personnel roster and triggers the AECI induction check.
     </p>
     <div class="fgroup ffull">
-      <label class="flbl">Portal User <span style="color:var(--ember)">*</span></label>
+      <label class="flbl">Portal User <span class="text-ember">*</span></label>
       <select class="finput" id="link-user-sel">
         <option value="">— Select user —</option>
         ${opts}
       </select>
     </div>
     <div class="mt2 flex-end">
-      <button class="btn btn-g btn-s" onclick="closeModalDirect()" style="margin-right:8px">Cancel</button>
-      <button class="btn btn-p" onclick="safConfirmLinkUser('${fileId}')">Link User</button>
+      <button class="btn btn-g btn-s mr-8" data-action="closeModalDirect">Cancel</button>
+      <button class="btn btn-p" data-action="safConfirmLinkUser" data-id="${fileId}">Link User</button>
     </div>
   `);
 }
@@ -5062,9 +6001,8 @@ async function safConfirmLinkUser(fileId) {
   if (!r.success) { toast(r.error || 'Failed to link user', 'err'); return; }
   toast('User linked — added to personnel roster', 'ok');
   closeModalDirect();
-  const [people, linked] = await Promise.all([safLoadPersonnel(fileId), safLoadLinkedUsers(fileId)]);
+  const people = await safLoadPersonnel(fileId);
   safRenderPersonnel(fileId, people);
-  safRenderLinkedUsers(fileId, linked);
 }
 
 async function safUnlinkUser(userId, fileId, name) {
@@ -5072,9 +6010,8 @@ async function safUnlinkUser(userId, fileId, name) {
   const r = await api('DELETE', `safety_personnel.php?action=unlink_user&file_ref=${encodeURIComponent(fileId)}&user_id=${userId}`, {});
   if (!r.success) { toast(r.error || 'Failed to unlink', 'err'); return; }
   toast(name + ' unlinked', 'info');
-  const [people, linked] = await Promise.all([safLoadPersonnel(fileId), safLoadLinkedUsers(fileId)]);
+  const people = await safLoadPersonnel(fileId);
   safRenderPersonnel(fileId, people);
-  safRenderLinkedUsers(fileId, linked);
 }
 
 /* Compliance */
@@ -5100,12 +6037,13 @@ function safRenderCompliance(fileId,records){
     const hasDoc=rec.att_id;
     const docCell=hasDoc
       ?`<span class="saf-doc-badge" title="${esc(rec.att_name||'')}">
-           📄 <a class="saf-doc-dl" href="api/files.php?action=download&id=${rec.att_id}" download="${esc(rec.att_name||'document')}">↓</a>
-           <button class="btn btn-xs saf-cs-del-btn" onclick="safReplaceComplianceDoc(${rec.id},'${esc(fileId)}',${rec.att_id})" title="Replace document">↺</button>
+           📄 ${(rec.att_mime==='application/pdf'||rec.att_mime?.startsWith('image/'))?`<button class="btn btn-xs" data-action="openDocViewer" data-id="${rec.att_id}" data-name="${esc(rec.att_name||'document')}" data-mime="${esc(rec.att_mime||'')}" title="View document">&#128065;</button>`:''}
+           <a class="saf-doc-dl" href="api/files.php?action=download&id=${rec.att_id}" download="${esc(rec.att_name||'document')}">↓</a>
+           <button class="btn btn-xs saf-cs-del-btn" data-action="safReplaceComplianceDoc" data-id="${rec.id}" data-file-id="${esc(fileId)}" data-att-id="${rec.att_id}" title="Replace document">↺</button>
          </span>`
-      :`<input type="file" id="saf-cdoc-${rec.id}" style="display:none" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                onchange="safUploadComplianceDoc(${rec.id},'${esc(fileId)}',this)">
-         <button class="btn btn-g btn-xs" onclick="document.getElementById('saf-cdoc-${rec.id}').click()" title="Attach one document">+ Doc</button>`;
+      :`<input type="file" id="saf-cdoc-${rec.id}" class="hidden" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                data-action="safUploadComplianceDoc" data-id="${rec.id}" data-file-id="${esc(fileId)}">
+         <button class="btn btn-g btn-xs" data-action="triggerFileInput" data-target-id="saf-cdoc-${rec.id}" title="Attach one document">+ Doc</button>`;
     return `<tr>
       <td>${esc(rec.compliance_type)}<br><small class="saf-cs-cat">${esc(rec.category)}</small></td>
       <td>${holder}</td>
@@ -5114,8 +6052,8 @@ function safRenderCompliance(fileId,records){
       <td><span class="saf-cs-badge ${st.cls}">${st.label}</span>${dNote?` <small class="saf-cs-days">${dNote}</small>`:''}</td>
       <td class="saf-doc-cell">${docCell}</td>
       <td>
-        <button class="btn btn-g btn-xs" onclick="safEditCompliance(${rec.id},'${esc(fileId)}')">Edit</button>
-        <button class="btn btn-xs saf-cs-del-btn" onclick="safDeleteCompliance(${rec.id},'${esc(fileId)}')">&#10005;</button>
+        <button class="btn btn-g btn-xs" data-action="safEditCompliance" data-id="${rec.id}" data-file-id="${esc(fileId)}">Edit</button>
+        <button class="btn btn-xs saf-cs-del-btn" data-action="safDeleteCompliance" data-id="${rec.id}" data-file-id="${esc(fileId)}">&#10005;</button>
       </td>
     </tr>`;
   }).join('');
@@ -5128,7 +6066,8 @@ function safRenderCompliance(fileId,records){
 async function safAddCompliance(fileId){
   const people=await safLoadPersonnel(fileId);
   const active=people.filter(p=>p.is_active==1);
-  const prsOpts=active.map(p=>`<option value="${p.id}">${esc(p.full_name)} (${esc(p.role)})</option>`).join('');
+  // Datalist with active personnel names — allow typing a new name to create on the fly
+  const prsOpts=active.map(p=>`<option data-id="${p.id}" value="${esc(p.full_name)}">`).join('');
   const typeOpts=COMPLIANCE_TYPES.map((t,i)=>
     `<option value="${i}" data-cat="${t.category}" data-scope="${t.scope}" data-months="${t.months}">${t.type}</option>`
   ).join('');
@@ -5136,14 +6075,14 @@ async function safAddCompliance(fileId){
   openModal('Add Training / Compliance Record',`
     <div class="fgrid">
       <div class="fgroup ffull">
-        <label class="flbl">Type <span style="color:var(--ember)">*</span></label>
-        <select class="finput" id="cmp-type-sel" onchange="safCmpTypeChanged()">
+        <label class="flbl">Type <span class="text-ember">*</span></label>
+        <select class="finput" id="cmp-type-sel">
           <option value="">— Select standard type —</option>
           ${typeOpts}
           <option value="custom">Custom / Other…</option>
         </select>
       </div>
-      <div class="fgroup ffull" id="cmp-custom-row" style="display:none">
+      <div class="fgroup ffull d-none" id="cmp-custom-row">
         <label class="flbl">Custom type name</label>
         <input class="finput" id="cmp-custom-name" placeholder="e.g. Rigging Certificate">
       </div>
@@ -5156,24 +6095,23 @@ async function safAddCompliance(fileId){
       </div>
       <div class="fgroup">
         <label class="flbl">Scope</label>
-        <select class="finput" id="cmp-scope" onchange="safCmpScopeChanged()">
+        <select class="finput" id="cmp-scope">
           <option>Person</option><option>Company</option>
         </select>
       </div>
       <div class="fgroup ffull" id="cmp-person-row">
         <label class="flbl">Person (leave blank for company-level)</label>
-        <select class="finput" id="cmp-person">
-          <option value="">— Not person-specific —</option>
-          ${prsOpts}
-        </select>
+        <input class="finput" id="cmp-person" list="cmp-person-dl" placeholder="Type or select person name, or leave blank" autocomplete="off">
+        <datalist id="cmp-person-dl"><option value="">${prsOpts}</datalist>
+        <small class="flbl text-muted">Type a new name to add them to the personnel roster automatically</small>
       </div>
       <div class="fgroup">
-        <label class="flbl">Issue / Completion Date <span style="color:var(--ember)">*</span></label>
-        <input class="finput" type="date" id="cmp-issue" onchange="safCmpCalcExpiry()">
+        <label class="flbl">Issue / Completion Date <span class="text-ember">*</span></label>
+        <input class="finput" type="date" id="cmp-issue">
       </div>
       <div class="fgroup">
         <label class="flbl">Renewal cycle (months, 0 = never expires)</label>
-        <input class="finput" type="number" id="cmp-months" value="12" min="0" onchange="safCmpCalcExpiry()">
+        <input class="finput" type="number" id="cmp-months" value="12" min="0">
       </div>
       <div class="fgroup ffull">
         <label class="flbl">Expiry / Renewal date (auto-calculated — override if needed)</label>
@@ -5184,14 +6122,14 @@ async function safAddCompliance(fileId){
         <input class="finput" id="cmp-notes" placeholder="e.g. Certificate no., training provider">
       </div>
     </div>
-    <div class="mt2 flex-end"><button class="btn btn-p" onclick="safSaveCompliance('${fileId}')">Add Record</button></div>
+    <div class="mt2 flex-end"><button class="btn btn-p" data-action="safSaveCompliance" data-id="${fileId}">Add Record</button></div>
   `);
 }
 
 function safCmpTypeChanged(){
   const sel=document.getElementById('cmp-type-sel');
   const val=sel.value;
-  document.getElementById('cmp-custom-row').style.display=val==='custom'?'':'none';
+  document.getElementById('cmp-custom-row').classList.toggle('d-none', val!=='custom');
   if(val===''||val==='custom') return;
   const t=COMPLIANCE_TYPES[parseInt(val)];
   if(!t) return;
@@ -5205,7 +6143,7 @@ function safCmpTypeChanged(){
 function safCmpScopeChanged(){
   const scope=document.getElementById('cmp-scope')?.value;
   const row=document.getElementById('cmp-person-row');
-  if(row) row.style.display=scope==='Company'?'none':'';
+  if(row) row.classList.toggle('d-none', scope==='Company');
 }
 
 function safCmpCalcExpiry(){
@@ -5232,13 +6170,28 @@ async function safSaveCompliance(fileId){
   const issueDate =(document.getElementById('cmp-issue')?.value||null);
   const expiryDate=(document.getElementById('cmp-expiry')?.value||null);
   const months    =parseInt(document.getElementById('cmp-months')?.value||'12');
-  const personId  =document.getElementById('cmp-person')?.value||null;
+  const personName=(document.getElementById('cmp-person')?.value||'').trim();
   const notes     =(document.getElementById('cmp-notes')?.value||'').trim();
   if(!issueDate){toast('Issue date is required','err');return;}
+  // Resolve person name → personnel ID; create if not on file yet
+  let personId = null;
+  if(personName && scope!=='Company'){
+    const existing=(_safPersonnelCache||[]).find(p=>p.full_name===personName&&p.is_active==1);
+    if(existing){
+      personId=existing.id;
+    } else {
+      const nr=await api('POST','safety_personnel.php',{file_ref:fileId,full_name:personName,id_number:'',role:'Employee',company:''});
+      if(!nr.success){toast('Could not create personnel record for '+personName,'err');return;}
+      personId=nr.data?.id||null;
+      // Refresh cache so health check sees the new person
+      const freshPeople=await safLoadPersonnel(fileId);
+      safRenderPersonnel(fileId,freshPeople);
+    }
+  }
   const r=await api('POST','safety_compliance.php',{
     file_ref:fileId,compliance_type:cType,category,scope,
     issue_date:issueDate,expiry_date:expiryDate,renewal_months:months,
-    personnel_id:personId||null,notes
+    personnel_id:personId,notes
   });
   if(!r.success){toast(r.error||'Failed','err');return;}
   toast('Compliance record added');
@@ -5258,11 +6211,11 @@ async function safEditCompliance(id,fileId){
         <input class="finput" id="cedit-type" value="${esc(rec.compliance_type)}" placeholder="Type name"></div>
       <div class="fgroup">
         <label class="flbl">Issue Date</label>
-        <input class="finput" type="date" id="cedit-issue" value="${rec.issue_date||''}" onchange="safCEditCalcExpiry()">
+        <input class="finput" type="date" id="cedit-issue" value="${rec.issue_date||''}">
       </div>
       <div class="fgroup">
         <label class="flbl">Renewal (months)</label>
-        <input class="finput" type="number" id="cedit-months" value="${rec.renewal_months||12}" min="0" onchange="safCEditCalcExpiry()">
+        <input class="finput" type="number" id="cedit-months" value="${rec.renewal_months||12}" min="0">
       </div>
       <div class="fgroup ffull">
         <label class="flbl">Expiry Date</label>
@@ -5271,7 +6224,7 @@ async function safEditCompliance(id,fileId){
       <div class="fgroup ffull"><label class="flbl">Notes</label>
         <input class="finput" id="cedit-notes" value="${esc(rec.notes||'')}" placeholder="Notes"></div>
     </div>
-    <div class="mt2 flex-end"><button class="btn btn-p" onclick="safSaveEditCompliance(${id},'${esc(fileId)}')">Save</button></div>
+    <div class="mt2 flex-end"><button class="btn btn-p" data-action="safSaveEditCompliance" data-id="${id}" data-file-id="${esc(fileId)}">Save</button></div>
   `);
 }
 
@@ -5334,6 +6287,140 @@ async function safDeleteCompliance(id,fileId){
   toast('Record deleted');
   const recs=await safLoadCompliance(fileId);
   safRenderCompliance(fileId,recs);
+}
+
+/* ── policy acknowledgments ─────────────────────────── */
+
+async function safLoadPolicyAcks(fileId){
+  const r=await api('GET','safety_policy.php?file_ref='+encodeURIComponent(fileId));
+  return r.success?(r.data||[]):[];
+}
+
+function safRenderPolicyAcks(fileId,acks){
+  const panel=document.getElementById('saf-policy-ack-panel');
+  if(!panel) return;
+  if(!acks.length){
+    panel.innerHTML='<div class="saf-att-empty">No policy acknowledgment requests yet. Use "+ Send Policy" to create one.</div>';
+    return;
+  }
+  const stMap={Pending:'saf-cs-none',Sent:'saf-cs-soon',Acknowledged:'saf-cs-ok',Declined:'saf-cs-overdue'};
+  const rows=acks.map(a=>{
+    const st=stMap[a.status]||'saf-cs-none';
+    const acked=a.acked_at?fmtD(a.acked_at.split(' ')[0]):'—';
+    return `<tr>
+      <td>${esc(a.policy_title)}</td>
+      <td>${esc(a.recipient_name)}</td>
+      <td>${esc(a.recipient_email||'—')}</td>
+      <td><span class="saf-cs-badge ${st}">${esc(a.status)}</span></td>
+      <td>${acked}</td>
+      <td>
+        ${a.status!=='Acknowledged'&&a.status!=='Declined'?`<button class="btn btn-g btn-xs" data-action="safManualAck" data-id="${a.id}" data-file-id="${esc(fileId)}">&#10003; Mark Ack'd</button>`:''}
+        ${a.recipient_email&&a.status!=='Acknowledged'?`<button class="btn btn-g btn-xs" data-action="safResendPolicyAck" data-id="${a.id}" data-file-id="${esc(fileId)}">&#9993; Resend</button>`:''}
+        <button class="btn btn-xs saf-cs-del-btn" data-action="safDeletePolicyAck" data-id="${a.id}" data-file-id="${esc(fileId)}">&#10005;</button>
+      </td>
+    </tr>`;
+  }).join('');
+  panel.innerHTML=`<div class="tw"><table class="saf-comp-tbl">
+    <thead><tr><th>Policy</th><th>Recipient</th><th>Email</th><th>Status</th><th>Acknowledged</th><th></th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>`;
+}
+
+function safSendPolicyToPersonnel(fileId){
+  const active=(_safPersonnelCache||[]).filter(p=>p.is_active==1);
+  if(!active.length){
+    toast('No active personnel on file — add personnel before sending policy emails.','warn');
+    return;
+  }
+  safAddPolicyAck(fileId);
+}
+
+function safPersonnelSendPolicy(personId){
+  const person=(_safPersonnelCache||[]).find(p=>p.id==personId);
+  if(!person) return;
+  const fileId=document.getElementById('saf-detail-content')?.dataset?.fileId;
+  if(!fileId) return;
+  safAddPolicyAck(fileId,{name:person.full_name, email:person.email||''});
+}
+
+function safAddPolicyAck(fileId, prefill={}){
+  const people=_safPersonnelCache||[];
+  const active=people.filter(p=>p.is_active==1);
+  if(!active.length){
+    toast('No active personnel on file — add personnel before sending policy emails.','warn');
+    return;
+  }
+  const dlOpts=active.map(p=>`<option value="${esc(p.full_name)}">`).join('');
+  const emailDlOpts=active.filter(p=>p.email).map(p=>`<option value="${esc(p.email)}">${esc(p.full_name)}</option>`).join('');
+  const COMMON_POLICIES=[
+    'Health & Safety Policy','PPE Policy & Procedure','Emergency Evacuation Procedure',
+    'Incident & Near-Miss Reporting Procedure','Contractor Site Rules & Induction',
+    'Working at Heights Procedure','Hazardous Chemical Handling Procedure',
+    'Toolbox Talk — General Site Safety',
+  ];
+  const polOpts=COMMON_POLICIES.map(p=>`<option value="${esc(p)}">`).join('');
+  const prefillName =prefill.name  ? esc(prefill.name)  : '';
+  const prefillEmail=prefill.email ? esc(prefill.email) : '';
+  openModal('Send Policy for Acknowledgment',`
+    <div class="fgrid">
+      <div class="fgroup ffull"><label class="flbl">Policy / Procedure Title <span class="text-ember">*</span></label>
+        <input class="finput" id="pak-title" list="pak-title-dl" placeholder="Select or type policy name" autocomplete="off" autofocus>
+        <datalist id="pak-title-dl">${polOpts}</datalist></div>
+      <div class="fgroup ffull"><label class="flbl">Policy Content / Summary (optional — shown to recipient)</label>
+        <textarea class="finput" id="pak-body" rows="4" placeholder="Paste key points or summary of the policy..."></textarea></div>
+      <div class="fgroup"><label class="flbl">Recipient Name <span class="text-ember">*</span></label>
+        <input class="finput" id="pak-name" list="pak-name-dl" placeholder="Type or select person" autocomplete="off" value="${prefillName}">
+        <datalist id="pak-name-dl">${dlOpts}</datalist></div>
+      <div class="fgroup"><label class="flbl">Recipient Email (leave blank for in-person sign-off)</label>
+        <input class="finput" id="pak-email" type="email" list="pak-email-dl" placeholder="employee@company.co.za" value="${prefillEmail}">
+        <datalist id="pak-email-dl">${emailDlOpts}</datalist></div>
+    </div>
+    <div class="mt2 flex-end">
+      <button class="btn btn-g btn-s mr-8" data-action="closeModalDirect">Cancel</button>
+      <button class="btn btn-p" data-action="safSavePolicyAck" data-id="${fileId}">Create &amp; Send</button>
+    </div>
+  `);
+}
+
+async function safSavePolicyAck(fileId){
+  const title=(document.getElementById('pak-title')?.value||'').trim();
+  const body =(document.getElementById('pak-body')?.value||'').trim();
+  const name =(document.getElementById('pak-name')?.value||'').trim();
+  const email=(document.getElementById('pak-email')?.value||'').trim();
+  if(!title){toast('Policy title is required','err');return;}
+  if(!name) {toast('Recipient name is required','err');return;}
+  const r=await api('POST','safety_policy.php',{file_ref:fileId,policy_title:title,policy_body:body,recipient_name:name,recipient_email:email});
+  if(!r.success){toast(r.error||'Failed','err');return;}
+  toast(email?'Policy sent to '+email:'Acknowledgment request created — mark acknowledged when signed','ok');
+  closeModalDirect();
+  const acks=await safLoadPolicyAcks(fileId);
+  safRenderPolicyAcks(fileId,acks);
+}
+
+async function safManualAck(id,fileId){
+  if(!confirm('Mark this policy as acknowledged (in-person sign-off)?\n\nThis records the acknowledgment with the current date and time.')) return;
+  const r=await api('PUT','safety_policy.php?id='+id,{action:'manual_ack'});
+  if(!r.success){toast(r.error||'Failed','err');return;}
+  toast('Acknowledgment recorded','ok');
+  const acks=await safLoadPolicyAcks(fileId);
+  safRenderPolicyAcks(fileId,acks);
+}
+
+async function safResendPolicyAck(id,fileId){
+  const r=await api('PUT','safety_policy.php?id='+id,{action:'resend'});
+  if(!r.success){toast(r.error||'Failed to resend email','err');return;}
+  toast('Email resent','ok');
+  const acks=await safLoadPolicyAcks(fileId);
+  safRenderPolicyAcks(fileId,acks);
+}
+
+async function safDeletePolicyAck(id,fileId){
+  if(!confirm('Remove this policy acknowledgment record?')) return;
+  const r=await api('DELETE','safety_policy.php?id='+id);
+  if(!r.success){toast(r.error||'Failed','err');return;}
+  toast('Record removed');
+  const acks=await safLoadPolicyAcks(fileId);
+  safRenderPolicyAcks(fileId,acks);
 }
 
 /* ── badge count ────────────────────────────────────── */

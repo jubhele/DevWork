@@ -1,3 +1,5 @@
+﻿'use strict';
+
 /* ═══════════════════════════════════════════════════════
    API LAYER - PHP/MySQL Backend
    All data operations go through fetch() to /api/ endpoints
@@ -38,3 +40,31 @@ async function api(method, endpoint, data = null) {
   }
 }
 
+/* ── File upload helper (multipart, not JSON) ──────────────────────── */
+async function apiUpload(entityType, entityRef, fileInput) {
+  if (!fileInput.files.length) return { success: false, error: 'No file selected' };
+  const fd = new FormData();
+  fd.append('entity_type', entityType);
+  fd.append('entity_ref',  entityRef);
+  fd.append('file', fileInput.files[0]);
+  try {
+    const res = await fetch(API_BASE + '/files.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      body: fd,
+    });
+    if (res.status === 401) {
+      if (typeof SESSION !== 'undefined' && SESSION) {
+        SESSION = null;
+        document.documentElement.dataset.state = 'login';
+        if (typeof showLoginPanel === 'function') showLoginPanel();
+        if (typeof toast === 'function') toast('Session expired. Please log in again.', 'err');
+      }
+      return { success: false, error: 'Session expired' };
+    }
+    return await res.json();
+  } catch (e) {
+    return { success: false, error: String(e) };
+  }
+}

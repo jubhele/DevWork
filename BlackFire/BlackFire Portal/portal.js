@@ -202,6 +202,7 @@ document.addEventListener('click', function(e) {
     case 'safDeletePolicyAck':   safDeletePolicyAck(+el.dataset.id, el.dataset.fileId); break;
     case 'safSavePolicyAck':     safSavePolicyAck(el.dataset.id); break;
     case 'safDeleteAttachment':  safDeleteAttachment(+el.dataset.id, el.dataset.fileId); break;
+    case 'safShowItemDocs':      safShowItemDocs(el.dataset.evSec, +el.dataset.evIdx); break;
     case 'safPersonnelSendPolicy': safPersonnelSendPolicy(+el.dataset.id); break;
     case 'safUnlinkUser':        safUnlinkUser(+el.dataset.id, el.dataset.fileId, el.dataset.name); break;
     case 'safRemovePerson':      safRemovePerson(+el.dataset.id, el.dataset.fileId, el.dataset.name); break;
@@ -4090,12 +4091,7 @@ function safBuildSections(){
         <td class="saf-radio-cell saf-ts"><label class="saf-radio-lbl"><input type="radio" name="saf_${sec.key}_${idx}" value="To Standard" ${rStd} data-action="safItemChanged" data-section-key="${sec.key}" data-item-idx="${idx}"> TS</label></td>
         ${sec.key==='H'?`<td><input class="finput finput-sm" placeholder="Name" value="${apo}" data-action="safAppointeeChanged" data-section-key="${sec.key}" data-item-idx="${idx}"></td>`:''}
         <td><textarea class="finput finput-sm saf-cmt" rows="1" placeholder="Findings..." data-action="safCommentChanged" data-section-key="${sec.key}" data-item-idx="${idx}">${cmt}</textarea></td>
-        <td class="saf-upload-cell">
-          <input type="file" id="saf-up-${sec.key}-${idx}" class="hidden" data-action="safHandleUpload" data-section-key="${sec.key}" data-item-idx="${idx}">
-          <button class="btn btn-g btn-xs" data-action="triggerFileInput" data-target-id="saf-up-${sec.key}-${idx}">
-            ${upCount?`<span class="saf-up-count">${upCount}</span>`:''}+
-          </button>
-        </td>
+        <td class="saf-upload-cell">${_safUploadCellInner(sec.key, idx, upCount, s.result)}</td>
       </tr>`;
     });
     html += `</tbody></table></div></div></div>`;
@@ -4155,6 +4151,12 @@ function safItemChanged(sec, idx, radio){
     if(radio.value==='N/A') row.classList.add('saf-row-na');
     else if(radio.value==='Not to Standard') row.classList.add('saf-row-nts');
     else if(radio.value==='To Standard') row.classList.add('saf-row-ts');
+    // Refresh upload cell so evidence warning appears / disappears immediately
+    const cell = row.querySelector('.saf-upload-cell');
+    if(cell){
+      const cnt = (file.sections[sec][idx].uploads||[]).length;
+      cell.innerHTML = _safUploadCellInner(sec, idx, cnt, radio.value);
+    }
   }
   safUpdateScore();
 }
@@ -4257,6 +4259,58 @@ function _safCanonicalName(sec, idx, filename){
   return `${sec}${nn}_${doctype}_${_safSlugifyName(filename)}${ext}`;
 }
 
+function _safUploadCellInner(sec, idx, upCount, result){
+  const needsEvidence = result === 'To Standard' && upCount === 0;
+  const inputId  = `saf-up-${sec}-${idx}`;
+  const warnStyle= needsEvidence ? ' style="background:#f97316;color:#fff;border-color:#f97316"' : '';
+  const title    = needsEvidence ? 'To Standard — attach supporting evidence'
+                 : upCount > 0   ? `${upCount} evidence file(s) — click to upload more`
+                 :                 'Attach evidence document';
+  const lbl      = upCount > 0   ? `<span class="saf-up-count">${upCount}</span>+`
+                 : needsEvidence  ? '&#9888;+'
+                 :                  '+';
+  const viewBtn  = upCount > 0
+    ? `<button class="btn btn-g btn-xs" data-action="safShowItemDocs" data-ev-sec="${sec}" data-ev-idx="${idx}" title="View evidence files">&#128065;</button>`
+    : '';
+  return `<input type="file" id="${inputId}" class="hidden" data-action="safHandleUpload" data-section-key="${sec}" data-item-idx="${idx}">${viewBtn}<button class="btn btn-g btn-xs"${warnStyle} data-action="triggerFileInput" data-target-id="${inputId}" title="${title}">${lbl}</button>`;
+}
+
+async function safShowItemDocs(sec, idx){
+  const file = safGetOrInitFile();
+  if(!file || !file.sections[sec]) return;
+  const uploads = (file.sections[sec][idx]?.uploads || []).filter(u => typeof u === 'object' && u !== null);
+  if(!uploads.length){ toast('No evidence attached to this item','err'); return; }
+
+  const existing = document.getElementById('saf-item-docs-popup');
+  if(existing) existing.remove();
+
+  const fileIcon = m => m==='application/pdf' ? '&#128196;' : (m||'').startsWith('image/') ? '&#128444;' : '&#128196;';
+  const fmtSz    = b => b<1024 ? b+'B' : b<1048576 ? (b/1024).toFixed(1)+'KB' : (b/1048576).toFixed(1)+'MB';
+  const rows = uploads.map(u=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
+      <span>${fileIcon(u.mime_type)}</span>
+      <span style="flex:1;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(u.original_name)}">${esc(u.original_name)}</span>
+      <span style="font-size:10px;color:var(--muted)">${fmtSz(u.file_size)}</span>
+      ${(u.mime_type==='application/pdf'||(u.mime_type||'').startsWith('image/'))?`<button class="btn btn-g btn-xs" data-action="openDocViewer" data-id="${u.id}" data-name="${esc(u.original_name)}" data-mime="${esc(u.mime_type||'')}">&#128065; View</button>`:''}
+      <a class="btn btn-g btn-xs" href="api/files.php?action=download&id=${u.id}" download="${esc(u.original_name)}">&#8595;</a>
+    </div>`).join('');
+
+  const overlay = document.createElement('div');
+  overlay.id = 'saf-item-docs-popup';
+  overlay.className = 'saf-rename-overlay';
+  overlay.innerHTML = `
+    <div class="saf-rename-box" style="max-width:480px;width:92vw">
+      <div class="saf-rename-title">Evidence — Section ${sec}, Item ${idx+1} (${uploads.length} file${uploads.length!==1?'s':''})</div>
+      <div style="margin-top:10px;max-height:320px;overflow-y:auto">${rows}</div>
+      <div style="margin-top:14px;text-align:right">
+        <button class="btn btn-g" id="saf-item-docs-close">Close</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  document.getElementById('saf-item-docs-close').onclick = () => overlay.remove();
+  overlay.addEventListener('click', e => { if(e.target===overlay) overlay.remove(); });
+}
+
 function safRenameModal(suggested, originalName){
   return new Promise(resolve => {
     const existing = document.getElementById('saf-rename-modal');
@@ -4297,28 +4351,36 @@ async function safHandleUpload(sec, idx, input){
     toast('Save the audit first before uploading documents','err');
     input.value=''; return;
   }
-  const btn=input.nextElementSibling;
+  const itemNo   = idx + 1;
+  const entityRef = `${ref}:${sec}:${itemNo}`;
   let uploaded=0;
   for(const f of Array.from(input.files)){
     const finalName = await safRenameModal(_safCanonicalName(sec, idx, f.name), f.name);
     if(finalName===null){ input.value=''; return; }
     const renamed = new File([f], finalName, {type: f.type});
     const fd=new FormData();
-    fd.append('entity_type','safety_file');
-    fd.append('entity_ref', ref);
+    fd.append('entity_type','safety_item');
+    fd.append('entity_ref', entityRef);
     fd.append('file', renamed);
     const r=await _safUploadFd(fd);
-    if(r.success){
+    if(r.success && r.attachment){
       uploaded++;
-      file.sections[sec][idx].uploads=[...(file.sections[sec][idx].uploads||[]),finalName];
+      file.sections[sec][idx].uploads=[...(file.sections[sec][idx].uploads||[]), r.attachment];
     } else {
       toast(r.error||'Upload failed for '+f.name,'err');
     }
   }
   file.updatedAt=new Date().toISOString();
-  const cnt=file.sections[sec][idx].uploads.length;
-  if(btn) btn.innerHTML=`<span class="saf-up-count">${cnt}</span>+`;
-  if(uploaded) toast(uploaded+' file(s) uploaded','ok');
+  if(uploaded){
+    toast(uploaded+' evidence file(s) uploaded','ok');
+    // Refresh the upload cell to reflect new count and evidence state
+    const cell = document.querySelector(`.saf-item-row[data-sec="${sec}"][data-idx="${idx}"] .saf-upload-cell`);
+    if(cell){
+      const cnt    = file.sections[sec][idx].uploads.length;
+      const result = file.sections[sec][idx].result;
+      cell.innerHTML = _safUploadCellInner(sec, idx, cnt, result);
+    }
+  }
   input.value='';
 }
 

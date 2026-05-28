@@ -540,7 +540,33 @@ try {
     $db_checks[] = bhk_db_check('Safety file item count (≥86)', false, '', $e->getMessage());
 }
 
-// 9. bf_invoices valid status values
+// 9. "To Standard" items must have at least one evidence document
+try {
+    $ts_no_evidence = db_select(
+        "SELECT i.file_ref, i.section_key, i.item_no
+           FROM bf_safety_items i
+           LEFT JOIN bf_attachments a
+             ON a.entity_type = 'safety_item'
+            AND a.entity_ref  = CONCAT(i.file_ref, ':', i.section_key, ':', i.item_no)
+          WHERE i.result = 'To Standard' AND a.id IS NULL
+          ORDER BY i.file_ref, i.section_key, i.item_no"
+    );
+    $ts_count = (int)(db_row(
+        "SELECT COUNT(*) AS n FROM bf_safety_items WHERE result = 'To Standard'"
+    )['n'] ?? 0);
+    $db_checks[] = bhk_db_check(
+        "Safety items 'To Standard' all have evidence (" . count($ts_no_evidence) . " of $ts_count unevidenced)",
+        empty($ts_no_evidence),
+        "Every 'To Standard' item must have an evidence file uploaded via the item-level upload button",
+        empty($ts_no_evidence) ? '' :
+            implode(', ', array_map(fn($r) => "{$r['file_ref']}/{$r['section_key']}.{$r['item_no']}", array_slice($ts_no_evidence, 0, 10)))
+            . (count($ts_no_evidence) > 10 ? ' … +' . (count($ts_no_evidence) - 10) . ' more' : '')
+    );
+} catch (\Exception $e) {
+    $db_checks[] = bhk_db_check("'To Standard' items have evidence", false, '', $e->getMessage());
+}
+
+// 10. bf_invoices valid status values
 try {
     $valid = ['Draft','Sent','Paid','Overdue','Cancelled'];
     $ph    = implode(',', array_fill(0, count($valid), '?'));

@@ -49,7 +49,7 @@ function attach_dir(): string {
 // ── GET list ──────────────────────────────────────────────────────────
 if ($method === 'GET' && $action === 'list') {
     $entity_type = clean($_GET['entity_type'] ?? '', 20);
-    $entity_ref  = clean($_GET['entity_ref']  ?? '', 30);
+    $entity_ref  = clean($_GET['entity_ref']  ?? '', 50);
     if (!$entity_type || !$entity_ref) json_err('entity_type and entity_ref required');
 
     api_headers();
@@ -101,9 +101,9 @@ if ($method === 'POST') {
     api_headers();
 
     $entity_type = clean($_POST['entity_type'] ?? '', 20);
-    $entity_ref  = clean($_POST['entity_ref']  ?? '', 30);
+    $entity_ref  = clean($_POST['entity_ref']  ?? '', 50);
 
-    if (!in_array($entity_type, ['callout', 'invoice', 'quote', 'payment', 'safety_file', 'safety_compliance'], true)) {
+    if (!in_array($entity_type, ['callout', 'invoice', 'quote', 'payment', 'safety_file', 'safety_compliance', 'safety_item'], true)) {
         json_err('Invalid entity_type');
     }
     if (!$entity_ref) json_err('entity_ref required');
@@ -121,6 +121,19 @@ if ($method === 'POST') {
         )['n'] ?? 0);
         if ($existing > 0) {
             json_err('A document is already attached to this record. Remove it first to replace it.');
+        }
+    } elseif ($entity_type === 'safety_item') {
+        // entity_ref format: {file_ref}:{section_key}:{item_no}  e.g. SAF-001:H:12
+        $parts = explode(':', $entity_ref, 3);
+        if (count($parts) !== 3) json_err('Invalid safety_item ref — expected {file_ref}:{section}:{item_no}');
+        [$si_ref, $si_sec, $si_no_str] = $parts;
+        $si_no = (int)$si_no_str;
+        if (!db_row("SELECT id FROM bf_safety_files WHERE ref_id = ? AND is_active = 1", [$si_ref])) {
+            json_err('Safety file not found', 404);
+        }
+        if (!db_row("SELECT id FROM bf_safety_items WHERE file_ref = ? AND section_key = ? AND item_no = ?",
+                    [$si_ref, strtoupper($si_sec), $si_no])) {
+            json_err('Safety item not found', 404);
         }
     } else {
         $entity_table_map = [

@@ -40,3 +40,6 @@ Active model: claude-sonnet-4-6  Status: correct
 - The `device_id` default of `''` (empty string) in `bf_mobile_rate_limits` avoids a NULL-in-unique-key edge case in MySQL 5.x where multiple NULLs in a unique index are permitted (not what we want here).
 _Session ended: 2026-05-28 09:22:39 (Claude Code / claude-sonnet-4-6)_
 _Session ended: 2026-05-28 09:50:43 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-28 09:59:23 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-28 10:01:27 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-28 10:03:15 (Claude Code / claude-sonnet-4-6)_
