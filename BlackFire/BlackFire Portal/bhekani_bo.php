@@ -564,6 +564,39 @@ try {
 
 $di_ok   = count(array_filter($db_checks, fn($c) => $c['status'] === 'ok'));
 $di_fail = count($db_checks) - $di_ok;
+
+// ── Transaction Audit ─────────────────────────────────────────────────
+try {
+    $tx_summary = db_row("SELECT COUNT(*) AS n, COALESCE(SUM(credit),0) AS tc, COALESCE(SUM(debit),0) AS td, COALESCE(SUM(credit),0)-COALESCE(SUM(debit),0) AS net FROM bf_transactions");
+    $tx_dupes   = db_select("SELECT trans_date, description, credit, debit, COUNT(*) AS cnt FROM bf_transactions GROUP BY trans_date, description, credit, debit HAVING COUNT(*) > 1 ORDER BY cnt DESC LIMIT 20");
+    $tx_by_cat  = db_select("SELECT category, COUNT(*) AS n, COALESCE(SUM(credit),0) AS tc, COALESCE(SUM(debit),0) AS td FROM bf_transactions GROUP BY category ORDER BY tc DESC");
+    $tx_rows    = db_select("SELECT * FROM bf_transactions ORDER BY trans_date ASC, id ASC");
+    $tx_mixed   = (int)(db_row("SELECT COUNT(*) AS n FROM bf_transactions WHERE credit > 0 AND debit > 0")['n'] ?? 0);
+
+    // Add DQ assertions to db_checks
+    $db_checks[] = bhk_db_check(
+        "bf_transactions: no duplicate entries (" . count($tx_dupes) . " dupe group(s))",
+        empty($tx_dupes),
+        'Duplicate = same date+description+credit+debit. Usually caused by double log-payment.',
+        !empty($tx_dupes) ? implode(' | ', array_map(fn($d) => "{$d['trans_date']} [{$d['description']}] x{$d['cnt']}", $tx_dupes)) : ''
+    );
+    $db_checks[] = bhk_db_check(
+        "bf_transactions: no mixed credit+debit rows ($tx_mixed found)",
+        $tx_mixed === 0,
+        'Each row must have credit OR debit — not both. Mutual exclusivity enforced by API.'
+    );
+    $di_ok   = count(array_filter($db_checks, fn($c) => $c['status'] === 'ok'));
+    $di_fail = count($db_checks) - $di_ok;
+
+    $tx_ok = true;
+} catch (\Exception $e) {
+    $tx_ok = false; $tx_summary = null; $tx_dupes = []; $tx_by_cat = []; $tx_rows = []; $tx_mixed = 0;
+    $tx_error = $e->getMessage();
+}
+
+function bhk_fmt(float $n): string {
+    return 'R ' . number_format($n, 2, '.', ',');
+}
 ?>
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
@@ -893,6 +926,135 @@ html[data-theme="dark"] .hchk-detail{color:#f87171}
 </div>
 <!-- /DB Integrity ───────────────────────────────────────── -->
 
+<!-- ── Transaction Audit ─────────────────────────────────── -->
+<?php if ($tx_ok && $tx_summary): ?>
+<div class="hchk" style="margin-top:12px">
+  <div class="hchk-hdr">
+    <h2>&#9679; Transaction Audit</h2>
+    <div class="hchk-summary">
+      <span class="hchk-s-ok"><?= (int)$tx_summary['n'] ?> rows</span>
+      <span style="color:var(--accent2)">Net <?= bhk_fmt((float)$tx_summary['net']) ?></span>
+      <?php if (!empty($tx_dupes)): ?>
+        <span class="hchk-s-fail">&#9888; <?= count($tx_dupes) ?> duplicate group(s)</span>
+      <?php endif; ?>
+    </div>
+  </div>
+
+  <!-- Summary row -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--probe-grid-gap)">
+    <?php foreach ([
+      ['Total Credits', bhk_fmt((float)$tx_summary['tc']), 'hchk-s-ok'],
+      ['Total Debits',  '('.bhk_fmt((float)$tx_summary['td']).')', 'hchk-s-fail'],
+      ['Net Balance',   bhk_fmt((float)$tx_summary['net']), (float)$tx_summary['net']>=0?'hchk-s-ok':'hchk-s-fail'],
+      ['Row Count',     (int)$tx_summary['n'].' rows', ''],
+    ] as [$lbl,$val,$cls]): ?>
+    <div style="background:var(--probe-cell-bg);padding:10px 14px">
+      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em"><?= $lbl ?></div>
+      <div style="font-size:13px;font-weight:700;margin-top:4px" class="<?= $cls ?>"><?= $val ?></div>
+    </div>
+    <?php endforeach; ?>
+  </div>
+
+  <!-- External statement reconciliation -->
+  <div style="padding:12px 16px;border-top:1px solid var(--probe-border);background:var(--probe-cell-bg)">
+    <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Reconciliation — paste external statement closing balance</div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <input type="number" id="bhk-ext-bal" step="0.01" placeholder="e.g. 315416.83"
+        style="background:var(--bg);border:1px solid var(--ctrl-border);color:var(--text);
+               padding:7px 10px;border-radius:4px;font-family:inherit;font-size:12px;width:200px"
+        oninput="bhkCalcDiff(this.value)">
+      <span id="bhk-diff-out" style="font-size:12px;color:var(--muted)">Enter a balance to compare</span>
+    </div>
+  </div>
+
+  <!-- Category breakdown -->
+  <?php if ($tx_by_cat): ?>
+  <div style="padding:12px 16px;border-top:1px solid var(--probe-border)">
+    <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Credits by Category</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <?php foreach ($tx_by_cat as $row): ?>
+      <span style="font-size:11px;background:var(--probe-hdr-bg);border:1px solid var(--probe-border);
+                   padding:3px 8px;border-radius:3px;white-space:nowrap">
+        <?= htmlspecialchars($row['category'] ?: 'Uncategorised', ENT_QUOTES, 'UTF-8') ?>:
+        <strong style="color:var(--accent2)"><?= bhk_fmt((float)$row['tc']) ?></strong>
+        <?php if ($row['td'] > 0): ?>/ <strong style="color:#dc2626">(<?= bhk_fmt((float)$row['td']) ?>)</strong><?php endif; ?>
+      </span>
+      <?php endforeach; ?>
+    </div>
+  </div>
+  <?php endif; ?>
+
+  <!-- Duplicates -->
+  <?php if (!empty($tx_dupes)): ?>
+  <div style="border-top:2px solid #dc2626;padding:12px 16px">
+    <div style="font-size:10px;color:#dc2626;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">&#9888; Duplicate Groups (same date + description + amount)</div>
+    <div class="wrap">
+      <table>
+        <thead><tr><th>Date</th><th>Description</th><th>Credit</th><th>Debit</th><th>Count</th></tr></thead>
+        <tbody>
+          <?php foreach ($tx_dupes as $d): ?>
+          <tr>
+            <td><?= htmlspecialchars($d['trans_date'], ENT_QUOTES, 'UTF-8') ?></td>
+            <td><?= htmlspecialchars($d['description'], ENT_QUOTES, 'UTF-8') ?></td>
+            <td style="color:#16a34a"><?= $d['credit'] > 0 ? bhk_fmt((float)$d['credit']) : '-' ?></td>
+            <td style="color:#dc2626"><?= $d['debit']  > 0 ? bhk_fmt((float)$d['debit'])  : '-' ?></td>
+            <td style="color:#dc2626;font-weight:700"><?= (int)$d['cnt'] ?>&times;</td>
+          </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <?php endif; ?>
+
+  <!-- Running balance table -->
+  <div style="border-top:1px solid var(--probe-border);padding:12px 16px">
+    <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">All Transactions — Running Balance</div>
+    <div class="wrap">
+      <table>
+        <thead><tr><th>ID</th><th>Date</th><th>Description</th><th>Category</th><th>Reference</th><th>Credit</th><th>Debit</th><th>Running Bal</th></tr></thead>
+        <tbody>
+          <?php
+          $running = 0;
+          $dupe_set = [];
+          foreach ($tx_dupes as $d) {
+              $dupe_set["{$d['trans_date']}|{$d['description']}|{$d['credit']}|{$d['debit']}"] = true;
+          }
+          foreach ($tx_rows as $r):
+              $running += (float)$r['credit'] - (float)$r['debit'];
+              $dk = "{$r['trans_date']}|{$r['description']}|{$r['credit']}|{$r['debit']}";
+              $is_dupe = isset($dupe_set[$dk]);
+          ?>
+          <tr <?= $is_dupe ? 'style="background:rgba(220,38,38,.1)"' : '' ?>>
+            <td style="color:var(--muted)"><?= (int)$r['id'] ?></td>
+            <td><?= htmlspecialchars($r['trans_date'], ENT_QUOTES, 'UTF-8') ?></td>
+            <td><?= htmlspecialchars($r['description'], ENT_QUOTES, 'UTF-8') ?><?= $is_dupe ? ' <span style="color:#dc2626;font-size:10px">DUP</span>' : '' ?></td>
+            <td><span style="font-size:10px;border:1px solid var(--border);padding:1px 5px;border-radius:2px"><?= htmlspecialchars($r['category'] ?? '', ENT_QUOTES, 'UTF-8') ?></span></td>
+            <td style="color:var(--muted);font-size:11px"><?= htmlspecialchars($r['reference'] ?? '-', ENT_QUOTES, 'UTF-8') ?></td>
+            <td style="color:#16a34a;text-align:right"><?= (float)$r['credit'] > 0 ? bhk_fmt((float)$r['credit']) : '-' ?></td>
+            <td style="color:#dc2626;text-align:right"><?= (float)$r['debit']  > 0 ? bhk_fmt((float)$r['debit'])  : '-' ?></td>
+            <td style="text-align:right;font-weight:600;color:<?= $running >= 0 ? '#16a34a' : '#dc2626' ?>"><?= bhk_fmt($running) ?></td>
+          </tr>
+          <?php endforeach; ?>
+          <tr style="background:var(--thead-bg);font-weight:700">
+            <td colspan="5">TOTAL</td>
+            <td style="color:#16a34a;text-align:right"><?= bhk_fmt((float)$tx_summary['tc']) ?></td>
+            <td style="color:#dc2626;text-align:right">(<?= bhk_fmt((float)$tx_summary['td']) ?>)</td>
+            <td style="text-align:right;color:<?= (float)$tx_summary['net'] >= 0 ? '#16a34a' : '#dc2626' ?>"><?= bhk_fmt((float)$tx_summary['net']) ?></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<?php elseif (!$tx_ok): ?>
+<div class="hchk" style="margin-top:12px">
+  <div class="hchk-hdr"><h2>&#9679; Transaction Audit</h2></div>
+  <div style="padding:12px 16px;color:#dc2626;font-size:12px">Error: <?= htmlspecialchars($tx_error ?? 'unknown', ENT_QUOTES, 'UTF-8') ?></div>
+</div>
+<?php endif; ?>
+<!-- /Transaction Audit ──────────────────────────────────── -->
+
 <?php foreach ($tables as $tbl):
     $rows  = $data[$tbl];
     $cols  = $rows ? array_keys($rows[0]) : [];
@@ -939,6 +1101,25 @@ if (location.search.includes('logout=1')) {
   const saved = localStorage.getItem('bhk-theme') || 'light';
   document.documentElement.dataset.theme = saved;
 })();
+
+function bhkCalcDiff(val) {
+  const ext = parseFloat(val) || 0;
+  const net = <?= json_encode($tx_ok ? round((float)($tx_summary['net'] ?? 0), 2) : 0) ?>;
+  const out = document.getElementById('bhk-diff-out');
+  if (!ext) { out.textContent = 'Enter a balance to compare'; out.style.color = ''; return; }
+  const diff = net - ext;
+  const abs  = Math.abs(diff).toLocaleString('en-ZA', {minimumFractionDigits:2, maximumFractionDigits:2});
+  if (Math.abs(diff) < 0.01) {
+    out.textContent = '✓ Portal matches statement exactly.';
+    out.style.color = '#16a34a';
+  } else if (diff > 0) {
+    out.textContent = `Portal is R ${abs} HIGHER than statement — check for duplicate credits.`;
+    out.style.color = '#dc2626';
+  } else {
+    out.textContent = `Portal is R ${abs} LOWER than statement — check for missing payment entries.`;
+    out.style.color = '#d97706';
+  }
+}
 
 function toggleTheme() {
   const html = document.documentElement;

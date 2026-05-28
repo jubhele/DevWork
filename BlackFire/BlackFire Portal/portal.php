@@ -113,13 +113,13 @@ $cspNonce = base64_encode(random_bytes(16));
 ═══════════════════════════════════════════════════════ -->
 <!-- Public Nav — always visible across all states -->
 <nav id="pub-nav">
-  <div class="pub-brand" onclick="pubNav('home')">
+  <div class="pub-brand" data-action="pubNav" data-pub-page="home">
     <img src="./blackfire_logo_transparent.png" class="bf-logo-dark" height="60"><img src="./blackfire_logo_transparent.png" class="bf-logo-light" height="60">
   </div>
   <div class="pub-nav-links">
-    <div class="pub-nav-link active" id="pnl-home" onclick="pubNav('home')">Home</div>
-    <div class="pub-nav-link" id="pnl-services" onclick="pubNav('services')">Services</div>
-    <div class="pub-nav-link" id="pnl-contact" onclick="pubNav('contact')">Contact</div>
+    <div class="pub-nav-link active" id="pnl-home" data-action="pubNav" data-pub-page="home">Home</div>
+    <div class="pub-nav-link" id="pnl-services" data-action="pubNav" data-pub-page="services">Services</div>
+    <div class="pub-nav-link" id="pnl-contact" data-action="pubNav" data-pub-page="contact">Contact</div>
   </div>
   <div class="pub-nav-right">
     <button class="theme-btn" data-action="toggleTheme">
@@ -135,11 +135,11 @@ $cspNonce = base64_encode(random_bytes(16));
 
 <!-- Mobile nav dropdown (public site only, hidden until hamburger tapped) -->
 <div id="pub-mob-nav" role="navigation" aria-label="Mobile navigation">
-  <div class="pub-mob-nav-link" id="pmnl-home"     onclick="pubNav('home');closeMobileMenu()">Home</div>
-  <div class="pub-mob-nav-link" id="pmnl-services"  onclick="pubNav('services');closeMobileMenu()">Services</div>
-  <div class="pub-mob-nav-link" id="pmnl-contact"   onclick="pubNav('contact');closeMobileMenu()">Contact</div>
+  <div class="pub-mob-nav-link" id="pmnl-home"     data-action="pubNavMobile" data-pub-page="home">Home</div>
+  <div class="pub-mob-nav-link" id="pmnl-services"  data-action="pubNavMobile" data-pub-page="services">Services</div>
+  <div class="pub-mob-nav-link" id="pmnl-contact"   data-action="pubNavMobile" data-pub-page="contact">Contact</div>
   <div class="pub-mob-nav-divider"></div>
-  <button class="pub-mob-login-btn" data-action="goLogin" onclick="closeMobileMenu()">Umlilo Portal →</button>
+  <button class="pub-mob-login-btn" data-action="goLoginMobile">Umlilo Portal →</button>
 </div>
 
 <div id="pub-site">
@@ -158,8 +158,8 @@ $cspNonce = base64_encode(random_bytes(16));
         <h1 class="hero-title">Security<br><span class="accent">engineered</span><br>to <span class="ember">protect.</span></h1>
         <p class="hero-sub">Integrated security services across Gauteng. Armed response, CCTV, access control, guard deployment - purpose-built for industrial, commercial and residential environments.</p>
         <div class="hero-actions">
-          <button class="btn-primary-lg" onclick="pubNav('contact')">Request a Quote</button>
-          <button class="btn-outline-lg" onclick="pubNav('services')">Our Services</button>
+          <button class="btn-primary-lg" data-action="pubNav" data-pub-page="contact">Request a Quote</button>
+          <button class="btn-outline-lg" data-action="pubNav" data-pub-page="services">Our Services</button>
         </div>
         <div class="hero-stats">
           <div class="hero-stat"><div class="hero-stat-val">500+</div><div class="hero-stat-label">Active Clients</div></div>
@@ -200,7 +200,7 @@ $cspNonce = base64_encode(random_bytes(16));
       <div class="section-eyebrow">Protect What Matters</div>
       <h2 class="h2-display">Ready to secure your site?</h2>
       <p class="text-intro">Get a tailored security assessment and quote within 24 hours.</p>
-      <button class="btn-primary-lg" onclick="pubNav('contact')">Get a Free Assessment</button>
+      <button class="btn-primary-lg" data-action="pubNav" data-pub-page="contact">Get a Free Assessment</button>
       <div class="site-tagline">Fire, taught to behave.</div>
     </div>
 
@@ -214,11 +214,11 @@ $cspNonce = base64_encode(random_bytes(16));
         </div>
         <div>
           <div class="footer-col-title">Services</div>
-          <div class="footer-link" onclick="pubNav('services')">Armed Response</div>
-          <div class="footer-link" onclick="pubNav('services')">CCTV & Surveillance</div>
-          <div class="footer-link" onclick="pubNav('services')">Access Control</div>
-          <div class="footer-link" onclick="pubNav('services')">Guard Services</div>
-          <div class="footer-link" onclick="pubNav('services')">Electronic Security</div>
+          <div class="footer-link" data-action="pubNav" data-pub-page="services">Armed Response</div>
+          <div class="footer-link" data-action="pubNav" data-pub-page="services">CCTV & Surveillance</div>
+          <div class="footer-link" data-action="pubNav" data-pub-page="services">Access Control</div>
+          <div class="footer-link" data-action="pubNav" data-pub-page="services">Guard Services</div>
+          <div class="footer-link" data-action="pubNav" data-pub-page="services">Electronic Security</div>
         </div>
         <div>
           <div class="footer-col-title">Contact</div>
@@ -251,7 +251,7 @@ $cspNonce = base64_encode(random_bytes(16));
     </div>
     <div class="svc-cta">
       <p class="text-intro">Need a custom solution? Let's talk.</p>
-      <button class="btn-primary-lg" onclick="pubNav('contact')">Request a Quote</button>
+      <button class="btn-primary-lg" data-action="pubNav" data-pub-page="contact">Request a Quote</button>
     </div>
     <!-- Footer -->
     <div class="pub-footer">
@@ -263,11 +263,11 @@ $cspNonce = base64_encode(random_bytes(16));
         </div>
         <div>
           <div class="footer-col-title">Services</div>
-          <div class="footer-link" onclick="pubNav('services')">Armed Response</div>
-          <div class="footer-link" onclick="pubNav('services')">CCTV &amp; Surveillance</div>
-          <div class="footer-link" onclick="pubNav('services')">Access Control</div>
-          <div class="footer-link" onclick="pubNav('services')">Guard Services</div>
-          <div class="footer-link" onclick="pubNav('services')">Electronic Security</div>
+          <div class="footer-link" data-action="pubNav" data-pub-page="services">Armed Response</div>
+          <div class="footer-link" data-action="pubNav" data-pub-page="services">CCTV &amp; Surveillance</div>
+          <div class="footer-link" data-action="pubNav" data-pub-page="services">Access Control</div>
+          <div class="footer-link" data-action="pubNav" data-pub-page="services">Guard Services</div>
+          <div class="footer-link" data-action="pubNav" data-pub-page="services">Electronic Security</div>
         </div>
         <div>
           <div class="footer-col-title">Contact</div>
@@ -336,11 +336,11 @@ $cspNonce = base64_encode(random_bytes(16));
         </div>
         <div>
           <div class="footer-col-title">Services</div>
-          <div class="footer-link" onclick="pubNav('services')">Armed Response</div>
-          <div class="footer-link" onclick="pubNav('services')">CCTV &amp; Surveillance</div>
-          <div class="footer-link" onclick="pubNav('services')">Access Control</div>
-          <div class="footer-link" onclick="pubNav('services')">Guard Services</div>
-          <div class="footer-link" onclick="pubNav('services')">Electronic Security</div>
+          <div class="footer-link" data-action="pubNav" data-pub-page="services">Armed Response</div>
+          <div class="footer-link" data-action="pubNav" data-pub-page="services">CCTV &amp; Surveillance</div>
+          <div class="footer-link" data-action="pubNav" data-pub-page="services">Access Control</div>
+          <div class="footer-link" data-action="pubNav" data-pub-page="services">Guard Services</div>
+          <div class="footer-link" data-action="pubNav" data-pub-page="services">Electronic Security</div>
         </div>
         <div>
           <div class="footer-col-title">Contact</div>
@@ -377,15 +377,15 @@ $cspNonce = base64_encode(random_bytes(16));
       <div id="login-error" class="login-error">Incorrect username or password.</div>
       <div class="login-group">
         <label class="login-label">Username</label>
-        <input class="login-input" id="l-user" placeholder="username" onkeydown="if(event.key==='Enter') doLogin()">
+        <input class="login-input" id="l-user" placeholder="username">
       </div>
       <div class="login-group">
         <label class="login-label">Password</label>
-        <input class="login-input" type="password" id="l-pass" placeholder="password" onkeydown="if(event.key==='Enter') doLogin()">
+        <input class="login-input" type="password" id="l-pass" placeholder="password">
       </div>
       <div class="login-group">
         <label class="login-label" id="captcha-question">Security check: loading…</label>
-        <input class="login-input" type="number" id="l-captcha" placeholder="answer" onkeydown="if(event.key==='Enter') doLogin()" autocomplete="off">
+        <input class="login-input" type="number" id="l-captcha" placeholder="answer" autocomplete="off">
       </div>
       <button class="btn-login-submit" data-action="doLogin">Sign In</button>
       <div class="login-footer">
@@ -408,7 +408,7 @@ $cspNonce = base64_encode(random_bytes(16));
       <div id="forgot-msg" class="login-error"></div>
       <div class="login-group">
         <label class="login-label">Username</label>
-        <input class="login-input" id="fp-user" placeholder="your username" onkeydown="if(event.key==='Enter') doRequestReset()">
+        <input class="login-input" id="fp-user" placeholder="your username">
       </div>
       <button class="btn-login-submit" data-action="doRequestReset">Send Reset Email</button>
       <div class="login-footer">
@@ -429,11 +429,11 @@ $cspNonce = base64_encode(random_bytes(16));
       <div id="newpass-msg" class="login-error"></div>
       <div class="login-group">
         <label class="login-label">New Password</label>
-        <input class="login-input" type="password" id="np-pass1" placeholder="new password" onkeydown="if(event.key==='Enter') doResetPassword()">
+        <input class="login-input" type="password" id="np-pass1" placeholder="new password">
       </div>
       <div class="login-group">
         <label class="login-label">Confirm Password</label>
-        <input class="login-input" type="password" id="np-pass2" placeholder="confirm password" onkeydown="if(event.key==='Enter') doResetPassword()">
+        <input class="login-input" type="password" id="np-pass2" placeholder="confirm password">
       </div>
       <button class="btn-login-submit" data-action="doResetPassword">Set New Password</button>
     </div>
@@ -519,7 +519,7 @@ $cspNonce = base64_encode(random_bytes(16));
             <div class="fgroup ffull"><label class="flbl">Service</label><select class="finput" id="pcf-svc"><option>Armed Response</option><option>CCTV</option><option>Access Control</option><option>Guard Services</option><option>Risk Assessment</option><option>Other</option></select></div>
             <div class="fgroup ffull"><label class="flbl">Message</label><textarea class="finput" rows="3" placeholder="Requirements..."></textarea></div>
           </div>
-          <div class="mt2"><button class="btn btn-p btn-full" onclick="toast('Enquiry submitted - we\'ll be in touch.','ok')">Submit Enquiry</button></div>
+          <div class="mt2"><button class="btn btn-p btn-full" data-action="submitEnquiry">Submit Enquiry</button></div>
         </div>
       </div>
     </div>
@@ -531,7 +531,7 @@ $cspNonce = base64_encode(random_bytes(16));
           <div class="ptitle">Dashboard</div>
           <div class="psub" id="dash-sub">AECI CHEMPARK  -  OVERVIEW</div>
         </div>
-        <button class="btn btn-g btn-s dash-edit-btn" onclick="showDashEditor()">
+        <button class="btn btn-g btn-s dash-edit-btn" data-action="showDashEditor">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="svg-icon-inline"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit Layout
         </button>
       </div>
@@ -546,7 +546,7 @@ $cspNonce = base64_encode(random_bytes(16));
         <div class="kcard kcard--flex kcard--debits"><div class="klbl">Debits</div><div class="kval kval--lg kval--ovr" id="tx-debits">R0</div></div>
         <div class="kcard kcard--flex kcard--net"><div class="klbl">Net</div><div class="kval kval--lg" id="tx-net">R0</div></div>
       </div>
-      <div class="srow"><input type="text" class="sinput" placeholder="Search..." oninput="renderTransactions(this.value)"><button class="btn btn-p btn-s" data-action="openTxModal">+ Log Transaction</button></div>
+      <div class="srow"><input type="text" class="sinput" id="tx-search" placeholder="Search..."><button class="btn btn-p btn-s" data-action="openTxModal">+ Log Transaction</button></div>
       <div class="panel"><div class="tw"><table><thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Ref</th><th>Credit</th><th>Debit</th></tr></thead><tbody id="tx-table"></tbody></table></div></div>
     </div>
 
@@ -554,9 +554,9 @@ $cspNonce = base64_encode(random_bytes(16));
     <div id="p-invoices" class="ppage">
       <div class="ptitle">Invoices</div><div class="psub">BILLING  -  PAYMENT TRACKING</div>
       <div class="srow">
-        <input type="text" class="sinput" placeholder="Search invoices..." oninput="renderInvoices(this.value)">
-        <select class="sinput sinput-narrow" onchange="renderInvoices('',this.value)"><option value="">All</option><option>Draft</option><option>Sent</option><option>Paid</option><option>Overdue</option></select>
-        <button class="btn btn-p btn-s" id="btn-newinv" onclick="showPortalPage('p-new-invoice',null)">+ New Invoice</button>
+        <input type="text" class="sinput" id="inv-search" placeholder="Search invoices...">
+        <select class="sinput sinput-narrow" id="inv-filter"><option value="">All</option><option>Draft</option><option>Sent</option><option>Paid</option><option>Overdue</option></select>
+        <button class="btn btn-p btn-s" id="btn-newinv" data-action="navPage" data-page="p-new-invoice">+ New Invoice</button>
       </div>
       <div class="panel"><div class="tw"><table><thead><tr><th>Invoice #</th><th>Client</th><th>Amount</th><th>Due</th><th>Status</th><th>Actions</th></tr></thead><tbody id="inv-table"></tbody></table></div></div>
     </div>
@@ -565,9 +565,9 @@ $cspNonce = base64_encode(random_bytes(16));
     <div id="p-quotes" class="ppage">
       <div class="ptitle">Quotes</div><div class="psub">PROPOSALS  -  APPROVALS</div>
       <div class="srow">
-        <input type="text" class="sinput" placeholder="Search quotes..." oninput="renderQuotes(this.value)">
-        <select class="sinput sinput-narrow" onchange="renderQuotes('',this.value)"><option value="">All</option><option>Draft</option><option>Sent</option><option>Pending Approval</option><option>Approved</option><option>Declined</option></select>
-        <button class="btn btn-p btn-s" id="btn-newq" onclick="showPortalPage('p-new-quote',null)">+ New Quote</button>
+        <input type="text" class="sinput" id="qte-search" placeholder="Search quotes...">
+        <select class="sinput sinput-narrow" id="qte-filter"><option value="">All</option><option>Draft</option><option>Sent</option><option>Pending Approval</option><option>Approved</option><option>Declined</option></select>
+        <button class="btn btn-p btn-s" id="btn-newq" data-action="navPage" data-page="p-new-quote">+ New Quote</button>
       </div>
       <div class="panel"><div class="tw"><table><thead><tr><th>Quote #</th><th>Client</th><th>Total</th><th>Submitted By</th><th>Valid Until</th><th>Status</th><th>Actions</th></tr></thead><tbody id="qte-table"></tbody></table></div></div>
     </div>
@@ -576,9 +576,9 @@ $cspNonce = base64_encode(random_bytes(16));
     <div id="p-callouts" class="ppage">
       <div class="ptitle">Callouts</div><div class="psub">JOB TICKETS  -  FIELD OPERATIONS</div>
       <div class="srow">
-        <input type="text" class="sinput" placeholder="Search callouts..." oninput="renderCallouts(this.value)">
-        <select class="sinput sinput-narrow" onchange="renderCallouts('',this.value)"><option value="">All</option><option>Open</option><option>In Progress</option><option>Completed</option><option>Invoiced</option></select>
-        <button class="btn btn-p btn-s" id="btn-newco" onclick="showPortalPage('p-new-callout',null)">+ Log Call</button>
+        <input type="text" class="sinput" id="co-search" placeholder="Search callouts...">
+        <select class="sinput sinput-narrow" id="co-filter"><option value="">All</option><option>Open</option><option>In Progress</option><option>Completed</option><option>Invoiced</option></select>
+        <button class="btn btn-p btn-s" id="btn-newco" data-action="navPage" data-page="p-new-callout">+ Log Call</button>
       </div>
       <div class="panel"><div class="tw">
         <table>
@@ -598,6 +598,12 @@ $cspNonce = base64_encode(random_bytes(16));
     <div id="p-statement" class="ppage">
       <div class="ptitle">Account Statement</div><div class="psub">AECI CHEMPARK  -  LEDGER</div>
       <div id="stmt-content"></div>
+    </div>
+
+    <!-- RECONCILIATION -->
+    <div id="p-reconcile" class="ppage">
+      <div class="ptitle">Reconciliation</div><div class="psub">PORTAL vs STATEMENT</div>
+      <div id="recon-content"></div>
     </div>
 
     <!-- INCOME STATEMENT -->
@@ -700,8 +706,8 @@ $cspNonce = base64_encode(random_bytes(16));
       <div class="ptitle">Clients</div>
       <div class="psub">CLIENT ACCOUNTS  -  CONTACT RECORDS</div>
       <div class="srow">
-        <input type="text" class="sinput" placeholder="Search clients..." oninput="renderClients(this.value)">
-        <button class="btn btn-p btn-s" onclick="openClientModal(null)">+ Add Client</button>
+        <input type="text" class="sinput" id="cli-search" placeholder="Search clients...">
+        <button class="btn btn-p btn-s" data-action="openClientModal">+ Add Client</button>
       </div>
       <div class="panel">
         <div class="tw">
@@ -718,7 +724,7 @@ $cspNonce = base64_encode(random_bytes(16));
       <div class="modal-box modal-box--lg">
         <div class="modal-hdr">
           <div class="modal-title" id="client-modal-title">Add Client</div>
-          <button class="modal-close" onclick="closeClientModal()">&#x2715;</button>
+          <button class="modal-close" data-action="closeClientModal">&#x2715;</button>
         </div>
         <div class="modal-body">
           <input type="hidden" id="cm-id">
@@ -734,8 +740,8 @@ $cspNonce = base64_encode(random_bytes(16));
           </div>
         </div>
         <div class="modal-footer flex-end">
-          <button class="btn btn-g" onclick="closeClientModal()">Cancel</button>
-          <button class="btn btn-p" onclick="saveClient()">Save Client</button>
+          <button class="btn btn-g" data-action="closeClientModal">Cancel</button>
+          <button class="btn btn-p" data-action="saveClient">Save Client</button>
         </div>
       </div>
     </div>
@@ -749,8 +755,8 @@ $cspNonce = base64_encode(random_bytes(16));
       <div class="ptitle">Safety Files</div>
       <div class="psub">CONTRACTOR SHE &mdash; BF-SHE-FRM-010</div>
       <div class="srow">
-        <input type="text" class="sinput" placeholder="Search contractors..." oninput="renderSafetyFiles(this.value)">
-        <select class="sinput sinput-narrow" id="sf-filter-status" onchange="renderSafetyFiles()">
+        <input type="text" class="sinput" id="sf-search" placeholder="Search contractors...">
+        <select class="sinput sinput-narrow" id="sf-filter-status">
           <option value="">All Files</option>
           <option value="Draft">Draft</option>
           <option value="In Progress">In Progress</option>
@@ -758,7 +764,7 @@ $cspNonce = base64_encode(random_bytes(16));
           <option value="Approved">Approved</option>
         </select>
         <button class="btn btn-p btn-s" data-action="newSafetyAudit">+ New Audit</button>
-        <a class="btn btn-g btn-s" href="reports.php" style="text-decoration:none">Reports</a>
+        <a class="btn btn-g btn-s" href="reports.php">Reports</a>
       </div>
       <div id="safety-reminders" class="safety-reminders"></div>
       <div id="safety-files-grid" class="safety-grid"></div>
@@ -808,7 +814,7 @@ $cspNonce = base64_encode(random_bytes(16));
           </div>
 
           <div class="mt3 saf-action-row">
-            <button class="btn btn-g" onclick="showPortalPage('p-safety',null); renderSafetyFiles()">Cancel</button>
+            <button class="btn btn-g" data-action="navSafety">Cancel</button>
             <button class="btn btn-g" data-action="saveSafetyDraft">Save Draft</button>
             <button class="btn btn-p" data-action="submitSafetyAudit">Submit Audit</button>
           </div>
@@ -851,12 +857,12 @@ $cspNonce = base64_encode(random_bytes(16));
           <div class="psub" id="saf-detail-sub"></div>
         </div>
         <div class="saf-detail-actions">
-          <button class="btn btn-g btn-s" onclick="showPortalPage('p-safety',null); renderSafetyFiles()">&#8592; Back</button>
+          <button class="btn btn-g btn-s" data-action="navSafety">&#8592; Back</button>
           <button class="btn btn-g btn-s" data-action="editSafetyFile">Edit</button>
-          <button class="btn btn-g btn-s" onclick="safGenerateTracker(document.getElementById('saf-detail-content').dataset.fileId)" title="Generate contractor action-plan tracker as a downloadable HTML file">&#8659; Tracker</button>
-          <button class="btn btn-s saf-approve-btn" id="saf-approve-btn" class="btn-approve-action" onclick="approveSafetyFile()">&#10003; Approve</button>
-          <button class="btn btn-s" id="saf-deactivate-btn" class="btn-deactivate-action" onclick="deactivateSafetyFile()" title="Deactivate this safety file — record is retained for audit">&#128465; Deactivate</button>
-          <button class="btn btn-p btn-s" onclick="safDownloadPack(document.getElementById('saf-detail-content').dataset.fileId)" title="Download full safety file report as standalone HTML">&#8595; Download Pack</button>
+          <button class="btn btn-g btn-s" data-action="safGenerateTracker" title="Generate contractor action-plan tracker as a downloadable HTML file">&#8659; Tracker</button>
+          <button class="btn btn-s saf-approve-btn btn-approve-action" id="saf-approve-btn" data-action="approveSafetyFile">&#10003; Approve</button>
+          <button class="btn btn-s btn-deactivate-action" id="saf-deactivate-btn" data-action="deactivateSafetyFile" title="Deactivate this safety file — record is retained for audit">&#128465; Deactivate</button>
+          <button class="btn btn-p btn-s" data-action="safDownloadPack" title="Download full safety file report as standalone HTML">&#8595; Download Pack</button>
         </div>
       </div>
       <div id="saf-detail-content"></div>
@@ -865,7 +871,7 @@ $cspNonce = base64_encode(random_bytes(16));
     <!-- AUDIT LOG -->
     <div id="p-audit" class="ppage">
       <div class="ptitle">Audit Log</div><div class="psub">SECURITY  -  ACCESS RECORDS</div>
-      <div class="srow"><input type="text" class="sinput" placeholder="Filter log..." oninput="filterAudit(this.value)"></div>
+      <div class="srow"><input type="text" class="sinput" id="audit-search" placeholder="Filter log..."></div>
       <div class="panel"><div id="audit-list"></div></div>
     </div>
 
@@ -877,7 +883,7 @@ $cspNonce = base64_encode(random_bytes(16));
       </div>
       <div class="panel">
         <div class="perm-toggle-bar">
-          <button class="btn btn-g btn-s" id="perm-cols-btn" onclick="togglePermCols()">&#9664; Collapse Permissions</button>
+          <button class="btn btn-g btn-s" id="perm-cols-btn" data-action="togglePermCols">&#9664; Collapse Permissions</button>
         </div>
         <div class="tw"><table id="users-rbac-table"><thead>
           <tr>
@@ -924,7 +930,7 @@ $cspNonce = base64_encode(random_bytes(16));
 </div><!-- /portal-shell -->
 
 <!-- INFO / GUIDE PANEL -->
-<div id="info-overlay" onclick="toggleInfoMode()"></div>
+<div id="info-overlay" data-action="toggleInfoMode"></div>
 <div id="info-panel" role="complementary" aria-label="Page Guide">
   <div id="info-panel-hdr">
     <div>
@@ -937,7 +943,7 @@ $cspNonce = base64_encode(random_bytes(16));
 </div>
 
 <!-- MODAL -->
-<div id="modal-overlay" onclick="closeModal(event)">
+<div id="modal-overlay" data-action="closeModalBackdrop">
   <div class="modal"><div class="mhdr"><div class="mttl" id="modal-ttl"></div><button class="mclose" data-action="closeModalDirect">✕</button></div><div class="mbdy" id="modal-bdy"></div></div>
 </div>
 

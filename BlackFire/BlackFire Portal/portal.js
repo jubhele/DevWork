@@ -830,6 +830,7 @@ const NAV_CONFIG = [
       { id:'p-statement',         label:'Statements',       perm:'finance.statement' },
       { id:'p-transactions',      label:'Transactions',     perm:'finance.transactions' },
       { id:'p-income',            label:'Income Stmt',      perm:'finance.income' },
+      { id:'p-reconcile',         label:'Reconciliation',   perm:'finance.transactions' },
       { id:'p-clients',           label:'Clients',          perm:'clients.view' },
     ],
   },
@@ -1242,6 +1243,28 @@ const PAGE_INFO = {
       { q: 'Can I export to Excel?', a: 'PDF download is available. Excel export is on the roadmap — submit a suggestion below to prioritise it.' },
     ],
     linked: 'Transactions, Invoices.',
+    access: ['admin','sysadmin','manager','admin_clerk'],
+  },
+  'p-reconcile': {
+    title: 'Reconciliation',
+    sub: 'Portal vs external statement',
+    purpose: 'Compare the portal\'s transaction total against your bank or client statement to identify missing, duplicate, or incorrect entries.',
+    steps: [
+      'Enter the closing balance from your external statement in the input at the top.',
+      'The portal calculates its own net balance and shows the difference.',
+      'Review the transactions listed — look for duplicates or entries that don\'t match the statement.',
+      'Log any missing transactions via the Transactions page, then refresh.',
+    ],
+    tips: [
+      'A zero difference means the portal matches the statement exactly.',
+      'Positive difference (portal > statement) usually means a duplicate credit in the portal.',
+      'Negative difference (portal < statement) usually means a missing payment entry.',
+    ],
+    faqs: [
+      { q: 'Where does the portal balance come from?', a: 'It is SUM(credit) − SUM(debit) across all rows in the Transactions ledger.' },
+      { q: 'Can I delete a duplicate transaction?', a: 'Only Admins can delete transactions. Use the Transactions page to identify and remove duplicates.' },
+    ],
+    linked: 'Transactions, Income Statement.',
     access: ['admin','sysadmin','manager','admin_clerk'],
   },
   'p-clients': {
@@ -1862,6 +1885,7 @@ function showPortalPage(id, el){
     'p-timeline':     async()=>{ renderTimeline(); },
     'p-statement':    async()=>{ renderStatement(); },
     'p-income':       async()=>{ await Promise.all([refreshInvoices(), refreshTransactions()]); renderIncome(); },
+    'p-reconcile':    async()=>{ await refreshTransactions(); renderReconcile(); },
     'p-log-payment':  async()=>{ await refreshInvoices(); renderPayList(); },
     'p-audit':        async()=>{ const r=await api('GET','audit.php?limit=200'); AUDIT_LOG=(r.data||[]).map(e=>({ts:e.created_at?.slice(11,19)||'',user:e.username,role:'',action:e.action,detail:e.detail,level:'info'})); renderAudit(); },
     'p-home':         async()=>{ renderPortalHome(); },
@@ -2980,6 +3004,137 @@ function renderIncome(){
     <div class="sumrow tot"><span>Gross Profit</span><span class="mono">${fmt(gross)}</span></div>
     <div class="sumrow sm"><span>Tax @ 28%</span><span class="mono">(${fmt(tax)})</span></div>
     <div class="sumrow tot ${netPos?'text-ok':'text-ovr'}"><span>Net ${netPos?'Profit':'Loss'}</span><span class="mono">${fmt(Math.abs(net))}</span></div>`;
+}
+
+/* ═══════════════════════════════════════════════════════
+   RECONCILIATION
+═══════════════════════════════════════════════════════ */
+function renderReconcile(){
+  const txns = [...proxyDB.bank].sort((a,b)=>a.date.localeCompare(b.date));
+  const totalCredits = txns.reduce((s,t)=>s+(t.credit||0),0);
+  const totalDebits  = txns.reduce((s,t)=>s+(t.debit||0),0);
+  const portalNet    = totalCredits - totalDebits;
+
+  // Duplicate detection: same date + desc + credit + debit
+  const seen = {};
+  txns.forEach(t=>{
+    const k=`${t.date}|${t.desc}|${t.credit||0}|${t.debit||0}`;
+    seen[k]=(seen[k]||0)+1;
+  });
+  const dupeKeys = new Set(Object.keys(seen).filter(k=>seen[k]>1));
+
+  // Category breakdown
+  const byCat = {};
+  txns.forEach(t=>{
+    const c=t.cat||t.category||'Uncategorised';
+    if(!byCat[c]) byCat[c]={cr:0,db:0};
+    byCat[c].cr+=(t.credit||0);
+    byCat[c].db+=(t.debit||0);
+  });
+
+  const savedExternal = parseFloat(localStorage.getItem('bf_recon_ext')||'0');
+
+  document.getElementById('recon-content').innerHTML=`
+    <div class="panel mb2">
+      <div class="ph"><div class="ph-title">Statement Comparison</div></div>
+      <div class="pb">
+        <div class="fgrid" style="max-width:480px">
+          <div class="fgroup ffull">
+            <label class="flbl">External Statement Closing Balance (R)</label>
+            <input type="number" class="finput" id="recon-ext" value="${savedExternal||''}" placeholder="Paste balance from your statement" step="0.01">
+          </div>
+        </div>
+        <div id="recon-diff-box" class="mt2"></div>
+      </div>
+    </div>
+
+    <div class="twocol mb2">
+      <div class="panel">
+        <div class="ph"><div class="ph-title">Portal Totals</div></div>
+        <div class="pb">
+          <div class="sumrow"><span>Total Credits</span><span class="mono text-ok">${fmt(totalCredits)}</span></div>
+          <div class="sumrow"><span>Total Debits</span><span class="mono text-ovr">(${fmt(totalDebits)})</span></div>
+          <div class="sumrow tot"><span>Net Balance</span><span class="mono">${fmt(portalNet)}</span></div>
+          <div class="sumrow sm text-muted"><span>Transactions</span><span class="mono">${txns.length}</span></div>
+          ${dupeKeys.size>0?`<div class="sumrow sm text-ovr"><span>⚠ Possible duplicates</span><span class="mono">${dupeKeys.size} group(s)</span></div>`:''}
+        </div>
+      </div>
+      <div class="panel">
+        <div class="ph"><div class="ph-title">Credits by Category</div></div>
+        <div class="pb">
+          ${Object.entries(byCat).sort((a,b)=>b[1].cr-a[1].cr).map(([cat,v])=>`
+            <div class="sumrow"><span>${esc(cat)}</span><span class="mono ${v.cr>0?'text-ok':'text-ovr'}">${v.cr>0?fmt(v.cr):'('+fmt(v.db)+')'}</span></div>
+          `).join('')||'<div class="pl-row-empty">No data</div>'}
+        </div>
+      </div>
+    </div>
+
+    ${dupeKeys.size>0?`
+    <div class="panel mb2" style="border-top:2px solid var(--pill-ovr)">
+      <div class="ph"><div class="ph-title">⚠ Possible Duplicate Transactions</div></div>
+      <div class="pb">
+        <table class="dtable">
+          <thead><tr><th>Date</th><th>Description</th><th>Credit</th><th>Debit</th><th>Count</th></tr></thead>
+          <tbody>${[...dupeKeys].map(k=>{const [date,desc,cr,db]=k.split('|');return`<tr>
+            <td>${esc(date)}</td><td>${esc(desc)}</td>
+            <td class="amt text-ok">${parseFloat(cr)>0?fmt(parseFloat(cr)):'-'}</td>
+            <td class="amt text-ovr">${parseFloat(db)>0?fmt(parseFloat(db)):'-'}</td>
+            <td style="color:var(--pill-ovr-txt);font-weight:bold">${seen[k]}×</td>
+          </tr>`;}).join('')}</tbody>
+        </table>
+      </div>
+    </div>`:''}
+
+    <div class="panel">
+      <div class="ph"><div class="ph-title">All Transactions — Running Balance</div></div>
+      <div class="pb">
+        <table class="dtable">
+          <thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Ref</th><th>Credit</th><th>Debit</th><th>Running Bal</th></tr></thead>
+          <tbody>${(()=>{
+            let run=0;
+            return txns.map(t=>{
+              run+=(t.credit||0)-(t.debit||0);
+              const k=`${t.date}|${t.desc}|${t.credit||0}|${t.debit||0}`;
+              const isDupe=dupeKeys.has(k);
+              return`<tr ${isDupe?'style="background:rgba(244,67,54,.08)"':''}>
+                <td class="nowrap">${fmtD(t.date)}</td>
+                <td>${esc(t.desc)}${isDupe?' <span style="color:var(--pill-ovr-txt);font-size:10px">DUP</span>':''}</td>
+                <td><span class="mlbl-9">${esc(t.cat||t.category||'')}</span></td>
+                <td class="mono" style="font-size:11px">${esc(t.ref||'-')}</td>
+                <td class="amt text-ok">${(t.credit||0)>0?fmt(t.credit):'-'}</td>
+                <td class="amt text-ovr">${(t.debit||0)>0?fmt(t.debit):'-'}</td>
+                <td class="amt ${run>=0?'text-ok':'text-ovr'}">${fmt(run)}</td>
+              </tr>`;
+            }).join('');
+          })()}</tbody>
+        </table>
+      </div>
+    </div>`;
+
+  // Attach live diff calculator
+  const extInput = document.getElementById('recon-ext');
+  function calcDiff(){
+    const ext = parseFloat(extInput.value)||0;
+    localStorage.setItem('bf_recon_ext', ext);
+    const diff = portalNet - ext;
+    const box  = document.getElementById('recon-diff-box');
+    if(!ext){ box.innerHTML=''; return; }
+    const sign = diff>0?'+':'';
+    const cls  = Math.abs(diff)<0.01?'text-ok':diff>0?'text-ovr':'text-amber';
+    const msg  = Math.abs(diff)<0.01
+      ? '✓ Portal matches statement exactly.'
+      : diff>0
+        ? `Portal is ${fmt(Math.abs(diff))} higher than statement — check for duplicate credits or unmatched debit entries.`
+        : `Portal is ${fmt(Math.abs(diff))} lower than statement — check for missing payment entries.`;
+    box.innerHTML=`<div class="sumbox" style="margin:0">
+      <div class="sumrow"><span>External Statement</span><span class="mono">${fmt(ext)}</span></div>
+      <div class="sumrow"><span>Portal Net Balance</span><span class="mono">${fmt(portalNet)}</span></div>
+      <div class="sumrow tot ${cls}"><span>Difference (Portal − Statement)</span><span class="mono">${sign}${fmt(diff)}</span></div>
+      <div style="margin-top:8px;font-size:12px;color:var(--text-muted)">${msg}</div>
+    </div>`;
+  }
+  extInput.addEventListener('input', calcDiff);
+  if(savedExternal) calcDiff();
 }
 
 /* ═══════════════════════════════════════════════════════
