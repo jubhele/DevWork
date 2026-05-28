@@ -1762,14 +1762,16 @@ function renderDashboard(){
 
   // KPI cards — build only the ones the user has on and can see
   const kpiCards=[];
+  const kv=(v)=>String(v).length>8?' kval--compact':'';
   if(showOps){
-    kpiCards.push(`<div class="kcard k1"><div class="klbl">Open Callouts</div><div class="kval">${open}</div><div class="ksub">Active on site</div></div>`);
-    if(can('quote.view')) kpiCards.push(`<div class="kcard k3"><div class="klbl">Pending Quotes</div><div class="kval">${pq}</div><div class="ksub">Awaiting approval</div></div>`);
+    const sOpen=String(open), sPq=String(pq);
+    kpiCards.push(`<div class="kcard k1"><div class="klbl">Open Callouts</div><div class="kval${kv(sOpen)}">${sOpen}</div><div class="ksub">Active on site</div></div>`);
+    if(can('quote.view')) kpiCards.push(`<div class="kcard k3"><div class="klbl">Pending Quotes</div><div class="kval${kv(sPq)}">${sPq}</div><div class="ksub">Awaiting approval</div></div>`);
   }
   if(showFin){
     const fmtMtd=fmt(mtd), fmtNet=fmt(net);
-    if(can('invoice.view')) kpiCards.push(`<div class="kcard k2"><div class="klbl">Invoiced MTD</div><div class="kval${fmtMtd.length>8?' kval--compact':''}">${fmtMtd}</div><div class="ksub">Month to date</div></div>`);
-    if(can('finance.income')) kpiCards.push(`<div class="kcard k4"><div class="klbl">Net Balance</div><div class="kval${fmtNet.length>8?' kval--compact':''}">${fmtNet}</div><div class="ksub">Credits − Debits</div></div>`);
+    if(can('invoice.view')) kpiCards.push(`<div class="kcard k2"><div class="klbl">Invoiced MTD</div><div class="kval${kv(fmtMtd)}">${fmtMtd}</div><div class="ksub">Month to date</div></div>`);
+    if(can('finance.income')) kpiCards.push(`<div class="kcard k4"><div class="klbl">Net Balance</div><div class="kval${kv(fmtNet)}">${fmtNet}</div><div class="ksub">Credits − Debits</div></div>`);
   }
 
   // Alerts
