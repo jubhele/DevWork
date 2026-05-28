@@ -72,7 +72,7 @@ function current_user(): ?array {
     // ── Path 2: Bearer token (mobile) ───────────────────────────
     $headers = function_exists('getallheaders') ? getallheaders() : [];
     $auth_header = $headers['Authorization'] ?? $headers['authorization'] ?? '';
-    if (!str_starts_with($auth_header, 'Bearer ')) return null;
+    if (substr($auth_header, 0, 7) !== 'Bearer ') return null;
 
     $raw_token = substr($auth_header, 7);
     if (strlen($raw_token) < 16) return null;

@@ -34,3 +34,7 @@ Active model: Sonnet 4.6  Status: correct
 - Per-item evidence binding uses a compound key `{file_ref}:{sec}:{item_no}` stored in the existing `entity_ref VARCHAR(50)` column — no schema migration needed
 - `json_ok()` merges the data array at the top level (not nested under `data`), so upload response is `r.attachment` not `r.data.attachment`
 _Session ended: 2026-05-28 10:28:59 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-28 10:33:33 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-28 10:39:03 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-28 10:50:07 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-28 11:01:22 (Claude Code / claude-sonnet-4-6)_
