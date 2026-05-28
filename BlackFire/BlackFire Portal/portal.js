@@ -1767,13 +1767,14 @@ function renderDashboard(){
     if(can('quote.view')) kpiCards.push(`<div class="kcard k3"><div class="klbl">Pending Quotes</div><div class="kval">${pq}</div><div class="ksub">Awaiting approval</div></div>`);
   }
   if(showFin){
-    if(can('invoice.view')) kpiCards.push(`<div class="kcard k2"><div class="klbl">Invoiced MTD</div><div class="kval">${fmt(mtd)}</div><div class="ksub">Month to date</div></div>`);
-    if(can('finance.income')) kpiCards.push(`<div class="kcard k4"><div class="klbl">Net Balance</div><div class="kval">${fmt(net)}</div><div class="ksub">Credits − Debits</div></div>`);
+    const fmtMtd=fmt(mtd), fmtNet=fmt(net);
+    if(can('invoice.view')) kpiCards.push(`<div class="kcard k2"><div class="klbl">Invoiced MTD</div><div class="kval${fmtMtd.length>8?' kval--compact':''}">${fmtMtd}</div><div class="ksub">Month to date</div></div>`);
+    if(can('finance.income')) kpiCards.push(`<div class="kcard k4"><div class="klbl">Net Balance</div><div class="kval${fmtNet.length>8?' kval--compact':''}">${fmtNet}</div><div class="ksub">Credits − Debits</div></div>`);
   }
 
   // Alerts
   const overdue=proxyDB.invoices.filter(i=>i.status==='Overdue').length;
-  const urgent=proxyDB.callouts.filter(c=>c.priority==='Urgent'||c.priority==='Emergency').length;
+  const urgent=proxyDB.callouts.filter(c=>(c.priority==='Urgent'||c.priority==='Emergency')&&(c.status==='Open'||c.status==='In Progress')).length;
   const pendingQA=proxyDB.quotes.filter(q=>q.approvalStatus==='pending').length;
   let alertsHtml='';
   if(showAlrt){
@@ -1894,7 +1895,7 @@ function renderOpsDashboard() {
   const now = new Date();
   const open       = proxyDB.callouts.filter(c => c.status === 'Open').length;
   const inProg     = proxyDB.callouts.filter(c => c.status === 'In Progress').length;
-  const urgent     = proxyDB.callouts.filter(c => c.priority === 'Urgent' || c.priority === 'Emergency').length;
+  const urgent     = proxyDB.callouts.filter(c => (c.priority === 'Urgent' || c.priority === 'Emergency') && (c.status === 'Open' || c.status === 'In Progress')).length;
   const pendingQA  = proxyDB.quotes.filter(q => q.approvalStatus === 'pending').length;
   const qMTD       = proxyDB.quotes.filter(q => { const d=new Date(q.date+'T00:00:00'); return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear(); }).length;
   const recent     = [...proxyDB.callouts].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,6);
