@@ -1374,3 +1374,62 @@ textarea.saf-cmt { resize:vertical; min-height:28px; width:100% }
   .footer-bottom{flex-direction:column;gap:4px;text-align:center}
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   CSP UTILITY CLASSES
+   Replaces inline style= attributes so style-src 'unsafe-inline'
+   can be removed from the Content Security Policy.
+   ════════════════════════════════════════════════════════════ */
+
+/* Initial hidden state for JS-toggled elements */
+#cf-success,
+#forgot-panel,
+#forgot-msg,
+#newpass-panel,
+#newpass-msg,
+#nq-pending-notice,
+#client-modal,
+#users-create-bar,
+#users-th-actions,
+#saf-approve-btn,
+#saf-deactivate-btn { display: none; }
+
+/* Inline SVG icon alignment */
+.svg-icon-inline { vertical-align: -2px; margin-right: 5px; }
+
+/* Safety file action button variants */
+.btn-approve-action {
+  background: var(--grn-glow, #dcfce7);
+  border-color: var(--green, #16a34a);
+  color: var(--green, #16a34a);
+}
+.btn-deactivate-action {
+  background: #fee2e2;
+  border-color: #dc2626;
+  color: #dc2626;
+}
+
+/* Quote line item column widths */
+.li-qty   { width: 60px; }
+.li-price { width: 90px; }
+.li-total { font-size: 11px; }
+
+/* Statement panel states */
+.stmt-loading {
+  text-align: center;
+  padding: 32px;
+  color: var(--muted);
+  font-style: italic;
+}
+.stmt-error { padding: 16px; color: var(--pill-ovr-txt); }
+
+/* Table empty state cell */
+.tbl-empty-cell { text-align: center; color: var(--muted); }
+
+/* Safety file empty state icon */
+.empty-icon-lg { font-size: 40px; margin-bottom: 8px; }
+
+/* Audit table column widths */
+.col-num    { width: 36px; }
+.col-ref    { width: 60px; }
+.col-status { width: 130px; }
+

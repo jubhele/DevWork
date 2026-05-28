@@ -2433,7 +2433,7 @@ function initNewQuote(){
 }
 function addLine(){
   const r=document.createElement('tr');
-  r.innerHTML=`<td><input class="liinput" placeholder="Service / item description" oninput="recalcQ()"></td><td><input class="liinput" type="number" value="1" min="0" style="width:60px" oninput="recalcQ()"></td><td><input class="liinput" type="number" value="0" min="0" step="0.01" style="width:90px" oninput="recalcQ()"></td><td class="mono lt" style="font-size:11px">R0.00</td><td><button class="btn btn-g btn-s" onclick="this.closest('tr').remove();recalcQ()">✕</button></td>`;
+  r.innerHTML=`<td><input class="liinput" placeholder="Service / item description" oninput="recalcQ()"></td><td><input class="liinput" type="number" value="1" min="0" class="liinput li-qty" oninput="recalcQ()"></td><td><input class="liinput" type="number" value="0" min="0" step="0.01" class="liinput li-price" oninput="recalcQ()"></td><td class="mono lt li-total">R0.00</td><td><button class="btn btn-g btn-s" onclick="this.closest('tr').remove();recalcQ()">✕</button></td>`;
   document.getElementById('li-body').appendChild(r);recalcQ();
 }
 function recalcQ(){
@@ -2621,9 +2621,9 @@ function saveTx(){
    STATEMENT / INCOME
 ═══════════════════════════════════════════════════════ */
 async function renderStatement(){
-  document.getElementById('stmt-content').innerHTML=`<div style="text-align:center;padding:32px;color:var(--muted);font-style:italic">Loading statements…</div>`;
+  document.getElementById('stmt-content').innerHTML=`<div class="stmt-loading">Loading statements…</div>`;
   const r=await api('GET','statements.php?action=list');
-  if(!r.success){document.getElementById('stmt-content').innerHTML=`<div style="padding:16px;color:var(--pill-ovr-txt)">${esc(r.error||'Failed to load statements')}</div>`;return;}
+  if(!r.success){document.getElementById('stmt-content').innerHTML=`<div class="stmt-error">${esc(r.error||'Failed to load statements')}</div>`;return;}
 
   const pending=(r.data||[]).filter(s=>s.status==='pending_approval');
   const released=(r.data||[]).filter(s=>s.status==='released');
@@ -2832,7 +2832,7 @@ function renderTimeline(){
       <div class="tl-dot" style="background:${e.type==='callout'?'var(--ember)':e.type==='invoice'?'var(--amber)':'var(--green)'}"></div>
       <div class="tl-date">${fmtD(e.date)}</div>
       <div class="tl-content"><div class="tl-title">${esc(e.title)}</div><div class="tl-sub">${esc(e.sub)}</div></div>
-    </div>`).join(''):'<div style="text-align:center;padding:32px;color:var(--muted);font-style:italic">No activity yet</div>';
+    </div>`).join(''):'<div class="stmt-loading">No activity yet</div>';
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -2877,7 +2877,7 @@ function renderAudit(filter=''){
       <div class="audit-user">${esc(e.user)}</div>
       <div class="audit-action"><strong>${esc(e.action)}</strong> - ${esc(e.detail)}</div>
       <div class="audit-lvl info">${esc(e.role||e.level)}</div>
-    </div>`).join(''):'<div style="text-align:center;padding:32px;color:var(--muted);font-style:italic">No audit records</div>';
+    </div>`).join(''):'<div class="stmt-loading">No audit records</div>';
 }
 function filterAudit(v){ renderAudit(v); }
 
@@ -3421,7 +3421,7 @@ function renderClients(search = '') {
     );
   }
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted)">No clients found</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" class="tbl-empty-cell">No clients found</td></tr>';
     return;
   }
   tbody.innerHTML = rows.map(c => `
@@ -3742,7 +3742,7 @@ function safBuildSections(){
         <div class="tw saf-criteria-wrap">
           <table class="saf-criteria-tbl">
             <thead><tr>
-              <th style="width:36px">#</th>
+              <th class="col-num">#</th>
               <th style="width:90px">Ref</th>
               <th>Criteria</th>
               <th style="width:60px">N/A</th>
@@ -4263,7 +4263,7 @@ function renderSafetyFiles(search){
   if(!grid) return;
   if(!files.length){
     grid.classList.remove('safety-grid--single');
-    grid.innerHTML=`<div class="empty-state"><div class="empty-icon" style="font-size:40px;margin-bottom:8px">🛡</div><div>No safety files — start a new audit.</div></div>`;
+    grid.innerHTML=`<div class="empty-state"><div class="empty-icon empty-icon-lg">🛡</div><div>No safety files — start a new audit.</div></div>`;
     return;
   }
   grid.classList.toggle('safety-grid--single', files.length===1);
@@ -4340,7 +4340,7 @@ async function safViewFile(id){
     sumRows+=`<tr${sec.bonus?' class="saf-sum-bonus-row"':''} id="sum-row-${sec.key}">
       <td>${esc(sec.title)}${bonusTag}</td><td>${t}</td><td>${n}</td><td>${ns}</td><td>${s}</td>
       <td class="saf-sec-doc-cell" id="saf-sec-doc-${sec.key}">
-        <input type="file" id="saf-sec-file-${sec.key}" style="display:none" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.png" onchange="safSectionUpload(this,'${id}','${sec.key}')">
+        <input type="file" id="saf-sec-file-${sec.key}" class="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.png" onchange="safSectionUpload(this,'${id}','${sec.key}')">
         <button class="btn btn-g btn-xs saf-sec-doc-btn" onclick="document.getElementById('saf-sec-file-${sec.key}').click()" title="Upload combined sign-off document for this section">&#128196; Upload</button>
       </td>
     </tr>`;
@@ -4899,7 +4899,7 @@ function render(){
     h.innerHTML='<h2>'+sec.label+'</h2><div class="s-stats" id="stats-'+sec.id+'"></div><span class="chevron">▾</span>';
     h.onclick=()=>{ const b=document.getElementById('tbody-'+sec.id).closest('.tbl-wrap'); const col=h.classList.toggle('collapsed'); b.style.display=col?'none':''; };
     const w=document.createElement('div'); w.className='tbl-wrap';
-    w.innerHTML='<table><thead><tr><th style="width:36px">#</th><th style="width:60px">Ref</th><th>Criteria / Requirement</th><th>Audit Finding</th><th>AST Rejection Note</th><th style="width:130px">Status</th><th>Notes / Action</th></tr></thead><tbody id="tbody-'+sec.id+'"></tbody></table>';
+    w.innerHTML='<table><thead><tr><th class="col-num">#</th><th class="col-ref">Ref</th><th>Criteria / Requirement</th><th>Audit Finding</th><th>AST Rejection Note</th><th class="col-status">Status</th><th>Notes / Action</th></tr></thead><tbody id="tbody-'+sec.id+'"></tbody></table>';
     g.appendChild(h); g.appendChild(w); c.appendChild(g);
     const tb=document.getElementById('tbody-'+sec.id);
     sec.items.forEach(item=>{
@@ -5318,7 +5318,7 @@ function safRenderAttachments(fileId, attachments){
         <button class="btn btn-xs saf-cs-del-btn" onclick="safDeleteAttachment(${rec.id},'${esc(fileId)}')" title="Remove sign-off document">&#10005;</button>
       </span>`;
     } else {
-      cell.innerHTML=`<input type="file" id="saf-sec-file-${sec.key}" style="display:none" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.png" onchange="safSectionUpload(this,'${esc(fileId)}','${sec.key}')"><button class="btn btn-g btn-xs saf-sec-doc-btn" onclick="document.getElementById('saf-sec-file-${sec.key}').click()" title="Upload combined sign-off for all employees">&#128196; Upload</button>`;
+      cell.innerHTML=`<input type="file" id="saf-sec-file-${sec.key}" class="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.png" onchange="safSectionUpload(this,'${esc(fileId)}','${sec.key}')"><button class="btn btn-g btn-xs saf-sec-doc-btn" onclick="document.getElementById('saf-sec-file-${sec.key}').click()" title="Upload combined sign-off for all employees">&#128196; Upload</button>`;
     }
   });
 }
@@ -5793,7 +5793,7 @@ function safRenderCompliance(fileId,records){
            <a class="saf-doc-dl" href="api/files.php?action=download&id=${rec.att_id}" download="${esc(rec.att_name||'document')}">↓</a>
            <button class="btn btn-xs saf-cs-del-btn" onclick="safReplaceComplianceDoc(${rec.id},'${esc(fileId)}',${rec.att_id})" title="Replace document">↺</button>
          </span>`
-      :`<input type="file" id="saf-cdoc-${rec.id}" style="display:none" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+      :`<input type="file" id="saf-cdoc-${rec.id}" class="hidden" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
                 onchange="safUploadComplianceDoc(${rec.id},'${esc(fileId)}',this)">
          <button class="btn btn-g btn-xs" onclick="document.getElementById('saf-cdoc-${rec.id}').click()" title="Attach one document">+ Doc</button>`;
     return `<tr>

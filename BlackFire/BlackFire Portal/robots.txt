@@ -1,0 +1,30 @@
+# BlackFire Solutions — robots.txt
+# https://blackfiresolutions.co.za
+
+User-agent: *
+Allow: /
+Allow: /portal.php
+Allow: /favicon.ico
+Allow: /favicon-32x32.png
+Allow: /favicon-512x512.png
+Allow: /apple-touch-icon.png
+Allow: /blackfire_logo_transparent.png
+Allow: /portal.css
+
+# Block sensitive paths
+Disallow: /api/
+Disallow: /config/
+Disallow: /includes/
+Disallow: /install/
+Disallow: /dev-only/
+Disallow: /_backups/
+Disallow: /_archive/
+Disallow: /uploads/attachments/
+Disallow: /bhekani_bo.php
+Disallow: /encrypt_secrets.php
+Disallow: /backup_portal.sh
+Disallow: /policy_ack.php
+Disallow: /approve.php
+
+# Sitemap
+Sitemap: https://blackfiresolutions.co.za/sitemap.xml
