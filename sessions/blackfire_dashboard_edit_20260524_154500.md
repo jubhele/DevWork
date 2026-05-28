@@ -43,3 +43,5 @@ Active model: Sonnet 4.6   Status: correct
 - Always render the alert strip container even when empty, so async data appended later still has a mount point.
 - Reusing openModal() for the editor avoids a new overlay element and keeps the modal stack consistent.
 _Session ended: 2026-05-24 15:49:37 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-24 15:53:26 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-24 15:54:35 (Claude Code / claude-sonnet-4-6)_

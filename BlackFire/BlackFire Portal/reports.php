@@ -57,10 +57,17 @@ $export = isset($_GET['export']);
 
 function r_safety(): array {
     return db_select("
-        SELECT ref_id, audit_date, score, band,
-               items_to_standard, items_applicable, site_name, audited_by, status
-        FROM bf_safety_files
-        ORDER BY audit_date ASC
+        SELECT sf.ref_id, sf.audit_date, sf.score,
+               sf.band,
+               COALESCE(SUM(CASE WHEN si.result = 'To Standard' THEN 1 ELSE 0 END), 0) AS items_to_standard,
+               COALESCE(SUM(CASE WHEN si.result != 'N/A'        THEN 1 ELSE 0 END), 0) AS items_applicable,
+               sf.region       AS site_name,
+               sf.auditor_name AS audited_by,
+               sf.status
+        FROM bf_safety_files sf
+        LEFT JOIN bf_safety_items si ON si.file_ref = sf.ref_id
+        GROUP BY sf.id
+        ORDER BY sf.audit_date ASC
     ");
 }
 
@@ -72,7 +79,7 @@ function r_callouts(): array {
                c.assigned_to, c.invoice_generated,
                q.ref_id AS quote_ref, q.total_amount AS quote_amount,
                q.status AS quote_status,
-               i.ref_id AS invoice_ref, i.total_amount AS invoice_amount,
+               i.ref_id AS invoice_ref, i.amount AS invoice_amount,
                i.status AS invoice_status
         FROM bf_callouts c
         LEFT JOIN bf_quotes q ON q.callout_ref = c.ref_id
@@ -85,9 +92,11 @@ function r_invoices(): array {
     return db_select("
         SELECT i.ref_id, DATE(i.invoice_date) AS invoice_date,
                DATE(i.due_date) AS due_date,
-               i.client_name, i.total_amount, i.status,
+               i.client_name, i.amount AS total_amount, i.status AS invoice_status,
                p.payment_ref, DATE(p.payment_date) AS paid_date,
-               p.amount AS paid_amount, p.remittance_ref
+               p.amount AS paid_amount,
+               (SELECT COUNT(*) FROM bf_attachments
+                WHERE entity_type='payment' AND entity_ref=p.payment_ref) > 0 AS has_remittance
         FROM bf_invoices i
         LEFT JOIN bf_payments p ON p.invoice_ref = i.ref_id
         ORDER BY i.invoice_date ASC
@@ -100,7 +109,8 @@ function r_payment_batches(): array {
                COUNT(*) AS invoice_count,
                SUM(amount) AS total_paid,
                GROUP_CONCAT(invoice_ref ORDER BY invoice_ref SEPARATOR ', ') AS invoices,
-               MAX(remittance_ref) AS remittance_ref
+               (SELECT COUNT(*) FROM bf_attachments
+                WHERE entity_type='payment' AND entity_ref=payment_ref) > 0 AS has_remittance
         FROM bf_payments
         GROUP BY payment_ref, payment_date, payment_method
         ORDER BY payment_date ASC
@@ -596,10 +606,10 @@ td.hi{color:var(--text);font-weight:600}
             <td class="mono"><?= nilstr($i['invoice_date']) ?></td>
             <td class="mono"><?= nilstr($i['due_date']) ?></td>
             <td class="mono"><?= zar((float)$i['total_amount']) ?></td>
-            <td><?= status_pill(ucfirst(strtolower((string)($i['status'] ?? '')))) ?></td>
+            <td><?= status_pill(ucfirst(strtolower((string)($i['invoice_status'] ?? '')))) ?></td>
             <td class="mono"><?= nilstr($i['payment_ref']) ?></td>
             <td class="mono"><?= nilstr($i['paid_date']) ?></td>
-            <td class="mono"><?= nilstr($i['remittance_ref']) ?></td>
+            <td class="mono" style="text-align:center"><?= $i['has_remittance'] ? '✓' : '—' ?></td>
           </tr>
 <?php endforeach ?>
         </tbody>
@@ -629,7 +639,7 @@ td.hi{color:var(--text);font-weight:600}
             <td class="mono" style="font-size:.72rem"><?= nilstr($p['invoices']) ?></td>
             <td class="mono" style="text-align:center"><?= (int)$p['invoice_count'] ?></td>
             <td class="mono"><?= zar((float)$p['total_paid']) ?></td>
-            <td class="mono"><?= nilstr($p['remittance_ref']) ?></td>
+            <td class="mono" style="text-align:center"><?= $p['has_remittance'] ? '✓' : '—' ?></td>
           </tr>
 <?php endforeach ?>
         </tbody>

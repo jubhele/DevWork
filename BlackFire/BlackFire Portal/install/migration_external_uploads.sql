@@ -60,7 +60,7 @@ CREATE TABLE IF NOT EXISTS bf_external_upload_tokens (
   INDEX idx_expires    (expires_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ── DEMO DATA: External Upload Tokens ────────────────────────
+-- ── Seed Data: External Upload Tokens ────────────────────────
 INSERT IGNORE INTO bf_external_upload_tokens
   (token, entity_type, entity_ref, section_key, item_no,
    upload_purpose, allowed_mime_types, max_files, files_uploaded,

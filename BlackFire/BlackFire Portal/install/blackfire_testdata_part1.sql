@@ -1,9 +1,9 @@
 -- ============================================================
--- BlackFire / Astute Insights — Safety Digitisation Demo
+-- BlackFire / Astute Insights — Safety Digitisation Test Data
 -- Test Data PART 1: Users + Safety Files 1 & 2
 --   SAF-150125-0001  Jan 2025 — 2025 Base Assessment  26.53% RED
 --   SAF-120625-0001  Jun 2025 — Mid-year Review       53.06% ORANGE
--- Password for all demo users: Demo@BlackFire1
+-- Seeded user password: BlackFire@2026!
 -- Run AFTER blackfire_aeci_seed.sql
 -- ============================================================
 SET NAMES utf8mb4;
@@ -14,23 +14,23 @@ INSERT IGNORE INTO bf_users
   (username,password_hash,name,email,role,title,active,created_at)
 VALUES
 ('kitso.marupi',
- '$2y$12$FsvlqQd2ezFIzjsvfzXa7.I1qMUsdQgDsAjySpZcAGH/DEUUOT8ZK',
+ '$2y$12$hw21i39xr1aS0SDiiLwhfuF.uAJjwX2z/8FwQJxhucctMY8Q5lApe',
  'Kitso Marupi','kitso.marupi@astuteinsights.co.za',
  'safety_officer','SHE Representative & Risk Assessor',1,'2025-01-06 08:00:00'),
 ('j.mthembu',
- '$2y$12$FsvlqQd2ezFIzjsvfzXa7.I1qMUsdQgDsAjySpZcAGH/DEUUOT8ZK',
+ '$2y$12$hw21i39xr1aS0SDiiLwhfuF.uAJjwX2z/8FwQJxhucctMY8Q5lApe',
  'James Mthembu','j.mthembu@astuteinsights.co.za',
  'junior_tech','Junior Technician',1,'2025-01-06 08:00:00'),
 ('r.khumalo',
- '$2y$12$FsvlqQd2ezFIzjsvfzXa7.I1qMUsdQgDsAjySpZcAGH/DEUUOT8ZK',
+ '$2y$12$hw21i39xr1aS0SDiiLwhfuF.uAJjwX2z/8FwQJxhucctMY8Q5lApe',
  'Refilwe Khumalo','r.khumalo@astuteinsights.co.za',
  'senior_tech','Senior Technician',1,'2025-01-06 08:00:00'),
 ('l.sithole',
- '$2y$12$FsvlqQd2ezFIzjsvfzXa7.I1qMUsdQgDsAjySpZcAGH/DEUUOT8ZK',
+ '$2y$12$hw21i39xr1aS0SDiiLwhfuF.uAJjwX2z/8FwQJxhucctMY8Q5lApe',
  'Lelo Sithole','l.sithole@astuteinsights.co.za',
  'admin_clerk','Admin & Finance Clerk',1,'2025-01-06 08:00:00'),
 ('n.sithole',
- '$2y$12$FsvlqQd2ezFIzjsvfzXa7.I1qMUsdQgDsAjySpZcAGH/DEUUOT8ZK',
+ '$2y$12$hw21i39xr1aS0SDiiLwhfuF.uAJjwX2z/8FwQJxhucctMY8Q5lApe',
  'Nomvula Sithole','n.sithole@astuteinsights.co.za',
  'call_logger','Call Logger',1,'2025-01-06 08:00:00');
 
@@ -38,7 +38,7 @@ VALUES
 INSERT IGNORE INTO bf_safety_files
   (ref_id,contractor,contractor_rep,appointee162,audit_date,region,audit_team,
    scope_of_work,manpower,supervisors,she_reps,first_aiders,
-   auditor_name,sign_off_date,status,score,is_active,created_by,created_at)
+   auditor_name,sign_off_date,status,score,band,is_active,created_by,created_at)
 VALUES
 -- 2025 Base Assessment — opening audit for the year
 ('SAF-150125-0001',
@@ -47,7 +47,7 @@ VALUES
  'K. Marupi; J. van der Berg',
  'Electronic security: perimeter fence monitoring, CCTV, access control, alarm NOC, site patrols.',
  3,1,1,1,'Johann van der Berg','2025-01-15',
- 'Approved',26.53,1,'kitso.marupi','2025-01-15 10:00:00'),
+ 'Approved',26.53,'RED',1,'kitso.marupi','2025-01-15 10:00:00'),
 
 -- Mid-year 2025 Review
 ('SAF-120625-0001',
@@ -56,7 +56,7 @@ VALUES
  'K. Marupi; J. van der Berg',
  'Electronic security: perimeter fence monitoring, CCTV, access control, alarm NOC, site patrols.',
  4,1,1,1,'Johann van der Berg','2025-06-12',
- 'Approved',53.06,1,'kitso.marupi','2025-06-12 10:00:00');
+ 'Approved',53.06,'ORANGE',1,'kitso.marupi','2025-06-12 10:00:00');
 
 -- ── 3a. ITEMS — SAF-150125-0001 (26.53% RED) ─────────────────
 -- 13 To Standard / 36 Not to Standard / 37 N/A = 13/49 = 26.53%

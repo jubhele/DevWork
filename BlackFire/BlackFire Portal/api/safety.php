@@ -75,6 +75,14 @@ function calc_score(string $ref_id): ?float {
     return round($main_score + $bonus_score, 2);
 }
 
+function calc_band(?float $score): ?string {
+    if ($score === null) return null;
+    if ($score >= 89) return 'GREEN';
+    if ($score >= 74) return 'YELLOW';
+    if ($score >= 50) return 'ORANGE';
+    return 'RED';
+}
+
 function insert_blank_items(string $ref_id): void {
     foreach (SECTION_COUNTS as $sec => $count) {
         for ($i = 1; $i <= $count; $i++) {
@@ -229,7 +237,7 @@ if ($method === 'POST') {
     }
 
     $score = calc_score($ref);
-    db_exec("UPDATE bf_safety_files SET score = ? WHERE ref_id = ?", [$score, $ref]);
+    db_exec("UPDATE bf_safety_files SET score = ?, band = ? WHERE ref_id = ?", [$score, calc_band($score), $ref]);
 
     audit($user['username'], 'CREATE', "Safety file $ref created for " . clean($b['contractor']));
 
@@ -344,7 +352,7 @@ if ($method === 'PUT') {
     }
 
     $score = calc_score($ref_id);
-    db_exec("UPDATE bf_safety_files SET score = ? WHERE ref_id = ?", [$score, $ref_id]);
+    db_exec("UPDATE bf_safety_files SET score = ?, band = ? WHERE ref_id = ?", [$score, calc_band($score), $ref_id]);
 
     audit($user['username'], 'UPDATE', "Safety file $ref_id updated");
 

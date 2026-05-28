@@ -57,7 +57,27 @@
       "Skill(browse:*)",
       "PowerShell(git -C \"c:\\\\DevWork\" ls-files \"BlackFire/BlackFire Portal/install/\")",
       "PowerShell(git -C \"c:\\\\DevWork\" show HEAD:\"BlackFire/BlackFire Portal/install/schema.sql\")",
-      "PowerShell(Get-PSDrive | Where-Object { $_.Name -in @\\('G','g'\\) })"
+      "PowerShell(Get-PSDrive | Where-Object { $_.Name -in @\\('G','g'\\) })",
+      "PowerShell(php -l \"C:\\\\DevWork\\\\BlackFire\\\\BlackFire Portal\\\\portal.php\" 2>&1)",
+      "PowerShell(php -l \"C:\\\\DevWork\\\\BlackFire\\\\BlackFire Portal\\\\portal.js\" 2>&1)",
+      "PowerShell(Start-Process -FilePath \"php\" -ArgumentList \"-S\", \"localhost:8080\", \"router.php\" -WorkingDirectory \"C:\\\\DevWork\\\\BlackFire\\\\BlackFire Portal\" -WindowStyle Minimized -PassThru)",
+      "PowerShell(Start-Sleep -Seconds 2; Invoke-WebRequest -Uri \"http://localhost:8080\" -UseBasicParsing -TimeoutSec 5 | Select-Object StatusCode, @{N='Size';E={$_.Content.Length}})",
+      "PowerShell(Get-Process -Name \"php\" -ErrorAction SilentlyContinue)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8080/)",
+      "Bash(git -C \"c:/DevWork\" log --oneline)",
+      "Bash(grep -ri \"kitso\" \"G:/My Drive/JS/Astute Insights/\" 2>/dev/null | head -20)",
+      "Read(//g/My Drive/JS/Astute Insights/**)",
+      "Bash(ref_id)",
+      "Bash(grep -n \"INSERT INTO\\\\|CREATE TABLE\\\\|bf_callouts\\\\|bf_quotes\\\\|bf_invoices\\\\|bf_payments\\\\|bf_statements\\\\|bf_transactions\\\\|bf_counters\\\\|`ref_id`\\\\|columns\" \"c:\\\\DevWork\\\\BlackFire\\\\BlackFire Portal\\\\api\\\\portal.php\")",
+      "PowerShell($ts = Get-Date -Format 'yyyyMMdd_HHmmss'; $bdir = \"c:\\\\DevWork\\\\BlackFire\\\\BlackFire Portal\\\\_backups\"; New-Item -ItemType Directory -Force $bdir | Out-Null; Copy-Item \"c:\\\\DevWork\\\\BlackFire\\\\BlackFire Portal\\\\reports.php\" \"$bdir\\\\reports_backup_$ts.php\"; Write-Output \"Backup: reports_backup_$ts.php\")",
+      "PowerShell(Copy-Item \"c:\\\\DevWork\\\\sessions\\\\blackfire_safety_digitisation_testdata_20260527_202604.md\" \"G:\\\\My Drive\\\\JS\\\\Agentic AI\\\\sessions\\\\blackfire_safety_digitisation_testdata_20260527_202604.md.tbl.bk\" -Force)",
+      "Bash(git -C \"c:\\\\DevWork\" status)",
+      "Bash(git -C \"c:\\\\DevWork\" diff --stat HEAD)",
+      "Bash(git -C \"c:\\\\DevWork\" log --oneline -5)",
+      "Bash(git -C \"c:\\\\DevWork\" diff \"BlackFire/BlackFire Portal/portal.php\" \"BlackFire/BlackFire Portal/reports.php\")",
+      "Bash(Get-ChildItem \"c:\\\\DevWork\\\\BlackFire\\\\BlackFire Portal - 25052026\" -Recurse)",
+      "Bash(Measure-Object -Property Length -Sum)",
+      "Bash(Select-Object Count, Sum)"
     ]
   }
 }

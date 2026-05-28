@@ -677,6 +677,7 @@ $base = rtrim($cfg['base_url'] ?? '', '/');
           <option value="Approved">Approved</option>
         </select>
         <button class="btn btn-p btn-s" data-action="newSafetyAudit">+ New Audit</button>
+        <a class="btn btn-g btn-s" href="reports.php" style="text-decoration:none">Reports</a>
       </div>
       <div id="safety-reminders" class="safety-reminders"></div>
       <div id="safety-files-grid" class="safety-grid"></div>

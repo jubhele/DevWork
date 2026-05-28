@@ -1,5 +1,5 @@
 -- ============================================================
--- BlackFire / Astute Insights - Safety Digitisation Demo
+-- BlackFire / Astute Insights - Safety Digitisation Test Data
 -- Test Data PART 2: Safety Files 3, 4, 5
 --   SAF-150925-0001  Sep 2025 - Q3 2025 Review        71.43% ORANGE/YELLOW
 --   SAF-150126-0001  Jan 2026 - 2026 New Baseline     75.51% YELLOW
@@ -12,7 +12,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 INSERT IGNORE INTO bf_safety_files
   (ref_id,contractor,contractor_rep,appointee162,audit_date,region,audit_team,
    scope_of_work,manpower,supervisors,she_reps,first_aiders,
-   auditor_name,sign_off_date,status,score,is_active,created_by,created_at)
+   auditor_name,sign_off_date,status,score,band,is_active,created_by,created_at)
 VALUES
 ('SAF-150925-0001',
  'Astute Insights (Pty) Ltd','Jubhele Shange','Thabo Mokoena',
@@ -20,7 +20,7 @@ VALUES
  'K. Marupi; J. van der Berg; K. Dlamini',
  'Electronic security: perimeter fence monitoring, CCTV, access control, alarm NOC, patrols.',
  5,1,1,2,'Johann van der Berg','2025-09-15',
- 'Approved',71.43,1,'kitso.marupi','2025-09-15 10:00:00'),
+ 'Approved',71.43,'ORANGE',1,'kitso.marupi','2025-09-15 10:00:00'),
 
 ('SAF-150126-0001',
  'Astute Insights (Pty) Ltd','Jubhele Shange','Thabo Mokoena',
@@ -28,7 +28,7 @@ VALUES
  'K. Marupi; J. van der Berg; K. Dlamini',
  'Electronic security: perimeter fence, CCTV, access control, alarm NOC, patrols, drone surveillance response.',
  5,1,1,2,'Johann van der Berg','2026-01-15',
- 'Approved',75.51,1,'kitso.marupi','2026-01-15 10:00:00'),
+ 'Approved',75.51,'YELLOW',1,'kitso.marupi','2026-01-15 10:00:00'),
 
 ('SAF-120326-0001',
  'Astute Insights (Pty) Ltd','Jubhele Shange','Thabo Mokoena',
@@ -36,7 +36,7 @@ VALUES
  'K. Marupi; J. van der Berg; K. Dlamini',
  'Electronic security: perimeter fence, CCTV, access control, alarm NOC, patrols, drone surveillance response.',
  5,1,1,2,'Johann van der Berg','2026-03-12',
- 'Approved',79.59,1,'kitso.marupi','2026-03-12 10:00:00');
+ 'Approved',79.59,'YELLOW',1,'kitso.marupi','2026-03-12 10:00:00');
 
 -- ============================================================
 -- SAF-150925-0001 items (71.43% - 35/49 pass)

@@ -21,6 +21,12 @@ config.local.*
 # Root-level backup folder
 /_backups/
 
+# Portal snapshot folder (large local backup, not source)
+BlackFire/BlackFire Portal - 25052026/
+
+# Install PDFs with embedded credentials
+BlackFire/BlackFire Portal/install/Bhekani2026!.pdf
+
 # Scratch/test artifacts
 **/test_*.docx
 

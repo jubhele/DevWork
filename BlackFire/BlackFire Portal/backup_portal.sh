@@ -132,7 +132,6 @@ mysqldump \
     --user="${DB_USER}" \
     --password="${DB_PASS}" \
     --single-transaction \
-    --routines \
     --triggers \
     --add-drop-table \
     "${DB_NAME}" | gzip > "${DB_DUMP}"

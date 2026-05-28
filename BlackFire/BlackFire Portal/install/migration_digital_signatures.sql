@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS bf_digital_signatures (
   INDEX idx_signer   (signer_email)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ── DEMO DATA: Digital Signatures ────────────────────────────
+-- ── Seed Data: Digital Signatures ────────────────────────────
 -- Shows the variety of signing scenarios in the safety lifecycle
 INSERT IGNORE INTO bf_digital_signatures
   (entity_type, entity_ref, document_label, signer_name, signer_email, signer_role, signer_company,
