@@ -82,41 +82,207 @@ document.addEventListener('click', function(e) {
   if (!el) return;
   const action = el.dataset.action;
   switch (action) {
-    case 'toggleTheme':         toggleTheme(); break;
-    case 'toggleMobileMenu':    toggleMobileMenu(); break;
-    case 'toggleInfoMode':      toggleInfoMode(); break;
-    case 'goLogin':             goLogin(); break;
-    case 'goPublic':            goPublic(); break;
-    case 'goPublicFullscreen':  goPublicFullscreen(); break;
-    case 'doLogin':             doLogin(); break;
-    case 'showForgotPassword':  showForgotPassword(); break;
-    case 'showLoginPanel':      showLoginPanel(); break;
-    case 'doRequestReset':      doRequestReset(); break;
-    case 'doResetPassword':     doResetPassword(); break;
-    case 'doLogout':            doLogout(); break;
-    case 'submitContact':       submitContact(); break;
-    case 'openTxModal':         openTxModal(); break;
-    case 'saveCallout':         saveCallout(); break;
-    case 'addLine':             addLine(); break;
-    case 'saveQuote':           saveQuote(); break;
-    case 'saveInvoice':         saveInvoice(); break;
-    case 'logPayment':          logPayment(); break;
-    case 'openCreateUserModal': openCreateUserModal(); break;
-    case 'closeModalDirect':    closeModalDirect(); break;
-    case 'scrollToTop':         scrollToTop(); break;
-    // Clients module
-    case 'saveClient':          saveClient(); break;
-    // Safety module
-    case 'newSafetyAudit':      newSafetyAudit(); break;
-    case 'saveSafetyDraft':     saveSafetyDraft(); break;
-    case 'submitSafetyAudit':   submitSafetyAudit(); break;
-    case 'editSafetyFile':      editSafetyFile(); break;
-    case 'approveSafetyFile':   approveSafetyFile(); break;
+    // Navigation / auth
+    case 'toggleTheme':          toggleTheme(); break;
+    case 'toggleMobileMenu':     toggleMobileMenu(); break;
+    case 'toggleInfoMode':       toggleInfoMode(); break;
+    case 'pubNav':               pubNav(el.dataset.pubPage); break;
+    case 'pubNavMobile':         pubNav(el.dataset.pubPage); closeMobileMenu(); break;
+    case 'goLogin':              goLogin(); break;
+    case 'goLoginMobile':        goLogin(); closeMobileMenu(); break;
+    case 'goPublic':             goPublic(); break;
+    case 'goPublicFullscreen':   goPublicFullscreen(); break;
+    case 'navPage':              showPortalPage(el.dataset.page, null); break;
+    case 'navSafety':            showPortalPage('p-safety', null); renderSafetyFiles(); break;
+    case 'refreshPage':          refreshCurrentPage(el); break;
+    case 'scrollToTop':          scrollToTop(); break;
+    case 'filterSvc':            filterSvc(el, el.dataset.cat, el.dataset.ctx); break;
+    case 'pubNavCat':            pubNav('services'); break;
+    // Auth forms
+    case 'doLogin':              doLogin(); break;
+    case 'showForgotPassword':   showForgotPassword(); break;
+    case 'showLoginPanel':       showLoginPanel(); break;
+    case 'doRequestReset':       doRequestReset(); break;
+    case 'doResetPassword':      doResetPassword(); break;
+    case 'doLogout':             doLogout(); break;
+    // Contact / enquiry
+    case 'submitContact':        submitContact(); break;
+    case 'submitEnquiry':        toast('Enquiry submitted — we\'ll be in touch.', 'ok'); break;
+    // Modals
+    case 'openTxModal':          openTxModal(); break;
+    case 'closeModalDirect':     closeModalDirect(); break;
+    case 'closeModalBackdrop':   if (e.target === el) closeModal(e); break;
+    // Operations — callouts
+    case 'saveCallout':          saveCallout(); break;
+    case 'openStatusModal':      openStatusModal(el.dataset.id); break;
+    case 'saveStatus':           saveStatus(el.dataset.id); break;
+    case 'openAssignPO':         openAssignPO(el.dataset.id); break;
+    case 'assignPO':             assignPO(el.dataset.id); break;
+    case 'openAssignTech':       openAssignTech(el.dataset.id); break;
+    case 'saveTechAssign':       saveTechAssign(el.dataset.id); break;
+    case 'prefillQuoteFromJob':  prefillQuoteFromJob(el.dataset.id); break;
+    case 'openConfirmClosureModal': openConfirmClosureModal(el.dataset.id); break;
+    case 'saveConfirmClosure':   saveConfirmClosure(el.dataset.id); break;
+    case 'deleteCallout':        deleteCallout(el.dataset.id); break;
+    // Operations — quotes
+    case 'addLine':              addLine(); break;
+    case 'removeLine':           el.closest('tr').remove(); recalcQ(); break;
+    case 'saveQuote':            saveQuote(); break;
+    case 'previewQuote':         previewQuote(el.dataset.id); break;
+    case 'approveQuote':         approveQuote(el.dataset.id); break;
+    case 'rejectQuote':          rejectQuote(el.dataset.id); break;
+    case 'convertToInvoice':     convertToInvoice(el.dataset.id); break;
+    case 'deleteQuote':          deleteQuote(el.dataset.id); break;
+    // Operations — invoices
+    case 'saveInvoice':          saveInvoice(); break;
+    case 'previewInvoice':       previewInvoice(el.dataset.id); break;
+    case 'openSendInvoiceModal': openSendInvoiceModal(el.dataset.id); break;
+    case 'markPaid':             markPaid(el.dataset.id); break;
+    case 'deleteInvoice':        deleteInvoice(el.dataset.id); break;
+    case 'sendInvoiceEmail':     sendInvoiceEmail(el.dataset.id); break;
+    // Finance
+    case 'logPayment':           logPayment(); break;
+    case 'saveTx':               saveTx(); break;
+    case 'downloadStatement':    downloadStatement(el.dataset.id); break;
+    case 'openReleaseStatementModal': openReleaseStatementModal(el.dataset.id); break;
+    case 'releaseStatement':     releaseStatement(el.dataset.id); break;
+    case 'generateStatement':    generateStatement(); break;
+    // Files
+    case 'openAttachmentsModal': openAttachmentsModal(el.dataset.entityType, el.dataset.entityRef); break;
+    case 'openDocViewer':        openDocViewer(+el.dataset.id, el.dataset.name, el.dataset.mime); break;
+    case 'deleteAttachment':     deleteAttachment(+el.dataset.id, el.dataset.entityType, el.dataset.entityRef); break;
+    case 'uploadAttachment':     uploadAttachment(el.dataset.entityType, el.dataset.entityRef); break;
+    case 'openBlobPreview':      { const u = el.dataset.blobUrl; window.open(u, '_blank'); URL.revokeObjectURL(u); } break;
+    case 'revokeBlobOnDownload': setTimeout(() => URL.revokeObjectURL(el.dataset.blobUrl), 2000); break;
+    case 'triggerFileInput':     document.getElementById(el.dataset.targetId)?.click(); break;
+    case 'printPage':            window.print(); break;
+    // Users
+    case 'openCreateUserModal':  openCreateUserModal(); break;
+    case 'openEditUserModal':    openEditUserModal(+el.dataset.id); break;
+    case 'toggleUserActive':     toggleUserActive(+el.dataset.id, +el.dataset.active); break;
+    case 'saveNewUser':          saveNewUser(); break;
+    case 'saveEditUser':         saveEditUser(); break;
+    case 'togglePermCols':       togglePermCols(); break;
+    // Dashboard
+    case 'showDashEditor':       showDashEditor(); break;
+    case 'saveDashEditorPrefs':  saveDashEditorPrefs(); break;
+    // Clients
+    case 'openClientModal':      openClientModal(el.dataset.id ? +el.dataset.id : null); break;
+    case 'closeClientModal':     closeClientModal(); break;
+    case 'saveClient':           saveClient(); break;
+    case 'deactivateClient':     deactivateClient(+el.dataset.id); break;
+    // Safety
+    case 'newSafetyAudit':       newSafetyAudit(); break;
+    case 'saveSafetyDraft':      saveSafetyDraft(); break;
+    case 'submitSafetyAudit':    submitSafetyAudit(); break;
+    case 'editSafetyFile':       editSafetyFile(); break;
+    case 'approveSafetyFile':    approveSafetyFile(); break;
+    case 'deactivateSafetyFile': deactivateSafetyFile(); break;
+    case 'safGenerateTracker':   safGenerateTracker(document.getElementById('saf-detail-content')?.dataset.fileId); break;
+    case 'safDownloadPack':      safDownloadPack(document.getElementById('saf-detail-content')?.dataset.fileId); break;
+    case 'safViewFile':          safViewFile(el.dataset.id); break;
+    case 'safToggleSection':     safToggleSection(el.dataset.sectionKey); break;
+    case 'safSaveSection':       e.stopPropagation(); safSaveSection(el.dataset.sectionKey); break;
+    case 'safSendPolicyToPersonnel': safSendPolicyToPersonnel(+el.dataset.id); break;
+    case 'safAddPersonnel':      safAddPersonnel(el.dataset.id); break;
+    case 'safLinkPortalUser':    safLinkPortalUser(el.dataset.id); break;
+    case 'safAddCompliance':     safAddCompliance(el.dataset.id); break;
+    case 'safAddPolicyAck':      safAddPolicyAck(el.dataset.id); break;
+    case 'safGenDocs':           safGenDocs(el.dataset.id); break;
+    case 'safSavePersonnel':     safSavePersonnel(el.dataset.id); break;
+    case 'safConfirmRemovePerson': safConfirmRemovePerson(+el.dataset.id, el.dataset.fileId, el.dataset.name); break;
+    case 'safConfirmLinkUser':   safConfirmLinkUser(el.dataset.id); break;
+    case 'safDeleteCompliance':  safDeleteCompliance(+el.dataset.id, el.dataset.fileId); break;
+    case 'safEditCompliance':    safEditCompliance(+el.dataset.id, el.dataset.fileId); break;
+    case 'safReplaceComplianceDoc': safReplaceComplianceDoc(+el.dataset.id, el.dataset.fileId, +el.dataset.attId); break;
+    case 'safSaveCompliance':    safSaveCompliance(el.dataset.id); break;
+    case 'safSaveEditCompliance':safSaveEditCompliance(+el.dataset.id, el.dataset.fileId); break;
+    case 'safManualAck':         safManualAck(+el.dataset.id, el.dataset.fileId); break;
+    case 'safResendPolicyAck':   safResendPolicyAck(+el.dataset.id, el.dataset.fileId); break;
+    case 'safDeletePolicyAck':   safDeletePolicyAck(+el.dataset.id, el.dataset.fileId); break;
+    case 'safSavePolicyAck':     safSavePolicyAck(el.dataset.id); break;
+    case 'safDeleteAttachment':  safDeleteAttachment(+el.dataset.id, el.dataset.fileId); break;
+    case 'safPersonnelSendPolicy': safPersonnelSendPolicy(+el.dataset.id); break;
+    case 'safUnlinkUser':        safUnlinkUser(+el.dataset.id, el.dataset.fileId, el.dataset.name); break;
+    case 'safRemovePerson':      safRemovePerson(+el.dataset.id, el.dataset.fileId, el.dataset.name); break;
+    case 'safReinstatePerson':   safReinstatePerson(+el.dataset.id, el.dataset.fileId); break;
     // Info/guide panel
     case 'submitInfoSuggestion': submitInfoSuggestion(el.dataset.page); break;
-    case 'navPage':              showPortalPage(el.dataset.page, null); break;
-    case 'refreshPage':          refreshCurrentPage(el); break;
+    case 'activateNavGroupAndNavigate': activateNavGroupAndNavigate(el.dataset.group); break;
   }
+});
+
+/* ── Post-render helpers for dynamic styles ────────────────────────── */
+function applyProgFills(root) {
+  (root||document).querySelectorAll('.prog-fill[data-w]').forEach(el => {
+    el.style.width = el.dataset.w + '%';
+    if (el.dataset.bg) el.style.background = el.dataset.bg;
+  });
+}
+
+/* ── input / change event delegation ───────────────────────────────── */
+document.addEventListener('input', function(e) {
+  const t = e.target;
+  if (t.id === 'tx-search')    { renderTransactions(t.value); return; }
+  if (t.id === 'inv-search')   { renderInvoices(t.value); return; }
+  if (t.id === 'qte-search')   { renderQuotes(t.value); return; }
+  if (t.id === 'co-search')    { renderCallouts(t.value); return; }
+  if (t.id === 'cli-search')   { renderClients(t.value); return; }
+  if (t.id === 'sf-search')    { renderSafetyFiles(t.value); return; }
+  if (t.id === 'audit-search') { filterAudit(t.value); return; }
+  if (t.matches('.li-qty,.li-price,.liinput')) { recalcQ(); return; }
+  if (t.dataset.action === 'safAppointeeChanged') {
+    safAppointeeChanged(t.dataset.sectionKey, +t.dataset.itemIdx, t); return;
+  }
+  if (t.dataset.action === 'safCommentChanged') {
+    safCommentChanged(t.dataset.sectionKey, +t.dataset.itemIdx, t); return;
+  }
+});
+
+document.addEventListener('change', function(e) {
+  const t = e.target;
+  if (t.id === 'inv-filter')       { renderInvoices('', t.value); return; }
+  if (t.id === 'qte-filter')       { renderQuotes('', t.value); return; }
+  if (t.id === 'co-filter')        { renderCallouts('', t.value); return; }
+  if (t.id === 'sf-filter-status') { renderSafetyFiles(); return; }
+  if (t.id === 'saf-det-upload')   { safDetailUpload(t); return; }
+  if (t.id === 'cmp-type-sel')     { safCmpTypeChanged(); return; }
+  if (t.id === 'cmp-scope')        { safCmpScopeChanged(); return; }
+  if (t.id === 'cmp-issue')        { safCmpCalcExpiry(); return; }
+  if (t.id === 'cmp-months')       { safCmpCalcExpiry(); return; }
+  if (t.id === 'cedit-issue')      { safCEditCalcExpiry(); return; }
+  if (t.id === 'cedit-months')     { safCEditCalcExpiry(); return; }
+  if (t.dataset.action === 'safItemChanged') {
+    safItemChanged(t.dataset.sectionKey, +t.dataset.itemIdx, t); return;
+  }
+  if (t.dataset.action === 'safHandleUpload') {
+    safHandleUpload(t.dataset.sectionKey, +t.dataset.itemIdx, t); return;
+  }
+  if (t.dataset.action === 'safSectionUpload') {
+    safSectionUpload(t, t.dataset.fileId, t.dataset.sectionKey); return;
+  }
+  if (t.dataset.action === 'safUploadComplianceDoc') {
+    safUploadComplianceDoc(+t.dataset.id, t.dataset.fileId, t); return;
+  }
+  if (t.dataset.action === 'safApSetStatus') {
+    safApSetStatus(t.dataset.fileId, t.dataset.sectionKey, +t.dataset.itemIdx, t.value); return;
+  }
+});
+
+/* ── Login / reset keydown wiring (runs after DOM is ready) ─────────── */
+document.addEventListener('DOMContentLoaded', function() {
+  const loginEnter = e => { if (e.key === 'Enter') doLogin(); };
+  ['l-user', 'l-pass', 'l-captcha'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('keydown', loginEnter);
+  });
+  const fpEl = document.getElementById('fp-user');
+  if (fpEl) fpEl.addEventListener('keydown', e => { if (e.key === 'Enter') doRequestReset(); });
+  const resetEnter = e => { if (e.key === 'Enter') doResetPassword(); };
+  ['np-pass1', 'np-pass2'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('keydown', resetEnter);
+  });
 });
 
 /* ── Attachments modal / panel ─────────────────────────────────────── */
@@ -124,13 +290,13 @@ function openAttachmentsModal(entityType, entityRef) {
   let ctxHtml = '';
   if (entityType === 'callout') {
     const c = proxyDB.callouts.find(x => x.id === entityRef);
-    if (c) ctxHtml = `<div style="padding:8px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:2px;margin-bottom:12px;font-size:11px"><span style="font-weight:600">${esc(c.service)}</span>  —  ${esc(c.location||'')}  ·  ${fmtD(c.date)}</div>`;
+    if (c) ctxHtml = `<div class="att-ctx"><span class="fw-600">${esc(c.service)}</span>  —  ${esc(c.location||'')}  ·  ${fmtD(c.date)}</div>`;
   } else if (entityType === 'quote') {
     const q = proxyDB.quotes.find(x => x.id === entityRef);
-    if (q) ctxHtml = `<div style="padding:8px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:2px;margin-bottom:12px;font-size:11px"><span style="font-weight:600">${esc(q.client)}</span>  —  Quote ${esc(q.id)}  ·  ${fmtD(q.date)}</div>`;
+    if (q) ctxHtml = `<div class="att-ctx"><span class="fw-600">${esc(q.client)}</span>  —  Quote ${esc(q.id)}  ·  ${fmtD(q.date)}</div>`;
   } else if (entityType === 'invoice') {
     const inv = proxyDB.invoices.find(x => x.id === entityRef);
-    if (inv) ctxHtml = `<div style="padding:8px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:2px;margin-bottom:12px;font-size:11px"><span style="font-weight:600">${esc(inv.client)}</span>  —  Invoice ${esc(inv.id)}  ·  ${fmt(inv.amount)}</div>`;
+    if (inv) ctxHtml = `<div class="att-ctx"><span class="fw-600">${esc(inv.client)}</span>  —  Invoice ${esc(inv.id)}  ·  ${fmt(inv.amount)}</div>`;
   }
   openModal('Attachments — ' + entityRef,
     `${ctxHtml}<div id="attach-modal-area"></div>`);
@@ -146,28 +312,27 @@ async function loadAttachments(entityType, entityRef) {
   const fileIcon = m => m === 'application/pdf' ? '📄' : m.includes('sheet') || m.includes('excel') ? '📊' : m.includes('word') ? '📝' : m.includes('image') ? '🖼' : '📎';
   const fmtBytes = b => b < 1024 ? b + ' B' : b < 1048576 ? (b/1024).toFixed(1) + ' KB' : (b/1048576).toFixed(1) + ' MB';
   area.innerHTML = `
-    <div style="margin-bottom:12px">
-      <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:8px">📎 Files (${list.length})</div>
+    <div class="mb-12">
+      <div class="att-slbl">📎 Files (${list.length})</div>
       ${list.length ? list.map(a => `
-        <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:2px;margin-bottom:6px">
-          <span style="font-size:18px">${fileIcon(a.mime_type)}</span>
-          <div style="flex:1;min-width:0">
-            <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(a.original_name)}</div>
-            <div style="font-size:10px;color:var(--muted)">${fmtBytes(a.file_size)} · ${esc(a.uploaded_by)} · ${(a.created_at||'').slice(0,10)}</div>
+        <div class="att-row">
+          <span class="att-icon">${fileIcon(a.mime_type)}</span>
+          <div class="att-info">
+            <div class="att-name">${esc(a.original_name)}</div>
+            <div class="att-meta">${fmtBytes(a.file_size)} · ${esc(a.uploaded_by)} · ${(a.created_at||'').slice(0,10)}</div>
           </div>
-          ${(a.mime_type==='application/pdf'||a.mime_type?.startsWith('image/'))?`<button class="btn btn-g btn-s" onclick="openDocViewer(${a.id},'${esc(a.original_name)}','${esc(a.mime_type)}')">&#128065; View</button>`:''}
-          <a href="${API_BASE}/files.php?action=download&id=${a.id}" target="_blank" class="btn btn-g btn-s" style="text-decoration:none">&#8595; Download</a>
-          ${canDel ? `<button class="btn btn-g btn-s" style="color:var(--ember)" onclick="deleteAttachment(${a.id},'${esc(entityType)}','${esc(entityRef)}')">&#10005;</button>` : ''}
-        </div>`).join('') : '<div style="font-size:11px;color:var(--muted);font-style:italic;margin-bottom:8px">No files attached yet</div>'}
+          ${(a.mime_type==='application/pdf'||a.mime_type?.startsWith('image/'))?`<button class="btn btn-g btn-s" data-action="openDocViewer" data-id="${a.id}" data-name="${esc(a.original_name)}" data-mime="${esc(a.mime_type)}">&#128065; View</button>`:''}
+          <a href="${API_BASE}/files.php?action=download&id=${a.id}" target="_blank" class="btn btn-g btn-s">&#8595; Download</a>
+          ${canDel ? `<button class="btn btn-g btn-s att-del" data-action="deleteAttachment" data-id="${a.id}" data-entity-type="${esc(entityType)}" data-entity-ref="${esc(entityRef)}">&#10005;</button>` : ''}
+        </div>`).join('') : '<div class="att-empty">No files attached yet</div>'}
     </div>
-    <div style="padding-top:12px;border-top:1px solid var(--border)">
-      <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:8px">Upload File</div>
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <input type="file" id="attach-file-input" accept=".pdf,.xlsx,.xls,.docx,.doc,.jpg,.jpeg,.png"
-          style="flex:1;min-width:0;font-size:11px;padding:6px;background:var(--surface2);border:1px solid var(--border);border-radius:2px;color:var(--text)">
-        <button class="btn btn-p btn-s" onclick="uploadAttachment('${esc(entityType)}','${esc(entityRef)}')">Upload</button>
+    <div class="att-upsec">
+      <div class="att-slbl">Upload File</div>
+      <div class="att-uprow">
+        <input type="file" id="attach-file-input" accept=".pdf,.xlsx,.xls,.docx,.doc,.jpg,.jpeg,.png" class="att-finp">
+        <button class="btn btn-p btn-s" data-action="uploadAttachment" data-entity-type="${esc(entityType)}" data-entity-ref="${esc(entityRef)}">Upload</button>
       </div>
-      <div style="font-size:10px;color:var(--muted);margin-top:4px">PDF, Excel, Word, JPEG, PNG · Max 10 MB</div>
+      <div class="att-fhint">PDF, Excel, Word, JPEG, PNG · Max 10 MB</div>
     </div>`;
 }
 
@@ -201,27 +366,27 @@ function openDocViewer(id, name, mime) {
   const src   = `${API_BASE}/files.php?action=view&id=${id}`;
   let body;
   if (isPdf) {
-    body = `<div style="display:flex;flex-direction:column;height:78vh">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <span style="font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace">${esc(name)}</span>
-        <a href="${API_BASE}/files.php?action=download&id=${id}" class="btn btn-g btn-s" style="text-decoration:none">&#8595; Download</a>
+    body = `<div class="dv-wrap">
+      <div class="dv-hdr">
+        <span class="dv-name">${esc(name)}</span>
+        <a href="${API_BASE}/files.php?action=download&id=${id}" class="btn btn-g btn-s">&#8595; Download</a>
       </div>
-      <iframe src="${src}" style="flex:1;width:100%;border:1px solid var(--border);border-radius:2px;background:#fff" title="${esc(name)}"></iframe>
+      <iframe src="${src}" class="dv-iframe" title="${esc(name)}"></iframe>
     </div>`;
   } else if (isImg) {
-    body = `<div style="text-align:center">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <span style="font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace">${esc(name)}</span>
-        <a href="${API_BASE}/files.php?action=download&id=${id}" class="btn btn-g btn-s" style="text-decoration:none">&#8595; Download</a>
+    body = `<div class="text-center">
+      <div class="dv-hdr">
+        <span class="dv-name">${esc(name)}</span>
+        <a href="${API_BASE}/files.php?action=download&id=${id}" class="btn btn-g btn-s">&#8595; Download</a>
       </div>
-      <img src="${src}" alt="${esc(name)}" style="max-width:100%;max-height:70vh;border:1px solid var(--border);border-radius:2px">
+      <img src="${src}" alt="${esc(name)}" class="dv-img">
     </div>`;
   } else {
-    body = `<div style="padding:24px;text-align:center;color:var(--muted)">
-      <div style="font-size:32px;margin-bottom:12px">📄</div>
-      <div style="font-size:13px;margin-bottom:16px">${esc(name)}</div>
-      <p style="font-size:11px;margin-bottom:16px">This file type cannot be previewed in the browser.</p>
-      <a href="${API_BASE}/files.php?action=download&id=${id}" class="btn btn-p" style="text-decoration:none">&#8595; Download to Open</a>
+    body = `<div class="dv-unsup">
+      <div class="fs-32 mb-12">📄</div>
+      <div class="fs-13 mb-16">${esc(name)}</div>
+      <p class="fs-11 mb-16">This file type cannot be previewed in the browser.</p>
+      <a href="${API_BASE}/files.php?action=download&id=${id}" class="btn btn-p">&#8595; Download to Open</a>
     </div>`;
   }
   openModal(name, body);
@@ -731,7 +896,7 @@ function activateNavGroup(groupId) {
   if (subBar) subBar.style.visibility = '';
   linksEl.innerHTML = visible.map(item => {
     const badge = item.badge ? `<span class="pnbadge" id="${item.badge}">0</span>` : '';
-    return `<div class="pnitem" data-page="${item.id}" onclick="showPortalPage('${item.id}',this)">${item.label}${badge}</div>`;
+    return `<div class="pnitem" data-page="${item.id}" data-action="navPage">${item.label}${badge}</div>`;
   }).join('');
 }
 
@@ -749,7 +914,7 @@ function buildNav() {
   NAV_CONFIG.forEach(group => {
     const accessible = (group.items||[]).some(i => !i.perm || can(i.perm)) || (!group.perm || can(group.perm));
     if (!accessible) return;
-    html += `<div class="pnav-group" data-group="${group.id}" onclick="activateNavGroupAndNavigate('${group.id}')">${group.label}</div>`;
+    html += `<div class="pnav-group" data-group="${group.id}" data-action="activateNavGroupAndNavigate">${group.label}</div>`;
   });
   primary.innerHTML = html;
 }
@@ -757,7 +922,7 @@ function buildNav() {
 /* ═══════════════════════════════════════════════════════
    DATA STORE
 ═══════════════════════════════════════════════════════ */
-const STORE='bf_v9';
+const STORE='bf_v10';
 DB = load();
 
 function load(){
@@ -824,7 +989,7 @@ const ROLE_COLORS = {
 function pillH(s){
   const m={Open:'open','In Progress':'progress',Completed:'invoiced',Invoiced:'invoiced',Draft:'draft',Sent:'sent',Approved:'approved',Paid:'paid',Overdue:'overdue',Emergency:'emergency',Urgent:'progress',Normal:'draft','Pending Approval':'pending-approval'};
   const cls=m[s]||'draft';
-  if(cls==='pending-approval') return`<span class="pill" style="background:rgba(230,126,34,.1);border-color:rgba(230,126,34,.3);color:var(--warn)">${esc(s)}</span>`;
+  if(cls==='pending-approval') return`<span class="pill pill--pending">${esc(s)}</span>`;
   return`<span class="pill ${cls}">${esc(s)}</span>`;
 }
 function rolePill(role){
@@ -1456,7 +1621,7 @@ function renderInfoPanel(pageId){
       <div class="ipanel-section-lbl">Your access — ${esc(ROLE_LABELS[SESSION.role]||SESSION.role)}</div>
       ${myCaps.length
         ? myCaps.map(c=>`<div class="ipanel-can"><span class="ipanel-can-icon">✓</span>${esc(c.label)}</div>`).join('')
-        : '<div style="font-size:11px;color:var(--muted);font-style:italic">Read-only access on this page.</div>'}
+        : '<div class="ro-note">Read-only access on this page.</div>'}
       ${notMyCaps.length
         ? `<div class="ipanel-cannot-wrap">${notMyCaps.map(c=>`<div class="ipanel-cannot"><span class="ipanel-cannot-icon">–</span>${esc(c.label)}</div>`).join('')}</div>`
         : ''}
@@ -1521,7 +1686,7 @@ function renderInfoPanel(pageId){
     </div>
     <div class="ipanel-divider"></div>
     <div class="ipanel-suggest-lbl">Suggestions &amp; comments</div>
-    <div style="font-size:11px;color:var(--muted);margin-bottom:6px">Your feedback is logged to the audit trail and reviewed by admins.</div>
+    <div class="suggest-hint">Your feedback is logged to the audit trail and reviewed by admins.</div>
     <textarea id="info-suggestion" placeholder="Write a suggestion or note about this page…"></textarea>
     <button id="info-suggest-btn" data-action="submitInfoSuggestion" data-page="${pageId}">Log Suggestion</button>`;
 }
@@ -1616,7 +1781,7 @@ const SERVICES=[
   {name:'VIP & Executive Protection',cat:'Event Security'},{name:'Crowd Management',cat:'Event Security'},{name:'Sports Event Security',cat:'Event Security'},
 ];
 function buildHomeCats(){
-  document.getElementById('home-cats').innerHTML=CATEGORIES.map(c=>`<div class="cat-card" onclick="pubNav('services')"><span class="cat-icon">${c.icon}</span><div class="cat-name">${esc(c.name)}</div><div class="cat-count">${c.count} SERVICES</div></div>`).join('');
+  document.getElementById('home-cats').innerHTML=CATEGORIES.map(c=>`<div class="cat-card" data-action="pubNavCat"><span class="cat-icon">${c.icon}</span><div class="cat-name">${esc(c.name)}</div><div class="cat-count">${c.count} SERVICES</div></div>`).join('');
 }
 function buildTicker(){
   const items=SERVICES.slice(0,20).map(s=>`<div class="live-item"><span class="live-dot"></span>${esc(s.name)}</div>`).join('');
@@ -1631,7 +1796,7 @@ function buildSvcGrid(ctx){
     document.getElementById(gridId).innerHTML=items.map(s=>`<div class="svc-card"><div class="svc-cat-dot"></div><div><div class="svc-name">${esc(s.name)}</div><div class="svc-cat">${esc(s.cat)}</div></div></div>`).join('');
   };
   const chips=['All',...CATEGORIES.map(c=>c.name)];
-  document.getElementById(filterId).innerHTML=chips.map(c=>`<div class="filter-chip ${c==='All'?'active':''}" onclick="filterSvc(this,'${esc(c)}','${ctx}')">${esc(c)}</div>`).join('');
+  document.getElementById(filterId).innerHTML=chips.map(c=>`<div class="filter-chip ${c==='All'?'active':''}" data-action="filterSvc" data-cat="${esc(c)}" data-ctx="${ctx}">${esc(c)}</div>`).join('');
   render();
   window._svcF=window._svcF||{};
   window._svcF[ctx]={setActive:(v)=>{active=v==='All'?'all':v;render();}};
@@ -1729,13 +1894,13 @@ function closeSb(){ }
 ═══════════════════════════════════════════════════════ */
 function renderPortalHome(){
   document.getElementById('portal-home-embed').innerHTML=`
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;margin-bottom:20px">
-      ${CATEGORIES.map(c=>`<div class="kcard" style="border-top:2px solid var(--amber);cursor:pointer" onclick="showPortalPage('p-services',null)"><div style="font-size:22px;margin-bottom:6px">${c.icon}</div><div class="klbl">${esc(c.name)}</div><div class="kval" style="font-size:18px">${c.count}</div><div class="ksub">services</div></div>`).join('')}
+    <div class="kcard-cats-grid mb-20">
+      ${CATEGORIES.map(c=>`<div class="kcard kcard-amber" data-action="navPage" data-page="p-services"><div class="fs-22 mb-6">${c.icon}</div><div class="klbl">${esc(c.name)}</div><div class="kval kval-18">${c.count}</div><div class="ksub">services</div></div>`).join('')}
     </div>
-    <div style="padding:18px;background:var(--surface2);border:1px solid var(--border);border-radius:2px;text-align:center">
-      <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ember);letter-spacing:3px;margin-bottom:5px">Fire, taught to behave.</div>
-      <div style="font-family:'Big Shoulders Display',sans-serif;font-size:18px;font-weight:700">BlackFire Solutions</div>
-      <div style="font-size:11px;color:var(--muted);margin-top:3px">Professional Security Services  -  Gauteng  -  24/7</div>
+    <div class="cbar-brand-wrap">
+      <div class="brand-eyebrow">Fire, taught to behave.</div>
+      <div class="brand-display">BlackFire Solutions</div>
+      <div class="brand-sub">Professional Security Services  -  Gauteng  -  24/7</div>
     </div>`;
 }
 
@@ -1788,15 +1953,15 @@ function renderDashboard(){
   // Recent callouts
   const rc=[...proxyDB.callouts].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5);
   const rcRows=rc.length
-    ?rc.map(c=>`<tr><td class="mono">${esc(c.id)}</td><td style="font-size:11px">${esc(c.service.substring(0,30))}${c.service.length>30?'…':''}</td><td>${pillH(c.status)}</td></tr>`).join('')
-    :'<tr><td colspan="3" style="text-align:center;padding:16px;color:var(--muted);font-style:italic">No callouts</td></tr>';
+    ?rc.map(c=>`<tr><td class="mono">${esc(c.id)}</td><td class="tc-11">${esc(c.service.substring(0,30))}${c.service.length>30?'…':''}</td><td>${pillH(c.status)}</td></tr>`).join('')
+    :'<tr><td colspan="3" class="tc-empty-sm">No callouts</td></tr>';
 
   // Revenue chart
   const months=[];
   for(let i=5;i>=0;i--){const dt=new Date(now.getFullYear(),now.getMonth()-i,1);months.push({lbl:dt.toLocaleDateString('en-ZA',{month:'short'}),m:dt.getMonth(),y:dt.getFullYear()});}
   const revData=months.map(m=>proxyDB.invoices.filter(i=>{const d=new Date(i.date+'T00:00:00');return d.getMonth()===m.m&&d.getFullYear()===m.y;}).reduce((a,i)=>a+i.amount,0));
   const maxRev=Math.max(...revData,1);
-  const chartBars=revData.map((v,i)=>`<div class="cbar-w"><div class="cval">${v>0?'R'+Math.round(v/1000)+'K':''}</div><div class="cbar" style="height:${Math.max(4,Math.round((v/maxRev)*100))}px" title="${fmt(v)}"></div><div class="clbl">${months[i].lbl}</div></div>`).join('');
+  const chartBars=revData.map((v,i)=>`<div class="cbar-w"><div class="cval">${v>0?'R'+Math.round(v/1000)+'K':''}</div><div class="cbar" data-h="${Math.max(4,Math.round((v/maxRev)*100))}" title="${fmt(v)}"></div><div class="clbl">${months[i].lbl}</div></div>`).join('');
 
   // Build HTML
   let html='';
@@ -1805,16 +1970,16 @@ function renderDashboard(){
 
   if(showAlrt) html+=`<div class="alert-strip" id="dash-alerts">${alertsHtml}</div>`;
 
-  if(showComp) html+=`<div class="panel mt2" id="dash-comp-widget" style="display:none">
+  if(showComp) html+=`<div class="panel mt2 d-none" id="dash-comp-widget">
     <div class="ph">
       <div class="ph-title">Compliance Alerts</div>
-      <button class="btn btn-g btn-s" onclick="showPortalPage('p-safety',null)">View Safety Files</button>
+      <button class="btn btn-g btn-s" data-action="navPage" data-page="p-safety">View Safety Files</button>
     </div>
     <div id="dash-comp-body"></div>
   </div>`;
 
   const panelL=showOps?`<div class="panel">
-    <div class="ph"><div class="ph-title">Recent Callouts</div><button class="btn btn-g btn-s" onclick="showPortalPage('p-callouts',null)">View All</button></div>
+    <div class="ph"><div class="ph-title">Recent Callouts</div><button class="btn btn-g btn-s" data-action="navPage" data-page="p-callouts">View All</button></div>
     <div class="tw"><table><thead><tr><th>Job ID</th><th>Service</th><th>Status</th></tr></thead><tbody>${rcRows}</tbody></table></div>
   </div>`:null;
   const panelR=(showFin&&can('finance.income'))?`<div class="panel">
@@ -1827,9 +1992,10 @@ function renderDashboard(){
   else if(panelR)         html+=panelR;
 
   if(!kpiCards.length&&!showAlrt&&!showComp&&!panelL&&!panelR)
-    html=`<div class="dash-empty-state"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg><p>Your dashboard is empty.<br><button class="btn btn-g btn-s" onclick="showDashEditor()">Edit Layout</button> to add widgets.</p></div>`;
+    html=`<div class="dash-empty-state"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg><p>Your dashboard is empty.<br><button class="btn btn-g btn-s" data-action="showDashEditor">Edit Layout</button> to add widgets.</p></div>`;
 
   container.innerHTML=html;
+  container.querySelectorAll('.cbar[data-h]').forEach(b=>{ b.style.height=b.dataset.h+'px'; });
 
   // Nav badges (always update regardless of widget visibility)
   const nbCo=document.getElementById('nb-co');if(nbCo)nbCo.textContent=open;
@@ -1845,7 +2011,7 @@ async function safLoadDashCompliance(){
   try {
     const r=await api('GET','safety_compliance.php?action=due_soon');
     const rows=r.data||[];
-    if(!rows.length){ panel.style.display='none'; return; }
+    if(!rows.length){ panel.classList.add('d-none'); return; }
 
     const today=new Date(); today.setHours(0,0,0,0);
     const isOverdue=row=>{ const e=new Date(row.expiry_date+'T00:00:00'); e.setHours(0,0,0,0); return e<today; };
@@ -1867,24 +2033,22 @@ async function safLoadDashCompliance(){
     let html=`<div class="tw"><table><thead><tr><th>File</th><th>Contractor</th><th>Type</th><th>Person / Scope</th><th>Expiry</th><th>Status</th></tr></thead><tbody>`;
     visible.forEach(row=>{
       const ovr=isOverdue(row);
-      const who=row.full_name?esc(row.full_name):`<span style="color:var(--muted)">Company</span>`;
-      const badge=ovr
-        ?`<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;background:rgba(192,57,43,.15);color:var(--ember);text-transform:uppercase">Overdue</span>`
-        :`<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;background:rgba(240,120,32,.12);color:var(--amber);text-transform:uppercase">Due Soon</span>`;
+      const who=row.full_name?esc(row.full_name):`<span class="text-muted">Company</span>`;
+      const badge=ovr?`<span class="badge-ovr">Overdue</span>`:`<span class="badge-soon">Due Soon</span>`;
       html+=`<tr>
-        <td class="mono" style="font-size:11px">${esc(row.file_ref)}</td>
-        <td style="font-size:11px">${esc(row.contractor||'')}</td>
-        <td style="font-size:11px">${esc(row.compliance_type)}</td>
-        <td style="font-size:11px">${who}</td>
-        <td class="mono" style="font-size:11px">${esc(row.expiry_date)}</td>
+        <td class="mono tc-11">${esc(row.file_ref)}</td>
+        <td class="tc-11">${esc(row.contractor||'')}</td>
+        <td class="tc-11">${esc(row.compliance_type)}</td>
+        <td class="tc-11">${who}</td>
+        <td class="mono tc-11">${esc(row.expiry_date)}</td>
         <td>${badge}</td>
       </tr>`;
     });
     html+='</tbody></table></div>';
-    if(rows.length>15) html+=`<div style="text-align:center;padding:8px 16px;font-size:11px;color:var(--muted)">${rows.length-15} more item${rows.length-15>1?'s':''} — open Safety / EHS for full list</div>`;
+    if(rows.length>15) html+=`<div class="more-items">${rows.length-15} more item${rows.length-15>1?'s':''} — open Safety / EHS for full list</div>`;
 
     body.innerHTML=html;
-    panel.style.display='';
+    panel.classList.remove('d-none');
   } catch(e){ /* compliance widget is non-critical — silent on API failure */ }
 }
 
@@ -1908,39 +2072,39 @@ function renderOpsDashboard() {
     const cnt = proxyDB.callouts.filter(c=>c.status===s).length;
     const pct = Math.round(cnt/total*100);
     const col = s==='Open'?'var(--blue)':s==='In Progress'?'var(--amber)':s==='Completed'?'var(--green)':'var(--muted)';
-    return `<div style="margin-bottom:14px">
-      <div style="display:flex;justify-content:space-between;margin-bottom:5px">
-        <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">${s}</span>
-        <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;color:var(--text)">${cnt}</span>
+    return `<div class="mb-14">
+      <div class="flex-sb mb-5">
+        <span class="mlbl-xs">${s}</span>
+        <span class="mlbl-sm">${cnt}</span>
       </div>
-      <div style="height:5px;background:var(--surface3);border-radius:3px">
-        <div style="height:5px;width:${pct}%;background:${col};border-radius:3px;transition:width .4s"></div>
+      <div class="prog-bar">
+        <div class="prog-fill" data-w="${pct}" data-bg="${col}"></div>
       </div>
     </div>`;
   }).join('');
 
   const recentRows = recent.length
     ? recent.map(c=>`<tr>
-        <td class="mono" style="font-size:13px">${esc(c.id)}</td>
-        <td style="font-size:12px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.service)}</td>
+        <td class="mono tc-13">${esc(c.id)}</td>
+        <td class="tc-trunc">${esc(c.service)}</td>
         <td>${pillH(c.priority)}</td>
         <td>${pillH(c.status)}</td>
       </tr>`).join('')
-    : `<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--muted);font-style:italic">No callouts yet</td></tr>`;
+    : `<tr><td colspan="4" class="tc-empty">No callouts yet</td></tr>`;
 
   const qas = can('capture.new_callout') || can('capture.new_quote');
   el.innerHTML = `
     <div class="kgrid">
       <div class="kcard k1"><div class="klbl">Open Callouts</div><div class="kval">${open}</div><div class="ksub">Awaiting dispatch</div></div>
       <div class="kcard k2"><div class="klbl">In Progress</div><div class="kval">${inProg}</div><div class="ksub">Active on site</div></div>
-      <div class="kcard" style="border-top-color:var(--ember)"><div class="klbl">Urgent / Emergency</div><div class="kval" style="color:var(--pill-ovr-txt)">${urgent}</div><div class="ksub">Priority dispatch</div></div>
+      <div class="kcard kcard-ember"><div class="klbl">Urgent / Emergency</div><div class="kval kval-ember">${urgent}</div><div class="ksub">Priority dispatch</div></div>
       <div class="kcard k3"><div class="klbl">Quotes This Month</div><div class="kval">${qMTD}</div><div class="ksub">${pendingQA} pending approval</div></div>
     </div>
     <div class="twocol">
       <div class="panel">
         <div class="ph">
           <div class="ph-title">Recent Callouts</div>
-          <button class="btn btn-g btn-s" onclick="showPortalPage('p-callouts',null)">View All →</button>
+          <button class="btn btn-g btn-s" data-action="navPage" data-page="p-callouts">View All →</button>
         </div>
         <div class="tw"><table><thead><tr><th>Job ID</th><th>Service</th><th>Priority</th><th>Status</th></tr></thead>
           <tbody>${recentRows}</tbody>
@@ -1953,12 +2117,13 @@ function renderOpsDashboard() {
     </div>
     ${qas ? `<div class="panel mt2">
       <div class="ph"><div class="ph-title">Quick Actions</div></div>
-      <div class="pb" style="display:flex;gap:10px;flex-wrap:wrap">
-        ${can('capture.new_callout')?`<button class="btn btn-p" onclick="showPortalPage('p-new-callout',null)">+ Log Call</button>`:''}
-        ${can('capture.new_quote')?`<button class="btn btn-g" onclick="showPortalPage('p-new-quote',null)">+ Submit Quote</button>`:''}
-        <button class="btn btn-g" onclick="showPortalPage('p-timeline',null)">View Timeline →</button>
+      <div class="pb dash-acts">
+        ${can('capture.new_callout')?`<button class="btn btn-p" data-action="navPage" data-page="p-new-callout">+ Log Call</button>`:''}
+        ${can('capture.new_quote')?`<button class="btn btn-g" data-action="navPage" data-page="p-new-quote">+ Submit Quote</button>`:''}
+        <button class="btn btn-g" data-action="navPage" data-page="p-timeline">View Timeline →</button>
       </div>
     </div>` : ''}`;
+  applyProgFills(el);
 }
 
 function renderFinDashboard() {
@@ -1983,20 +2148,20 @@ function renderFinDashboard() {
     const cnt = proxyDB.invoices.filter(i=>i.status===s).length;
     const pct = Math.round(cnt/invTotal*100);
     const col = s==='Paid'?'var(--green)':s==='Overdue'?'var(--ember)':s==='Sent'?'var(--amber)':'var(--muted)';
-    return `<div style="margin-bottom:14px">
-      <div style="display:flex;justify-content:space-between;margin-bottom:5px">
-        <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">${s}</span>
-        <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;color:var(--text)">${cnt}</span>
+    return `<div class="mb-14">
+      <div class="flex-sb mb-5">
+        <span class="mlbl-xs">${s}</span>
+        <span class="mlbl-sm">${cnt}</span>
       </div>
-      <div style="height:5px;background:var(--surface3);border-radius:3px">
-        <div style="height:5px;width:${pct}%;background:${col};border-radius:3px;transition:width .4s"></div>
+      <div class="prog-bar">
+        <div class="prog-fill" data-w="${pct}" data-bg="${col}"></div>
       </div>
     </div>`;
   }).join('');
 
   const chartBars = revData.map((v,i)=>`
     <div class="cbar-w">
-      <div class="cbar" style="height:${Math.max(Math.round(v/maxRev*100),2)}%" title="${fmt(v)}"></div>
+      <div class="cbar" data-h="${Math.max(Math.round(v/maxRev*100),2)}" title="${fmt(v)}"></div>
       <div class="clbl">${months[i].lbl}</div>
       <div class="cval">${v>0?fmt(v):''}</div>
     </div>`).join('');
@@ -2005,7 +2170,7 @@ function renderFinDashboard() {
   el.innerHTML = `
     <div class="kgrid">
       <div class="kcard k2"><div class="klbl">Invoiced MTD</div><div class="kval">${fmt(mtd)}</div><div class="ksub">Month to date</div></div>
-      <div class="kcard" style="border-top-color:var(--ember)"><div class="klbl">Outstanding</div><div class="kval" style="color:var(--pill-ovr-txt)">${fmt(outstanding)}</div><div class="ksub">${overdue.length} overdue · ${sent.length} sent</div></div>
+      <div class="kcard kcard-ember"><div class="klbl">Outstanding</div><div class="kval kval-ember">${fmt(outstanding)}</div><div class="ksub">${overdue.length} overdue · ${sent.length} sent</div></div>
       <div class="kcard k4"><div class="klbl">Net Balance</div><div class="kval">${fmt(net)}</div><div class="ksub">Credits − Debits</div></div>
       <div class="kcard k1"><div class="klbl">Total Invoices</div><div class="kval">${proxyDB.invoices.length}</div><div class="ksub">All time</div></div>
     </div>
@@ -2021,12 +2186,14 @@ function renderFinDashboard() {
     </div>
     ${qas ? `<div class="panel mt2">
       <div class="ph"><div class="ph-title">Quick Actions</div></div>
-      <div class="pb" style="display:flex;gap:10px;flex-wrap:wrap">
-        ${can('capture.new_invoice')?`<button class="btn btn-p" onclick="showPortalPage('p-new-invoice',null)">+ New Invoice</button>`:''}
-        ${can('capture.log_payment')?`<button class="btn btn-g" onclick="showPortalPage('p-log-payment',null)">Log Payment</button>`:''}
-        <button class="btn btn-g" onclick="showPortalPage('p-transactions',null)">View Transactions →</button>
+      <div class="pb dash-acts">
+        ${can('capture.new_invoice')?`<button class="btn btn-p" data-action="navPage" data-page="p-new-invoice">+ New Invoice</button>`:''}
+        ${can('capture.log_payment')?`<button class="btn btn-g" data-action="navPage" data-page="p-log-payment">Log Payment</button>`:''}
+        <button class="btn btn-g" data-action="navPage" data-page="p-transactions">View Transactions →</button>
       </div>
     </div>` : ''}`;
+  el.querySelectorAll('.cbar[data-h]').forEach(b=>{ b.style.height=b.dataset.h+'%'; });
+  applyProgFills(el);
 }
 
 function renderSupDashboard() {
@@ -2044,9 +2211,9 @@ function renderSupDashboard() {
     ? Object.entries(roleGroups).map(([role,cnt])=>`
         <tr>
           <td>${rolePill(role)}</td>
-          <td class="mono" style="font-size:15px">${cnt}</td>
+          <td class="mono tc-15">${cnt}</td>
         </tr>`).join('')
-    : `<tr><td colspan="2" style="text-align:center;padding:14px;color:var(--muted);font-style:italic">No users loaded</td></tr>`;
+    : `<tr><td colspan="2" class="tc-empty-xs">No users loaded</td></tr>`;
 
   // Recent audit
   const auditRows = AUDIT_LOG.slice(0,5).length
@@ -2056,12 +2223,12 @@ function renderSupDashboard() {
           <div class="audit-user">${esc(e.user||'')}</div>
           <div class="audit-action">${esc(e.detail||e.action||'')}</div>
         </div>`).join('')
-    : `<div style="padding:14px;color:var(--muted);font-size:12px;text-align:center;font-style:italic">No recent activity</div>`;
+    : `<div class="p-14 fs-12 text-center italic text-muted">No recent activity</div>`;
 
   el.innerHTML = `
     <div class="kgrid">
-      <div class="kcard" style="border-top-color:var(--blue)"><div class="klbl">Safety Files</div><div class="kval">${safFiles.length}</div><div class="ksub">Total contractor files</div></div>
-      <div class="kcard" style="border-top-color:var(--green)"><div class="klbl">Approved</div><div class="kval" style="color:var(--pill-paid-txt)">${safApproved}</div><div class="ksub">Compliant files</div></div>
+      <div class="kcard kcard-blue"><div class="klbl">Safety Files</div><div class="kval">${safFiles.length}</div><div class="ksub">Total contractor files</div></div>
+      <div class="kcard kcard-green"><div class="klbl">Approved</div><div class="kval kval-paid">${safApproved}</div><div class="ksub">Compliant files</div></div>
       <div class="kcard k3"><div class="klbl">Awaiting Review</div><div class="kval">${safSubmitted}</div><div class="ksub">Submitted for approval</div></div>
       <div class="kcard k1"><div class="klbl">Portal Users</div><div class="kval">${users.length}</div><div class="ksub">Active accounts</div></div>
     </div>
@@ -2069,7 +2236,7 @@ function renderSupDashboard() {
       <div class="panel">
         <div class="ph">
           <div class="ph-title">Users by Role</div>
-          ${can('security.users')?`<button class="btn btn-g btn-s" onclick="showPortalPage('p-users',null)">Manage →</button>`:''}
+          ${can('security.users')?`<button class="btn btn-g btn-s" data-action="navPage" data-page="p-users">Manage →</button>`:''}
         </div>
         <div class="tw"><table><thead><tr><th>Role</th><th>Count</th></tr></thead>
           <tbody>${roleRows}</tbody>
@@ -2078,17 +2245,17 @@ function renderSupDashboard() {
       <div class="panel">
         <div class="ph">
           <div class="ph-title">Recent Audit Activity</div>
-          ${can('security.audit')?`<button class="btn btn-g btn-s" onclick="showPortalPage('p-audit',null)">View All →</button>`:''}
+          ${can('security.audit')?`<button class="btn btn-g btn-s" data-action="navPage" data-page="p-audit">View All →</button>`:''}
         </div>
         ${auditRows}
       </div>
     </div>
     <div class="panel mt2">
       <div class="ph"><div class="ph-title">Quick Actions</div></div>
-      <div class="pb" style="display:flex;gap:10px;flex-wrap:wrap">
-        <button class="btn btn-g" onclick="showPortalPage('p-safety',null)">Safety Files →</button>
-        ${can('security.users')?`<button class="btn btn-g" onclick="showPortalPage('p-users',null)">Manage Users →</button>`:''}
-        ${can('security.audit')?`<button class="btn btn-g" onclick="showPortalPage('p-audit',null)">Audit Log →</button>`:''}
+      <div class="pb dash-acts">
+        <button class="btn btn-g" data-action="navPage" data-page="p-safety">Safety Files →</button>
+        ${can('security.users')?`<button class="btn btn-g" data-action="navPage" data-page="p-users">Manage Users →</button>`:''}
+        ${can('security.audit')?`<button class="btn btn-g" data-action="navPage" data-page="p-audit">Audit Log →</button>`:''}
       </div>
     </div>`;
 }
@@ -2118,44 +2285,43 @@ function renderCallouts(search='',filter=''){
   const tbody=document.getElementById('co-table');
   tbody.innerHTML=items.length?items.map(c=>{
     const poCell=c.po
-      ?`<span class="mono" style="font-size:10px">${esc(c.po)}</span>`
-      :(canPO?`<button class="btn btn-g btn-s" onclick="openAssignPO('${esc(c.id)}')">Assign</button>`:`<span style="color:var(--muted);font-size:11px">-</span>`);
+      ?`<span class="mono fs-10">${esc(c.po)}</span>`
+      :(canPO?`<button class="btn btn-g btn-s" data-action="openAssignPO" data-id="${esc(c.id)}">Assign</button>`:`<span class="text-muted fs-11">-</span>`);
     const loggedByUser=proxyDB.users.find(u=>u.username===c.loggedBy);
     const assignedUser=proxyDB.users.find(u=>u.username===c.assignedTo);
     const assignedDisplay=assignedUser?assignedUser.name:(c.tech||'-');
 
     const actions=[];
-    if(canStatus) actions.push(`<button class="btn btn-g btn-s" onclick="openStatusModal('${esc(c.id)}')">Update Status</button>`);
-    if(canTech&&!c.assignedTo) actions.push(`<button class="btn btn-g btn-s" onclick="openAssignTech('${esc(c.id)}')">Assign Tech</button>`);
-    if(can('capture.new_quote')) actions.push(`<button class="btn btn-g btn-s" onclick="prefillQuoteFromJob('${esc(c.id)}')">Quote</button>`);
-    actions.push(`<button class="btn btn-g btn-s" onclick="openAttachmentsModal('callout','${esc(c.id)}')">Files</button>`);
-    // Confirm Closure: shown when status=Completed, not yet confirmed, invoice not yet generated
+    if(canStatus) actions.push(`<button class="btn btn-g btn-s" data-action="openStatusModal" data-id="${esc(c.id)}">Update Status</button>`);
+    if(canTech&&!c.assignedTo) actions.push(`<button class="btn btn-g btn-s" data-action="openAssignTech" data-id="${esc(c.id)}">Assign Tech</button>`);
+    if(can('capture.new_quote')) actions.push(`<button class="btn btn-g btn-s" data-action="prefillQuoteFromJob" data-id="${esc(c.id)}">Quote</button>`);
+    actions.push(`<button class="btn btn-g btn-s" data-action="openAttachmentsModal" data-entity-type="callout" data-entity-ref="${esc(c.id)}">Files</button>`);
     if(can('callout.confirm_closure')&&c.status==='Completed'&&!c.closureConfirmed&&!c.invoiceGenerated){
-      actions.push(`<button class="btn btn-p btn-s" onclick="openConfirmClosureModal('${esc(c.id)}')">Confirm Closure</button>`);
+      actions.push(`<button class="btn btn-p btn-s" data-action="openConfirmClosureModal" data-id="${esc(c.id)}">Confirm Closure</button>`);
     }
-    if(canDel) actions.push(`<button class="btn btn-g btn-s" onclick="deleteCallout('${esc(c.id)}')">Del</button>`);
+    if(canDel) actions.push(`<button class="btn btn-g btn-s" data-action="deleteCallout" data-id="${esc(c.id)}">Del</button>`);
 
     return`<tr>
       <td class="mono">${esc(c.id)}</td>
-      <td style="font-size:12px;max-width:180px">${esc(c.service)}<div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px">${esc(c.location||'')}</div></td>
-      <td style="font-size:11px">${esc(assignedDisplay)}</td>
+      <td class="tc-12 max-180">${esc(c.service)}<div class="mlbl-9 mt-2">${esc(c.location||'')}</div></td>
+      <td class="tc-11">${esc(assignedDisplay)}</td>
       <td>${poCell}</td>
       <td>${pillH(c.priority)}</td>
       <td>${pillH(c.status)}</td>
-      <td style="font-size:10px;color:var(--muted)">${esc(loggedByUser?.name||c.loggedBy||'-')}</td>
-      <td style="font-size:11px;white-space:nowrap">${fmtD(c.date)}${c.time?'  -  '+esc(c.time):''}</td>
+      <td class="fs-10 text-muted">${esc(loggedByUser?.name||c.loggedBy||'-')}</td>
+      <td class="tc-11 nowrap">${fmtD(c.date)}${c.time?'  -  '+esc(c.time):''}</td>
       <td><div class="bgrp">${actions.join('')}</div></td>
     </tr>`;
-  }).join(''):'<tr><td colspan="9" style="text-align:center;padding:18px;color:var(--muted);font-style:italic">'+(SESSION?.role==='junior_tech'||SESSION?.role==='senior_tech'?'No callouts assigned to you':'No callouts found')+'</td></tr>';
+  }).join(''):'<tr><td colspan="9" class="tc-empty">'+(SESSION?.role==='junior_tech'||SESSION?.role==='senior_tech'?'No callouts assigned to you':'No callouts found')+'</td></tr>';
 }
 
 function openStatusModal(id){
   const c=proxyDB.callouts.find(x=>x.id===id);if(!c)return;
   openModal(`Update Status - ${c.id}`,`
-    <div style="margin-bottom:14px;padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:2px">
-      <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);margin-bottom:4px">Service</div>
-      <div style="font-size:13px;font-weight:600">${esc(c.service)}</div>
-      <div style="font-size:11px;color:var(--muted);margin-top:2px">${esc(c.location||'')}  -  Logged ${fmtD(c.date)}</div>
+    <div class="att-ctx mb-14">
+      <div class="mlbl-9 mb-4">Service</div>
+      <div class="fs-13 fw-600">${esc(c.service)}</div>
+      <div class="fs-11 text-muted mt-2">${esc(c.location||'')}  -  Logged ${fmtD(c.date)}</div>
     </div>
     <div class="fgrid">
       <div class="fgroup"><label class="flbl">New Status</label>
@@ -2170,7 +2336,7 @@ function openStatusModal(id){
       </div>
       <div class="fgroup ffull"><label class="flbl">Update Notes</label><textarea class="finput" id="su-notes" rows="3" placeholder="What was done, findings, next steps...">${esc(c.notes||'')}</textarea></div>
     </div>
-    <div class="mt3 flex-end"><button class="btn btn-p" onclick="saveStatus('${esc(c.id)}')">Save Update</button></div>
+    <div class="mt3 flex-end"><button class="btn btn-p" data-action="saveStatus" data-id="${esc(c.id)}">Save Update</button></div>
   `);
 }
 async function saveStatus(id){
@@ -2190,9 +2356,9 @@ async function saveStatus(id){
 function openAssignPO(id){
   const c=proxyDB.callouts.find(x=>x.id===id);if(!c)return;
   openModal(`Assign PO - ${c.id}`,`
-    <div style="margin-bottom:14px;font-size:12px;color:var(--muted)">Assign a Purchase Order number to this job. The PO will be referenced on the invoice.</div>
+    <div class="fs-12 text-muted mb-14">Assign a Purchase Order number to this job. The PO will be referenced on the invoice.</div>
     <div class="fgroup"><label class="flbl">Purchase Order Number</label><input class="finput" id="po-input" value="${esc(c.po||'')}" placeholder="e.g. PO-2026-045"></div>
-    <div class="mt3 flex-end"><button class="btn btn-p" onclick="assignPO('${esc(c.id)}')">Assign PO</button></div>
+    <div class="mt3 flex-end"><button class="btn btn-p" data-action="assignPO" data-id="${esc(c.id)}">Assign PO</button></div>
   `);
 }
 
@@ -2205,7 +2371,7 @@ function openAssignTech(id){
         ${techs.map(t=>`<option value="${esc(t.username)}">${esc(t.name)}  -  ${esc(ROLE_LABELS[t.role])}</option>`).join('')}
       </select>
     </div>
-    <div class="mt3 flex-end"><button class="btn btn-p" onclick="saveTechAssign('${esc(id)}')">Assign</button></div>
+    <div class="mt3 flex-end"><button class="btn btn-p" data-action="saveTechAssign" data-id="${esc(id)}">Assign</button></div>
   `);
 }
 async function saveTechAssign(id){
@@ -2223,24 +2389,24 @@ async function saveTechAssign(id){
 function openConfirmClosureModal(id){
   const c=proxyDB.callouts.find(x=>x.id===id);if(!c)return;
   openModal(`Confirm Closure — ${c.id}`,`
-    <div style="margin-bottom:14px;padding:12px;background:var(--emb-glow);border:1px solid rgba(192,57,43,.3);border-radius:2px">
-      <div style="font-size:11px;color:var(--pill-ovr-txt);font-family:'IBM Plex Mono',monospace;letter-spacing:1px;margin-bottom:6px">MANAGER CONFIRMATION REQUIRED</div>
-      <div style="font-size:12px;color:var(--text2)">This callout was not closed by the client. A written confirmation and an uploaded document are required before an invoice can be generated.</div>
+    <div class="closure-warn mb-14">
+      <div class="fs-11 text-ovr font-mono ls-1 mb-6">MANAGER CONFIRMATION REQUIRED</div>
+      <div class="fs-12">This callout was not closed by the client. A written confirmation and an uploaded document are required before an invoice can be generated.</div>
     </div>
-    <div style="margin-bottom:12px;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:2px">
-      <div style="font-size:11px;font-weight:600">${esc(c.id)}  —  ${esc(c.service)}</div>
-      <div style="font-size:10px;color:var(--muted)">${esc(c.client)}  ·  ${esc(c.location||'')}  ·  ${fmtD(c.date)}</div>
+    <div class="att-ctx mb-12">
+      <div class="fs-11 fw-600">${esc(c.id)}  —  ${esc(c.service)}</div>
+      <div class="fs-10 text-muted">${esc(c.client)}  ·  ${esc(c.location||'')}  ·  ${fmtD(c.date)}</div>
     </div>
-    <div class="fgroup" style="margin-bottom:12px">
-      <label class="flbl">Confirmation Notes <span style="color:var(--ember)">*</span></label>
+    <div class="fgroup mb-12">
+      <label class="flbl">Confirmation Notes <span class="text-ember">*</span></label>
       <textarea class="finput" id="cc-notes" rows="4" placeholder="Describe why the client did not close this callout and what written confirmation was received..."></textarea>
     </div>
-    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:2px;padding:10px;margin-bottom:14px">
-      <div style="font-size:11px;font-weight:600;margin-bottom:6px">Upload Confirmation Document <span style="color:var(--ember)">*</span></div>
-      <div style="font-size:10px;color:var(--muted);margin-bottom:8px">Upload the signed/written document confirming this closure. PDF, Word, or image accepted.</div>
-      <input type="file" id="cc-doc" accept=".pdf,.docx,.doc,.jpg,.jpeg,.png" style="font-size:11px">
+    <div class="att-ctx mb-14">
+      <div class="fs-11 fw-600 mb-6">Upload Confirmation Document <span class="text-ember">*</span></div>
+      <div class="fs-10 text-muted mb-8">Upload the signed/written document confirming this closure. PDF, Word, or image accepted.</div>
+      <input type="file" id="cc-doc" accept=".pdf,.docx,.doc,.jpg,.jpeg,.png" class="fs-11">
     </div>
-    <div class="mt3 flex-end"><button class="btn btn-p" onclick="saveConfirmClosure('${esc(c.id)}')">Confirm &amp; Generate Invoice</button></div>
+    <div class="mt3 flex-end"><button class="btn btn-p" data-action="saveConfirmClosure" data-id="${esc(c.id)}">Confirm &amp; Generate Invoice</button></div>
   `);
 }
 
@@ -2340,26 +2506,26 @@ function renderQuotes(search='',filter=''){
   document.getElementById('qte-table').innerHTML=items.length?items.map(q=>{
     const{total}=qtot(q.items);
     const submitter=proxyDB.users.find(u=>u.username===q.submittedBy);
-    const submitterCell=submitter?`${esc(submitter.name)}<div style="font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--muted)">${esc(ROLE_LABELS[submitter.role]||submitter.role)}</div>`:'<span style="color:var(--muted)">-</span>';
+    const submitterCell=submitter?`${esc(submitter.name)}<div class="mlbl-9 mt-2">${esc(ROLE_LABELS[submitter.role]||submitter.role)}</div>`:'<span class="text-muted">-</span>';
     const actions=[];
-    actions.push(`<button class="btn btn-g btn-s" onclick="previewQuote('${esc(q.id)}')">View</button>`);
-    actions.push(`<button class="btn btn-g btn-s" onclick="openAttachmentsModal('quote','${esc(q.id)}')">Files</button>`);
+    actions.push(`<button class="btn btn-g btn-s" data-action="previewQuote" data-id="${esc(q.id)}">View</button>`);
+    actions.push(`<button class="btn btn-g btn-s" data-action="openAttachmentsModal" data-entity-type="quote" data-entity-ref="${esc(q.id)}">Files</button>`);
     if(canApprove&&q.approvalStatus==='pending'){
-      actions.push(`<button class="btn btn-s" style="background:var(--grn-glow);border-color:var(--green);color:var(--pill-paid-txt)" onclick="approveQuote('${esc(q.id)}')">Approve</button>`);
-      actions.push(`<button class="btn btn-s" style="background:var(--emb-glow);border-color:var(--ember);color:var(--pill-ovr-txt)" onclick="rejectQuote('${esc(q.id)}')">Decline</button>`);
+      actions.push(`<button class="btn btn-s bg-grn" data-action="approveQuote" data-id="${esc(q.id)}">Approve</button>`);
+      actions.push(`<button class="btn btn-s bg-emb" data-action="rejectQuote" data-id="${esc(q.id)}">Decline</button>`);
     }
-    if(canConvert&&q.status!=='Pending Approval') actions.push(`<button class="btn btn-g btn-s" onclick="convertToInvoice('${esc(q.id)}')">Invoice</button>`);
-    if(canDel) actions.push(`<button class="btn btn-g btn-s" onclick="deleteQuote('${esc(q.id)}')">Del</button>`);
+    if(canConvert&&q.status!=='Pending Approval') actions.push(`<button class="btn btn-g btn-s" data-action="convertToInvoice" data-id="${esc(q.id)}">Invoice</button>`);
+    if(canDel) actions.push(`<button class="btn btn-g btn-s" data-action="deleteQuote" data-id="${esc(q.id)}">Del</button>`);
     return`<tr>
       <td class="mono">${esc(q.id)}</td>
       <td>${esc(q.client)}</td>
       <td class="amt">${fmt(total)}</td>
-      <td style="font-size:11px">${submitterCell}</td>
-      <td style="font-size:11px;white-space:nowrap">${fmtD(q.validUntil)}</td>
+      <td class="tc-11">${submitterCell}</td>
+      <td class="tc-11 nowrap">${fmtD(q.validUntil)}</td>
       <td>${pillH(q.status)}</td>
       <td><div class="bgrp">${actions.join('')}</div></td>
     </tr>`;
-  }).join(''):'<tr><td colspan="7" style="text-align:center;padding:18px;color:var(--muted);font-style:italic">No quotes</td></tr>';
+  }).join(''):'<tr><td colspan="7" class="tc-empty">No quotes</td></tr>';
 }
 
 function approveQuote(id){
@@ -2382,16 +2548,16 @@ function previewQuote(id){
     <div class="doc-preview">
       <div class="doc-logo-row">
         <div><div class="doc-bname">BLACK<em>FIRE</em></div><div class="doc-btag">Security Solutions</div></div>
-        <div style="text-align:right;font-size:11px;color:#7A7566">+27 68 912 6581<br>info@blackfiresolutions.co.za</div>
+        <div class="doc-contact">+27 68 912 6581<br>info@blackfiresolutions.co.za</div>
       </div>
       <div class="doc-type">QUOTATION</div>
       <div class="doc-meta">
-        <div><div class="dml">Quote #</div><div class="dmv" style="font-family:'IBM Plex Mono',monospace">${esc(q.id)}</div></div>
+        <div><div class="dml">Quote #</div><div class="dmv font-mono">${esc(q.id)}</div></div>
         <div><div class="dml">Client</div><div class="dmv">${esc(q.client)}</div></div>
         <div><div class="dml">Date</div><div class="dmv">${fmtD(q.date)}</div></div>
         <div><div class="dml">Valid Until</div><div class="dmv">${fmtD(q.validUntil)}</div></div>
       </div>
-      ${q.approvalStatus==='pending'?'<div style="padding:8px 12px;background:#fff3e0;border-left:3px solid #E67E22;margin-bottom:14px;font-size:11px;color:#E67E22">⚠ Pending Manager Approval - not yet issued to client</div>':''}
+      ${q.approvalStatus==='pending'?'<div class="qte-pending-warn">⚠ Pending Manager Approval - not yet issued to client</div>':''}
       <table class="doc-t">
         <thead><tr><th>Description</th><th>Qty</th><th>Unit Price</th><th>Total</th></tr></thead>
         <tbody>${(q.items||[]).map(i=>`<tr><td>${esc(i.desc)}</td><td>${i.qty}</td><td>${fmt(i.unit)}</td><td>${fmt(i.qty*i.unit)}</td></tr>`).join('')}</tbody>
@@ -2403,7 +2569,7 @@ function previewQuote(id){
       </div>
       <div class="doc-note">Fire, taught to behave.  -  BlackFire Solutions (Pty) Ltd</div>
     </div>
-    <div id="attach-modal-area" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)"></div>`);
+    <div id="attach-modal-area" class="inv-att-area"></div>`);
   loadAttachments('quote', id);
 }
 
@@ -2436,7 +2602,7 @@ function initNewQuote(){
 }
 function addLine(){
   const r=document.createElement('tr');
-  r.innerHTML=`<td><input class="liinput" placeholder="Service / item description" oninput="recalcQ()"></td><td><input class="liinput" type="number" value="1" min="0" class="liinput li-qty" oninput="recalcQ()"></td><td><input class="liinput" type="number" value="0" min="0" step="0.01" class="liinput li-price" oninput="recalcQ()"></td><td class="mono lt li-total">R0.00</td><td><button class="btn btn-g btn-s" onclick="this.closest('tr').remove();recalcQ()">✕</button></td>`;
+  r.innerHTML=`<td><input class="liinput" placeholder="Service / item description"></td><td><input class="liinput li-qty" type="number" value="1" min="0"></td><td><input class="liinput li-price" type="number" value="0" min="0" step="0.01"></td><td class="mono lt li-total">R0.00</td><td><button class="btn btn-g btn-s" data-action="removeLine">✕</button></td>`;
   document.getElementById('li-body').appendChild(r);recalcQ();
 }
 function recalcQ(){
@@ -2487,32 +2653,32 @@ function renderInvoices(search='',filter=''){
   const canMod=can('invoice.create');const canPaid=can('invoice.mark_paid');const canDel=can('invoice.delete');const canSend=can('invoice.send');
   const btn=document.getElementById('btn-newinv');if(btn)btn.style.display=canMod?'':'none';
   document.getElementById('inv-table').innerHTML=items.length?items.map(inv=>`
-    <tr><td class="mono">${esc(inv.id)}</td><td>${esc(inv.client)}</td><td class="amt">${fmt(inv.amount)}</td><td style="font-size:11px;white-space:nowrap">${fmtD(inv.dueDate)}</td><td>${pillH(inv.status)}</td>
+    <tr><td class="mono">${esc(inv.id)}</td><td>${esc(inv.client)}</td><td class="amt">${fmt(inv.amount)}</td><td class="tc-11 nowrap">${fmtD(inv.dueDate)}</td><td>${pillH(inv.status)}</td>
     <td><div class="bgrp">
-      <button class="btn btn-g btn-s" onclick="previewInvoice('${esc(inv.id)}')">View</button>
-      <button class="btn btn-g btn-s" onclick="openAttachmentsModal('invoice','${esc(inv.id)}')">Files</button>
-      ${canSend&&inv.status!=='Paid'&&inv.status!=='Cancelled'&&inv.amount>0?`<button class="btn btn-p btn-s" onclick="openSendInvoiceModal('${esc(inv.id)}')">Send</button>`:''}
-      ${canPaid&&inv.status!=='Paid'?`<button class="btn btn-g btn-s" onclick="markPaid('${esc(inv.id)}')">Paid</button>`:''}
-      ${canDel?`<button class="btn btn-g btn-s" onclick="deleteInvoice('${esc(inv.id)}')">Del</button>`:''}
-    </div></td></tr>`).join(''):'<tr><td colspan="6" style="text-align:center;padding:18px;color:var(--muted);font-style:italic">No invoices</td></tr>';
+      <button class="btn btn-g btn-s" data-action="previewInvoice" data-id="${esc(inv.id)}">View</button>
+      <button class="btn btn-g btn-s" data-action="openAttachmentsModal" data-entity-type="invoice" data-entity-ref="${esc(inv.id)}">Files</button>
+      ${canSend&&inv.status!=='Paid'&&inv.status!=='Cancelled'&&inv.amount>0?`<button class="btn btn-p btn-s" data-action="openSendInvoiceModal" data-id="${esc(inv.id)}">Send</button>`:''}
+      ${canPaid&&inv.status!=='Paid'?`<button class="btn btn-g btn-s" data-action="markPaid" data-id="${esc(inv.id)}">Paid</button>`:''}
+      ${canDel?`<button class="btn btn-g btn-s" data-action="deleteInvoice" data-id="${esc(inv.id)}">Del</button>`:''}
+    </div></td></tr>`).join(''):'<tr><td colspan="6" class="tc-empty">No invoices</td></tr>';
 }
 
 function openSendInvoiceModal(id){
   const inv=proxyDB.invoices.find(x=>x.id===id);if(!inv)return;
   if(inv.amount<=0){toast('Set the invoice amount before sending','err');return;}
   openModal(`Send Invoice — ${inv.id}`,`
-    <div style="margin-bottom:14px;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:2px">
-      <div style="font-size:12px;font-weight:600">${esc(inv.id)}  —  ${esc(inv.client)}</div>
-      <div style="font-size:11px;color:var(--muted);margin-top:2px">Amount: R ${Number(inv.amount).toLocaleString('en-ZA',{minimumFractionDigits:2})}  ·  Due: ${fmtD(inv.dueDate)}</div>
+    <div class="att-ctx mb-14">
+      <div class="fs-12 fw-600">${esc(inv.id)}  —  ${esc(inv.client)}</div>
+      <div class="fs-11 text-muted mt-2">Amount: R ${Number(inv.amount).toLocaleString('en-ZA',{minimumFractionDigits:2})}  ·  Due: ${fmtD(inv.dueDate)}</div>
     </div>
     <div class="fgroup">
-      <label class="flbl">Send to (email address) <span style="color:var(--ember)">*</span></label>
+      <label class="flbl">Send to (email address) <span class="text-ember">*</span></label>
       <input class="finput" id="si-email" type="email" value="${esc(inv.clientEmail||'')}" placeholder="client@company.co.za">
     </div>
-    <div style="font-size:10px;color:var(--muted);margin-top:4px;margin-bottom:14px">
+    <div class="fs-10 text-muted mt-4 mb-14">
       The invoice will be sent from noreply@blackfiresolutions.co.za and the invoice status will change to Sent.
     </div>
-    <div class="mt3 flex-end"><button class="btn btn-p" onclick="sendInvoiceEmail('${esc(inv.id)}')">Send Invoice</button></div>
+    <div class="mt3 flex-end"><button class="btn btn-p" data-action="sendInvoiceEmail" data-id="${esc(inv.id)}">Send Invoice</button></div>
   `);
 }
 
@@ -2533,24 +2699,24 @@ function previewInvoice(id){
     <div class="doc-preview">
       <div class="doc-logo-row">
         <div><div class="doc-bname">BLACK<em>FIRE</em></div><div class="doc-btag">Security Solutions</div></div>
-        <div style="text-align:right;font-size:11px;color:#7A7566">+27 68 912 6581<br>info@blackfiresolutions.co.za</div>
+        <div class="doc-contact">+27 68 912 6581<br>info@blackfiresolutions.co.za</div>
       </div>
       <div class="doc-type">TAX INVOICE</div>
       <div class="doc-meta">
-        <div><div class="dml">Invoice #</div><div class="dmv" style="font-family:'IBM Plex Mono',monospace">${esc(inv.id)}</div></div>
+        <div><div class="dml">Invoice #</div><div class="dmv font-mono">${esc(inv.id)}</div></div>
         <div><div class="dml">Client</div><div class="dmv">${esc(inv.client)}</div></div>
         <div><div class="dml">PO Reference</div><div class="dmv">${esc(inv.po||'N/A')}</div></div>
         <div><div class="dml">Due Date</div><div class="dmv">${fmtD(inv.dueDate)}</div></div>
       </div>
-      <div class="doc-tots" style="width:100%">
+      <div class="doc-tots w-full">
         <div class="doc-tot-row"><span>Excl. VAT</span><span>${fmt(inv.amount/1.15)}</span></div>
         <div class="doc-tot-row"><span>VAT (15%)</span><span>${fmt(inv.amount-inv.amount/1.15)}</span></div>
         <div class="doc-tot-row grand"><span>TOTAL DUE</span><span>${fmt(inv.amount)}</span></div>
       </div>
-      <div style="margin-top:12px">${pillH(inv.status)}</div>
+      <div class="mt-12">${pillH(inv.status)}</div>
       <div class="doc-note">Fire, taught to behave.  -  BlackFire Solutions (Pty) Ltd</div>
     </div>
-    <div id="attach-modal-area" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)"></div>`);
+    <div id="attach-modal-area" class="inv-att-area"></div>`);
   loadAttachments('invoice', id);
 }
 
@@ -2593,9 +2759,9 @@ function renderTransactions(search=''){
   document.getElementById('tx-debits').textContent=fmt(td);
   const nel=document.getElementById('tx-net');nel.textContent=fmt(tn);nel.style.color=tn>=0?'var(--pill-paid-txt)':'var(--pill-ovr-txt)';
   document.getElementById('tx-table').innerHTML=items.length?items.map(b=>`
-    <tr><td style="white-space:nowrap">${fmtD(b.date)}</td><td>${esc(b.desc)}</td><td><span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted)">${esc(b.cat)}</span></td><td class="mono">${esc(b.ref||'-')}</td>
-    <td class="amt" style="color:var(--pill-paid-txt)">${b.credit>0?fmt(b.credit):'-'}</td>
-    <td class="amt" style="color:var(--pill-ovr-txt)">${b.debit>0?fmt(b.debit):'-'}</td></tr>`).join(''):'<tr><td colspan="6" style="text-align:center;padding:18px;color:var(--muted);font-style:italic">No transactions</td></tr>';
+    <tr><td class="nowrap">${fmtD(b.date)}</td><td>${esc(b.desc)}</td><td><span class="mlbl-9">${esc(b.cat)}</span></td><td class="mono">${esc(b.ref||'-')}</td>
+    <td class="amt text-ok">${b.credit>0?fmt(b.credit):'-'}</td>
+    <td class="amt text-ovr">${b.debit>0?fmt(b.debit):'-'}</td></tr>`).join(''):'<tr><td colspan="6" class="tc-empty">No transactions</td></tr>';
 }
 
 function openTxModal(){
@@ -2609,7 +2775,7 @@ function openTxModal(){
       <div class="fgroup"><label class="flbl">Category</label><select class="finput" id="bk-cat">${cats.map(c=>`<option>${c}</option>`).join('')}</select></div>
       <div class="fgroup ffull"><label class="flbl">Reference</label><input class="finput" id="bk-ref" placeholder="e.g. INV-001 or PO-2026-045"></div>
     </div>
-    <div class="mt3 flex-end"><button class="btn btn-p" onclick="saveTx()">Save</button></div>`);
+    <div class="mt3 flex-end"><button class="btn btn-p" data-action="saveTx">Save</button></div>`);
 }
 function saveTx(){
   const desc=document.getElementById('bk-desc').value.trim();
@@ -2639,21 +2805,21 @@ async function renderStatement(){
   const outRows=outstanding.map(inv=>`
     <tr>
       <td class="mono">${esc(inv.ref_id)}</td>
-      <td style="font-size:11px">${esc(inv.client_name)}</td>
-      <td style="font-size:11px">${esc(inv.invoice_date||'')}</td>
-      <td style="font-size:11px">${esc(inv.due_date||'')}</td>
+      <td class="tc-11">${esc(inv.client_name)}</td>
+      <td class="tc-11">${esc(inv.invoice_date||'')}</td>
+      <td class="tc-11">${esc(inv.due_date||'')}</td>
       <td>${pillH(inv.status)}</td>
       <td class="amt">${fmt(Number(inv.amount))}</td>
     </tr>`).join('');
 
   const pendingCards=pending.map(s=>`
-    <div style="border:1px solid var(--amber);background:var(--amb-glow);border-radius:2px;padding:14px;margin-bottom:10px">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+    <div class="stmt-pcard">
+      <div class="stmt-pcrd-hdr">
         <div>
-          <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;color:var(--amber)">${esc(s.ref_id)}  ·  PENDING APPROVAL</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px">Generated ${fmtD(s.created_at?.slice(0,10)||'')}  ·  ${s.invoice_refs?.split(',').filter(Boolean).length||0} invoices  ·  Total R ${Number(s.total_outstanding||0).toLocaleString('en-ZA',{minimumFractionDigits:2})}</div>
+          <div class="stmt-pcrd-ref">${esc(s.ref_id)}  ·  PENDING APPROVAL</div>
+          <div class="stmt-pcrd-sub">Generated ${fmtD(s.created_at?.slice(0,10)||'')}  ·  ${s.invoice_refs?.split(',').filter(Boolean).length||0} invoices  ·  Total R ${Number(s.total_outstanding||0).toLocaleString('en-ZA',{minimumFractionDigits:2})}</div>
         </div>
-        ${canRelease?`<button class="btn btn-p btn-s" onclick="openReleaseStatementModal('${esc(s.ref_id)}')">Release Statement</button>`:'<span style="font-size:10px;color:var(--muted)">Awaiting release by authorised user</span>'}
+        ${canRelease?`<button class="btn btn-p btn-s" data-action="openReleaseStatementModal" data-id="${esc(s.ref_id)}">Release Statement</button>`:'<span class="fs-10 text-muted">Awaiting release by authorised user</span>'}
       </div>
     </div>`).join('');
 
@@ -2665,7 +2831,7 @@ async function renderStatement(){
       <td>${esc(s.from_email||'')}</td>
       <td>${esc(s.to_emails||'')}</td>
       <td class="amt">R ${Number(s.total_outstanding||0).toLocaleString('en-ZA',{minimumFractionDigits:2})}</td>
-      <td><button class="btn btn-g btn-s" onclick="downloadStatement('${esc(s.ref_id)}')">Download</button></td>
+      <td><button class="btn btn-g btn-s" data-action="downloadStatement" data-id="${esc(s.ref_id)}">Download</button></td>
     </tr>`).join('');
 
   const outRowsLimited=outstanding.slice(0,10).map(inv=>`
@@ -2678,45 +2844,39 @@ async function renderStatement(){
       <td class="amt">${fmt(Number(inv.amount))}</td>
     </tr>`).join('');
 
+  const outValClass = outTotal>0?'text-ovr':'text-ok';
+  const pendValClass = pending.length?'text-amber':'text-muted';
+
   document.getElementById('stmt-content').innerHTML=`
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px">
-      <div style="background:var(--surface);border:1px solid var(--border);padding:14px;border-radius:2px">
-        <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px">Outstanding</div>
-        <div style="font-family:'Big Shoulders Display',sans-serif;font-size:26px;font-weight:700;color:${outTotal>0?'var(--pill-ovr-txt)':'var(--pill-paid-txt)'}">R ${outTotal.toLocaleString('en-ZA',{minimumFractionDigits:2})}</div>
-      </div>
-      <div style="background:var(--surface);border:1px solid var(--border);padding:14px;border-radius:2px">
-        <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px">Pending Statements</div>
-        <div style="font-family:'Big Shoulders Display',sans-serif;font-size:26px;font-weight:700;color:${pending.length?'var(--amber)':'var(--muted)'}">${pending.length}</div>
-      </div>
-      <div style="background:var(--surface);border:1px solid var(--border);padding:14px;border-radius:2px">
-        <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px">Statements Sent</div>
-        <div style="font-family:'Big Shoulders Display',sans-serif;font-size:26px;font-weight:700">${released.length}</div>
-      </div>
+    <div class="stmt-kgrid">
+      <div class="stmt-kcard"><div class="stmt-klbl">Outstanding</div><div class="stmt-kval ${outValClass}">R ${outTotal.toLocaleString('en-ZA',{minimumFractionDigits:2})}</div></div>
+      <div class="stmt-kcard"><div class="stmt-klbl">Pending Statements</div><div class="stmt-kval ${pendValClass}">${pending.length}</div></div>
+      <div class="stmt-kcard"><div class="stmt-klbl">Statements Sent</div><div class="stmt-kval">${released.length}</div></div>
     </div>
 
     ${released.length?`
-    <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:2px;margin-bottom:8px">RECENT STATEMENTS SENT</div>
-    <div class="panel" style="margin-bottom:18px"><div class="tw" style="max-height:360px;overflow-y:auto"><table>
+    <div class="stmt-slbl">RECENT STATEMENTS SENT</div>
+    <div class="panel stmt-mb18"><div class="tw stmt-tbl-wrap"><table>
       <thead><tr><th>Ref</th><th>Scheduled</th><th>Released</th><th>From</th><th>To</th><th>Total</th><th></th></tr></thead>
       <tbody>${releasedRows}</tbody>
     </table></div></div>`:''}
 
     ${pending.length?`
-    <div style="margin-bottom:18px">
-      <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:2px;margin-bottom:8px">PENDING RELEASE</div>
+    <div class="stmt-mb18">
+      <div class="stmt-slbl">PENDING RELEASE</div>
       ${pendingCards}
     </div>`:''}
 
     ${canGenerate?`
-    <div style="margin-bottom:18px;padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:2px;display:flex;justify-content:space-between;align-items:center">
-      <div style="font-size:14px;color:var(--text2)">Statements are auto-generated every Monday at 09:00 via cron. You can also generate one manually for current outstanding invoices.</div>
-      <button class="btn btn-g btn-s" onclick="generateStatement()" style="white-space:nowrap;margin-left:16px">Generate Now</button>
+    <div class="stmt-gen-row">
+      <div class="stmt-gen-txt">Statements are auto-generated every Monday at 09:00 via cron. You can also generate one manually for current outstanding invoices.</div>
+      <button class="btn btn-g btn-s stmt-gen-btn" data-action="generateStatement">Generate Now</button>
     </div>`:''}
 
-    <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:2px;margin-bottom:8px">OUTSTANDING INVOICES</div>
-    <div class="panel" style="margin-bottom:18px"><div class="tw" style="max-height:360px;overflow-y:auto"><table>
+    <div class="stmt-slbl">OUTSTANDING INVOICES</div>
+    <div class="panel stmt-mb18"><div class="tw stmt-tbl-wrap"><table>
       <thead><tr><th>Invoice #</th><th>Client</th><th>Date</th><th>Due</th><th>Status</th><th>Amount</th></tr></thead>
-      <tbody>${outRowsLimited||'<tr><td colspan="6" style="text-align:center;padding:18px;color:var(--muted);font-style:italic">No outstanding invoices</td></tr>'}</tbody>
+      <tbody>${outRowsLimited||'<tr><td colspan="6" class="tc-empty">No outstanding invoices</td></tr>'}</tbody>
     </table></div></div>
   `;
 }
@@ -2761,17 +2921,17 @@ async function openReleaseStatementModal(ref_id){
   const toSel=toOpts.map(u=>`<option value="${esc(u.email)}">${esc(u.name)} &lt;${esc(u.email)}&gt;</option>`).join('');
 
   openModal(`Release Statement — ${ref_id}`,`
-    <div style="margin-bottom:14px;font-size:12px;color:var(--text2)">Review the FROM and TO addresses below. The statement will be emailed immediately when you click Release.</div>
+    <div class="fs-12 mb-14">Review the FROM and TO addresses below. The statement will be emailed immediately when you click Release.</div>
     <div class="fgrid">
       <div class="fgroup ffull">
-        <label class="flbl">From Address <span style="color:var(--ember)">*</span></label>
+        <label class="flbl">From Address <span class="text-ember">*</span></label>
         <select class="finput" id="rs-from">${fromSel||'<option value="">No permitted email addresses found</option>'}</select>
-        <div style="font-size:10px;color:var(--muted);margin-top:4px">Only email addresses you are authorised to send from are shown.</div>
+        <div class="fs-10 text-muted mt-4">Only email addresses you are authorised to send from are shown.</div>
       </div>
       <div class="fgroup ffull">
-        <label class="flbl">To Address <span style="color:var(--ember)">*</span></label>
+        <label class="flbl">To Address <span class="text-ember">*</span></label>
         <select class="finput" id="rs-to">${toSel||'<option value="">No users found</option>'}</select>
-        <div style="font-size:10px;color:var(--muted);margin-top:4px">You may also type a custom address below.</div>
+        <div class="fs-10 text-muted mt-4">You may also type a custom address below.</div>
       </div>
       <div class="fgroup ffull">
         <label class="flbl">Additional Recipients (comma-separated)</label>
@@ -2779,8 +2939,8 @@ async function openReleaseStatementModal(ref_id){
       </div>
     </div>
     <div class="mt3 flex-end">
-      <button class="btn btn-g" onclick="closeModalDirect()" style="margin-right:8px">Cancel</button>
-      <button class="btn btn-p" onclick="releaseStatement('${esc(ref_id)}')">Release &amp; Send Statement</button>
+      <button class="btn btn-g mr-8" data-action="closeModalDirect">Cancel</button>
+      <button class="btn btn-p" data-action="releaseStatement" data-id="${esc(ref_id)}">Release &amp; Send Statement</button>
     </div>
   `);
 }
@@ -2805,20 +2965,21 @@ function renderIncome(){
   const rev=proxyDB.invoices.filter(i=>i.status==='Paid').reduce((a,i)=>a+i.amount,0);
   const exp=proxyDB.bank.filter(b=>b.debit>0).reduce((a,b)=>a+b.debit,0);
   const gross=rev-exp;const tax=Math.max(0,gross*.28);const net=gross-tax;
+  const netPos=net>=0;
   document.getElementById('pl-rows').innerHTML=`
-    <div style="background:var(--surface2);padding:8px 16px;font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--muted);letter-spacing:2px;text-transform:uppercase">Revenue</div>
-    <div style="display:flex;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--border);font-size:12px"><span>Paid Invoices</span><span style="font-family:'IBM Plex Mono',monospace">${fmt(rev)}</span></div>
-    <div style="background:var(--surface2);padding:8px 16px;font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--muted);letter-spacing:2px;text-transform:uppercase">Expenses</div>
-    ${proxyDB.bank.filter(b=>b.debit>0).map(b=>`<div style="display:flex;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--border);font-size:12px"><span>${esc(b.desc)}</span><span style="font-family:'IBM Plex Mono',monospace;color:var(--pill-ovr-txt)">(${fmt(b.debit)})</span></div>`).join('')||'<div style="padding:10px 16px;font-size:12px;color:var(--muted);font-style:italic">No expenses recorded</div>'}
-    <div style="display:flex;justify-content:space-between;padding:12px 16px;font-size:13px;font-weight:600;border-top:1px solid var(--border)"><span>Operating Profit</span><span style="font-family:'IBM Plex Mono',monospace">${fmt(gross)}</span></div>
-    <div style="display:flex;justify-content:space-between;padding:10px 16px;font-size:12px;border-top:1px solid var(--border)"><span>Tax (28%)</span><span style="font-family:'IBM Plex Mono',monospace;color:var(--muted)">(${fmt(tax)})</span></div>
-    <div style="display:flex;justify-content:space-between;padding:14px 16px;font-size:14px;font-weight:700;border-top:2px solid ${net>=0?'var(--green)':'var(--ember)'};background:${net>=0?'var(--grn-glow)':'var(--emb-glow)'}"><span>NET ${net>=0?'PROFIT':'LOSS'}</span><span style="font-family:'IBM Plex Mono',monospace;color:${net>=0?'var(--pill-paid-txt)':'var(--pill-ovr-txt)'}">${fmt(Math.abs(net))}</span></div>`;
+    <div class="pl-sec-lbl">Revenue</div>
+    <div class="pl-row pl-row-val"><span>Paid Invoices</span><span class="font-mono">${fmt(rev)}</span></div>
+    <div class="pl-sec-lbl">Expenses</div>
+    ${proxyDB.bank.filter(b=>b.debit>0).map(b=>`<div class="pl-row pl-row-val"><span>${esc(b.desc)}</span><span class="font-mono text-ovr">(${fmt(b.debit)})</span></div>`).join('')||'<div class="pl-row-empty">No expenses recorded</div>'}
+    <div class="pl-row pl-row-gross"><span>Operating Profit</span><span class="font-mono">${fmt(gross)}</span></div>
+    <div class="pl-row pl-row-tax"><span>Tax (28%)</span><span class="font-mono text-muted">(${fmt(tax)})</span></div>
+    <div class="pl-row pl-row-net ${netPos?'pl-net-pos':'pl-net-neg'}"><span>NET ${netPos?'PROFIT':'LOSS'}</span><span class="font-mono">${fmt(Math.abs(net))}</span></div>`;
   document.getElementById('pl-summary').innerHTML=`
     <div class="sumrow"><span>Revenue</span><span class="mono">${fmt(rev)}</span></div>
     <div class="sumrow"><span>Expenses</span><span class="mono">(${fmt(exp)})</span></div>
     <div class="sumrow tot"><span>Gross Profit</span><span class="mono">${fmt(gross)}</span></div>
     <div class="sumrow sm"><span>Tax @ 28%</span><span class="mono">(${fmt(tax)})</span></div>
-    <div class="sumrow tot" style="color:${net>=0?'var(--pill-paid-txt)':'var(--pill-ovr-txt)'}"><span>Net ${net>=0?'Profit':'Loss'}</span><span class="mono">${fmt(Math.abs(net))}</span></div>`;
+    <div class="sumrow tot ${netPos?'text-ok':'text-ovr'}"><span>Net ${netPos?'Profit':'Loss'}</span><span class="mono">${fmt(Math.abs(net))}</span></div>`;
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -2832,7 +2993,7 @@ function renderTimeline(){
   ].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,40);
   document.getElementById('timeline-content').innerHTML=all.length?all.map(e=>`
     <div class="timeline-item">
-      <div class="tl-dot" style="background:${e.type==='callout'?'var(--ember)':e.type==='invoice'?'var(--amber)':'var(--green)'}"></div>
+      <div class="tl-dot tl-dot-${e.type}"></div>
       <div class="tl-date">${fmtD(e.date)}</div>
       <div class="tl-content"><div class="tl-title">${esc(e.title)}</div><div class="tl-sub">${esc(e.sub)}</div></div>
     </div>`).join(''):'<div class="stmt-loading">No activity yet</div>';
@@ -2848,12 +3009,12 @@ function renderPayList(){
   document.getElementById('pay-amount').value='';
   const unpaid=proxyDB.invoices.filter(i=>i.status!=='Paid'&&i.status!=='Cancelled');
   document.getElementById('pay-inv-list').innerHTML=unpaid.length?unpaid.map(inv=>`
-    <label style="display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--border);border-radius:2px;cursor:pointer;margin-bottom:6px;background:var(--surface2)">
-      <input type="checkbox" name="pay-sel" value="${esc(inv.id)}" data-amount="${inv.amount}" style="accent-color:var(--accent);width:16px;height:16px;flex-shrink:0">
-      <span style="flex:1;font-size:12px"><span class="mono">${esc(inv.id)}</span>${inv.po?'  —  PO: '+esc(inv.po):''}</span>
+    <label class="pay-inv-row">
+      <input type="checkbox" name="pay-sel" value="${esc(inv.id)}" data-amount="${inv.amount}" class="pay-inv-cb">
+      <span class="pay-inv-info fs-12"><span class="mono">${esc(inv.id)}</span>${inv.po?'  —  PO: '+esc(inv.po):''}</span>
       <span class="amt">${fmt(inv.amount)}</span>
       <span>${pillH(inv.status)}</span>
-    </label>`).join(''):'<div style="color:var(--muted);font-style:italic;font-size:12px;padding:10px">No outstanding invoices</div>';
+    </label>`).join(''):'<div class="pay-inv-empty">No outstanding invoices</div>';
   function recalcTotal(){
     const boxes=[...document.querySelectorAll('input[name="pay-sel"]:checked')];
     const total=boxes.reduce((s,b)=>s+parseFloat(b.dataset.amount||0),0);
@@ -2899,7 +3060,7 @@ function renderUsers(){
     admin_clerk:   {create:'-',status:'✓',po:'✓',finance:'✓',quote:'-',approve:'-',admin:'-'},
     viewer:        {create:'-',status:'-',po:'-',finance:'View',quote:'-',approve:'-',admin:'-'},
   };
-  const tick=(v)=>v==='✓'?`<span style="color:var(--pill-paid-txt)">✓</span>`:v==='-'?`<span style="color:var(--muted)">-</span>`:`<span style="color:var(--warn);font-size:10px">${v}</span>`;
+  const tick=(v)=>v==='✓'?`<span class="text-ok">✓</span>`:v==='-'?`<span class="text-muted">-</span>`:`<span class="text-warn fs-10">${v}</span>`;
   const bar = document.getElementById('users-create-bar');
   if (bar) bar.style.display = can('user.create') ? '' : 'none';
   const canEdit = can('user.update');
@@ -2908,20 +3069,20 @@ function renderUsers(){
   document.getElementById('users-table-body').innerHTML=proxyDB.users.map(u=>{
     const m=matrix[u.role]||{create:'-',status:'-',po:'-',finance:'-',quote:'-',approve:'-',admin:'-'};
     const actionCell = canEdit ? `<td>
-      <button class="btn btn-g btn-xs" onclick="openEditUserModal(${u.id})">Edit</button>
-      ${u.active!=0 ? `<button class="btn btn-d btn-xs" onclick="toggleUserActive(${u.id},0)">Disable</button>` : `<button class="btn btn-xs" style="background:var(--pill-ok-bg);color:var(--pill-ok-txt);border:none;border-radius:4px;padding:2px 8px;cursor:pointer" onclick="toggleUserActive(${u.id},1)">Enable</button>`}
+      <button class="btn btn-g btn-xs" data-action="openEditUserModal" data-id="${u.id}">Edit</button>
+      ${u.active!=0 ? `<button class="btn btn-d btn-xs" data-action="toggleUserActive" data-id="${u.id}" data-active="0">Disable</button>` : `<button class="btn btn-xs btn-enable" data-action="toggleUserActive" data-id="${u.id}" data-active="1">Enable</button>`}
     </td>` : '';
-    return`<tr${u.active==0?' style="opacity:0.5"':''}>
+    return`<tr${u.active==0?' class="row-inactive"':''}>
       <td class="mono">${esc(u.username)}</td>
       <td>${esc(u.name)}</td>
       <td>${rolePill(u.role)}</td>
-      <td class="perm-col" style="text-align:center">${tick(m.create)}</td>
-      <td class="perm-col" style="text-align:center">${tick(m.status)}</td>
-      <td class="perm-col" style="text-align:center">${tick(m.po)}</td>
-      <td class="perm-col" style="text-align:center">${tick(m.finance)}</td>
-      <td class="perm-col" style="text-align:center">${tick(m.quote)}</td>
-      <td class="perm-col" style="text-align:center">${tick(m.approve)}</td>
-      <td class="perm-col" style="text-align:center">${m.admin==='✓'?`<span style="color:var(--ember);font-weight:700">★</span>`:`<span style="color:var(--muted)">-</span>`}</td>
+      <td class="perm-col text-center">${tick(m.create)}</td>
+      <td class="perm-col text-center">${tick(m.status)}</td>
+      <td class="perm-col text-center">${tick(m.po)}</td>
+      <td class="perm-col text-center">${tick(m.finance)}</td>
+      <td class="perm-col text-center">${tick(m.quote)}</td>
+      <td class="perm-col text-center">${tick(m.approve)}</td>
+      <td class="perm-col text-center">${m.admin==='✓'?`<span class="text-ember fw-700">★</span>`:`<span class="text-muted">-</span>`}</td>
       ${actionCell}
     </tr>`;
   }).join('');
@@ -2947,7 +3108,7 @@ function openCreateUserModal(){
     <div class="login-group"><label class="login-label">Title / Position</label><input class="login-input" id="nu-title" placeholder="e.g. Field Technician"></div>
     <div class="login-group"><label class="login-label">Role</label><select class="login-input" id="nu-role">${opts}</select></div>
     <div class="login-group"><label class="login-label">Password</label><input class="login-input" type="password" id="nu-pass" placeholder="min 8 characters"></div>
-    <button class="btn-login-submit" style="margin-top:8px" onclick="saveNewUser()">Create User</button>
+    <button class="btn-login-submit mt-8" data-action="saveNewUser">Create User</button>
   `);
 }
 
@@ -2977,12 +3138,12 @@ function openEditUserModal(id) {
   const opts = roles.map(r=>`<option value="${r}"${r===u.role?' selected':''}>${r==='sysadmin'?'System Administrator':r.replace(/_/g,' ')}</option>`).join('');
   openModal(`Edit User — ${esc(u.username)}`, `
     <input type="hidden" id="eu-id" value="${u.id}">
-    <div class="login-group"><label class="login-label">Username</label><input class="login-input" value="${esc(u.username)}" readonly style="opacity:0.6"></div>
+    <div class="login-group"><label class="login-label">Username</label><input class="login-input" value="${esc(u.username)}" readonly class="login-input inp-readonly"></div>
     <div class="login-group"><label class="login-label">Full Name</label><input class="login-input" id="eu-name" value="${esc(u.name)}" placeholder="First Last"></div>
     <div class="login-group"><label class="login-label">Title / Position</label><input class="login-input" id="eu-title" value="${esc(u.title||'')}" placeholder="e.g. Field Technician"></div>
     <div class="login-group"><label class="login-label">Role</label><select class="login-input" id="eu-role">${opts}</select></div>
-    <div class="login-group"><label class="login-label">New Password <span style="opacity:0.6;font-size:11px">(leave blank to keep)</span></label><input class="login-input" type="password" id="eu-pass" placeholder="min 8 characters"></div>
-    <button class="btn-login-submit" style="margin-top:8px" onclick="saveEditUser()">Save Changes</button>
+    <div class="login-group"><label class="login-label">New Password <span class="pass-hint">(leave blank to keep)</span></label><input class="login-input" type="password" id="eu-pass" placeholder="min 8 characters"></div>
+    <button class="btn-login-submit mt-8" data-action="saveEditUser">Save Changes</button>
   `);
 }
 
@@ -3039,11 +3200,11 @@ function showDashEditor(){
   openModal('Edit Dashboard Layout',`
     <p class="dash-editor-hint">Choose which sections appear on your dashboard. Changes apply to your account only and persist across sessions.</p>
     <div class="dash-editor-list">
-      ${rows||'<p style="color:var(--muted);text-align:center;padding:20px">No widgets available for your role.</p>'}
+      ${rows||'<p class="text-muted text-center p-20">No widgets available for your role.</p>'}
     </div>
-    <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px">
-      <button class="btn btn-g btn-s" onclick="closeModalDirect()">Cancel</button>
-      <button class="btn btn-p btn-s" onclick="saveDashEditorPrefs()">Save Layout</button>
+    <div class="flex-end gap-10 mt-18">
+      <button class="btn btn-g btn-s" data-action="closeModalDirect">Cancel</button>
+      <button class="btn btn-p btn-s" data-action="saveDashEditorPrefs">Save Layout</button>
     </div>`);
 }
 
@@ -3436,8 +3597,8 @@ function renderClients(search = '') {
       <td>${esc(c.vat_number)}</td>
       <td><span class="badge badge-${c.is_active ? 'ok' : 'grey'}">${c.is_active ? 'Active' : 'Inactive'}</span></td>
       <td>
-        <button class="btn btn-g btn-xs" onclick="openClientModal(${c.id})">Edit</button>
-        ${c.is_active ? `<button class="btn btn-d btn-xs" onclick="deactivateClient(${c.id})">Deactivate</button>` : ''}
+        <button class="btn btn-g btn-xs" data-action="openClientModal" data-id="${c.id}">Edit</button>
+        ${c.is_active ? `<button class="btn btn-d btn-xs" data-action="deactivateClient" data-id="${c.id}">Deactivate</button>` : ''}
       </td>
     </tr>
   `).join('');
@@ -3731,12 +3892,12 @@ function safBuildSections(){
     })();
     const pctLabel = `<span class="saf-sec-pct${pct!==null?' '+safBand(pct).cls:''}" id="saf-sec-hdr-pct-${sec.key}">${pct!==null?pct+'%':''}</span>`;
     html += `<div class="panel mt2 saf-section-panel${sec.bonus?' saf-section-bonus':''}" data-sec="${sec.key}">
-      <div class="ph saf-sec-hdr${sec.bonus?' saf-sec-hdr-bonus':''}" onclick="safToggleSection('${sec.key}')">
+      <div class="ph saf-sec-hdr${sec.bonus?' saf-sec-hdr-bonus':''}" data-action="safToggleSection" data-section-key="${sec.key}">
         <div class="ph-title">${esc(sec.title)}</div>
         <div class="saf-sec-hdr-right">
           ${pctLabel}
           <button class="btn btn-g btn-xs saf-sec-save-btn" id="saf-sec-save-${sec.key}"
-                  onclick="event.stopPropagation();safSaveSection('${sec.key}')"
+                  data-action="safSaveSection" data-section-key="${sec.key}"
                   title="Save this section only">Save</button>
           <span class="saf-toggle" id="saf-tog-${sec.key}">&#9660;</span>
         </div>
@@ -3746,14 +3907,14 @@ function safBuildSections(){
           <table class="saf-criteria-tbl">
             <thead><tr>
               <th class="col-num">#</th>
-              <th style="width:90px">Ref</th>
+              <th class="col-ref">Ref</th>
               <th>Criteria</th>
-              <th style="width:60px">N/A</th>
-              <th style="width:100px">Not to Std</th>
-              <th style="width:80px">To Std</th>
-              ${sec.key==='H'?'<th style="width:130px">Appointee</th>':''}
-              <th style="width:180px">Comments / Findings</th>
-              <th style="width:70px">Docs</th>
+              <th class="col-na">N/A</th>
+              <th class="col-nts">Not to Std</th>
+              <th class="col-ts">To Std</th>
+              ${sec.key==='H'?'<th class="col-apo">Appointee</th>':''}
+              <th class="col-cmt">Comments / Findings</th>
+              <th class="col-docs">Docs</th>
             </tr></thead>
             <tbody>`;
     sec.items.forEach((item,idx)=>{
@@ -3769,14 +3930,14 @@ function safBuildSections(){
         <td class="saf-no">${item.no}</td>
         <td class="saf-ref">${esc(item.ref||'')}</td>
         <td class="saf-crit">${esc(item.criteria)}</td>
-        <td class="saf-radio-cell"><label class="saf-radio-lbl"><input type="radio" name="saf_${sec.key}_${idx}" value="N/A" ${rNA} onchange="safItemChanged('${sec.key}',${idx},this)"> N/A</label></td>
-        <td class="saf-radio-cell saf-nts"><label class="saf-radio-lbl"><input type="radio" name="saf_${sec.key}_${idx}" value="Not to Standard" ${rNot} onchange="safItemChanged('${sec.key}',${idx},this)"> NTS</label></td>
-        <td class="saf-radio-cell saf-ts"><label class="saf-radio-lbl"><input type="radio" name="saf_${sec.key}_${idx}" value="To Standard" ${rStd} onchange="safItemChanged('${sec.key}',${idx},this)"> TS</label></td>
-        ${sec.key==='H'?`<td><input class="finput finput-sm" placeholder="Name" value="${apo}" oninput="safAppointeeChanged('${sec.key}',${idx},this)"></td>`:''}
-        <td><textarea class="finput finput-sm saf-cmt" rows="1" placeholder="Findings..." oninput="safCommentChanged('${sec.key}',${idx},this)">${cmt}</textarea></td>
+        <td class="saf-radio-cell"><label class="saf-radio-lbl"><input type="radio" name="saf_${sec.key}_${idx}" value="N/A" ${rNA} data-action="safItemChanged" data-section-key="${sec.key}" data-item-idx="${idx}"> N/A</label></td>
+        <td class="saf-radio-cell saf-nts"><label class="saf-radio-lbl"><input type="radio" name="saf_${sec.key}_${idx}" value="Not to Standard" ${rNot} data-action="safItemChanged" data-section-key="${sec.key}" data-item-idx="${idx}"> NTS</label></td>
+        <td class="saf-radio-cell saf-ts"><label class="saf-radio-lbl"><input type="radio" name="saf_${sec.key}_${idx}" value="To Standard" ${rStd} data-action="safItemChanged" data-section-key="${sec.key}" data-item-idx="${idx}"> TS</label></td>
+        ${sec.key==='H'?`<td><input class="finput finput-sm" placeholder="Name" value="${apo}" data-action="safAppointeeChanged" data-section-key="${sec.key}" data-item-idx="${idx}"></td>`:''}
+        <td><textarea class="finput finput-sm saf-cmt" rows="1" placeholder="Findings..." data-action="safCommentChanged" data-section-key="${sec.key}" data-item-idx="${idx}">${cmt}</textarea></td>
         <td class="saf-upload-cell">
-          <input type="file" id="saf-up-${sec.key}-${idx}" style="display:none" onchange="safHandleUpload('${sec.key}',${idx},this)">
-          <button class="btn btn-g btn-xs" onclick="document.getElementById('saf-up-${sec.key}-${idx}').click()">
+          <input type="file" id="saf-up-${sec.key}-${idx}" class="hidden" data-action="safHandleUpload" data-section-key="${sec.key}" data-item-idx="${idx}">
+          <button class="btn btn-g btn-xs" data-action="triggerFileInput" data-target-id="saf-up-${sec.key}-${idx}">
             ${upCount?`<span class="saf-up-count">${upCount}</span>`:''}+
           </button>
         </td>
@@ -4280,7 +4441,7 @@ function renderSafetyFiles(search){
     const submissionBar = isSubmitted && f.updatedAt
       ? `<div class="saf-submission-bar">&#10003; Submitted ${fmtDT(f.updatedAt)} &middot; Audit Score: ${scoreDisp}</div>`
       : '';
-    return `<div class="saf-card" onclick="safViewFile('${f.id}')">
+    return `<div class="saf-card" data-action="safViewFile" data-id="${f.id}">
       <div class="saf-card-hdr">
         <div class="saf-card-id">${esc(f.id)}</div>
         <div class="saf-status-pill saf-status-${(f.status||'draft').toLowerCase().replace(/ /g,'-')}">${esc(f.status||'Draft')}</div>
@@ -4343,8 +4504,8 @@ async function safViewFile(id){
     sumRows+=`<tr${sec.bonus?' class="saf-sum-bonus-row"':''} id="sum-row-${sec.key}">
       <td>${esc(sec.title)}${bonusTag}</td><td>${t}</td><td>${n}</td><td>${ns}</td><td>${s}</td>
       <td class="saf-sec-doc-cell" id="saf-sec-doc-${sec.key}">
-        <input type="file" id="saf-sec-file-${sec.key}" class="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.png" onchange="safSectionUpload(this,'${id}','${sec.key}')">
-        <button class="btn btn-g btn-xs saf-sec-doc-btn" onclick="document.getElementById('saf-sec-file-${sec.key}').click()" title="Upload combined sign-off document for this section">&#128196; Upload</button>
+        <input type="file" id="saf-sec-file-${sec.key}" class="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.png" data-action="safSectionUpload" data-file-id="${id}" data-section-key="${sec.key}">
+        <button class="btn btn-g btn-xs saf-sec-doc-btn" data-action="triggerFileInput" data-target-id="saf-sec-file-${sec.key}" title="Upload combined sign-off document for this section">&#128196; Upload</button>
       </td>
     </tr>`;
   });
@@ -4361,7 +4522,7 @@ async function safViewFile(id){
           <td>${esc(item.ref||'')}</td>
           <td>${esc(item.criteria)}</td>
           <td>${esc(s.comments||'')}</td>
-          <td><select class="finput finput-sm" style="width:100px" onchange="safApSetStatus('${id}','${sec.key}',${idx},this.value)">
+          <td><select class="finput finput-sm saf-ap-sel" data-action="safApSetStatus" data-file-id="${id}" data-section-key="${sec.key}" data-item-idx="${idx}">
             <option ${!s.apStatus||s.apStatus==='Open'?'selected':''}>Open</option>
             <option ${s.apStatus==='In Progress'?'selected':''}>In Progress</option>
             <option ${s.apStatus==='Resolved'?'selected':''}>Resolved</option>
@@ -4417,8 +4578,8 @@ async function safViewFile(id){
       <div class="ph">
         <div class="ph-title">Supporting Documents</div>
         <div>
-          <input type="file" id="saf-det-upload" style="display:none" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.png" onchange="safDetailUpload(this)">
-          <button class="btn btn-g btn-s" onclick="document.getElementById('saf-det-upload').click()">+ Upload Document</button>
+          <input type="file" id="saf-det-upload" class="hidden" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.png">
+          <button class="btn btn-g btn-s" data-action="triggerFileInput" data-target-id="saf-det-upload">+ Upload Document</button>
         </div>
       </div>
       <div class="pb" id="saf-att-panel"><div class="saf-att-empty">Loading documents…</div></div>
@@ -4426,10 +4587,10 @@ async function safViewFile(id){
     <div class="panel mt2 saf-personnel-section">
       <div class="ph">
         <div class="ph-title">People on File</div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <button class="btn btn-g btn-s" onclick="safSendPolicyToPersonnel('${id}')">&#9993; Send Policy</button>
-          <button class="btn btn-g btn-s" onclick="safAddPersonnel('${id}')">+ Add Person</button>
-          <button class="btn btn-g btn-s" onclick="safLinkPortalUser('${id}')">+ Link Portal User</button>
+        <div class="saf-sec-act">
+          <button class="btn btn-g btn-s" data-action="safSendPolicyToPersonnel" data-id="${id}">&#9993; Send Policy</button>
+          <button class="btn btn-g btn-s" data-action="safAddPersonnel" data-id="${id}">+ Add Person</button>
+          <button class="btn btn-g btn-s" data-action="safLinkPortalUser" data-id="${id}">+ Link Portal User</button>
         </div>
       </div>
       <div class="pb" id="saf-personnel-panel"><div class="saf-att-empty">Loading personnel…</div></div>
@@ -4437,14 +4598,14 @@ async function safViewFile(id){
     <div class="panel mt2 saf-compliance-section">
       <div class="ph">
         <div class="ph-title">Training &amp; Compliance Tracking</div>
-        <button class="btn btn-g btn-s" onclick="safAddCompliance('${id}')">+ Add Record</button>
+        <button class="btn btn-g btn-s" data-action="safAddCompliance" data-id="${id}">+ Add Record</button>
       </div>
       <div class="pb" id="saf-compliance-panel"><div class="saf-att-empty">Loading compliance records…</div></div>
     </div>
     <div class="panel mt2 saf-policy-ack-section">
       <div class="ph">
         <div class="ph-title">Policies &amp; Procedures — Acknowledgments</div>
-        <button class="btn btn-g btn-s" onclick="safAddPolicyAck('${id}')">+ Send Policy</button>
+        <button class="btn btn-g btn-s" data-action="safAddPolicyAck" data-id="${id}">+ Send Policy</button>
       </div>
       <div class="pb" id="saf-policy-ack-panel"><div class="saf-att-empty">Loading policy acknowledgments…</div></div>
     </div>
@@ -4484,9 +4645,9 @@ async function safViewFile(id){
 
     ${actionRows?`<div class="panel mt2">
       <div class="ph"><div class="ph-title">Action Plan — Items Not to Standard</div>
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <div class="flex-row gap-8 flex-wrap">
           ${band.actionDays?`<div class="saf-ap-deadline ${band.cls}">Action required within ${band.actionDays} ${band.note&&band.note.includes('working')?'working ':'calendar '}days</div>`:''}
-          <button class="btn btn-g btn-s" onclick="safGenDocs('${id}')" title="Generate template documents for all Not to Standard items">&#128196; Generate Docs</button>
+          <button class="btn btn-g btn-s" data-action="safGenDocs" data-id="${id}" title="Generate template documents for all Not to Standard items">&#128196; Generate Docs</button>
         </div>
       </div>
       <div class="tw"><table class="saf-ap-tbl">
@@ -4595,14 +4756,14 @@ async function safGenerateTracker(id) {
   const fname   = id + '_Action_Tracker.html';
 
   openModal('Action Plan Tracker — ' + id, `
-    <div style="padding:8px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:2px;margin-bottom:16px;font-size:11px">
+    <div class="att-ctx mb-16 fs-11">
       <strong>${esc(file.contractor || id)}</strong> — ${sections.reduce((t,s)=>t+s.items.length,0)} non-conformance${sections.reduce((t,s)=>t+s.items.length,0)===1?'':'s'} across ${sections.length} section${sections.length===1?'':'s'}
     </div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap">
-      <button class="btn btn-p" onclick="window.open('${blobUrl}','_blank');URL.revokeObjectURL('${blobUrl}')">&#128065; Preview in Browser</button>
-      <a class="btn btn-g" id="tracker-dl-btn" href="${blobUrl}" download="${esc(fname)}" style="text-decoration:none" onclick="setTimeout(()=>URL.revokeObjectURL('${blobUrl}'),2000)">&#8595; Download</a>
+    <div class="flex-row gap-10 flex-wrap">
+      <button class="btn btn-p" data-action="openBlobPreview" data-blob-url="${blobUrl}">&#128065; Preview in Browser</button>
+      <a class="btn btn-g" id="tracker-dl-btn" href="${blobUrl}" download="${esc(fname)}" data-action="revokeBlobOnDownload" data-blob-url="${blobUrl}">&#8595; Download</a>
     </div>
-    <div style="font-size:10px;color:var(--muted);margin-top:10px">The tracker opens as a self-contained page — no internet connection required.</div>
+    <div class="fs-10 text-muted mt-10">The tracker opens as a self-contained page — no internet connection required.</div>
   `);
 }
 
@@ -5274,9 +5435,9 @@ function safRenderAttachments(fileId, attachments){
       <span class="saf-att-icon">${a.mime_type==='application/pdf'?'📄':a.mime_type?.includes('image')?'🖼':'📁'}</span>
       <span class="saf-att-name">${esc(a.original_name)}</span>
       <span class="saf-att-meta">${fmtSize(a.file_size)} · ${esc(a.uploaded_by)} · ${fmtD(a.created_at?.split(' ')[0])}</span>
-      ${(a.mime_type==='application/pdf'||a.mime_type?.startsWith('image/'))?`<button class="btn btn-g btn-xs" onclick="openDocViewer(${a.id},'${esc(a.original_name)}','${esc(a.mime_type)}')">&#128065; View</button>`:''}
+      ${(a.mime_type==='application/pdf'||a.mime_type?.startsWith('image/'))?`<button class="btn btn-g btn-xs" data-action="openDocViewer" data-id="${a.id}" data-name="${esc(a.original_name)}" data-mime="${esc(a.mime_type)}">&#128065; View</button>`:''}
       <a class="btn btn-g btn-xs saf-att-dl" href="api/files.php?action=download&id=${a.id}" download="${esc(a.original_name)}">&#8595; Download</a>
-      <button class="btn btn-xs saf-att-del" onclick="safDeleteAttachment(${a.id},'${esc(fileId)}')">&#10005;</button>
+      <button class="btn btn-xs saf-att-del" data-action="safDeleteAttachment" data-id="${a.id}" data-file-id="${esc(fileId)}">&#10005;</button>
     </div>`;
   }
   // Build a key→title lookup from the global section list
@@ -5316,12 +5477,12 @@ function safRenderAttachments(fileId, attachments){
     if(rec){
       const canView=rec.mime_type==='application/pdf'||rec.mime_type?.startsWith('image/');
       cell.innerHTML=`<span class="saf-sec-doc-link">
-        ${canView?`<button class="btn btn-g btn-xs" onclick="openDocViewer(${rec.id},'${esc(rec.original_name)}','${esc(rec.mime_type||'')}')">&#128065; View</button>`:''}
+        ${canView?`<button class="btn btn-g btn-xs" data-action="openDocViewer" data-id="${rec.id}" data-name="${esc(rec.original_name)}" data-mime="${esc(rec.mime_type||'')}">&#128065; View</button>`:''}
         <a class="btn btn-g btn-xs" href="api/files.php?action=download&id=${rec.id}" download="${esc(rec.original_name)}">&#8595; Download</a>
-        <button class="btn btn-xs saf-cs-del-btn" onclick="safDeleteAttachment(${rec.id},'${esc(fileId)}')" title="Remove sign-off document">&#10005;</button>
+        <button class="btn btn-xs saf-cs-del-btn" data-action="safDeleteAttachment" data-id="${rec.id}" data-file-id="${esc(fileId)}" title="Remove sign-off document">&#10005;</button>
       </span>`;
     } else {
-      cell.innerHTML=`<input type="file" id="saf-sec-file-${sec.key}" class="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.png" onchange="safSectionUpload(this,'${esc(fileId)}','${sec.key}')"><button class="btn btn-g btn-xs saf-sec-doc-btn" onclick="document.getElementById('saf-sec-file-${sec.key}').click()" title="Upload combined sign-off for all employees">&#128196; Upload</button>`;
+      cell.innerHTML=`<input type="file" id="saf-sec-file-${sec.key}" class="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.png" data-action="safSectionUpload" data-file-id="${esc(fileId)}" data-section-key="${sec.key}"><button class="btn btn-g btn-xs saf-sec-doc-btn" data-action="triggerFileInput" data-target-id="saf-sec-file-${sec.key}" title="Upload combined sign-off for all employees">&#128196; Upload</button>`;
     }
   });
 }
@@ -5428,16 +5589,16 @@ function safRenderPersonnel(fileId,people){
       ? `<span class="saf-portal-tick" title="Has portal account">&#10003;</span>`
       : '';
     const actionBtns = p.portal_user_id
-      ? `<button class="btn btn-g btn-xs" onclick="safPersonnelSendPolicy(${p.id})" title="Send policy">&#9993;</button>
-         <button class="btn btn-xs saf-cs-del-btn" onclick="safUnlinkUser(${p.portal_user_id},'${esc(fileId)}','${esc(p.full_name)}')" title="Unlink portal account">&#10005;</button>`
-      : `<button class="btn btn-g btn-xs" onclick="safPersonnelSendPolicy(${p.id})" title="Send policy">&#9993;</button>
-         <button class="btn btn-g btn-xs" onclick="safRemovePerson(${p.id},'${esc(fileId)}','${esc(p.full_name)}')">Remove</button>`;
+      ? `<button class="btn btn-g btn-xs" data-action="safPersonnelSendPolicy" data-id="${p.id}" title="Send policy">&#9993;</button>
+         <button class="btn btn-xs saf-cs-del-btn" data-action="safUnlinkUser" data-id="${p.portal_user_id}" data-file-id="${esc(fileId)}" data-name="${esc(p.full_name)}" title="Unlink portal account">&#10005;</button>`
+      : `<button class="btn btn-g btn-xs" data-action="safPersonnelSendPolicy" data-id="${p.id}" title="Send policy">&#9993;</button>
+         <button class="btn btn-g btn-xs" data-action="safRemovePerson" data-id="${p.id}" data-file-id="${esc(fileId)}" data-name="${esc(p.full_name)}">Remove</button>`;
     return `<tr>
     <td>${esc(p.full_name)}</td>
     <td>${esc(p.id_number||'—')}</td>
     <td>${esc(p.role)}</td>
     <td>${esc(p.company||'—')}</td>
-    <td>${p.email?`<a href="mailto:${esc(p.email)}" style="color:var(--accent)">${esc(p.email)}</a>`:'<span style="color:var(--muted)">—</span>'}</td>
+    <td>${p.email?`<a href="mailto:${esc(p.email)}" class="text-accent">${esc(p.email)}</a>`:'<span class="text-muted">—</span>'}</td>
     <td class="saf-portal-col">${portalTick}</td>
     <td>${actionBtns}</td>
   </tr>`;
@@ -5452,7 +5613,7 @@ function safRenderPersonnel(fileId,people){
       <td>${esc(p.company||'—')}</td>
       <td>${p.removed_at?fmtD(p.removed_at):'—'}</td>
       <td>${esc(p.removed_reason||'—')}</td>
-      <td><button class="btn btn-g btn-xs" onclick="safReinstatePerson(${p.id},'${esc(fileId)}')">Reinstate</button></td>
+      <td><button class="btn btn-g btn-xs" data-action="safReinstatePerson" data-id="${p.id}" data-file-id="${esc(fileId)}">Reinstate</button></td>
     </tr>`).join('');
     formerHtml=`<details class="saf-former-toggle mt1">
       <summary>Former Personnel (${gone.length}) — retained for audit</summary>
@@ -5483,13 +5644,13 @@ async function safAddPersonnel(fileId){
   const dlOpts=existing.map(n=>`<option value="${esc(n)}">`).join('');
   openModal('Add Person to Safety File',`
     <div class="fgrid">
-      <div class="fgroup ffull"><label class="flbl">Full Name <span style="color:var(--ember)">*</span></label>
+      <div class="fgroup ffull"><label class="flbl">Full Name <span class="text-ember">*</span></label>
         <input class="finput" id="prs-name" list="prs-name-dl" placeholder="Type or select name" autofocus autocomplete="off">
         <datalist id="prs-name-dl">${dlOpts}</datalist>
-        <small class="flbl" style="color:var(--muted)">Select existing or type a new name to create a new record</small></div>
+        <small class="flbl text-muted">Select existing or type a new name to create a new record</small></div>
       <div class="fgroup"><label class="flbl">ID / Passport No.</label>
         <input class="finput" id="prs-id" placeholder="8001015009087"></div>
-      <div class="fgroup"><label class="flbl">Role <span style="color:var(--ember)">*</span></label>
+      <div class="fgroup"><label class="flbl">Role <span class="text-ember">*</span></label>
         <select class="finput" id="prs-role">
           <option>Employee</option><option>Subcontractor</option><option>Supervisor</option>
           <option>SHE Rep</option><option>First Aider</option><option>Other</option>
@@ -5500,7 +5661,7 @@ async function safAddPersonnel(fileId){
       <div class="fgroup ffull"><label class="flbl">Email (used for policy acknowledgments)</label>
         <input class="finput" id="prs-email" type="email" placeholder="person@company.co.za" autocomplete="off"></div>
     </div>
-    <div class="mt2 flex-end"><button class="btn btn-p" onclick="safSavePersonnel('${fileId}')">Add Person</button></div>
+    <div class="mt2 flex-end"><button class="btn btn-p" data-action="safSavePersonnel" data-id="${fileId}">Add Person</button></div>
   `);
 }
 
@@ -5521,16 +5682,16 @@ async function safSavePersonnel(fileId){
 
 async function safRemovePerson(id,fileId,name){
   openModal('Remove Person from File',`
-    <p style="margin-bottom:12px;color:var(--muted)">
+    <p class="mb-12 text-muted">
       The record for <strong>${esc(name)}</strong> will be marked inactive but <em>kept for audit purposes</em>.<br>
       This complies with the BF-SHE-FRM-010 audit trail requirement.
     </p>
-    <div class="fgroup ffull"><label class="flbl">Reason for removal <span style="color:var(--ember)">*</span></label>
+    <div class="fgroup ffull"><label class="flbl">Reason for removal <span class="text-ember">*</span></label>
       <input class="finput" id="prs-reason" placeholder="e.g. Left employment 2026-05-21" autofocus></div>
     <div class="mt2 flex-end">
-      <button class="btn btn-g btn-s" onclick="closeModalDirect()" style="margin-right:8px">Cancel</button>
-      <button class="btn" style="background:#fee2e2;border-color:#dc2626;color:#dc2626"
-        onclick="safConfirmRemovePerson(${id},'${esc(fileId)}','${esc(name)}')">Remove from File</button>
+      <button class="btn btn-g btn-s mr-8" data-action="closeModalDirect">Cancel</button>
+      <button class="btn btn-remove-person"
+        data-action="safConfirmRemovePerson" data-id="${id}" data-file-id="${esc(fileId)}" data-name="${esc(name)}">Remove from File</button>
     </div>
   `);
 }
@@ -5732,19 +5893,19 @@ async function safLinkPortalUser(fileId) {
   if (!available.length) { toast('No available portal users to link', 'info'); return; }
   const opts = available.map(u => `<option value="${u.id}">${esc(u.name)} (${esc(u.role||u.title||'—')})</option>`).join('');
   openModal('Link Portal User to Safety File', `
-    <p style="margin-bottom:10px;color:var(--muted);font-size:.88rem">
+    <p class="mb-10 text-muted fs-sm">
       Linking a user adds them to the personnel roster and triggers the AECI induction check.
     </p>
     <div class="fgroup ffull">
-      <label class="flbl">Portal User <span style="color:var(--ember)">*</span></label>
+      <label class="flbl">Portal User <span class="text-ember">*</span></label>
       <select class="finput" id="link-user-sel">
         <option value="">— Select user —</option>
         ${opts}
       </select>
     </div>
     <div class="mt2 flex-end">
-      <button class="btn btn-g btn-s" onclick="closeModalDirect()" style="margin-right:8px">Cancel</button>
-      <button class="btn btn-p" onclick="safConfirmLinkUser('${fileId}')">Link User</button>
+      <button class="btn btn-g btn-s mr-8" data-action="closeModalDirect">Cancel</button>
+      <button class="btn btn-p" data-action="safConfirmLinkUser" data-id="${fileId}">Link User</button>
     </div>
   `);
 }
@@ -5792,13 +5953,13 @@ function safRenderCompliance(fileId,records){
     const hasDoc=rec.att_id;
     const docCell=hasDoc
       ?`<span class="saf-doc-badge" title="${esc(rec.att_name||'')}">
-           📄 ${(rec.att_mime==='application/pdf'||rec.att_mime?.startsWith('image/'))?`<button class="btn btn-xs" onclick="openDocViewer(${rec.att_id},'${esc(rec.att_name||'document')}','${esc(rec.att_mime||'')}')" title="View document">&#128065;</button>`:''}
+           📄 ${(rec.att_mime==='application/pdf'||rec.att_mime?.startsWith('image/'))?`<button class="btn btn-xs" data-action="openDocViewer" data-id="${rec.att_id}" data-name="${esc(rec.att_name||'document')}" data-mime="${esc(rec.att_mime||'')}" title="View document">&#128065;</button>`:''}
            <a class="saf-doc-dl" href="api/files.php?action=download&id=${rec.att_id}" download="${esc(rec.att_name||'document')}">↓</a>
-           <button class="btn btn-xs saf-cs-del-btn" onclick="safReplaceComplianceDoc(${rec.id},'${esc(fileId)}',${rec.att_id})" title="Replace document">↺</button>
+           <button class="btn btn-xs saf-cs-del-btn" data-action="safReplaceComplianceDoc" data-id="${rec.id}" data-file-id="${esc(fileId)}" data-att-id="${rec.att_id}" title="Replace document">↺</button>
          </span>`
       :`<input type="file" id="saf-cdoc-${rec.id}" class="hidden" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                onchange="safUploadComplianceDoc(${rec.id},'${esc(fileId)}',this)">
-         <button class="btn btn-g btn-xs" onclick="document.getElementById('saf-cdoc-${rec.id}').click()" title="Attach one document">+ Doc</button>`;
+                data-action="safUploadComplianceDoc" data-id="${rec.id}" data-file-id="${esc(fileId)}">
+         <button class="btn btn-g btn-xs" data-action="triggerFileInput" data-target-id="saf-cdoc-${rec.id}" title="Attach one document">+ Doc</button>`;
     return `<tr>
       <td>${esc(rec.compliance_type)}<br><small class="saf-cs-cat">${esc(rec.category)}</small></td>
       <td>${holder}</td>
@@ -5807,8 +5968,8 @@ function safRenderCompliance(fileId,records){
       <td><span class="saf-cs-badge ${st.cls}">${st.label}</span>${dNote?` <small class="saf-cs-days">${dNote}</small>`:''}</td>
       <td class="saf-doc-cell">${docCell}</td>
       <td>
-        <button class="btn btn-g btn-xs" onclick="safEditCompliance(${rec.id},'${esc(fileId)}')">Edit</button>
-        <button class="btn btn-xs saf-cs-del-btn" onclick="safDeleteCompliance(${rec.id},'${esc(fileId)}')">&#10005;</button>
+        <button class="btn btn-g btn-xs" data-action="safEditCompliance" data-id="${rec.id}" data-file-id="${esc(fileId)}">Edit</button>
+        <button class="btn btn-xs saf-cs-del-btn" data-action="safDeleteCompliance" data-id="${rec.id}" data-file-id="${esc(fileId)}">&#10005;</button>
       </td>
     </tr>`;
   }).join('');
@@ -5830,14 +5991,14 @@ async function safAddCompliance(fileId){
   openModal('Add Training / Compliance Record',`
     <div class="fgrid">
       <div class="fgroup ffull">
-        <label class="flbl">Type <span style="color:var(--ember)">*</span></label>
-        <select class="finput" id="cmp-type-sel" onchange="safCmpTypeChanged()">
+        <label class="flbl">Type <span class="text-ember">*</span></label>
+        <select class="finput" id="cmp-type-sel">
           <option value="">— Select standard type —</option>
           ${typeOpts}
           <option value="custom">Custom / Other…</option>
         </select>
       </div>
-      <div class="fgroup ffull" id="cmp-custom-row" style="display:none">
+      <div class="fgroup ffull d-none" id="cmp-custom-row">
         <label class="flbl">Custom type name</label>
         <input class="finput" id="cmp-custom-name" placeholder="e.g. Rigging Certificate">
       </div>
@@ -5850,7 +6011,7 @@ async function safAddCompliance(fileId){
       </div>
       <div class="fgroup">
         <label class="flbl">Scope</label>
-        <select class="finput" id="cmp-scope" onchange="safCmpScopeChanged()">
+        <select class="finput" id="cmp-scope">
           <option>Person</option><option>Company</option>
         </select>
       </div>
@@ -5858,15 +6019,15 @@ async function safAddCompliance(fileId){
         <label class="flbl">Person (leave blank for company-level)</label>
         <input class="finput" id="cmp-person" list="cmp-person-dl" placeholder="Type or select person name, or leave blank" autocomplete="off">
         <datalist id="cmp-person-dl"><option value="">${prsOpts}</datalist>
-        <small class="flbl" style="color:var(--muted)">Type a new name to add them to the personnel roster automatically</small>
+        <small class="flbl text-muted">Type a new name to add them to the personnel roster automatically</small>
       </div>
       <div class="fgroup">
-        <label class="flbl">Issue / Completion Date <span style="color:var(--ember)">*</span></label>
-        <input class="finput" type="date" id="cmp-issue" onchange="safCmpCalcExpiry()">
+        <label class="flbl">Issue / Completion Date <span class="text-ember">*</span></label>
+        <input class="finput" type="date" id="cmp-issue">
       </div>
       <div class="fgroup">
         <label class="flbl">Renewal cycle (months, 0 = never expires)</label>
-        <input class="finput" type="number" id="cmp-months" value="12" min="0" onchange="safCmpCalcExpiry()">
+        <input class="finput" type="number" id="cmp-months" value="12" min="0">
       </div>
       <div class="fgroup ffull">
         <label class="flbl">Expiry / Renewal date (auto-calculated — override if needed)</label>
@@ -5877,14 +6038,14 @@ async function safAddCompliance(fileId){
         <input class="finput" id="cmp-notes" placeholder="e.g. Certificate no., training provider">
       </div>
     </div>
-    <div class="mt2 flex-end"><button class="btn btn-p" onclick="safSaveCompliance('${fileId}')">Add Record</button></div>
+    <div class="mt2 flex-end"><button class="btn btn-p" data-action="safSaveCompliance" data-id="${fileId}">Add Record</button></div>
   `);
 }
 
 function safCmpTypeChanged(){
   const sel=document.getElementById('cmp-type-sel');
   const val=sel.value;
-  document.getElementById('cmp-custom-row').style.display=val==='custom'?'':'none';
+  document.getElementById('cmp-custom-row').classList.toggle('d-none', val!=='custom');
   if(val===''||val==='custom') return;
   const t=COMPLIANCE_TYPES[parseInt(val)];
   if(!t) return;
@@ -5898,7 +6059,7 @@ function safCmpTypeChanged(){
 function safCmpScopeChanged(){
   const scope=document.getElementById('cmp-scope')?.value;
   const row=document.getElementById('cmp-person-row');
-  if(row) row.style.display=scope==='Company'?'none':'';
+  if(row) row.classList.toggle('d-none', scope==='Company');
 }
 
 function safCmpCalcExpiry(){
@@ -5966,11 +6127,11 @@ async function safEditCompliance(id,fileId){
         <input class="finput" id="cedit-type" value="${esc(rec.compliance_type)}" placeholder="Type name"></div>
       <div class="fgroup">
         <label class="flbl">Issue Date</label>
-        <input class="finput" type="date" id="cedit-issue" value="${rec.issue_date||''}" onchange="safCEditCalcExpiry()">
+        <input class="finput" type="date" id="cedit-issue" value="${rec.issue_date||''}">
       </div>
       <div class="fgroup">
         <label class="flbl">Renewal (months)</label>
-        <input class="finput" type="number" id="cedit-months" value="${rec.renewal_months||12}" min="0" onchange="safCEditCalcExpiry()">
+        <input class="finput" type="number" id="cedit-months" value="${rec.renewal_months||12}" min="0">
       </div>
       <div class="fgroup ffull">
         <label class="flbl">Expiry Date</label>
@@ -5979,7 +6140,7 @@ async function safEditCompliance(id,fileId){
       <div class="fgroup ffull"><label class="flbl">Notes</label>
         <input class="finput" id="cedit-notes" value="${esc(rec.notes||'')}" placeholder="Notes"></div>
     </div>
-    <div class="mt2 flex-end"><button class="btn btn-p" onclick="safSaveEditCompliance(${id},'${esc(fileId)}')">Save</button></div>
+    <div class="mt2 flex-end"><button class="btn btn-p" data-action="safSaveEditCompliance" data-id="${id}" data-file-id="${esc(fileId)}">Save</button></div>
   `);
 }
 
@@ -6069,9 +6230,9 @@ function safRenderPolicyAcks(fileId,acks){
       <td><span class="saf-cs-badge ${st}">${esc(a.status)}</span></td>
       <td>${acked}</td>
       <td>
-        ${a.status!=='Acknowledged'&&a.status!=='Declined'?`<button class="btn btn-g btn-xs" onclick="safManualAck(${a.id},'${esc(fileId)}')">&#10003; Mark Ack'd</button>`:''}
-        ${a.recipient_email&&a.status!=='Acknowledged'?`<button class="btn btn-g btn-xs" onclick="safResendPolicyAck(${a.id},'${esc(fileId)}')">&#9993; Resend</button>`:''}
-        <button class="btn btn-xs saf-cs-del-btn" onclick="safDeletePolicyAck(${a.id},'${esc(fileId)}')">&#10005;</button>
+        ${a.status!=='Acknowledged'&&a.status!=='Declined'?`<button class="btn btn-g btn-xs" data-action="safManualAck" data-id="${a.id}" data-file-id="${esc(fileId)}">&#10003; Mark Ack'd</button>`:''}
+        ${a.recipient_email&&a.status!=='Acknowledged'?`<button class="btn btn-g btn-xs" data-action="safResendPolicyAck" data-id="${a.id}" data-file-id="${esc(fileId)}">&#9993; Resend</button>`:''}
+        <button class="btn btn-xs saf-cs-del-btn" data-action="safDeletePolicyAck" data-id="${a.id}" data-file-id="${esc(fileId)}">&#10005;</button>
       </td>
     </tr>`;
   }).join('');
@@ -6118,12 +6279,12 @@ function safAddPolicyAck(fileId, prefill={}){
   const prefillEmail=prefill.email ? esc(prefill.email) : '';
   openModal('Send Policy for Acknowledgment',`
     <div class="fgrid">
-      <div class="fgroup ffull"><label class="flbl">Policy / Procedure Title <span style="color:var(--ember)">*</span></label>
+      <div class="fgroup ffull"><label class="flbl">Policy / Procedure Title <span class="text-ember">*</span></label>
         <input class="finput" id="pak-title" list="pak-title-dl" placeholder="Select or type policy name" autocomplete="off" autofocus>
         <datalist id="pak-title-dl">${polOpts}</datalist></div>
       <div class="fgroup ffull"><label class="flbl">Policy Content / Summary (optional — shown to recipient)</label>
         <textarea class="finput" id="pak-body" rows="4" placeholder="Paste key points or summary of the policy..."></textarea></div>
-      <div class="fgroup"><label class="flbl">Recipient Name <span style="color:var(--ember)">*</span></label>
+      <div class="fgroup"><label class="flbl">Recipient Name <span class="text-ember">*</span></label>
         <input class="finput" id="pak-name" list="pak-name-dl" placeholder="Type or select person" autocomplete="off" value="${prefillName}">
         <datalist id="pak-name-dl">${dlOpts}</datalist></div>
       <div class="fgroup"><label class="flbl">Recipient Email (leave blank for in-person sign-off)</label>
@@ -6131,8 +6292,8 @@ function safAddPolicyAck(fileId, prefill={}){
         <datalist id="pak-email-dl">${emailDlOpts}</datalist></div>
     </div>
     <div class="mt2 flex-end">
-      <button class="btn btn-g btn-s" onclick="closeModalDirect()" style="margin-right:8px">Cancel</button>
-      <button class="btn btn-p" onclick="safSavePolicyAck('${fileId}')">Create &amp; Send</button>
+      <button class="btn btn-g btn-s mr-8" data-action="closeModalDirect">Cancel</button>
+      <button class="btn btn-p" data-action="safSavePolicyAck" data-id="${fileId}">Create &amp; Send</button>
     </div>
   `);
 }
