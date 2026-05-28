@@ -169,4 +169,98 @@ if ($action === 'reset_password' && $method === 'POST') {
     json_ok([], 'Password updated. You can now log in.');
 }
 
+// ── POST /mobile_login ────────────────────────────────
+// Mobile app auth — no CAPTCHA; rate limiting done at DB level.
+// Returns a Bearer token valid for 30 days.
+if ($action === 'mobile_login' && $method === 'POST') {
+    $body      = get_body();
+    $username  = strtolower(clean($body['username']  ?? '', 50));
+    $password  = $body['password']  ?? '';
+    $device_id = clean($body['device_id']   ?? '', 255);
+    $device_nm = clean($body['device_name'] ?? '', 255);
+
+    if (!$username || !$password) json_err('Username and password required');
+
+    $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+
+    // DB-level rate limiting: 5 failures → 15-min lockout per IP+device
+    $rl = db_row(
+        "SELECT fail_count, locked_until FROM bf_mobile_rate_limits
+         WHERE ip_address = ? AND device_id = ?",
+        [$ip, $device_id]
+    );
+    if ($rl) {
+        if ($rl['locked_until'] && strtotime($rl['locked_until']) > time()) {
+            $wait = ceil((strtotime($rl['locked_until']) - time()) / 60);
+            json_err("Too many failed attempts. Try again in {$wait} minute(s).", 429);
+        }
+    }
+
+    $row = db_row(
+        "SELECT id, username, password_hash, name, role, title, active, client_id
+         FROM bf_users WHERE username = ?",
+        [$username]
+    );
+
+    if (!$row || !$row['active'] || !password_verify($password, $row['password_hash'])) {
+        // Increment rate-limit counter
+        db_exec(
+            "INSERT INTO bf_mobile_rate_limits (ip_address, device_id, fail_count, locked_until)
+             VALUES (?, ?, 1, NULL)
+             ON DUPLICATE KEY SET
+               fail_count   = fail_count + 1,
+               locked_until = IF(fail_count + 1 >= 5, DATE_ADD(NOW(), INTERVAL 15 MINUTE), NULL)",
+            [$ip, $device_id]
+        );
+        sleep(1);
+        audit($username, 'MOBILE_LOGIN_FAIL', "Failed mobile login for $username from $ip");
+        json_err('Invalid username or password', 401);
+    }
+
+    // Success — clear rate-limit counter
+    db_exec(
+        "DELETE FROM bf_mobile_rate_limits WHERE ip_address = ? AND device_id = ?",
+        [$ip, $device_id]
+    );
+
+    $raw_token  = bin2hex(random_bytes(32)); // 256 bits
+    $token_hash = hash('sha256', $raw_token);
+    $expires    = date('Y-m-d H:i:s', time() + 30 * 24 * 3600); // 30 days
+
+    // Revoke any previous token for same user + device
+    db_exec(
+        "UPDATE bf_mobile_tokens SET revoked = 1
+         WHERE user_id = ? AND device_id = ?",
+        [$row['id'], $device_id]
+    );
+    db_exec(
+        "INSERT INTO bf_mobile_tokens (user_id, token_hash, device_id, device_name, expires_at)
+         VALUES (?,?,?,?,?)",
+        [$row['id'], $token_hash, $device_id ?: null, $device_nm ?: null, $expires]
+    );
+
+    db_exec("UPDATE bf_users SET last_login = NOW() WHERE id = ?", [$row['id']]);
+    audit($username, 'MOBILE_LOGIN', "{$row['name']} signed in via mobile from $ip");
+
+    $user = [
+        'id'        => (int) $row['id'],
+        'username'  => $row['username'],
+        'name'      => $row['name'],
+        'role'      => $row['role'],
+        'title'     => $row['title'],
+        'client_id' => $row['client_id'] !== null ? (int)$row['client_id'] : null,
+    ];
+    json_ok(['user' => $user, 'token' => $raw_token, 'expires_at' => $expires], 'Login successful');
+}
+
+// ── POST /mobile_logout ───────────────────────────────
+if ($action === 'mobile_logout' && $method === 'POST') {
+    $headers    = function_exists('getallheaders') ? getallheaders() : [];
+    $auth       = $headers['Authorization'] ?? $headers['authorization'] ?? '';
+    if (!str_starts_with($auth, 'Bearer ')) json_err('No token provided', 400);
+    $token_hash = hash('sha256', substr($auth, 7));
+    db_exec("UPDATE bf_mobile_tokens SET revoked = 1 WHERE token_hash = ?", [$token_hash]);
+    json_ok([], 'Logged out');
+}
+
 json_err('Unknown action or method', 404);

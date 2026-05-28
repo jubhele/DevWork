@@ -46,20 +46,61 @@ function bf_session_start(): void {
 }
 
 /**
- * Get the currently logged-in user array or null
+ * Get the currently logged-in user array or null.
+ *
+ * Dual-path auth:
+ *   1. PHP session (web portal — bf_portal cookie).  Checked first; unchanged from before.
+ *   2. Bearer token (mobile app).  Only reached when no valid session exists.
+ *      This path is invisible to every existing web endpoint.
  */
 function current_user(): ?array {
+    // ── Path 1: PHP session (web) ────────────────────────────────
     bf_session_start();
-    if (!isset($_SESSION['bf_user']) || !is_array($_SESSION['bf_user'])) return null;
-    if (!isset($_SESSION['bf_expires']) || $_SESSION['bf_expires'] < time()) {
-        session_destroy();
-        setcookie('bf_session_hint', '', ['expires' => time() - 3600, 'path' => '/', 'httponly' => false, 'samesite' => 'Lax']);
-        return null;
+    if (isset($_SESSION['bf_user']) && is_array($_SESSION['bf_user'])) {
+        if (!isset($_SESSION['bf_expires']) || $_SESSION['bf_expires'] < time()) {
+            session_destroy();
+            setcookie('bf_session_hint', '', ['expires' => time() - 3600, 'path' => '/', 'httponly' => false, 'samesite' => 'Lax']);
+            return null;
+        }
+        $_SESSION['bf_expires'] = time() + 7200;
+        $user = $_SESSION['bf_user'];
+        session_write_close();
+        return $user;
     }
-    $_SESSION['bf_expires'] = time() + 7200;
-    $user = $_SESSION['bf_user'];
     session_write_close();
-    return $user;
+
+    // ── Path 2: Bearer token (mobile) ───────────────────────────
+    $headers = function_exists('getallheaders') ? getallheaders() : [];
+    $auth_header = $headers['Authorization'] ?? $headers['authorization'] ?? '';
+    if (!str_starts_with($auth_header, 'Bearer ')) return null;
+
+    $raw_token = substr($auth_header, 7);
+    if (strlen($raw_token) < 16) return null;
+
+    require_once __DIR__ . '/db.php';
+    $token_hash = hash('sha256', $raw_token);
+    $row = db_row(
+        "SELECT t.user_id, t.expires_at, t.revoked, t.id AS token_id,
+                u.id, u.username, u.name, u.role, u.title, u.client_id, u.active
+         FROM bf_mobile_tokens t
+         JOIN bf_users u ON u.id = t.user_id
+         WHERE t.token_hash = ?",
+        [$token_hash]
+    );
+
+    if (!$row || $row['revoked'] || !$row['active']) return null;
+    if (strtotime($row['expires_at']) < time()) return null;
+
+    db_exec("UPDATE bf_mobile_tokens SET last_used_at = NOW() WHERE id = ?", [$row['token_id']]);
+
+    return [
+        'id'        => (int) $row['user_id'],
+        'username'  => $row['username'],
+        'name'      => $row['name'],
+        'role'      => $row['role'],
+        'title'     => $row['title'],
+        'client_id' => $row['client_id'] !== null ? (int)$row['client_id'] : null,
+    ];
 }
 
 /**

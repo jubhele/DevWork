@@ -40,3 +40,5 @@ Active model: Sonnet 4.6  Status: correct
 - There is no DQ agent — the gstack openai.yaml is purely a registration wrapper.
 - The Google Drive "statement" for AECI is the account/client statement view (not a bank statement); closest match found is the remittance advice (R140,966.83 for April 2026 batch).
 _Session ended: 2026-05-28 08:54:16 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-28 09:07:20 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-28 09:08:56 (Claude Code / claude-sonnet-4-6)_

@@ -77,7 +77,23 @@
       "Bash(git -C \"c:\\\\DevWork\" diff \"BlackFire/BlackFire Portal/portal.php\" \"BlackFire/BlackFire Portal/reports.php\")",
       "Bash(Get-ChildItem \"c:\\\\DevWork\\\\BlackFire\\\\BlackFire Portal - 25052026\" -Recurse)",
       "Bash(Measure-Object -Property Length -Sum)",
-      "Bash(Select-Object Count, Sum)"
+      "Bash(Select-Object Count, Sum)",
+      "Bash(git -C \"c:\\\\DevWork\" log --oneline -10 -- \"BlackFire/\")",
+      "Bash(git -C \"c:\\\\DevWork\" show --stat 6e68b3c)",
+      "Bash(Get-ChildItem \"c:\\\\DevWork\\\\BlackFire\\\\BlackFire Portal\\\\install\\\\\" -Filter \"*.sql\" | Select-Object Name, LastWriteTime | Sort-Object LastWriteTime)",
+      "Bash(Get-ChildItem \"c:\\\\DevWork\\\\BlackFire\\\\BlackFire Portal\" -Name)",
+      "Bash(Sort-Object)",
+      "PowerShell(head -20)",
+      "mcp__claude_ai_Google_Drive__search_files",
+      "PowerShell(Copy-Item \"c:\\\\DevWork\\\\sessions\\\\agents_quality_suite_20260528_000000.md\" \"G:\\\\My Drive\\\\JS\\\\Agentic AI\\\\sessions\\\\agents_quality_suite_20260528_000000.md.tbl.bk\" -Force)",
+      "PowerShell(c:\\\\DevWork\\\\.venv\\\\Scripts\\\\pip.exe install anthropic)",
+      "PowerShell($ts = Get-Date -Format 'yyyyMMdd_HHmmss'; Write-Host \"ts=$ts\")",
+      "PowerShell(Copy-Item \"c:\\\\DevWork\\\\sessions\\\\portal_reconciliation_20260528_084829.md\" \"G:\\\\My Drive\\\\JS\\\\Agentic AI\\\\sessions\\\\portal_reconciliation_20260528_084829.md.tbl.bk\" -Force)",
+      "Skill(schedule)",
+      "Skill(schedule:*)",
+      "PowerShell(git -C \"c:\\\\DevWork\" remote -v)",
+      "PowerShell($ts = '20260528_084829'; $base = 'c:\\\\DevWork\\\\BlackFire\\\\BlackFire Portal'; New-Item -ItemType Directory -Force \"$base\\\\_backups\" | Out-Null; Copy-Item \"$base\\\\bhekani_bo.php\" \"$base\\\\_backups\\\\bhekani_bo_backup_$ts.php\"; Write-Host \"Backup done\")",
+      "PowerShell(Copy-Item \"C:\\\\DevWork\\\\sessions\\\\mobile_bearer_token_migration_20260528_091828.md\" \"G:\\\\My Drive\\\\JS\\\\Agentic AI\\\\sessions\\\\mobile_bearer_token_migration_20260528_091828.md.tbl.bk\" -Force)"
     ]
   }
 }
