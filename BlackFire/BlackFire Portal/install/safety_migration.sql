@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS bf_safety_items (
     section_key  CHAR(1)       NOT NULL,
     item_no      TINYINT UNSIGNED NOT NULL,
     result       ENUM('N/A','Not to Standard','To Standard') DEFAULT NULL,
-    appointee    VARCHAR(255)  NOT NULL DEFAULT '',
+    appointee    VARCHAR(255)  DEFAULT NULL,
     comments     TEXT,
     ap_status    ENUM('Open','In Progress','Resolved') NOT NULL DEFAULT 'Open',
     updated_at   TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP

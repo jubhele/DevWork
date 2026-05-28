@@ -70,7 +70,7 @@ INSERT IGNORE INTO bf_external_upload_tokens
 VALUES
   -- Medical practitioner uploads staff medicals (Section C, Item 1)
   -- COMPLETED — used Jul 2024, three medicals submitted
-  ('ext01a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1',
+  ('ext01a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f',
    'safety_file','SAF-140724-0001','C',1,
    'Please upload the completed Certificates of Medical Fitness (Annexure 3 format) for all three Astute Insights site employees: James Mthembu, Refilwe Khumalo, and Kitso Marupi.',
    'application/pdf,image/jpeg,image/png',5,3,
@@ -80,7 +80,7 @@ VALUES
 
   -- Training provider uploads PSIRA and fire training certificates (Section D)
   -- COMPLETED — used Nov 2024
-  ('ext02b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2',
+  ('ext02b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a',
    'safety_file','SAF-151124-0001','D',4,
    'Upload fire extinguisher training completion certificates for: James Mthembu, Refilwe Khumalo. Each certificate must show trainee name, date of training, and trainer signature.',
    'application/pdf',5,2,
@@ -89,7 +89,7 @@ VALUES
    'kitso.marupi@astuteinsights.co.za','kitso.marupi','2024-11-15 10:00:00'),
 
   -- Medical practitioner uploads annual renewal medicals (Section C) — currently active
-  ('ext03c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3',
+  ('ext03c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b',
    'safety_file','SAF-210526-0001','C',1,
    'Annual renewal of Certificates of Medical Fitness for all five site personnel. Please upload one certificate per person as a separate PDF. Certificates must be dated May 2026 and signed by the Occupational Health Practitioner.',
    'application/pdf',10,0,
