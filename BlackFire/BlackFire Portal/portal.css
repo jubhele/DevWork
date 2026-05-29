@@ -45,6 +45,7 @@
 
 /* ─── RESET ─── */
 *{margin:0;padding:0;box-sizing:border-box}
+.hidden{display:none!important}
 html{font-size:14px;scroll-behavior:smooth}
 body{background:var(--bg);color:var(--text);font-family:'Instrument Sans',sans-serif;min-height:100vh;overflow-x:hidden;transition:background .25s,color .25s}
 input,select,textarea,button{font-family:'Instrument Sans',sans-serif}
