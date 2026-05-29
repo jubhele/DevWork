@@ -20,7 +20,7 @@
  */
 
 // Allow running from portal root or from dev-only/
-$portal_root = strpos(__DIR__, 'dev-only') !== false ? dirname(__DIR__) : __DIR__;
+$portal_root = is_dir(__DIR__ . '/includes') ? __DIR__ : dirname(__DIR__);
 require_once $portal_root . '/includes/db.php';
 
 $attach_dir = $portal_root . '/uploads/attachments';

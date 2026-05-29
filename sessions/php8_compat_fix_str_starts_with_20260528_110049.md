@@ -27,3 +27,14 @@ Active model: Sonnet 4.6  Status: over-powered (single-line fix)
 - str_starts_with() was flagged as a risk in the Bearer token session but not acted on — the note was in Learnings, not in Blockers. Move PHP-version risks to Blockers so they are not missed on upload.
 - Both 500 errors (bhekani_bo and PDF viewer) traced to the same auth.php include — one function incompatibility can cascade across all endpoints that require auth.
 _Session ended: 2026-05-28 11:00:49 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-28 11:09:09 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-28 11:13:08 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-28 11:21:09 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-28 11:24:14 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-28 12:30:43 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-28 12:31:25 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-28 12:37:10 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-28 12:41:10 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-28 13:18:47 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-28 13:21:21 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-28 13:25:28 (Claude Code / claude-sonnet-4-6)_

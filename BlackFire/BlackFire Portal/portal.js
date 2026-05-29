@@ -668,7 +668,7 @@ function showLoginPanel(){
 
 function showForgotPassword(){
   document.getElementById('login-panel').style.display  = 'none';
-  document.getElementById('forgot-panel').style.display = '';
+  document.getElementById('forgot-panel').style.display = 'block';
   document.getElementById('newpass-panel').style.display = 'none';
   document.getElementById('forgot-msg').style.display = 'none';
   document.getElementById('fp-user').value = '';
@@ -1847,7 +1847,7 @@ function goLogin(){
   if (params.get('reset_token')) {
     document.getElementById('login-panel').style.display  = 'none';
     document.getElementById('forgot-panel').style.display = 'none';
-    document.getElementById('newpass-panel').style.display = '';
+    document.getElementById('newpass-panel').style.display = 'block';
   } else {
     showLoginPanel();
   }
@@ -3218,10 +3218,10 @@ function renderUsers(){
   };
   const tick=(v)=>v==='✓'?`<span class="text-ok">✓</span>`:v==='-'?`<span class="text-muted">-</span>`:`<span class="text-warn fs-10">${v}</span>`;
   const bar = document.getElementById('users-create-bar');
-  if (bar) bar.style.display = can('user.create') ? '' : 'none';
+  if (bar) bar.style.display = can('user.create') ? 'block' : 'none';
   const canEdit = can('user.update');
   const thActions = document.getElementById('users-th-actions');
-  if (thActions) thActions.style.display = canEdit ? '' : 'none';
+  if (thActions) thActions.style.display = canEdit ? 'table-cell' : 'none';
   document.getElementById('users-table-body').innerHTML=proxyDB.users.map(u=>{
     const m=matrix[u.role]||{create:'-',status:'-',po:'-',finance:'-',quote:'-',approve:'-',admin:'-'};
     const actionCell = canEdit ? `<td>
@@ -3418,7 +3418,7 @@ document.addEventListener('DOMContentLoaded', async ()=>{
     document.documentElement.dataset.state='login';
     document.getElementById('login-panel').style.display  = 'none';
     document.getElementById('forgot-panel').style.display = 'none';
-    document.getElementById('newpass-panel').style.display = '';
+    document.getElementById('newpass-panel').style.display = 'block';
     return;
   }
   // Restore session on page reload — skip probe (and its 401) when no session hint cookie exists
@@ -5607,14 +5607,14 @@ function _safUpdateApproveBtn(fileId){
   if(!btn) return;
   const file=proxyDB.safetyFiles.find(f=>f.id===fileId);
   const st=file?.status||'';
-  btn.style.display=(st==='Submitted'||st==='In Progress')?'':'none';
+  btn.style.display=(st==='Submitted'||st==='In Progress')?'inline-flex':'none';
 }
 
 function _safUpdateDeactivateBtn(fileId){
   const btn=document.getElementById('saf-deactivate-btn');
   if(!btn) return;
   const canDel=can('security.users')||can('safety.delete');
-  btn.style.display=canDel&&fileId?'':'none';
+  btn.style.display=canDel&&fileId?'inline-flex':'none';
 }
 
 async function deactivateSafetyFile(){

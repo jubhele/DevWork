@@ -12,7 +12,7 @@ if (PHP_SAPI !== 'cli-server') {
 $uri = urldecode(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH));
 
 // Block sensitive directories (mirrors .htaccess rules)
-$blocked = ['/config/', '/includes/', '/install/', '/_backups/', '/dev-only/', '/uploads/attachments/'];
+$blocked = ['/config/', '/includes/', '/install/', '/_backups/', '/uploads/attachments/'];
 foreach ($blocked as $b) {
     if (strpos($uri, $b) === 0) {
         http_response_code(403);

@@ -4,7 +4,12 @@
  * HTML shell — public site + authenticated portal pages.
  * All data via fetch() → api/*.php endpoints.
  */
-$cfg = require dirname(__DIR__) . '/config/config.php';
+// Find portal root regardless of depth (deployed: portal_root/includes/ · local: dev-only/refactored_portal/includes/)
+$_bhk_root = __DIR__;
+while (!is_file($_bhk_root . '/config/config.php') && dirname($_bhk_root) !== $_bhk_root) {
+    $_bhk_root = dirname($_bhk_root);
+}
+$cfg = require $_bhk_root . '/config/config.php';
 date_default_timezone_set($cfg['timezone'] ?? 'Africa/Johannesburg');
 $cspNonce = base64_encode(random_bytes(16));
 ?>
@@ -104,6 +109,6 @@ $cspNonce = base64_encode(random_bytes(16));
 <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png?v=20260521">
 <link rel="shortcut icon" href="./favicon.ico?v=20260521">
 <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@400;600;700;900&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/portal_main.css?v=<?= filemtime(dirname(__DIR__).'/css/portal_main.css') ?>">
+<link rel="stylesheet" href="css/portal_main.css?v=<?= filemtime($_bhk_root.'/css/portal_main.css') ?>">
 </head>
 <body>

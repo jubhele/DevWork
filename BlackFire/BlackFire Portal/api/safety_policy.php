@@ -39,6 +39,7 @@ if ($method === 'PUT') {
 }
 
 $user = require_auth();
+require_perm('safety.view');
 
 /* ── GET list ─────────────────────────────────────────── */
 if ($method === 'GET') {

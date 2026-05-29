@@ -5,7 +5,8 @@ ob_start(); // Buffer output so headers can be sent from API calls
  * This file outputs the full portal HTML, with the JS data layer
  * replaced by API calls to the PHP/MySQL backend.
  */
-$cfg = require __DIR__ . '/config/config.php';
+$_bhk_root = is_dir(__DIR__ . '/includes') ? __DIR__ : dirname(__DIR__);
+$cfg = require $_bhk_root . '/config/config.php';
 date_default_timezone_set($cfg['timezone'] ?? 'Africa/Johannesburg');
 $base = rtrim($cfg['base_url'] ?? '', '/');
 ?>
@@ -23,7 +24,7 @@ $base = rtrim($cfg['base_url'] ?? '', '/');
 <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png?v=20260521">
 <link rel="shortcut icon" href="./favicon.ico?v=20260521">
 <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@400;600;700;900&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="portal.css?v=<?= filemtime(__DIR__.'/portal.css') ?>">
+<link rel="stylesheet" href="portal.css?v=<?= filemtime($_bhk_root.'/portal.css') ?>">
 </head>
 <body>
 
@@ -842,7 +843,7 @@ $base = rtrim($cfg['base_url'] ?? '', '/');
 <div id="toaster"></div>
 
 
-<script src="portal.js?v=<?= filemtime(__DIR__.'/portal.js') ?>"></script>
+<script src="portal.js?v=<?= filemtime($_bhk_root.'/portal.js') ?>"></script>
 
 <!-- Back to top button -->
 <button id="back-to-top" data-action="scrollToTop" title="Back to top"></button>

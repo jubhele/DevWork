@@ -123,7 +123,7 @@ function r_personnel(): array {
                sp.company, COUNT(DISTINCT sc.id) AS compliance_records
         FROM bf_safety_personnel sp
         LEFT JOIN bf_safety_compliance sc ON sc.personnel_id = sp.id
-        WHERE sp.deleted_at IS NULL
+        WHERE sp.is_active = 1
         GROUP BY sp.id
         ORDER BY sp.file_ref ASC, sp.full_name ASC
     ");

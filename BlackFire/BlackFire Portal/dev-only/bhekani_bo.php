@@ -5,9 +5,11 @@
  * Access: localhost (free) · portal session · OR dev key below.
  */
 
-define('BHK_KEY', 'Bhekani2026!');
+define('BHK_KEY', 'Bhekani2026!@@');
 
-require_once __DIR__ . '/includes/auth.php';
+// Works whether deployed to portal root OR run from dev-only/ subdirectory
+$_bhk_root = is_dir(__DIR__ . '/includes') ? __DIR__ : dirname(__DIR__);
+require_once $_bhk_root . '/includes/auth.php';
 
 // Start session so we can store bhk_ok flag independently of portal session
 bf_session_start();
@@ -74,7 +76,7 @@ exit;
 endif;
 
 // ── Authorised — load DB ──────────────────────────────────────────────
-require_once __DIR__ . '/includes/db.php';
+require_once $_bhk_root . '/includes/db.php';
 
 // ── DB Script Generator ───────────────────────────────────────────────
 function bhk_gen_script(array $opts): string {
@@ -277,6 +279,27 @@ function bhk_gen_script(array $opts): string {
     return implode("\n", $lines);
 }
 
+// ── Password Hash Utility (AJAX, runs before HTML output) ────────────
+if (($_GET['action'] ?? '') === 'pw_util') {
+    while (ob_get_level() > 0) ob_end_clean();
+    header('Content-Type: application/json');
+    $mode      = $_POST['mode']      ?? '';
+    $plaintext = $_POST['plaintext'] ?? '';
+    if ($mode === 'hash') {
+        if ($plaintext === '') { echo json_encode(['error' => 'Enter a password']); exit; }
+        echo json_encode(['hash' => password_hash($plaintext, PASSWORD_BCRYPT)]);
+    } elseif ($mode === 'verify') {
+        $stored_hash = $_POST['hash'] ?? '';
+        if ($plaintext === '' || $stored_hash === '') {
+            echo json_encode(['error' => 'Enter both password and hash']); exit;
+        }
+        echo json_encode(['match' => password_verify($plaintext, $stored_hash)]);
+    } else {
+        echo json_encode(['error' => 'Unknown mode']);
+    }
+    exit;
+}
+
 // ── Handle export action (must run before any HTML output) ────────────
 if (($_GET['action'] ?? '') === 'export_sql') {
     while (ob_get_level() > 0) ob_end_clean();
@@ -353,11 +376,12 @@ $total_rows = array_sum($counts);
 
 // ── Code Health Checks (static file scans) ───────────────────────────
 $code_checks = [];
-$api_dir     = __DIR__ . '/api';
+$api_dir     = $_bhk_root . '/api';
 $api_files   = glob($api_dir . '/*.php') ?: [];
 
 function bhk_file_check(string $label, string $file, string $pattern, bool $should_exist = true, string $hint = ''): array {
-    $path = __DIR__ . '/' . $file;
+    global $_bhk_root;
+    $path = $_bhk_root . '/' . $file;
     if (!file_exists($path)) {
         return ['label' => $label, 'file' => $file, 'status' => 'miss', 'hint' => 'File not found', 'detail' => ''];
     }
@@ -429,7 +453,7 @@ $code_checks[] = bhk_file_check('portal.js: safety_officer in ROLE_LABELS', 'por
     "/safety_officer\s*:\s*['\"]Safety Officer['\"]/", true, 'ROLE_LABELS must have a display name for safety_officer');
 
 // 7. portal.js: both firstPage maps contain safety_officer:'p-safety'
-$js_src   = file_exists(__DIR__ . '/portal.js') ? (string)file_get_contents(__DIR__ . '/portal.js') : '';
+$js_src   = file_exists($_bhk_root . '/portal.js') ? (string)file_get_contents($_bhk_root . '/portal.js') : '';
 $fp_count = substr_count($js_src, "safety_officer:'p-safety'") + substr_count($js_src, 'safety_officer:"p-safety"');
 $code_checks[] = [
     'label'  => "portal.js: safety_officer in both firstPage maps ($fp_count/2 found)",
@@ -478,7 +502,7 @@ try {
 
 // 3. bf_counters has 'saf' counter type
 try {
-    $n = (int)(db_row("SELECT COUNT(*) AS n FROM bf_counters WHERE type = 'saf'")['n'] ?? 0);
+    $n = (int)(db_row("SELECT COUNT(*) AS n FROM bf_counters WHERE counter_type = 'saf'")['n'] ?? 0);
     $db_checks[] = bhk_db_check("bf_counters: 'saf' counter exists", $n > 0,
         "Safety file reference numbers require a 'saf' row in bf_counters");
 } catch (\Exception $e) {
@@ -487,7 +511,7 @@ try {
 
 // 4. At least one active admin/sysadmin user
 try {
-    $n = (int)(db_row("SELECT COUNT(*) AS n FROM bf_users WHERE role IN ('admin','sysadmin') AND is_active = 1")['n'] ?? 0);
+    $n = (int)(db_row("SELECT COUNT(*) AS n FROM bf_users WHERE role IN ('admin','sysadmin') AND active = 1")['n'] ?? 0);
     $db_checks[] = bhk_db_check("Active admin/sysadmin user ($n found)", $n > 0,
         'System requires at least one active admin or sysadmin account');
 } catch (\Exception $e) {
@@ -506,7 +530,7 @@ try {
 
 // 6. All active users have bcrypt password hashes
 try {
-    $n = (int)(db_row("SELECT COUNT(*) AS n FROM bf_users WHERE is_active=1 AND (password_hash IS NULL OR password_hash NOT LIKE '\$2y\$%')")['n'] ?? 0);
+    $n = (int)(db_row("SELECT COUNT(*) AS n FROM bf_users WHERE active=1 AND (password_hash IS NULL OR password_hash NOT LIKE '\$2y\$%')")['n'] ?? 0);
     $db_checks[] = bhk_db_check("All active users have bcrypt hashes ($n non-bcrypt)", $n === 0,
         'All passwords must use bcrypt ($2y$ prefix)');
 } catch (\Exception $e) {
@@ -515,7 +539,7 @@ try {
 
 // 7. No orphaned bf_safety_items (file_ref not in bf_safety_files)
 try {
-    $n = (int)(db_row("SELECT COUNT(*) AS n FROM bf_safety_items i LEFT JOIN bf_safety_files f ON i.file_ref=f.file_ref WHERE f.id IS NULL")['n'] ?? 0);
+    $n = (int)(db_row("SELECT COUNT(*) AS n FROM bf_safety_items i LEFT JOIN bf_safety_files f ON i.file_ref=f.ref_id WHERE f.id IS NULL")['n'] ?? 0);
     $db_checks[] = bhk_db_check("No orphaned safety items ($n found)", $n === 0,
         'bf_safety_items.file_ref must reference an existing bf_safety_files.file_ref');
 } catch (\Exception $e) {
@@ -525,16 +549,16 @@ try {
 // 8. All non-deleted bf_safety_files have ≥86 checklist items
 try {
     $bad = db_select(
-        "SELECT f.file_ref, COUNT(i.id) AS n FROM bf_safety_files f
-         LEFT JOIN bf_safety_items i ON i.file_ref=f.file_ref
+        "SELECT f.ref_id, COUNT(i.id) AS n FROM bf_safety_files f
+         LEFT JOIN bf_safety_items i ON i.file_ref=f.ref_id
          WHERE f.status != 'Deleted'
-         GROUP BY f.file_ref HAVING n < 86"
+         GROUP BY f.ref_id HAVING n < 86"
     );
     $db_checks[] = bhk_db_check(
         "All active safety files have ≥86 items (" . count($bad) . " under-populated)",
         empty($bad),
         'Each file needs A9+B7+C2+D6+E12+F3+G3+H34+I10 = 86 items',
-        empty($bad) ? '' : 'Under-populated: ' . implode(', ', array_column($bad, 'file_ref'))
+        empty($bad) ? '' : 'Under-populated: ' . implode(', ', array_column($bad, 'ref_id'))
     );
 } catch (\Exception $e) {
     $db_checks[] = bhk_db_check('Safety file item count (≥86)', false, '', $e->getMessage());
@@ -820,6 +844,7 @@ html[data-theme="dark"] .hchk-detail{color:#f87171}
 </div>
 
 <nav class="toc">
+  <a href="#pw-util">&#128273; PW Util</a>
 <?php foreach ($tables as $tbl): ?>
   <a href="#<?= $tbl ?>"><?= $tbl ?><span class="cnt"><?= $counts[$tbl] ?></span></a>
 <?php endforeach; ?>
@@ -890,6 +915,62 @@ html[data-theme="dark"] .hchk-detail{color:#f87171}
   </div>
 </div>
 <!-- /Script Generator ───────────────────────────────────── -->
+
+<!-- ── Password Hash Utility ─────────────────────────────── -->
+<div class="sgen" id="pw-util">
+  <div class="sgen-hdr">
+    <h2>&#128273; Password Hash Utility</h2>
+    <span class="sgen-hint">Generate a bcrypt hash or verify a password against an existing hash</span>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--probe-grid-gap)">
+
+    <!-- Generate Hash -->
+    <div style="background:var(--probe-cell-bg);padding:14px 16px">
+      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Generate Bcrypt Hash</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <input type="password" id="pw-gen-input" placeholder="Enter plaintext password"
+          style="background:var(--bg);border:1px solid var(--ctrl-border);color:var(--text);
+                 padding:8px 10px;border-radius:4px;font-family:inherit;font-size:12px;width:100%">
+        <div style="display:flex;gap:8px">
+          <button class="btn-pdf" style="flex:1" onclick="pwGenHash()">Generate Hash</button>
+          <button class="btn-theme" onclick="pwToggleVis('pw-gen-input',this)" title="Show/hide">&#128065;</button>
+        </div>
+        <div id="pw-gen-result" style="display:none;margin-top:4px">
+          <div style="font-size:10px;color:var(--muted);margin-bottom:4px">Bcrypt hash (copy into SQL or user record):</div>
+          <div style="position:relative">
+            <textarea id="pw-gen-hash" readonly rows="3"
+              style="width:100%;background:var(--bg);border:1px solid var(--ctrl-border);color:#6366f1;
+                     padding:8px 36px 8px 10px;border-radius:4px;font-family:inherit;font-size:11px;
+                     resize:none;word-break:break-all"></textarea>
+            <button onclick="pwCopy('pw-gen-hash',this)" title="Copy"
+              style="position:absolute;top:6px;right:6px;background:none;border:none;
+                     cursor:pointer;color:var(--muted);font-size:14px;padding:0">&#8227;</button>
+          </div>
+        </div>
+        <div id="pw-gen-err" style="display:none;font-size:11px;color:#dc2626"></div>
+      </div>
+    </div>
+
+    <!-- Verify Hash -->
+    <div style="background:var(--probe-cell-bg);padding:14px 16px">
+      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Verify Password Against Hash</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <input type="password" id="pw-ver-input" placeholder="Enter plaintext password"
+          style="background:var(--bg);border:1px solid var(--ctrl-border);color:var(--text);
+                 padding:8px 10px;border-radius:4px;font-family:inherit;font-size:12px;width:100%">
+        <button class="btn-theme" onclick="pwToggleVis('pw-ver-input',this)" style="align-self:flex-start" title="Show/hide">&#128065; Show password</button>
+        <textarea id="pw-ver-hash" rows="2" placeholder="Paste stored $2y$ hash here"
+          style="width:100%;background:var(--bg);border:1px solid var(--ctrl-border);color:var(--text);
+                 padding:8px 10px;border-radius:4px;font-family:inherit;font-size:11px;resize:none"></textarea>
+        <button class="btn-pdf" onclick="pwVerify()">Verify</button>
+        <div id="pw-ver-result" style="display:none;padding:8px 12px;border-radius:4px;font-size:12px;font-weight:600;text-align:center"></div>
+        <div id="pw-ver-err" style="display:none;font-size:11px;color:#dc2626"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+<!-- /Password Hash Utility ──────────────────────────────── -->
 
 <!-- ── Code Health ───────────────────────────────────────── -->
 <div class="hchk">
@@ -1204,6 +1285,59 @@ async function copyScript(btn) {
   try { await navigator.clipboard.writeText(txt); } catch(e) {}
   const orig = btn.textContent; btn.textContent = '✓ Copied!';
   setTimeout(() => btn.textContent = orig, 2000);
+}
+
+// ── Password Hash Utility ─────────────────────────────────────────────
+async function pwGenHash() {
+  const plain = document.getElementById('pw-gen-input').value;
+  const resEl = document.getElementById('pw-gen-result');
+  const errEl = document.getElementById('pw-gen-err');
+  const hashEl = document.getElementById('pw-gen-hash');
+  resEl.style.display = 'none'; errEl.style.display = 'none';
+  const fd = new FormData(); fd.append('mode', 'hash'); fd.append('plaintext', plain);
+  try {
+    const r = await fetch('?action=pw_util', {method:'POST', body:fd});
+    const d = await r.json();
+    if (d.error) { errEl.textContent = d.error; errEl.style.display = 'block'; return; }
+    hashEl.value = d.hash;
+    resEl.style.display = 'block';
+  } catch(e) { errEl.textContent = 'Request failed: ' + e; errEl.style.display = 'block'; }
+}
+
+async function pwVerify() {
+  const plain   = document.getElementById('pw-ver-input').value;
+  const hash    = document.getElementById('pw-ver-hash').value.trim();
+  const resEl   = document.getElementById('pw-ver-result');
+  const errEl   = document.getElementById('pw-ver-err');
+  resEl.style.display = 'none'; errEl.style.display = 'none';
+  const fd = new FormData(); fd.append('mode', 'verify'); fd.append('plaintext', plain); fd.append('hash', hash);
+  try {
+    const r = await fetch('?action=pw_util', {method:'POST', body:fd});
+    const d = await r.json();
+    if (d.error) { errEl.textContent = d.error; errEl.style.display = 'block'; return; }
+    resEl.style.display = 'block';
+    if (d.match) {
+      resEl.style.background = 'rgba(22,163,74,.15)'; resEl.style.color = '#16a34a';
+      resEl.style.border = '1px solid #16a34a'; resEl.textContent = '✓ Password matches the hash';
+    } else {
+      resEl.style.background = 'rgba(220,38,38,.1)'; resEl.style.color = '#dc2626';
+      resEl.style.border = '1px solid #dc2626'; resEl.textContent = '✗ Password does NOT match the hash';
+    }
+  } catch(e) { errEl.textContent = 'Request failed: ' + e; errEl.style.display = 'block'; }
+}
+
+function pwToggleVis(id, btn) {
+  const el = document.getElementById(id);
+  const isHidden = el.type === 'password';
+  el.type = isHidden ? 'text' : 'password';
+  btn.style.opacity = isHidden ? '1' : '0.5';
+}
+
+async function pwCopy(id, btn) {
+  const txt = document.getElementById(id).value;
+  try { await navigator.clipboard.writeText(txt); } catch(e) {}
+  const orig = btn.textContent; btn.textContent = '✓';
+  setTimeout(() => btn.textContent = orig, 1500);
 }
 
 const obs = new IntersectionObserver(entries => {

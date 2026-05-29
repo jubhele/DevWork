@@ -43,7 +43,19 @@ INSERT IGNORE INTO bf_role_permissions (role, permission) VALUES
   ('client_support',  'safety.view'),
   ('viewer',          'safety.view');
 
--- ── 2. Create the safety_officer role ─────────────────────────────
+-- ── 2. Extend the bf_users.role ENUM to include safety_officer ────
+-- The ENUM on bf_users must be extended before any user can be assigned
+-- this role. Adjust the full list if the live schema differs — run
+-- SHOW COLUMNS FROM bf_users LIKE 'role'; to verify first.
+
+ALTER TABLE bf_users
+MODIFY COLUMN role ENUM(
+  'sysadmin','admin','manager','admin_clerk',
+  'call_logger','junior_tech','senior_tech',
+  'client_support','viewer','client','safety_officer'
+) NOT NULL DEFAULT 'viewer';
+
+-- ── 3. Create the safety_officer role ─────────────────────────────
 
 INSERT IGNORE INTO bf_role_permissions (role, permission) VALUES
   ('safety_officer', 'safety.view'),

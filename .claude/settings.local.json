@@ -100,7 +100,17 @@
       "PowerShell(Copy-Item \"C:\\\\DevWork\\\\sessions\\\\blackfire_devonly_sync_20260528_102630.md\" \"G:\\\\My Drive\\\\JS\\\\Agentic AI\\\\sessions\\\\blackfire_devonly_sync_20260528_102630.md.tbl.bk\" -Force)",
       "PowerShell(\"Mirrored to G drive\")",
       "PowerShell(Copy-Item \"c:\\\\DevWork\\\\sessions\\\\safety_item_evidence_20260528_102448.md\" \"G:\\\\My Drive\\\\JS\\\\Agentic AI\\\\sessions\\\\safety_item_evidence_20260528_102448.md.tbl.bk\" -Force)",
-      "Bash(git rm *)"
+      "Bash(git rm *)",
+      "PowerShell(Get-Command mysql -ErrorAction SilentlyContinue)",
+      "PowerShell(Copy-Item \"c:\\\\DevWork\\\\sessions\\\\bhekani_bo_pw_util_20260529_063720.md\" \"G:\\\\My Drive\\\\JS\\\\Agentic AI\\\\sessions\\\\bhekani_bo_pw_util_20260529_063720.md.tbl.bk\" -Force)",
+      "PowerShell(Start-Process \"http://localhost:8080\")",
+      "Read(//c/Users/Jughele Shange/.claude/skills/gstack/**)",
+      "Bash(./setup)",
+      "PowerShell(Start-Process \"http://localhost:8080/dev-only/bhekani_bo.php\")",
+      "Bash(mysql -u root --password=\"\" -e \"SHOW DATABASES;\")",
+      "Bash(mysql -u root -proot -e \"SHOW DATABASES;\")",
+      "PowerShell(Get-Process -Name \"mysqld\" -ErrorAction SilentlyContinue)",
+      "PowerShell(Copy-Item \"c:\\\\DevWork\\\\sessions\\\\bhekani_bo_500_fix_20260529_094731.md\" \"G:\\\\My Drive\\\\JS\\\\Agentic AI\\\\sessions\\\\bhekani_bo_500_fix_20260529_094731.md.tbl.bk\" -Force)"
     ]
   }
 }

@@ -212,7 +212,7 @@ if ($method === 'DELETE') {
         json_ok([], 'User unlinked from safety file');
     }
 
-    require_perm('security.users');
+    require_perm('safety.delete');
     if (!$id) json_err('Missing id');
     $person = db_row("SELECT * FROM bf_safety_personnel WHERE id = ?", [$id]);
     if (!$person) json_err('Person not found', 404);
