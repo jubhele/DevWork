@@ -202,7 +202,7 @@ document.addEventListener('click', function(e) {
     case 'safDeletePolicyAck':   safDeletePolicyAck(+el.dataset.id, el.dataset.fileId); break;
     case 'safSavePolicyAck':     safSavePolicyAck(el.dataset.id); break;
     case 'safDeleteAttachment':  safDeleteAttachment(+el.dataset.id, el.dataset.fileId); break;
-    case 'safShowItemDocs':      safShowItemDocs(el.dataset.evSec, +el.dataset.evIdx); break;
+    case 'safShowItemDocs':      safShowItemDocs(el.dataset.evSec, +el.dataset.evIdx, el.dataset.fileId || null); break;
     case 'safPersonnelSendPolicy': safPersonnelSendPolicy(+el.dataset.id); break;
     case 'safUnlinkUser':        safUnlinkUser(+el.dataset.id, el.dataset.fileId, el.dataset.name); break;
     case 'safRemovePerson':      safRemovePerson(+el.dataset.id, el.dataset.fileId, el.dataset.name); break;
@@ -4275,8 +4275,10 @@ function _safUploadCellInner(sec, idx, upCount, result){
   return `<input type="file" id="${inputId}" class="hidden" data-action="safHandleUpload" data-section-key="${sec}" data-item-idx="${idx}">${viewBtn}<button class="btn btn-g btn-xs"${warnStyle} data-action="triggerFileInput" data-target-id="${inputId}" title="${title}">${lbl}</button>`;
 }
 
-async function safShowItemDocs(sec, idx){
-  const file = safGetOrInitFile();
+async function safShowItemDocs(sec, idx, fileId){
+  const file = fileId
+    ? proxyDB.safetyFiles.find(f => f.id === fileId)
+    : safGetOrInitFile();
   if(!file || !file.sections[sec]) return;
   const uploads = (file.sections[sec][idx]?.uploads || []).filter(u => typeof u === 'object' && u !== null);
   if(!uploads.length){ toast('No evidence attached to this item','err'); return; }
@@ -4762,16 +4764,21 @@ async function safViewFile(id){
     checkHtml+=`<div class="saf-rpt-section${sec.bonus?' saf-rpt-section-bonus':''}">
       <div class="saf-rpt-sec-hdr">${esc(sec.title)}${rptBonusLabel} ${rptPctLabel}</div>
       <table class="saf-rpt-tbl">
-        <thead><tr><th>#</th><th>Ref</th><th>Criteria</th><th>Result</th>${sec.key==='H'?'<th>Appointee</th>':''}<th>Comments</th></tr></thead>
+        <thead><tr><th>#</th><th>Ref</th><th>Criteria</th><th>Result</th>${sec.key==='H'?'<th>Appointee</th>':''}<th>Comments</th><th class="saf-rpt-ev-hdr">Evidence</th></tr></thead>
         <tbody>`;
     sec.items.forEach((item,idx)=>{
       const sv=saved[idx]||{};
       const resCls=sv.result==='To Standard'?'saf-ts':sv.result==='Not to Standard'?'saf-nts-text':sv.result==='N/A'?'saf-na-text':'';
+      const ups=(sv.uploads||[]).filter(u=>typeof u==='object'&&u!==null);
+      const evCell=ups.length
+        ?`<button class="btn btn-g btn-xs" data-action="safShowItemDocs" data-ev-sec="${sec.key}" data-ev-idx="${idx}" data-file-id="${id}" title="${ups.length} file${ups.length!==1?'s':''}">&#128065; ${ups.length}</button>`
+        :'<span class="saf-rpt-no-ev">—</span>';
       checkHtml+=`<tr>
         <td>${item.no}</td><td>${esc(item.ref||'')}</td><td>${esc(item.criteria)}</td>
         <td class="${resCls}">${esc(sv.result||'—')}</td>
         ${sec.key==='H'?`<td>${esc(sv.appointee||'')}</td>`:''}
         <td>${esc(sv.comments||'')}</td>
+        <td class="saf-rpt-ev-cell">${evCell}</td>
       </tr>`;
     });
     checkHtml+=`</tbody></table></div>`;

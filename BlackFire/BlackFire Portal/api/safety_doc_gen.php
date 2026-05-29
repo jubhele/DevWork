@@ -217,10 +217,36 @@ function doc_header(string $title, string $doc_no, string $contractor, string $d
 }
 
 function sig_block(string $role1 = 'Employer / Director', string $role2 = 'Employee / Appointee'): string {
+    static $n = 0;
+    $n++;
+    $id1 = 'sp-' . $n . 'a';
+    $id2 = 'sp-' . $n . 'b';
     return '<table class="sig-tbl">
       <tr>
-        <td><div class="sig-line"></div><div class="sig-lbl">' . h($role1) . '</div><div class="sig-lbl">Name: ___________________________</div><div class="sig-lbl">Date: ___________________________</div></td>
-        <td><div class="sig-line"></div><div class="sig-lbl">' . h($role2) . '</div><div class="sig-lbl">Name: ___________________________</div><div class="sig-lbl">Date: ___________________________</div></td>
+        <td>
+          <div class="sig-pad" id="' . $id1 . '" data-sig-label="s1">
+            <canvas class="sig-canvas" width="360" height="80"></canvas>
+            <div class="sig-pad-tools no-print">
+              <button type="button" class="sig-tool-btn sig-clear-btn" title="Clear">&#10005; Clear</button>
+              <label class="sig-tool-btn">&#8679; Upload<input type="file" accept=".jpg,.jpeg,.png" class="sig-img-inp hidden"></label>
+            </div>
+          </div>
+          <div class="sig-lbl"><strong>' . h($role1) . '</strong></div>
+          <div class="sig-lbl">Name: <span class="sig-name-edit" contenteditable="true" spellcheck="false"></span></div>
+          <div class="sig-lbl">Date: <span class="sig-date-edit" contenteditable="true" spellcheck="false"></span></div>
+        </td>
+        <td>
+          <div class="sig-pad" id="' . $id2 . '" data-sig-label="s2">
+            <canvas class="sig-canvas" width="360" height="80"></canvas>
+            <div class="sig-pad-tools no-print">
+              <button type="button" class="sig-tool-btn sig-clear-btn" title="Clear">&#10005; Clear</button>
+              <label class="sig-tool-btn">&#8679; Upload<input type="file" accept=".jpg,.jpeg,.png" class="sig-img-inp hidden"></label>
+            </div>
+          </div>
+          <div class="sig-lbl"><strong>' . h($role2) . '</strong></div>
+          <div class="sig-lbl">Name: <span class="sig-name-edit" contenteditable="true" spellcheck="false"></span></div>
+          <div class="sig-lbl">Date: <span class="sig-date-edit" contenteditable="true" spellcheck="false"></span></div>
+        </td>
       </tr>
     </table>';
 }
@@ -813,13 +839,15 @@ function tpl_fire_equipment_log(string $contractor, string $date): string {
 }
 
 function tpl_appointment_letter(string $contractor, string $date, string $role, string $ref, string $appointee): string {
-    $appointee_display = $appointee ?: '[APPOINTEE FULL NAME]';
+    $appointee_val = $appointee ?: '';
+    $placeholder   = $appointee_val ? '' : ' data-empty="1"';
+    $apo_html = '<input type="text" class="doc-inline-input editable-appointee" value="' . h($appointee_val) . '" placeholder="Appointee full name"' . $placeholder . '>';
     $ref_clause = $ref ? "in terms of <strong>$ref</strong> of the Occupational Health and Safety Act (Act 85 of 1993) and its Regulations" : 'in terms of the Occupational Health and Safety Act (Act 85 of 1993) and its applicable Regulations';
     return doc_header("Legal Appointment: $role", "APT-" . strtoupper(str_replace(' ', '-', preg_replace('/[^A-Za-z ]/', '', $role))), $contractor, $date)
     . '<p>Date: ' . h($date) . '</p>
-    <p>To: <strong>' . h($appointee_display) . '</strong></p>
+    <p>To: <strong>' . $apo_html . '</strong></p>
     <h3>Appointment as ' . h($role) . '</h3>
-    <p>I/We, <strong>' . h($contractor) . '</strong>, hereby appoint you, ' . h($appointee_display) . ', as <strong>' . h($role) . '</strong> ' . $ref_clause . '.</p>
+    <p>I/We, <strong>' . h($contractor) . '</strong>, hereby appoint you, <span class="editable-appointee-mirror"></span>, as <strong>' . h($role) . '</strong> ' . $ref_clause . '.</p>
     <h3>Duties and Responsibilities</h3>
     <p>In this capacity, you are required to:</p>
     <ul>
@@ -833,8 +861,8 @@ function tpl_appointment_letter(string $contractor, string $date, string $role, 
     <h3>Authority</h3>
     <p>You have the authority to stop any unsafe work activity under your area of responsibility. You are empowered to issue instructions to any person under your supervision where necessary to ensure compliance with safety requirements.</p>
     <h3>Acceptance</h3>
-    <p>I, ' . h($appointee_display) . ', confirm that I have read and understood the responsibilities associated with this appointment, that I accept this appointment, and that I am competent to perform the duties required.</p>'
-    . sig_block('Employer / Managing Director', 'Appointee: ' . h($appointee_display));
+    <p>I, <span class="editable-appointee-mirror"></span>, confirm that I have read and understood the responsibilities associated with this appointment, that I accept this appointment, and that I am competent to perform the duties required.</p>'
+    . sig_block('Employer / Managing Director', 'Appointee');
 }
 
 function tpl_toolbox_register(string $contractor, string $date): string {
@@ -1135,6 +1163,32 @@ header('Content-Disposition: inline; filename="Remediation_Pack_' . $ref_id . '.
   .navbar a{color:#ffd;font-size:9.5pt;text-decoration:none;margin-right:12px}
   .navbar .print-btn{background:#c0392b;color:#fff;border:none;padding:6px 14px;border-radius:4px;cursor:pointer;font-size:9.5pt}
 
+  /* Signature pad */
+  .sig-pad{position:relative;margin-bottom:4px}
+  .sig-canvas{border:1px solid #bbb;border-radius:3px;cursor:crosshair;display:block;width:100%;max-width:360px;touch-action:none;background:#fafafa}
+  .sig-pad-tools{display:flex;gap:6px;margin-top:4px;flex-wrap:wrap}
+  .sig-tool-btn{font-size:8pt;padding:3px 8px;border:1px solid #bbb;border-radius:3px;background:#f5f5f5;cursor:pointer;font-family:inherit;white-space:nowrap}
+  .sig-tool-btn:hover{background:#e8e8e8}
+  .sig-img-inp{display:none}
+  .sig-name-edit,.sig-date-edit{display:inline-block;border-bottom:1px solid #999;min-width:160px;padding:1px 3px;outline:none;color:#222}
+  .sig-name-edit:empty::before,.sig-date-edit:empty::before{content:attr(data-ph);color:#bbb}
+
+  /* Inline editable appointee input */
+  .doc-inline-input{border:none;border-bottom:1.5px solid #c0392b;background:#fff9f0;font-family:inherit;font-size:inherit;color:#222;padding:1px 4px;min-width:220px;outline:none;border-radius:2px}
+  .doc-inline-input:focus{background:#fffbe6;border-bottom-color:#7b1a1a}
+  .doc-inline-input[data-empty="1"]{border-bottom-color:#e74c3c;background:#fff0f0}
+  .editable-appointee-mirror{font-weight:bold;color:#222}
+
+  /* Per-document save bar */
+  .doc-save-bar{display:flex;align-items:center;gap:12px;justify-content:flex-end;margin-top:16px;padding-top:10px;border-top:1px dashed #ddd}
+  .doc-save-btn{font-size:9pt;padding:5px 16px;background:#c0392b;color:#fff;border:none;border-radius:4px;cursor:pointer;font-family:inherit;font-weight:bold}
+  .doc-save-btn:hover{background:#a93226}
+  .doc-save-btn:disabled{opacity:.6;cursor:not-allowed}
+  .doc-save-status{font-size:9pt}
+  .doc-save-status.ok{color:#1a6b2e;font-weight:bold}
+  .doc-save-status.err{color:#c0392b;font-weight:bold}
+  .doc-save-status.saving{color:#856404}
+
   /* Print adjustments */
   @page{size:A4;margin:18mm 14mm}
   @media print{
@@ -1142,6 +1196,8 @@ header('Content-Disposition: inline; filename="Remediation_Pack_' . $ref_id . '.
     .doc-wrap{border:none;padding:0;margin:10px 0}
     .cover{padding:40px 30px}
     .page-break{border-top:none;margin-top:0;padding-top:0}
+    .sig-canvas{border:1px solid #ccc;background:#fff}
+    .doc-inline-input{border:none;border-bottom:1px solid #333;background:transparent}
   }
 </style>
 </head>
@@ -1202,15 +1258,20 @@ foreach ($gen_docs as $key => $d):
         $sec_title = $ITEMS[$sec]['title'] ?? "Section $sec";
         echo '<div class="sec-divider">' . h($sec_title) . '</div>';
     endif;
-    $anchor = 'doc-' . str_replace('.', '-', $key);
+    $anchor  = 'doc-' . str_replace('.', '-', $key);
+    $save_id = 'save-status-' . str_replace('.', '-', $key);
     ?>
-<div id="<?=h($anchor)?>" class="doc-wrap page-break">
+<div id="<?=h($anchor)?>" class="doc-wrap page-break" data-doc-key="<?=h($key)?>" data-file-ref="<?=h($ref_id)?>">
   <?php
   if ($d['comments']):
       echo '<div style="background:#ffe4e4;border:1px solid #f5c6c6;padding:8px 12px;border-radius:4px;margin-bottom:10px;font-size:9pt;"><strong>Audit Finding (Item ' . h($key) . '):</strong> ' . h($d['comments']) . '</div>';
   endif;
   echo generate_template($d['canon'], $contractor, $date_fmt, $d['appointee']);
   ?>
+  <div class="doc-save-bar no-print">
+    <span class="doc-save-status" id="<?=h($save_id)?>"></span>
+    <button type="button" class="doc-save-btn" onclick="saveDocDetails('<?=h($key)?>', this)">&#10003; Save Details</button>
+  </div>
 </div>
 <?php endforeach; ?>
 
@@ -1239,6 +1300,226 @@ foreach ($gen_docs as $key => $d):
   Generated by Umlilo Portal (BF-SHE-FRM-010 Rev 01) &mdash; <?=h($gen_date)?> &mdash; <?=h($ref_id)?> &mdash; <?=h($contractor)?>
   <br>This pack contains draft templates only. Ensure all documents are reviewed, completed, and signed by competent and duly authorised persons before upload.
 </div>
+
+<script>
+(function(){
+'use strict';
+
+/* ── Signature Pad ─────────────────────────────────── */
+function initPad(pad){
+  var canvas=pad.querySelector('.sig-canvas');
+  if(!canvas) return;
+  var ctx=canvas.getContext('2d');
+  var drawing=false, lx=0, ly=0;
+
+  function pos(e){
+    var r=canvas.getBoundingClientRect();
+    var src=e.touches?e.touches[0]:e;
+    return{x:(src.clientX-r.left)*(canvas.width/r.width),
+           y:(src.clientY-r.top)*(canvas.height/r.height)};
+  }
+  function drawStart(e){
+    e.preventDefault();
+    drawing=true;
+    var p=pos(e); lx=p.x; ly=p.y;
+    if(canvas.dataset.placeholder==='1'){
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      canvas.dataset.placeholder='0';
+    }
+    ctx.beginPath(); ctx.arc(p.x,p.y,0.8,0,Math.PI*2);
+    ctx.fillStyle='#1a1a1a'; ctx.fill();
+  }
+  function drawMove(e){
+    if(!drawing) return; e.preventDefault();
+    var p=pos(e);
+    ctx.beginPath(); ctx.moveTo(lx,ly); ctx.lineTo(p.x,p.y);
+    ctx.strokeStyle='#1a1a1a'; ctx.lineWidth=1.8; ctx.lineCap='round';
+    ctx.stroke(); lx=p.x; ly=p.y;
+    canvas.dataset.dirty='1';
+  }
+  function drawEnd(){ drawing=false; }
+
+  canvas.addEventListener('mousedown',drawStart);
+  canvas.addEventListener('mousemove',drawMove);
+  canvas.addEventListener('mouseup',drawEnd);
+  canvas.addEventListener('mouseleave',drawEnd);
+  canvas.addEventListener('touchstart',drawStart,{passive:false});
+  canvas.addEventListener('touchmove',drawMove,{passive:false});
+  canvas.addEventListener('touchend',drawEnd);
+
+  /* Clear button */
+  var clearBtn=pad.querySelector('.sig-clear-btn');
+  if(clearBtn) clearBtn.addEventListener('click',function(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    canvas.dataset.dirty='0';
+    drawPlaceholder();
+  });
+
+  /* Upload image */
+  var fileInp=pad.querySelector('.sig-img-inp');
+  if(fileInp) fileInp.addEventListener('change',function(){
+    var f=fileInp.files[0]; if(!f) return;
+    var rd=new FileReader();
+    rd.onload=function(ev){
+      var img=new Image();
+      img.onload=function(){
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        var sc=Math.min(canvas.width/img.width,canvas.height/img.height);
+        var w=img.width*sc,h=img.height*sc;
+        ctx.drawImage(img,(canvas.width-w)/2,(canvas.height-h)/2,w,h);
+        canvas.dataset.dirty='1'; canvas.dataset.placeholder='0';
+      };
+      img.src=ev.target.result;
+    };
+    rd.readAsDataURL(f);
+    fileInp.value='';
+  });
+
+  function drawPlaceholder(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle='#ccc'; ctx.font='11px Arial'; ctx.textAlign='center';
+    ctx.fillText('Sign here — draw or upload',canvas.width/2,canvas.height/2+4);
+    canvas.dataset.placeholder='1';
+    canvas.dataset.dirty='0';
+  }
+  drawPlaceholder();
+}
+
+document.querySelectorAll('.sig-pad').forEach(initPad);
+
+/* ── Appointee mirror sync ─────────────────────────── */
+document.querySelectorAll('.doc-wrap').forEach(function(wrap){
+  var inp=wrap.querySelector('.editable-appointee');
+  if(!inp) return;
+  function sync(){
+    var val=inp.value.trim();
+    wrap.querySelectorAll('.editable-appointee-mirror').forEach(function(m){
+      m.textContent=val||'[APPOINTEE FULL NAME]';
+    });
+  }
+  inp.addEventListener('input',sync);
+  sync(); // populate on load
+});
+
+/* ── Save per document ─────────────────────────────── */
+window.saveDocDetails=async function(docKey,btn){
+  var wrap=document.querySelector('.doc-wrap[data-doc-key="'+docKey+'"]');
+  if(!wrap) return;
+  var fileRef=wrap.dataset.fileRef;
+  var parts=docKey.split('.');
+  var sec=parts[0], itemNo=parseInt(parts[1]);
+  var statusEl=wrap.querySelector('.doc-save-status');
+
+  if(btn){btn.disabled=true;btn.textContent='Saving…';}
+  if(statusEl){statusEl.textContent='';statusEl.className='doc-save-status saving';statusEl.textContent='Saving…';}
+
+  var errors=[];
+
+  /* 1. Update appointee name */
+  var appoInp=wrap.querySelector('.editable-appointee');
+  if(appoInp){
+    var name=appoInp.value.trim();
+    if(name){
+      try{
+        var r=await fetch('safety.php?id='+encodeURIComponent(fileRef),{
+          method:'PUT',credentials:'same-origin',
+          headers:{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'},
+          body:JSON.stringify({action:'update_appointee',section_key:sec,item_no:itemNo,appointee:name})
+        }).then(function(res){return res.json();});
+        if(!r.success) errors.push('Appointee: '+(r.error||'Failed'));
+        else{ appoInp.removeAttribute('data-empty'); }
+      }catch(e){ errors.push('Appointee: Network error'); }
+    }
+  }
+
+  /* 2. Upload dirty signature canvases */
+  var pads=wrap.querySelectorAll('.sig-pad');
+  var padIdx=0;
+  for(var i=0;i<pads.length;i++){
+    var pad=pads[i];
+    padIdx++;
+    var canvas=pad.querySelector('.sig-canvas');
+    if(!canvas||canvas.dataset.dirty!=='1') continue;
+    var sigLabel=pad.dataset.sigLabel||('s'+padIdx);
+    var entityRef=fileRef+':'+sec+':'+itemNo;
+    var fname=sec+String(itemNo).padStart(2,'0')+'_sig_'+sigLabel+'.png';
+    try{
+      var blob=await new Promise(function(res){canvas.toBlob(res,'image/png');});
+      var fd=new FormData();
+      fd.append('entity_type','safety_item');
+      fd.append('entity_ref',entityRef);
+      fd.append('file',blob,fname);
+      var sr=await fetch('files.php',{
+        method:'POST',credentials:'same-origin',
+        headers:{'X-Requested-With':'XMLHttpRequest'},
+        body:fd
+      }).then(function(res){return res.json();});
+      if(sr.success) canvas.dataset.dirty='0';
+      else errors.push('Signature '+padIdx+': '+(sr.error||'Upload failed'));
+    }catch(e){ errors.push('Signature '+padIdx+': Network error'); }
+  }
+
+  if(btn){btn.disabled=false;btn.textContent='✓ Save Details';}
+  if(statusEl){
+    if(errors.length){
+      statusEl.textContent=errors.join(' | ');
+      statusEl.className='doc-save-status err';
+    }else{
+      statusEl.textContent='Saved ✓';
+      statusEl.className='doc-save-status ok';
+      setTimeout(function(){if(statusEl)statusEl.textContent='';},3000);
+    }
+  }
+};
+
+/* ── Load existing signatures on page load ─────────── */
+(async function loadSigs(){
+  var wraps=document.querySelectorAll('.doc-wrap[data-doc-key]');
+  for(var wi=0;wi<wraps.length;wi++){
+    var wrap=wraps[wi];
+    var docKey=wrap.dataset.docKey;
+    var fileRef=wrap.dataset.fileRef;
+    if(!docKey||!fileRef) continue;
+    var parts=docKey.split('.');
+    var sec=parts[0], itemNo=parseInt(parts[1]);
+    var entityRef=fileRef+':'+sec+':'+itemNo;
+    try{
+      var r=await fetch('files.php?action=list&entity_type=safety_item&entity_ref='+encodeURIComponent(entityRef),{
+        credentials:'same-origin',
+        headers:{'X-Requested-With':'XMLHttpRequest'}
+      }).then(function(res){return res.json();});
+      if(!r.success||!r.attachments) continue;
+      var sigFiles=r.attachments.filter(function(a){return a.original_name&&a.original_name.indexOf('_sig_')!==-1;});
+      if(!sigFiles.length) continue;
+      var pads=wrap.querySelectorAll('.sig-pad');
+      sigFiles.forEach(function(att){
+        var m=att.original_name.match(/_sig_(s\d+)\.png$/i);
+        if(!m) return;
+        var label=m[1];
+        for(var pi=0;pi<pads.length;pi++){
+          if(pads[pi].dataset.sigLabel===label){
+            (function(canvas){
+              var img=new Image();
+              img.onload=function(){
+                var ctx=canvas.getContext('2d');
+                ctx.clearRect(0,0,canvas.width,canvas.height);
+                var sc=Math.min(canvas.width/img.width,canvas.height/img.height);
+                var w=img.width*sc,h=img.height*sc;
+                ctx.drawImage(img,(canvas.width-w)/2,(canvas.height-h)/2,w,h);
+                canvas.dataset.dirty='0'; canvas.dataset.placeholder='0';
+              };
+              img.src='files.php?action=view&id='+att.id;
+            })(pads[pi].querySelector('.sig-canvas'));
+            break;
+          }
+        }
+      });
+    }catch(e){ /* ignore */ }
+  }
+})();
+
+})();
+</script>
 
 </body>
 </html>

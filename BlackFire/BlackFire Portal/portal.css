@@ -856,6 +856,9 @@ textarea.saf-cmt { resize:vertical; min-height:28px; width:100% }
 .saf-ts      { color:#16a34a; font-weight:600 }
 .saf-nts-text { color:#dc2626; font-weight:600 }
 .saf-na-text  { color:var(--muted) }
+.saf-rpt-ev-hdr  { width:80px; text-align:center }
+.saf-rpt-ev-cell { text-align:center; white-space:nowrap }
+.saf-rpt-no-ev   { color:var(--muted); font-size:11px }
 
 /* ── Safety attachments panel ── */
 .saf-att-section           { margin-bottom:16px }

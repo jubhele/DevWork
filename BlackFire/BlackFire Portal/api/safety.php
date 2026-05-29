@@ -318,6 +318,43 @@ if ($method === 'PUT') {
         json_ok(['ap_status' => $ap], 'Action plan status updated');
     }
 
+    /* ── sub-action: update_appointee ───────────── */
+    if ($action === 'update_appointee') {
+        require_perm('safety.update');
+        require_fields($b, ['section_key', 'item_no']);
+        $sec = strtoupper(clean($b['section_key'], 2));
+        $no  = max(1, (int)$b['item_no']);
+        if (!isset(SECTION_COUNTS[$sec])) json_err('Invalid section_key');
+        $row = db_row(
+            "SELECT id FROM bf_safety_items WHERE file_ref=? AND section_key=? AND item_no=?",
+            [$ref_id, $sec, $no]
+        );
+        if (!$row) json_err('Item not found', 404);
+
+        $sets   = ['updated_at = NOW()'];
+        $params = [];
+
+        if (array_key_exists('appointee', $b)) {
+            $sets[]   = 'appointee = ?';
+            $params[] = clean($b['appointee'], 100);
+        }
+        if (array_key_exists('comments', $b)) {
+            $sets[]   = 'comments = ?';
+            $params[] = clean($b['comments'], 2000);
+        }
+        if (empty($params)) json_err('Nothing to update');
+
+        $params[] = $ref_id; $params[] = $sec; $params[] = $no;
+        db_exec(
+            "UPDATE bf_safety_items SET " . implode(', ', $sets) .
+            " WHERE file_ref=? AND section_key=? AND item_no=?",
+            $params
+        );
+        audit($user['username'], 'UPDATE_ITEM',
+              "Item $ref_id $sec.$no updated (appointee/comments)");
+        json_ok([], 'Item updated');
+    }
+
     /* ── sub-action: approve ─────────────────────── */
     if ($action === 'approve') {
         require_perm('safety.approve');
