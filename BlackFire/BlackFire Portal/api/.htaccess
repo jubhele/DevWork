@@ -36,9 +36,11 @@ php_flag expose_php Off
 <IfModule mod_headers.c>
     Header unset Access-Control-Allow-Origin
 
-    SetEnvIf Origin "^https://blackfire-solutions\.vercel\.app$"   CORS_OK
-    SetEnvIf Origin "^https://blackfire-[a-z0-9-]+\.vercel\.app$" CORS_OK
-    SetEnvIf Origin "^http://localhost:3000$"                      CORS_OK
+    SetEnvIf Origin "^https://blackfire-solutions\.vercel\.app$"       CORS_OK
+    SetEnvIf Origin "^https://blackfire-[a-z0-9-]+\.vercel\.app$"     CORS_OK
+    SetEnvIf Origin "^https://umlilo-portal-web\.vercel\.app$"         CORS_OK
+    SetEnvIf Origin "^https://umlilo-portal-[a-z0-9-]+\.vercel\.app$" CORS_OK
+    SetEnvIf Origin "^http://localhost:3000$"                           CORS_OK
 
     Header always set Access-Control-Allow-Origin       "%{HTTP_ORIGIN}e"                                        env=CORS_OK
     Header always set Access-Control-Allow-Credentials  "true"                                                   env=CORS_OK
