@@ -113,7 +113,17 @@
       "PowerShell(Copy-Item \"c:\\\\DevWork\\\\sessions\\\\bhekani_bo_500_fix_20260529_094731.md\" \"G:\\\\My Drive\\\\JS\\\\Agentic AI\\\\sessions\\\\bhekani_bo_500_fix_20260529_094731.md.tbl.bk\" -Force)",
       "PowerShell(New-Item -ItemType Directory -Force \"c:\\\\DevWork\\\\sessions\" | Out-Null; $ts = Get-Date -Format 'yyyyMMdd_HHmmss'; $file = \"c:\\\\DevWork\\\\sessions\\\\portal_safety_interactive_$ts.md\"; Set-Content $file \"# Session: Portal Safety — Interactive Signatures & Evidence Viewing`nDate: 2026-05-29`nProvider: Claude Code`nModel: claude-sonnet-4-6`n`n## Goal`nEnhance the BlackFire portal safety module: \\(1\\) interactive signature pads + editable appointee fields + per-doc save on safety_doc_gen.php; \\(2\\) evidence document viewing per item in the compliance report table; \\(3\\) section rows show uploaded documents clearly.`n`n## Model Recommendation`nTask tier: 3-Complex`nRecommended model: claude-sonnet-4-6  Trust score: 9/10`nActive model: claude-sonnet-4-6  Status: correct`n`n## Decisions`n`n## Work Done`n`n## Blockers / Next Steps`n`n## Learnings`n\" -Encoding utf8; Write-Output \"Created: $file\")",
       "Bash(php -l \"c:\\\\DevWork\\\\BlackFire\\\\BlackFire Portal\\\\api\\\\safety_doc_gen.php\")",
-      "Bash(php -l \"c:\\\\DevWork\\\\BlackFire\\\\BlackFire Portal\\\\api\\\\safety.php\")"
+      "Bash(php -l \"c:\\\\DevWork\\\\BlackFire\\\\BlackFire Portal\\\\api\\\\safety.php\")",
+      "PowerShell($ts = Get-Date -Format 'yyyyMMdd_HHmmss'; $backup = \"c:\\\\DevWork\\\\BlackFire\\\\BlackFire Portal\\\\_backups\\\\reports_backup_$ts.php\"; New-Item -ItemType Directory -Force \"c:\\\\DevWork\\\\BlackFire\\\\BlackFire Portal\\\\_backups\" | Out-Null; Copy-Item \"c:\\\\DevWork\\\\BlackFire\\\\BlackFire Portal\\\\reports.php\" $backup; Write-Output \"Backup: $backup\")",
+      "PowerShell(Copy-Item \"c:\\\\DevWork\\\\sessions\\\\reports_server_error_fix_20260529_115939.md\" \"G:\\\\My Drive\\\\JS\\\\Agentic AI\\\\sessions\\\\reports_server_error_fix_20260529_115939.md.tbl.bk\" -Force)",
+      "PowerShell(Copy-Item \"c:\\\\DevWork\\\\sessions\\\\csp_violations_portal_20260528_054759.md\" \"G:\\\\My Drive\\\\JS\\\\Agentic AI\\\\sessions\\\\csp_violations_portal_20260528_054759.md.tbl.bk\" -Force)",
+      "Bash(Get-ChildItem \"G:\\\\.shortcut-targets-by-id\\\\19jPRakzdBBQgK_LaHiAtGZiEm-A3fXb3\\\\Astute Insight\\\\old\" -Recurse)",
+      "Bash(Select-Object FullName, Length, LastWriteTime)",
+      "Bash(Format-Table -AutoSize)",
+      "PowerShell($ts = Get-Date -Format 'yyyyMMdd_HHmmss'; $backup = \"c:\\\\DevWork\\\\BlackFire\\\\BlackFire Portal\\\\dev-only\\\\_backups\\\\bhekani_bo_backup_$ts.php\"; New-Item -ItemType Directory -Force \"c:\\\\DevWork\\\\BlackFire\\\\BlackFire Portal\\\\dev-only\\\\_backups\" | Out-Null; Copy-Item \"c:\\\\DevWork\\\\BlackFire\\\\BlackFire Portal\\\\dev-only\\\\bhekani_bo.php\" $backup; Write-Host \"Backup: $backup\")",
+      "PowerShell(Copy-Item \"c:\\\\DevWork\\\\sessions\\\\bhekani_bo_auth_fix_20260529_190000.md\" \"G:\\\\My Drive\\\\JS\\\\Agentic AI\\\\sessions\\\\bhekani_bo_auth_fix_20260529_190000.md.tbl.bk\" -Force)",
+      "PowerShell($ts = Get-Date -Format 'yyyyMMdd_HHmmss'; Copy-Item \"C:\\\\DevWork\\\\temp\\\\restore_db_local.ps1\" \"C:\\\\DevWork\\\\temp\\\\restore_db_local_backup_$ts.ps1\"; Write-Host \"Backed up to restore_db_local_backup_$ts.ps1\")",
+      "PowerShell($null = [System.Management.Automation.Language.Parser]::ParseFile\\('C:\\\\DevWork\\\\temp\\\\restore_db_local.ps1', [ref]$null, [ref]$errors\\); if \\($errors.Count -eq 0\\) { Write-Host \"Parse OK - no errors\" } else { $errors | ForEach-Object { Write-Host \"ERROR line $\\($_.Extent.StartLineNumber\\): $\\($_.Message\\)\" } })"
     ]
   }
 }

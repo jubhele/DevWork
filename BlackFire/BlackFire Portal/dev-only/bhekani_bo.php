@@ -23,6 +23,7 @@ $auth_ok  = $is_local || ($user !== null) || ($_SESSION['bhk_ok'] ?? false);
 $login_err = '';
 if (!$auth_ok && $_SERVER['REQUEST_METHOD'] === 'POST') {
     if (hash_equals(BHK_KEY, $_POST['k'] ?? '')) {
+        session_start(); // reopen after current_user() called session_write_close()
         $_SESSION['bhk_ok'] = true;
         header('Location: ' . strtok($_SERVER['REQUEST_URI'], '?'));
         exit;
@@ -955,13 +956,18 @@ html[data-theme="dark"] .hchk-detail{color:#f87171}
     <div style="background:var(--probe-cell-bg);padding:14px 16px">
       <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Verify Password Against Hash</div>
       <div style="display:flex;flex-direction:column;gap:8px">
-        <input type="password" id="pw-ver-input" placeholder="Enter plaintext password"
-          style="background:var(--bg);border:1px solid var(--ctrl-border);color:var(--text);
-                 padding:8px 10px;border-radius:4px;font-family:inherit;font-size:12px;width:100%">
-        <button class="btn-theme" onclick="pwToggleVis('pw-ver-input',this)" style="align-self:flex-start" title="Show/hide">&#128065; Show password</button>
-        <textarea id="pw-ver-hash" rows="2" placeholder="Paste stored $2y$ hash here"
+        <div style="font-size:10px;color:var(--muted);margin-bottom:-4px">① Stored bcrypt hash (paste from DB):</div>
+        <textarea id="pw-ver-hash" rows="2" placeholder="$2y$10$…"
           style="width:100%;background:var(--bg);border:1px solid var(--ctrl-border);color:var(--text);
                  padding:8px 10px;border-radius:4px;font-family:inherit;font-size:11px;resize:none"></textarea>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:-4px">② Plaintext password to test:</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="password" id="pw-ver-input" placeholder="e.g. BlackFire@2026!"
+            style="background:var(--bg);border:1px solid var(--ctrl-border);color:var(--text);
+                   padding:8px 10px;border-radius:4px;font-family:inherit;font-size:12px;flex:1">
+          <button class="btn-theme" onclick="pwToggleVis('pw-ver-input',this)" title="Show/hide">&#128065;</button>
+        </div>
+        <div style="font-size:10px;color:#64748b;font-style:italic">bcrypt is one-way — enter the candidate password above, not a hash</div>
         <button class="btn-pdf" onclick="pwVerify()">Verify</button>
         <div id="pw-ver-result" style="display:none;padding:8px 12px;border-radius:4px;font-size:12px;font-weight:600;text-align:center"></div>
         <div id="pw-ver-err" style="display:none;font-size:11px;color:#dc2626"></div>

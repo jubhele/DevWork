@@ -56,95 +56,112 @@ $export = isset($_GET['export']);
 // ═══════════════════════════════════════════════════════════════════════════
 
 function r_safety(): array {
-    return db_select("
-        SELECT sf.ref_id, sf.audit_date, sf.score,
-               sf.band,
-               COALESCE(SUM(CASE WHEN si.result = 'To Standard' THEN 1 ELSE 0 END), 0) AS items_to_standard,
-               COALESCE(SUM(CASE WHEN si.result != 'N/A'        THEN 1 ELSE 0 END), 0) AS items_applicable,
-               sf.region       AS site_name,
-               sf.auditor_name AS audited_by,
-               sf.status
-        FROM bf_safety_files sf
-        LEFT JOIN bf_safety_items si ON si.file_ref = sf.ref_id
-        GROUP BY sf.id
-        ORDER BY sf.audit_date ASC
-    ");
+    try {
+        return db_select("
+            SELECT sf.ref_id, sf.audit_date, sf.score,
+                   CASE
+                     WHEN sf.score >= 89 THEN 'GREEN'
+                     WHEN sf.score >= 74 THEN 'YELLOW'
+                     WHEN sf.score >= 50 THEN 'ORANGE'
+                     ELSE 'RED'
+                   END AS band,
+                   COALESCE(SUM(CASE WHEN si.result = 'To Standard' THEN 1 ELSE 0 END), 0) AS items_to_standard,
+                   COALESCE(SUM(CASE WHEN si.result != 'N/A'        THEN 1 ELSE 0 END), 0) AS items_applicable,
+                   sf.region       AS site_name,
+                   sf.auditor_name AS audited_by,
+                   sf.status
+            FROM bf_safety_files sf
+            LEFT JOIN bf_safety_items si ON si.file_ref = sf.ref_id
+            GROUP BY sf.id
+            ORDER BY sf.audit_date ASC
+        ");
+    } catch (Throwable $e) { return []; }
 }
 
 function r_callouts(): array {
-    return db_select("
-        SELECT c.ref_id, c.client_name,
-               SUBSTRING(c.description,1,72) AS description,
-               c.status, c.priority, DATE(c.logged_at) AS date,
-               c.assigned_to, c.invoice_generated,
-               q.ref_id AS quote_ref, q.total_amount AS quote_amount,
-               q.status AS quote_status,
-               i.ref_id AS invoice_ref, i.amount AS invoice_amount,
-               i.status AS invoice_status
-        FROM bf_callouts c
-        LEFT JOIN bf_quotes q ON q.callout_ref = c.ref_id
-        LEFT JOIN bf_invoices i ON i.callout_ref = c.ref_id
-        ORDER BY c.logged_at ASC
-    ");
+    try {
+        return db_select("
+            SELECT c.ref_id, c.client_name,
+                   SUBSTRING(c.description,1,72) AS description,
+                   c.status, c.priority, DATE(c.logged_at) AS date,
+                   c.assigned_to, c.invoice_generated,
+                   q.ref_id AS quote_ref, q.total_amount AS quote_amount,
+                   q.status AS quote_status,
+                   i.ref_id AS invoice_ref, i.amount AS invoice_amount,
+                   i.status AS invoice_status
+            FROM bf_callouts c
+            LEFT JOIN bf_quotes q ON q.callout_ref = c.ref_id
+            LEFT JOIN bf_invoices i ON i.callout_ref = c.ref_id
+            ORDER BY c.logged_at ASC
+        ");
+    } catch (Throwable $e) { return []; }
 }
 
 function r_invoices(): array {
-    return db_select("
-        SELECT i.ref_id, DATE(i.invoice_date) AS invoice_date,
-               DATE(i.due_date) AS due_date,
-               i.client_name, i.amount AS total_amount, i.status AS invoice_status,
-               p.payment_ref, DATE(p.payment_date) AS paid_date,
-               p.amount AS paid_amount,
-               (SELECT COUNT(*) FROM bf_attachments
-                WHERE entity_type='payment' AND entity_ref=p.payment_ref) > 0 AS has_remittance
-        FROM bf_invoices i
-        LEFT JOIN bf_payments p ON p.invoice_ref = i.ref_id
-        ORDER BY i.invoice_date ASC
-    ");
+    try {
+        return db_select("
+            SELECT i.ref_id, DATE(i.invoice_date) AS invoice_date,
+                   DATE(i.due_date) AS due_date,
+                   i.client_name, i.amount AS total_amount, i.status AS invoice_status,
+                   p.payment_ref, DATE(p.payment_date) AS paid_date,
+                   p.amount AS paid_amount,
+                   (SELECT COUNT(*) FROM bf_attachments
+                    WHERE entity_type='payment' AND entity_ref=p.payment_ref) > 0 AS has_remittance
+            FROM bf_invoices i
+            LEFT JOIN bf_payments p ON p.invoice_ref = i.ref_id
+            ORDER BY i.invoice_date ASC
+        ");
+    } catch (Throwable $e) { return []; }
 }
 
 function r_payment_batches(): array {
-    return db_select("
-        SELECT payment_ref, payment_date, payment_method,
-               COUNT(*) AS invoice_count,
-               SUM(amount) AS total_paid,
-               GROUP_CONCAT(invoice_ref ORDER BY invoice_ref SEPARATOR ', ') AS invoices,
-               (SELECT COUNT(*) FROM bf_attachments
-                WHERE entity_type='payment' AND entity_ref=payment_ref) > 0 AS has_remittance
-        FROM bf_payments
-        GROUP BY payment_ref, payment_date, payment_method
-        ORDER BY payment_date ASC
-    ");
+    try {
+        return db_select("
+            SELECT payment_ref, payment_date, payment_method,
+                   COUNT(*) AS invoice_count,
+                   SUM(amount) AS total_paid,
+                   GROUP_CONCAT(invoice_ref ORDER BY invoice_ref SEPARATOR ', ') AS invoices,
+                   (SELECT COUNT(*) FROM bf_attachments
+                    WHERE entity_type='payment' AND entity_ref=payment_ref) > 0 AS has_remittance
+            FROM bf_payments
+            GROUP BY payment_ref, payment_date, payment_method
+            ORDER BY payment_date ASC
+        ");
+    } catch (Throwable $e) { return []; }
 }
 
 function r_personnel(): array {
-    return db_select("
-        SELECT sp.file_ref, sp.full_name, sp.role, sp.id_number,
-               sp.company, COUNT(DISTINCT sc.id) AS compliance_records
-        FROM bf_safety_personnel sp
-        LEFT JOIN bf_safety_compliance sc ON sc.personnel_id = sp.id
-        WHERE sp.is_active = 1
-        GROUP BY sp.id
-        ORDER BY sp.file_ref ASC, sp.full_name ASC
-    ");
+    try {
+        return db_select("
+            SELECT sp.file_ref, sp.full_name, sp.role, sp.id_number,
+                   sp.company, COUNT(DISTINCT sc.id) AS compliance_records
+            FROM bf_safety_personnel sp
+            LEFT JOIN bf_safety_compliance sc ON sc.personnel_id = sp.id
+            WHERE sp.is_active = 1
+            GROUP BY sp.id
+            ORDER BY sp.file_ref ASC, sp.full_name ASC
+        ");
+    } catch (Throwable $e) { return []; }
 }
 
 function r_compliance(): array {
-    return db_select("
-        SELECT sc.file_ref, sc.compliance_type, sc.category, sc.scope,
-               DATE(sc.issue_date) AS issue_date,
-               DATE(sc.expiry_date) AS expiry_date,
-               COALESCE(sp.full_name, 'Company-wide') AS person,
-               CASE
-                 WHEN sc.expiry_date IS NULL THEN 'N/A'
-                 WHEN sc.expiry_date < CURDATE() THEN 'Expired'
-                 WHEN sc.expiry_date < DATE_ADD(CURDATE(), INTERVAL 60 DAY) THEN 'Due Soon'
-                 ELSE 'Valid'
-               END AS validity
-        FROM bf_safety_compliance sc
-        LEFT JOIN bf_safety_personnel sp ON sp.id = sc.personnel_id
-        ORDER BY sc.file_ref ASC, sc.compliance_type ASC
-    ");
+    try {
+        return db_select("
+            SELECT sc.file_ref, sc.compliance_type, sc.category, sc.scope,
+                   DATE(sc.issue_date) AS issue_date,
+                   DATE(sc.expiry_date) AS expiry_date,
+                   COALESCE(sp.full_name, 'Company-wide') AS person,
+                   CASE
+                     WHEN sc.expiry_date IS NULL THEN 'N/A'
+                     WHEN sc.expiry_date < CURDATE() THEN 'Expired'
+                     WHEN sc.expiry_date < DATE_ADD(CURDATE(), INTERVAL 60 DAY) THEN 'Due Soon'
+                     ELSE 'Valid'
+                   END AS validity
+            FROM bf_safety_compliance sc
+            LEFT JOIN bf_safety_personnel sp ON sp.id = sc.personnel_id
+            ORDER BY sc.file_ref ASC, sc.compliance_type ASC
+        ");
+    } catch (Throwable $e) { return []; }
 }
 
 function r_signatures(): array {

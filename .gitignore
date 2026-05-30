@@ -57,6 +57,22 @@ build/
 
 # Windows PowerShell
 *.ps1.bak
+BlackFire/BlackFire Portal/start-local.ps1
+BlackFire/BlackFire Portal/router.php
+BlackFire/BlackFire Portal/encrypt_secrets.php
+BlackFire/BlackFire Portal/DEPLOY_CHECKLIST.md
+BlackFire/BlackFire Portal/dev-only/
+BlackFire/BlackFire Portal/api/_archive/
+
+# Test data and destructive/utility SQL — not for production
+BlackFire/BlackFire Portal/install/blackfire_testdata_part1.sql
+BlackFire/BlackFire Portal/install/blackfire_testdata_part2.sql
+BlackFire/BlackFire Portal/install/blackfire_testdata_part3.sql
+BlackFire/BlackFire Portal/install/safety_seed_astute.sql
+BlackFire/BlackFire Portal/install/safety_attachments_seed.sql
+BlackFire/BlackFire Portal/install/drop_safety_file_users.sql
+BlackFire/BlackFire Portal/install/drop_seed_backups.sql
+BlackFire/BlackFire Portal/install/deduplicate_all_tables.sql
 
 # gstack temp
 /tmp/gstack-*
