@@ -101,10 +101,21 @@ if ($action === 'login' && $method === 'POST') {
     $_SESSION['bf_expires'] = time() + 7200; // 2 hours
     $csrf = csrf_token();
 
+    // Generate a short-lived Bearer token for the Next.js frontend (same table as mobile, device_id='web')
+    $raw_token  = bin2hex(random_bytes(32));
+    $token_hash = hash('sha256', $raw_token);
+    $expires    = date('Y-m-d H:i:s', time() + 7200); // 2 hours, matching session
+    db_exec("UPDATE bf_mobile_tokens SET revoked = 1 WHERE user_id = ? AND device_id = 'web'", [$row['id']]);
+    db_exec(
+        "INSERT INTO bf_mobile_tokens (user_id, token_hash, device_id, device_name, expires_at)
+         VALUES (?, ?, 'web', 'Umlilo Web Portal', ?)",
+        [$row['id'], $token_hash, $expires]
+    );
+
     $isSecure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (($_SERVER['SERVER_PORT'] ?? 80) == 443);
     setcookie('bf_session_hint', '1', ['expires' => time() + 7200, 'path' => '/', 'secure' => $isSecure, 'httponly' => false, 'samesite' => 'Lax']);
     audit($username, 'LOGIN', "{$row['name']} signed in as {$row['role']}");
-    json_ok(['user' => $session_user, 'csrf_token' => $csrf], 'Login successful');
+    json_ok(['user' => $session_user, 'token' => $raw_token, 'csrf_token' => $csrf], 'Login successful');
 }
 
 // ── POST /reset_request ──────────────────────────────
