@@ -84,3 +84,78 @@ _Session ended: 2026-05-30 19:39:46 (Claude Code / claude-sonnet-4-6)_
 _Session ended: 2026-05-30 20:02:45 (Claude Code / claude-sonnet-4-6)_
 _Session ended: 2026-05-30 20:04:13 (Claude Code / claude-sonnet-4-6)_
 _Session ended: 2026-05-30 20:15:18 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-30 20:25:39 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-30 20:27:25 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-30 20:37:12 (Claude Code / claude-sonnet-4-6)_
+
+## Resumed 2026-05-30 (Evening — Vercel + Login debug)
+
+### Goal
+Get the Umlilo Portal live on Vercel and working locally (login → dashboard).
+
+### Work Done
+**Vercel deployment fixes (umlilo-portal repo):**
+- `package.json` (root) — added `next: 16.2.6` to devDependencies so Vercel framework detection finds it
+- `pnpm-lock.yaml` — updated after root devDependency change
+- `apps/web/src/app/login/page.tsx` — wrapped `useSearchParams()` in `<Suspense>` (required for static rendering)
+- `apps/web/src/middleware.ts` → renamed to `proxy.ts`; export renamed from `middleware` to `proxy` (Next.js 16 breaking change)
+- `vercel.json` (root) — `framework: nextjs`, `buildCommand: pnpm --filter web build`, `outputDirectory: apps/web/.next`
+- Vercel project settings updated via API: framework preset set to `nextjs`, Root Directory = blank (repo root)
+
+**CORS fixes (BlackFire repo, Emzumbe branch):**
+- `api/.htaccess` — switched from `%{HTTP_ORIGIN}e` → `SetEnvIf` capture groups (`CORS_ORIGIN=$1`) for reliable `Access-Control-Allow-Origin` echo
+- Added `umlilo-portal-web.vercel.app` and `umlilo-portal-*.vercel.app` to CORS allowlist
+- `includes/helpers.php` — added OPTIONS preflight handler inside `api_headers()` (returns 204, applies to all 21 API endpoints)
+
+**Login flow fixes (umlilo-portal repo):**
+- `packages/api-client/index.ts` — added `captcha()` method; fixed `login()` captcha param type to `number`
+- `apps/web/src/app/login/page.tsx` — added math captcha fetch + field (PHP requires it); fixed response shape (`res.question` not `res.data.question`)
+- `apps/web/src/lib/auth.ts` — replaced `getServerUser()` (PHP session forwarding, cross-domain broken) with `getUserFromPortalCookie()` (decodes base64 JSON from Next.js-domain cookie)
+- `apps/web/src/app/(portal)/layout.tsx` — reads user from `bf_portal` cookie directly
+- `apps/web/src/app/(portal)/dashboard/page.tsx` — updated import from `getServerUser` → `getUserFromPortalCookie`
+- `apps/web/src/components/Sidebar.tsx` — guarded `user.permissions` with `?? []` (PHP user object has no permissions field)
+
+**Afrihost deploy script:**
+- `BlackFire/BlackFire Portal/install/deploy_PHP.sh` — branch updated from `ndlunkulu` to `Emzumbe`
+- `BlackFire/scripts/deploy.sh` — rewrote to clone into `~/blackfire-staging/` then rsync to `public_html` (git never runs in web root)
+
+### Blockers / Next Steps
+- [ ] Callout detail page `/callouts/[id]`
+- [ ] Quotes and invoices pages
+- [ ] React Navigation stack in mobile
+- [ ] Draft POPIA Privacy Policy
+- [ ] EAS Build setup (after Apple account activates)
+- [ ] Phase 2 auth: sign `bf_portal` cookie with HMAC (currently unsigned base64)
+- [ ] Dashboard KPI data (requires PHP session on same domain — needs Phase 2 auth or API proxy)
+
+### Learnings
+- **Next.js 16 breaking changes**: `middleware.ts` → `proxy.ts`, export `middleware` → `proxy`; `useSearchParams()` must be in `<Suspense>`.
+- **Vercel monorepo**: Root Directory must be blank (repo root) for pnpm workspaces to work. `vercel.json` at root with explicit `framework: nextjs` bypasses package.json detection.
+- **Cross-domain cookie problem**: PHP session cookie lives on `blackfiresolutions.co.za`. Next.js server components on `localhost:3000` or `vercel.app` can never forward it. Solution: encode PHP login response user object as base64 in a `bf_portal` cookie on the Next.js domain after login.
+- **Apache CORS on shared hosting**: `%{HTTP_ORIGIN}e` and `%{Origin}i` both failed on Afrihost Apache. Only `SetEnvIf Origin "^(pattern)$" VAR=$1` + `%{VAR}e` works reliably.
+- **OPTIONS preflight**: Apache `[R=200,L]` rewrite for OPTIONS does not reliably return CORS headers on shared hosting. Handle it in PHP `api_headers()` instead.
+- **PHP captcha is mandatory**: The `auth.php?action=login` endpoint requires a valid captcha answer from a prior `/captcha` call. Next.js login form must fetch and display the math question.
+- **pnpm frozen-lockfile in CI**: Adding a dependency to `package.json` without running `pnpm install` locally causes Vercel CI to fail with `ERR_PNPM_OUTDATED_LOCKFILE`. Always run `pnpm install` and commit the updated lockfile.
+_Session ended: 2026-05-30 22:50:00 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-30 20:50:22 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-30 20:57:48 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-30 21:02:30 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-30 21:07:17 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-30 21:15:57 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-30 21:19:47 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-30 21:21:37 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-30 22:15:54 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-30 22:20:35 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-30 22:22:08 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-30 22:24:19 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-30 22:31:43 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-30 22:37:51 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-30 22:40:07 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-30 22:43:54 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-30 22:52:51 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-30 23:22:44 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-30 23:26:08 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-30 23:30:32 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-30 23:33:28 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-30 23:50:50 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-30 23:54:38 (Claude Code / claude-sonnet-4-6)_
