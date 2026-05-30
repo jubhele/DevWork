@@ -66,6 +66,12 @@ function api_headers(): void {
     header('Referrer-Policy: strict-origin-when-cross-origin');
     header('X-Permitted-Cross-Domain-Policies: none');
     header("Content-Security-Policy: default-src 'none'");
+
+    // CORS preflight — Apache's rewrite-based 204 is unreliable on shared hosting
+    if (($_SERVER['REQUEST_METHOD'] ?? '') === 'OPTIONS') {
+        http_response_code(204);
+        exit;
+    }
 }
 
 /**
