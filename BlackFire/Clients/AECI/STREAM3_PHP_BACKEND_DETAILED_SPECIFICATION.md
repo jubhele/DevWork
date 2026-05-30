@@ -1,5 +1,5 @@
-# STREAM 3: PHP/MySQL Backend Deployment & Hardening
-**BLKFR · IZILO-DEPLOY-BACKEND-001**
+﻿# STREAM 3: PHP/MySQL Backend Deployment & Hardening
+**BLKFR · UMLILO-DEPLOY-BACKEND-001**
 
 **Scope:** Weeks 1–2 of overall timeline | **Effort:** 73 hours  
 **Priority:** Critical path item — unblocks AECI portal v9.1 deployment  
@@ -49,7 +49,7 @@ Status: Unresolved — requires APP_KEY generation and .env deployment
 BF_DB_PASS_ENC = xtutmMLIeCymGNoHgSJ9x4BIhhEPUScEo3if7Qmur8s=
 DB Host: localhost:3306
 DB Name: blackfm6w9f9_portal (to be created)
-DB User: blackfm6w9f9_izilo (to be created)
+DB User: blackfm6w9f9_UMLILO (to be created)
 DB Pass: [strong password generated during setup]
 ```
 
@@ -97,14 +97,14 @@ Continue in MySQL Databases section:
 
 ```
 Input fields:
-├─ Username: blackfm6w9f9_izilo
+├─ Username: blackfm6w9f9_UMLILO
 ├─ Password: [Generate 20+ chars: upper, lower, numbers, symbols]
 │  Example: K@7xP#mL9$qR2wN5vB&dE
 ├─ Password (confirm): [repeat above]
 └─ Click: "Create User"
 
 Expected output:
-✓ User "blackfm6w9f9_izilo" created successfully
+✓ User "blackfm6w9f9_UMLILO" created successfully
 ```
 
 **Password generation checklist:**
@@ -120,7 +120,7 @@ In MySQL Databases section → "Add User to Database":
 
 ```
 Dropdowns:
-├─ User: blackfm6w9f9_izilo
+├─ User: blackfm6w9f9_UMLILO
 ├─ Database: blackfm6w9f9_portal
 └─ Privileges: [Check ALL PRIVILEGES]
 
@@ -140,7 +140,7 @@ Expected output:
 ```
 
 **Verification checklist:**
-- [ ] User `blackfm6w9f9_izilo` assigned to database
+- [ ] User `blackfm6w9f9_UMLILO` assigned to database
 - [ ] ALL PRIVILEGES selected
 - [ ] Confirmation message received
 
@@ -386,7 +386,7 @@ BF_ENCRYPTION_METHOD=AES-256-CBC
 BF_DB_HOST=localhost
 BF_DB_PORT=3306
 BF_DB_NAME=blackfm6w9f9_portal
-BF_DB_USER=blackfm6w9f9_izilo
+BF_DB_USER=blackfm6w9f9_UMLILO
 BF_DB_PASS=[strong-password-from-Phase-3A]
 BF_DB_CHARSET=utf8mb4
 BF_DB_CONNECTION_TIMEOUT=10
@@ -869,7 +869,7 @@ curl https://blackfiresolutions.co.za/portal/install/installer.php
 
 ### End of Phase 3A
 - [ ] Database created (blackfm6w9f9_portal)
-- [ ] User created (blackfm6w9f9_izilo)
+- [ ] User created (blackfm6w9f9_UMLILO)
 - [ ] Permissions granted (ALL PRIVILEGES)
 - [ ] Directories created (/config, /includes, /api, /install, /logs, /uploads)
 - [ ] Permissions set (755 on directories)

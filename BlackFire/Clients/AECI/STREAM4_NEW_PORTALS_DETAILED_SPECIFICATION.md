@@ -1,5 +1,5 @@
-# STREAM 4: Missing Portal Creation & Integration
-**BLKFR · IZILO-PORTALS-NEW-001**
+﻿# STREAM 4: Missing Portal Creation & Integration
+**BLKFR · UMLILO-PORTALS-NEW-001**
 
 **Scope:** Weeks 2–6 (parallel with Streams 1–3) | **Effort:** 120 hours  
 **Priority:** Completion of portal ecosystem  
@@ -14,17 +14,17 @@
 
 ## Overview: Three New Portals
 
-### Portal 1: Secure Command (IZILO-SECURE-001)
+### Portal 1: Secure Command (UMLILO-SECURE-001)
 **Purpose:** Encrypted incident response coordination  
 **Audience:** Incident commanders, senior staff  
 **Key features:** Real-time incident board, secure messaging (encrypted), document vault, contact directory, response playbooks, system status dashboard, audit logging
 
-### Portal 2: Internal Ops / Izilo Mission Control (IZILO-OPS-INTERNAL-001)
+### Portal 2: Internal Ops / UMLILO Mission Control (UMLILO-OPS-INTERNAL-001)
 **Purpose:** Staff scheduling, task management, internal communications  
 **Audience:** Operations team, supervisors  
 **Key features:** Schedule board, task manager, team chat, knowledge base, announcements, time & attendance, performance metrics
 
-### Portal 3: Portal Hub / Launcher (IZILO-HUB-001)
+### Portal 3: Portal Hub / Launcher (UMLILO-HUB-001)
 **Purpose:** Central dashboard to access all portals + user preferences  
 **Audience:** All staff  
 **Key features:** Portal grid navigator, user profile, notifications hub, system status, help center, admin panel (admins only)
@@ -609,7 +609,7 @@ const portals: PortalCard[] = [
   },
   {
     id: 'ops',
-    name: 'Izilo Operations',
+    name: 'UMLILO Operations',
     description: 'Scheduling, tasks, team communication',
     icon: '🏗️',
     url: 'blackfire-internal-portal.html',

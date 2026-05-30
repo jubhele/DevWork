@@ -1,5 +1,5 @@
-# BlackFire Solutions · Portal Ecosystem Strategic Plan
-**BLKFR · IZILO-V-MASTER-001**
+﻿# BlackFire Solutions · Portal Ecosystem Strategic Plan
+**BLKFR · UMLILO-V-MASTER-001**
 
 **Date:** 2026-05-17  
 **Prepared for:** Jubhele (BlackFire Solutions)  
@@ -30,11 +30,11 @@ This document outlines a four-stream initiative to design, enhance, and deploy a
 - **AECI Portal** (`BlackFire_Portal_AECI_v9.html`, 685KB): Feature-rich HTML dashboard for Chemhold/AECI
 - **PHP Backend** (incomplete installation guide): Database-backed multi-user system, Afrihost-ready
 - **Utility Tools**: Password manager, bcrypt hash generator, installer
-- **Missing Portals**: Secure Command, Internal Ops (Izilo Mission Control), Portal Hub (orchestration layer)
+- **Missing Portals**: Secure Command, Internal Ops (UMLILO Mission Control), Portal Hub (orchestration layer)
 
 ### Quality Standard
 - Museum-quality craftsmanship: zero AI slop, pristine execution
-- Deliberate naming (BLKFR prefix, IZILO-[M/C/T/V/G/X] spec codes)
+- Deliberate naming (BLKFR prefix, UMLILO-[M/C/T/V/G/X] spec codes)
 - Conceptual depth over decoration (Thermal Geometry philosophy)
 - Honest progress assessment; identify what didn't land
 
@@ -50,7 +50,7 @@ This document outlines a four-stream initiative to design, enhance, and deploy a
 
 ### Current State
 - Single-file HTML artifact (43KB)
-- Displays color system, typography, geometric patterns (IZILO-G-001)
+- Displays color system, typography, geometric patterns (UMLILO-G-001)
 - Dark/light toggle functional
 - **Gap:** Limited interactivity; no "living" documentation; design tokens not consumable by dev teams
 
@@ -64,7 +64,7 @@ This document outlines a four-stream initiative to design, enhance, and deploy a
 ### Deliverables
 
 #### Phase 1A: Interactive Component Library (Weeks 1–2)
-**Spec:** IZILO-BRAND-001
+**Spec:** UMLILO-BRAND-001
 
 | Component | Purpose | Status |
 |-----------|---------|--------|
@@ -85,7 +85,7 @@ This document outlines a four-stream initiative to design, enhance, and deploy a
 - Tabbed navigation for sections: colors → typography → components → patterns → downloads
 
 #### Phase 1B: Design Token Exporter (Week 2–3)
-**Spec:** IZILO-BRAND-TOKEN-001
+**Spec:** UMLILO-BRAND-TOKEN-001
 
 - **Feature:** Export color palette as JSON/CSS/SCSS/Tailwind config
 - **Feature:** Download typography scale (font stacks, sizes, weights)
@@ -95,12 +95,12 @@ This document outlines a four-stream initiative to design, enhance, and deploy a
 **Deliverable:** JavaScript function that serializes all CSS custom properties and downloads as user-selected format
 
 #### Phase 1C: Thermal Geometry Deep Dive (Week 3)
-**Spec:** IZILO-BRAND-PHILOSOPHY-001
+**Spec:** UMLILO-BRAND-PHILOSOPHY-001
 
 - **Addition:** Expanded section on design philosophy
 - **Content:** 
   - Thermal Geometry concept (fire as engineered phenomenon)
-  - Zulu Geometric Ancestry connection (IZILO-G-001)
+  - Zulu Geometric Ancestry connection (UMLILO-G-001)
   - Naming conventions (BLKFR prefix, spec codes)
   - Light system philosophy ("the light system is the dark system's evidence")
 - **Format:** Scrollytelling (text + visual parallax) for conceptual narrative
@@ -144,7 +144,7 @@ This document outlines a four-stream initiative to design, enhance, and deploy a
 ### Deliverables
 
 #### Phase 2A: Mobile UX Redesign (Weeks 1–2)
-**Spec:** IZILO-AECI-MOBILE-001
+**Spec:** UMLILO-AECI-MOBILE-001
 
 | Area | Current | Improved |
 |------|---------|----------|
@@ -162,7 +162,7 @@ This document outlines a four-stream initiative to design, enhance, and deploy a
 - Ensure all buttons/links ≥44px touch targets (WCAG compliance)
 
 #### Phase 2B: Enhanced Error Handling & Loading States (Week 2–3)
-**Spec:** IZILO-AECI-RESILIENCE-001
+**Spec:** UMLILO-AECI-RESILIENCE-001
 
 **Additions:**
 - Error boundaries around module containers
@@ -176,7 +176,7 @@ This document outlines a four-stream initiative to design, enhance, and deploy a
 **Example:** When offline, show badge on sidebar "OFFLINE MODE · Read-only" with sync-ready indicator
 
 #### Phase 2C: Feature Completeness (Weeks 3–4)
-**Spec:** IZILO-AECI-FEATURES-002
+**Spec:** UMLILO-AECI-FEATURES-002
 
 **New modules/features:**
 1. **Reporting Module** — Custom report builder (select date range, filters, columns), export CSV/PDF
@@ -189,7 +189,7 @@ This document outlines a four-stream initiative to design, enhance, and deploy a
 8. **Print Preview** — Professional print layouts for quotes, invoices, callout reports
 
 #### Phase 2D: Performance Optimization (Week 4)
-**Spec:** IZILO-AECI-PERF-001
+**Spec:** UMLILO-AECI-PERF-001
 
 | Metric | Target | Method |
 |--------|--------|--------|
@@ -202,7 +202,7 @@ This document outlines a four-stream initiative to design, enhance, and deploy a
 **Tools:** Lighthouse audits at each checkpoint, WebPageTest profiling
 
 #### Phase 2E: Migration Strategy Documentation (Week 4)
-**Spec:** IZILO-AECI-MIGRATION-001
+**Spec:** UMLILO-AECI-MIGRATION-001
 
 - **Document:** Step-by-step guide to migrate localStorage data to PHP/MySQL backend
 - **Tooling:** Export JSON from v9 → JSON schema validator → Importer for backend
@@ -244,12 +244,12 @@ This document outlines a four-stream initiative to design, enhance, and deploy a
 ### Deliverables
 
 #### Phase 3A: Afrihost Environment Setup (Week 1)
-**Spec:** IZILO-DEPLOY-AFRIHOST-001
+**Spec:** UMLILO-DEPLOY-AFRIHOST-001
 
 **Tasks:**
 1. **cPanel Login** → Navigate to MySQL Databases
    - Create database: `blackfm6w9f9_portal`
-   - Create user: `blackfm6w9f9_izilo` with strong password
+   - Create user: `blackfm6w9f9_UMLILO` with strong password
    - Grant ALL PRIVILEGES
 2. **Create required directories** (via File Manager):
    - `/public_html/portal/` (main)
@@ -262,7 +262,7 @@ This document outlines a four-stream initiative to design, enhance, and deploy a
 **Deliverable:** cPanel screenshot proof + .env template file
 
 #### Phase 3B: Configuration & Encryption Setup (Week 1)
-**Spec:** IZILO-DEPLOY-ENCRYPTION-001
+**Spec:** UMLILO-DEPLOY-ENCRYPTION-001
 
 **Tasks:**
 1. **Generate APP_KEY** — 32-byte random string (use bcrypt generator utility)
@@ -271,7 +271,7 @@ This document outlines a four-stream initiative to design, enhance, and deploy a
    BF_APP_KEY=<generated-key>
    BF_DB_HOST=localhost
    BF_DB_NAME=blackfm6w9f9_portal
-   BF_DB_USER=blackfm6w9f9_izilo
+   BF_DB_USER=blackfm6w9f9_UMLILO
    BF_DB_PASS=<strong-password>
    BF_DB_CHARSET=utf8mb4
    BF_SESSION_TIMEOUT=7200
@@ -283,7 +283,7 @@ This document outlines a four-stream initiative to design, enhance, and deploy a
 **Deliverable:** Validated .env file + encryption test results
 
 #### Phase 3C: File Deployment (Week 1)
-**Spec:** IZILO-DEPLOY-FILES-001
+**Spec:** UMLILO-DEPLOY-FILES-001
 
 **Method:** ZIP upload + extract via cPanel File Manager (fastest)
 
@@ -299,7 +299,7 @@ This document outlines a four-stream initiative to design, enhance, and deploy a
 **Deliverable:** Deployment log with directory listing proof
 
 #### Phase 3D: Database Initialization (Week 1)
-**Spec:** IZILO-DEPLOY-DB-INIT-001
+**Spec:** UMLILO-DEPLOY-DB-INIT-001
 
 **Steps:**
 1. Access `/public_html/portal/install/` in browser
@@ -317,7 +317,7 @@ This document outlines a four-stream initiative to design, enhance, and deploy a
 **Deliverable:** Database schema validation report + sample user credentials
 
 #### Phase 3E: Security Hardening (Week 2)
-**Spec:** IZILO-DEPLOY-SECURITY-001
+**Spec:** UMLILO-DEPLOY-SECURITY-001
 
 | Layer | Action | Verification |
 |-------|--------|--------------|
@@ -329,7 +329,7 @@ This document outlines a four-stream initiative to design, enhance, and deploy a
 | SQL injection | Review all PDO queries for parameterization | Code audit checklist |
 
 #### Phase 3F: Testing & Validation (Week 2)
-**Spec:** IZILO-DEPLOY-QA-001
+**Spec:** UMLILO-DEPLOY-QA-001
 
 **Test matrix (8 roles × key workflows):**
 
@@ -373,7 +373,7 @@ This document outlines a four-stream initiative to design, enhance, and deploy a
 ### Portals to Build
 
 #### 4A: Secure Command Portal
-**Spec:** IZILO-SECURE-001  
+**Spec:** UMLILO-SECURE-001  
 **Purpose:** Encrypted communication & incident response coordination  
 **Audience:** Incident commanders, senior staff  
 **Size estimate:** 120–150KB (single-file HTML)
@@ -416,8 +416,8 @@ This document outlines a four-stream initiative to design, enhance, and deploy a
 - Encryption: TweetNaCl.js (simple NaCl.secretbox for demo)
 - Storage: localStorage (production would use backend)
 
-#### 4B: Internal Operations Portal (Izilo Mission Control)
-**Spec:** IZILO-OPS-INTERNAL-001  
+#### 4B: Internal Operations Portal (UMLILO Mission Control)
+**Spec:** UMLILO-OPS-INTERNAL-001  
 **Purpose:** Staff scheduling, task management, internal communications  
 **Audience:** Operations team, supervisors  
 **Size estimate:** 140–170KB
@@ -441,7 +441,7 @@ This document outlines a four-stream initiative to design, enhance, and deploy a
 **Wireframes:**
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│ IZILO MISSION CONTROL · OPERATIONS DASHBOARD                │
+│ UMLILO MISSION CONTROL · OPERATIONS DASHBOARD                │
 ├──────────┬──────────────────────┬─────────────────────────────┤
 │ SCHEDULE │ TODAY'S TASKS        │ TEAM CHAT / ANNOUNCEMENTS   │
 │ [Cal]    │ [ ] Set up callout   │ Announcement: New SOP...    │
@@ -455,7 +455,7 @@ This document outlines a four-stream initiative to design, enhance, and deploy a
 ```
 
 #### 4C: Portal Hub (Orchestration Layer)
-**Spec:** IZILO-HUB-001  
+**Spec:** UMLILO-HUB-001  
 **Purpose:** Central dashboard to access all portals + user preferences  
 **Audience:** All staff  
 **Size estimate:** 80–100KB
@@ -488,7 +488,7 @@ This document outlines a four-stream initiative to design, enhance, and deploy a
 │  └─────────────┘  └─────────────┘  └──────────────┘     │
 │                                                           │
 │  ┌─────────────┐  ┌─────────────┐  ┌──────────────┐     │
-│  │ 🏗️ Izilo   │  │ 📊 Legacy   │  │ [+] Add     │     │
+│  │ 🏗️ UMLILO   │  │ 📊 Legacy   │  │ [+] Add     │     │
 │  │ Ops        │  │ Analytics   │  │ Portal      │     │
 │  └─────────────┘  └─────────────┘  └──────────────┘     │
 │                                                           │
@@ -498,7 +498,7 @@ This document outlines a four-stream initiative to design, enhance, and deploy a
 ### Implementation Plan
 
 #### Phase 4A: Secure Command Portal (Weeks 2–4)
-**Spec:** IZILO-SECURE-001
+**Spec:** UMLILO-SECURE-001
 
 **Breakdown:**
 - **Week 2:** Design system integration, incident board layout, basic state management
@@ -508,7 +508,7 @@ This document outlines a four-stream initiative to design, enhance, and deploy a
 **Deliverable:** Single-file HTML (`blackfire-secure.html`, ~130KB)
 
 #### Phase 4B: Internal Ops Portal (Weeks 3–5)
-**Spec:** IZILO-OPS-INTERNAL-001
+**Spec:** UMLILO-OPS-INTERNAL-001
 
 **Breakdown:**
 - **Week 3:** Schedule calendar (React Calendar or custom), task list
@@ -518,7 +518,7 @@ This document outlines a four-stream initiative to design, enhance, and deploy a
 **Deliverable:** Single-file HTML (`blackfire-internal-portal.html`, ~160KB)
 
 #### Phase 4C: Portal Hub (Weeks 4–5)
-**Spec:** IZILO-HUB-001
+**Spec:** UMLILO-HUB-001
 
 **Breakdown:**
 - **Week 4:** Portal grid layout, user profile, notifications panel
@@ -527,7 +527,7 @@ This document outlines a four-stream initiative to design, enhance, and deploy a
 **Deliverable:** Single-file HTML (`blackfire-hub.html`, ~100KB)
 
 #### Phase 4D: Integration & Testing (Week 5–6)
-**Spec:** IZILO-PORTAL-INTEGRATION-001
+**Spec:** UMLILO-PORTAL-INTEGRATION-001
 
 **Tasks:**
 1. **iframe Overlay System** — all portals load within Hub via iframes

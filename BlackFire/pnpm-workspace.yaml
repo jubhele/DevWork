@@ -1,0 +1,10 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+allowBuilds:
+  msgpackr-extract: true
+  sharp: true
+  unrs-resolver: true
+minimumReleaseAgeExclude:
+  - babel-preset-expo@56.0.14
+  - expo@56.0.8

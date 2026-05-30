@@ -1,6 +1,6 @@
--- ================================================================
+﻿-- ================================================================
 -- BlackFire Portal — Combined Idempotent Migration
--- BLKFR · IZILO-MIGRATE-COMBINED-001 · 2026-05-24
+-- BLKFR · UMLILO-MIGRATE-COMBINED-001 · 2026-05-24
 --
 -- Safe to run on a database in ANY state:
 --   • Tables that exist are left untouched
