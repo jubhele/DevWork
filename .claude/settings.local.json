@@ -123,7 +123,9 @@
       "PowerShell($ts = Get-Date -Format 'yyyyMMdd_HHmmss'; $backup = \"c:\\\\DevWork\\\\BlackFire\\\\BlackFire Portal\\\\dev-only\\\\_backups\\\\bhekani_bo_backup_$ts.php\"; New-Item -ItemType Directory -Force \"c:\\\\DevWork\\\\BlackFire\\\\BlackFire Portal\\\\dev-only\\\\_backups\" | Out-Null; Copy-Item \"c:\\\\DevWork\\\\BlackFire\\\\BlackFire Portal\\\\dev-only\\\\bhekani_bo.php\" $backup; Write-Host \"Backup: $backup\")",
       "PowerShell(Copy-Item \"c:\\\\DevWork\\\\sessions\\\\bhekani_bo_auth_fix_20260529_190000.md\" \"G:\\\\My Drive\\\\JS\\\\Agentic AI\\\\sessions\\\\bhekani_bo_auth_fix_20260529_190000.md.tbl.bk\" -Force)",
       "PowerShell($ts = Get-Date -Format 'yyyyMMdd_HHmmss'; Copy-Item \"C:\\\\DevWork\\\\temp\\\\restore_db_local.ps1\" \"C:\\\\DevWork\\\\temp\\\\restore_db_local_backup_$ts.ps1\"; Write-Host \"Backed up to restore_db_local_backup_$ts.ps1\")",
-      "PowerShell($null = [System.Management.Automation.Language.Parser]::ParseFile\\('C:\\\\DevWork\\\\temp\\\\restore_db_local.ps1', [ref]$null, [ref]$errors\\); if \\($errors.Count -eq 0\\) { Write-Host \"Parse OK - no errors\" } else { $errors | ForEach-Object { Write-Host \"ERROR line $\\($_.Extent.StartLineNumber\\): $\\($_.Message\\)\" } })"
+      "PowerShell($null = [System.Management.Automation.Language.Parser]::ParseFile\\('C:\\\\DevWork\\\\temp\\\\restore_db_local.ps1', [ref]$null, [ref]$errors\\); if \\($errors.Count -eq 0\\) { Write-Host \"Parse OK - no errors\" } else { $errors | ForEach-Object { Write-Host \"ERROR line $\\($_.Extent.StartLineNumber\\): $\\($_.Message\\)\" } })",
+      "Bash(git pull *)",
+      "Bash(git commit -m 'chore: auto-approve git pull in settings.local.json *)"
     ]
   }
 }
