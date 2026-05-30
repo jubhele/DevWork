@@ -48,6 +48,9 @@ dist/
 build/
 *.min.js
 *.min.css
+.next/
+tsconfig.tsbuildinfo
+next-env.d.ts
 
 # Temporary/investigation files — always use c:\DevWork\temp\
 /temp/
