@@ -46,13 +46,20 @@ Active model: claude-sonnet-4-6  Status: correct
 - `tsc --noEmit` passed clean
 
 ## Blockers / Next Steps
-- [ ] Copy .env.local.example → .env.local and set NEXT_PUBLIC_API_BASE for local dev
-- [ ] Set up Vercel project connected to ndlunkulu branch + add env vars
-- [ ] Configure CORS on Afrihost .htaccess for Vercel domain
-- [ ] Scaffold Expo app in apps/mobile
-- [ ] Build callouts list page (next portal page after dashboard)
-- [ ] Register Apple Developer Program ($99/year) + Google Play Console ($25 once)
+- [x] Copy .env.local.example → .env.local — done
+- [x] Configure CORS on Afrihost .htaccess for Vercel domain — done
+- [x] Scaffold Expo app in apps/mobile — done
+- [x] Build callouts list page — done
+- [x] Register Apple Developer Program ($99/year) — paid 2026-05-30, processing (up to 2 business days)
+- [x] Register Google Play Console ($25) — active 2026-05-30
+- [x] Create separate GitHub repo github.com/jubhele/umlilo-portal — done
+- [x] Vercel project umlilo-portal created — needs root dir + branch fix then redeploy
+- [ ] Vercel: set Root Directory = apps/web, Production Branch = master, redeploy
+- [ ] Callout detail page /callouts/[id]
+- [ ] Quotes and invoices pages
+- [ ] React Navigation stack in mobile
 - [ ] Draft POPIA Privacy Policy
+- [ ] EAS Build setup (after Apple account activates)
 
 ## Learnings
 - Tailwind v4 no longer uses tailwind.config.ts — all token customisation is done via @theme {} in CSS. The roadmap doc's tailwind.config.ts snippet is now a reference only.
@@ -60,3 +67,20 @@ Active model: claude-sonnet-4-6  Status: correct
 - Next.js 16 App Router: cookies() is async (must await). Route groups like (portal) allow shared layouts without affecting URL paths.
 - Bearer token auth was already implemented in PHP (May 28 session) — the API client's optional `token` param correctly supports both web (cookie) and mobile (Bearer) paths from the same typed interface.
 _Session ended: 2026-05-30 09:33:28 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-30 15:48:43 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-30 18:56:55 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-30 19:02:12 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-30 19:04:39 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-30 19:06:53 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-30 19:08:18 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-30 19:09:45 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-30 19:13:45 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-30 19:23:13 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-30 19:28:35 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-30 19:33:23 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-30 19:34:42 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-30 19:37:56 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-30 19:39:46 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-30 20:02:45 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-30 20:04:13 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-30 20:15:18 (Claude Code / claude-sonnet-4-6)_
