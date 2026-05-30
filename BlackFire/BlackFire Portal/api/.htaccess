@@ -36,17 +36,17 @@ php_flag expose_php Off
 <IfModule mod_headers.c>
     Header unset Access-Control-Allow-Origin
 
-    SetEnvIf Origin "^https://blackfire-solutions\.vercel\.app$"       CORS_OK
-    SetEnvIf Origin "^https://blackfire-[a-z0-9-]+\.vercel\.app$"     CORS_OK
-    SetEnvIf Origin "^https://umlilo-portal-web\.vercel\.app$"         CORS_OK
-    SetEnvIf Origin "^https://umlilo-portal-[a-z0-9-]+\.vercel\.app$" CORS_OK
-    SetEnvIf Origin "^http://localhost:3000$"                           CORS_OK
+    SetEnvIf Origin "^(https://blackfire-solutions\.vercel\.app)$"       CORS_ORIGIN=$1
+    SetEnvIf Origin "^(https://blackfire-[a-z0-9-]+\.vercel\.app)$"     CORS_ORIGIN=$1
+    SetEnvIf Origin "^(https://umlilo-portal-web\.vercel\.app)$"         CORS_ORIGIN=$1
+    SetEnvIf Origin "^(https://umlilo-portal-[a-z0-9-]+\.vercel\.app)$" CORS_ORIGIN=$1
+    SetEnvIf Origin "^(http://localhost:3000)$"                           CORS_ORIGIN=$1
 
-    Header always set Access-Control-Allow-Origin       "%{Origin}i"                                             env=CORS_OK
-    Header always set Access-Control-Allow-Credentials  "true"                                                   env=CORS_OK
-    Header always set Access-Control-Allow-Methods      "GET, POST, PUT, DELETE, OPTIONS"                        env=CORS_OK
-    Header always set Access-Control-Allow-Headers      "Content-Type, X-Requested-With, X-CSRF-Token, Authorization" env=CORS_OK
-    Header always set Access-Control-Max-Age            "86400"                                                  env=CORS_OK
+    Header always set Access-Control-Allow-Origin       "%{CORS_ORIGIN}e"                                        env=CORS_ORIGIN
+    Header always set Access-Control-Allow-Credentials  "true"                                                   env=CORS_ORIGIN
+    Header always set Access-Control-Allow-Methods      "GET, POST, PUT, DELETE, OPTIONS"                        env=CORS_ORIGIN
+    Header always set Access-Control-Allow-Headers      "Content-Type, X-Requested-With, X-CSRF-Token, Authorization" env=CORS_ORIGIN
+    Header always set Access-Control-Max-Age            "86400"                                                  env=CORS_ORIGIN
     Header always set Vary                              "Origin"
 </IfModule>
 
