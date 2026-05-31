@@ -119,14 +119,50 @@ Get the Umlilo Portal live on Vercel and working locally (login → dashboard).
 - `BlackFire/BlackFire Portal/install/deploy_PHP.sh` — branch updated from `ndlunkulu` to `Emzumbe`
 - `BlackFire/scripts/deploy.sh` — rewrote to clone into `~/blackfire-staging/` then rsync to `public_html` (git never runs in web root)
 
-### Blockers / Next Steps
-- [ ] Callout detail page `/callouts/[id]`
-- [ ] Quotes and invoices pages
-- [ ] React Navigation stack in mobile
-- [ ] Draft POPIA Privacy Policy
-- [ ] EAS Build setup (after Apple account activates)
-- [ ] Phase 2 auth: sign `bf_portal` cookie with HMAC (currently unsigned base64)
-- [ ] Dashboard KPI data (requires PHP session on same domain — needs Phase 2 auth or API proxy)
+### Blockers / Next Steps (all cleared 2026-05-31)
+- [x] Phase 2 auth: HMAC-sign `bf_portal` cookie — Next.js API route `/api/auth/login` proxies PHP, signs payload with `HMAC-SHA256(COOKIE_SECRET)`, sets `HttpOnly` cookie server-side
+- [x] Dashboard KPI data — Bearer token extracted from signed cookie; server components use `Authorization: Bearer <token>` for all PHP API calls
+- [x] Callout detail page `/callouts/[id]`
+- [x] Quotes page `/quotes`
+- [x] Invoices page `/invoices`
+- [x] React Navigation native-stack (Dashboard → Callouts → CalloutDetail)
+- [x] POPIA Privacy Policy at `/privacy`
+- [x] EAS Build setup — `eas.json` + `eas-cli` 20.0.0 installed
+
+### Still to do
+- [ ] Vercel: add `COOKIE_SECRET` env var (generate: `openssl rand -hex 32`)
+- [ ] EAS: `eas login` then first Android preview build (`eas build --profile preview --platform android`)
+- [ ] EAS iOS: after Apple Developer account activates (was processing 2026-05-30, up to 2 business days)
+- [ ] Fill `ascAppId` + `appleTeamId` in `eas.json` after creating App Store Connect app record
+
+## Resumed 2026-05-31
+
+### Work Done
+**Phase 2 auth:**
+- `BlackFire Portal/api/auth.php` — web `action=login` now generates a 2-hour Bearer token (in `bf_mobile_tokens` with `device_id='web'`) alongside the session; returned in `data.token`
+- `apps/web/src/app/api/auth/login/route.ts` — new Next.js API route: proxies PHP login (forwards `PHPSESSID` for captcha), HMAC-signs `{user, token}` payload, sets `bf_portal` as `HttpOnly; Secure; SameSite=Lax`
+- `apps/web/src/lib/auth.ts` — rewrote with `encodeCookie()` / `decodeCookie()` using `crypto.createHmac`; backward-compat unsigned fallback; exports `getTokenFromPortalCookie()`
+- `apps/web/src/app/login/page.tsx` — login form now calls `/api/auth/login` instead of PHP directly; no longer sets cookie via `document.cookie`
+- `apps/web/.env.local.example` — added `COOKIE_SECRET` field
+
+**Feature pages:**
+- `apps/web/src/app/(portal)/dashboard/page.tsx` — uses `Bearer <token>` instead of forwarded session cookie
+- `apps/web/src/app/(portal)/callouts/page.tsx` — same Bearer pattern
+- `apps/web/src/app/(portal)/callouts/[id]/page.tsx` — new callout detail page
+- `apps/web/src/app/(portal)/quotes/page.tsx` — quotes list page
+- `apps/web/src/app/(portal)/invoices/page.tsx` — invoices list page
+- `apps/web/src/app/privacy/page.tsx` — POPIA-compliant Privacy Policy (standalone, no auth required)
+
+**Mobile:**
+- `apps/mobile/App.tsx` — replaced TODO placeholder with React Navigation `NativeStackNavigator`; `RootStackParamList` exported for screen typing
+- `apps/mobile/src/screens/DashboardScreen.tsx` — KPI grid with pull-to-refresh; logout button
+- `apps/mobile/src/screens/CalloutsScreen.tsx` — FlatList with pull-to-refresh; navigates to CalloutDetail
+- `apps/mobile/src/screens/CalloutDetailScreen.tsx` — full callout detail view
+- `apps/mobile/package.json` — added `@react-navigation/native`, `@react-navigation/native-stack`, `react-native-screens`, `react-native-safe-area-context`
+
+**EAS Build:**
+- `apps/mobile/eas.json` — development / preview / production profiles configured
+- `eas-cli` 20.0.0 installed globally
 
 ### Learnings
 - **Next.js 16 breaking changes**: `middleware.ts` → `proxy.ts`, export `middleware` → `proxy`; `useSearchParams()` must be in `<Suspense>`.
@@ -159,3 +195,7 @@ _Session ended: 2026-05-30 23:30:32 (Claude Code / claude-sonnet-4-6)_
 _Session ended: 2026-05-30 23:33:28 (Claude Code / claude-sonnet-4-6)_
 _Session ended: 2026-05-30 23:50:50 (Claude Code / claude-sonnet-4-6)_
 _Session ended: 2026-05-30 23:54:38 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-30 23:56:57 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-30 23:59:05 (Claude Code / claude-sonnet-4-6)
+_Session ended: 2026-05-31 00:30:00 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-31 01:01:11 (Claude Code / claude-sonnet-4-6)_
