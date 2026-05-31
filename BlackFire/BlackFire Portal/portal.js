@@ -6042,18 +6042,19 @@ function safRenderPersonnel(fileId,people){
   let formerHtml='';
   if(gone.length){
     const rows=gone.map(p=>`<tr class="saf-prs-inactive-row">
-      <td>${esc(p.full_name)}</td>
+      <td>${esc(p.user_name||p.full_name)}</td>
       <td>${esc(p.id_number||'—')}</td>
       <td>${esc(p.role)}</td>
       <td>${esc(p.company||'—')}</td>
       <td>${p.removed_at?fmtD(p.removed_at):'—'}</td>
       <td>${esc(p.removed_reason||'—')}</td>
+      <td class="text-muted fs-12">${esc(p.removed_by_name||p.removed_by||'—')}</td>
       <td><button class="btn btn-g btn-xs" data-action="safReinstatePerson" data-id="${p.id}" data-file-id="${esc(fileId)}">Reinstate</button></td>
     </tr>`).join('');
     formerHtml=`<details class="saf-former-toggle mt1">
       <summary>Former Personnel (${gone.length}) — retained for audit</summary>
       <div class="tw mt1"><table class="saf-prs-tbl">
-        <thead><tr><th>Name</th><th>ID/Passport</th><th>Role</th><th>Company</th><th>Removed</th><th>Reason</th><th></th></tr></thead>
+        <thead><tr><th>Name</th><th>ID/Passport</th><th>Role</th><th>Company</th><th>Removed</th><th>Reason</th><th>Removed By</th><th></th></tr></thead>
         <tbody>${rows}</tbody>
       </table></div>
     </details>`;
