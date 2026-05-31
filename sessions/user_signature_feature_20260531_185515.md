@@ -37,3 +37,4 @@ Active model: Sonnet 4.6  Status: correct
 - GD max-channel distance is faster than Euclidean sqrt for background removal — good enough for signature images
 - Corner-pixel sampling assumes a uniform background; works for all standard signature scan scenarios
 _Session ended: 2026-05-31 19:05:49 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-31 19:12:09 (Claude Code / claude-sonnet-4-6)_
