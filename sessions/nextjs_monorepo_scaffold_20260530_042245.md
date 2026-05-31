@@ -134,7 +134,7 @@ Get the Umlilo Portal live on Vercel and working locally (login → dashboard).
 - [ ] EAS: `eas login` then first Android preview build (`eas build --profile preview --platform android`)
 - [ ] EAS iOS: after Apple Developer account activates (was processing 2026-05-30, up to 2 business days)
 - [ ] Fill `ascAppId` + `appleTeamId` in `eas.json` after creating App Store Connect app record
-
+as the php
 ## Resumed 2026-05-31
 
 ### Work Done
@@ -200,3 +200,5 @@ _Session ended: 2026-05-30 23:59:05 (Claude Code / claude-sonnet-4-6)
 _Session ended: 2026-05-31 00:30:00 (Claude Code / claude-sonnet-4-6)_
 _Session ended: 2026-05-31 01:01:11 (Claude Code / claude-sonnet-4-6)_
 _Session ended: 2026-05-31 12:23:35 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-31 16:51:08 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-31 16:53:09 (Claude Code / claude-sonnet-4-6)_
