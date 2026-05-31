@@ -1669,3 +1669,38 @@ textarea.saf-cmt { resize:vertical; min-height:28px; width:100% }
 .suggest-hint { font-size:11px;color:var(--muted);margin-bottom:6px }
 .ro-note      { font-size:11px;color:var(--muted);font-style:italic }
 
+/* ── User Signatures ──────────────────────────────────────── */
+.sig-badge {
+  display:inline-block;width:7px;height:7px;
+  background:#22c55e;border-radius:50%;
+  margin-left:5px;vertical-align:middle;
+}
+.sig-section {
+  margin-top:20px;padding-top:16px;
+  border-top:1px solid var(--border);
+}
+.sig-section-title {
+  font-size:10px;font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--muted);margin-bottom:10px;
+}
+.sig-preview-box {
+  display:inline-block;max-width:100%;
+  padding:10px 18px;border-radius:6px;
+  border:1px solid var(--border);
+  /* checkerboard to visualise transparency */
+  background:repeating-conic-gradient(#d4d4d0 0% 25%,#fff 0% 50%) 0 0/16px 16px;
+}
+.sig-img { display:block;max-width:100%;max-height:100px;object-fit:contain }
+.sig-meta { font-size:11px;color:var(--muted);margin-top:5px }
+.sig-current-wrap { margin-bottom:10px }
+.sig-upload-row { display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:6px }
+.sig-upload-btn { cursor:pointer }
+.sig-hint { font-size:11px;color:var(--muted) }
+.sig-new-wrap { margin-top:10px }
+.sig-new-actions { display:flex;gap:8px;margin-top:8px;align-items:center }
+.sig-as-notice {
+  background:#fff7ed;border:1px solid #f97316;border-radius:6px;
+  padding:10px 12px;font-size:12px;color:#7c2d12;margin-bottom:14px;
+}
+.btn-warn { background:var(--ember,#c0392b) }
+

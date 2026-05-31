@@ -163,6 +163,11 @@ document.addEventListener('click', function(e) {
     case 'saveNewUser':          saveNewUser(); break;
     case 'saveEditUser':         saveEditUser(); break;
     case 'togglePermCols':       togglePermCols(); break;
+    case 'saveUserSignature':    saveUserSignature(); break;
+    case 'removeUserSignature':  removeUserSignature(+el.dataset.id); break;
+    case 'clearSigPreview':      clearSigPreview(); break;
+    case 'openSignAsModal':      openSignAsModal(+el.dataset.id); break;
+    case 'submitSignAs':         submitSignAs(); break;
     // Dashboard
     case 'showDashEditor':       showDashEditor(); break;
     case 'saveDashEditorPrefs':  saveDashEditorPrefs(); break;
@@ -3226,11 +3231,13 @@ function renderUsers(){
     const m=matrix[u.role]||{create:'-',status:'-',po:'-',finance:'-',quote:'-',approve:'-',admin:'-'};
     const actionCell = canEdit ? `<td>
       <button class="btn btn-g btn-xs" data-action="openEditUserModal" data-id="${u.id}">Edit</button>
+      ${u.has_signature ? `<button class="btn btn-g btn-xs" data-action="openSignAsModal" data-id="${u.id}">Sign As</button>` : ''}
       ${u.active!=0 ? `<button class="btn btn-d btn-xs" data-action="toggleUserActive" data-id="${u.id}" data-active="0">Disable</button>` : `<button class="btn btn-xs btn-enable" data-action="toggleUserActive" data-id="${u.id}" data-active="1">Enable</button>`}
     </td>` : '';
     return`<tr${u.active==0?' class="row-inactive"':''}>
-      <td class="mono">${esc(u.username)}</td>
+      <td class="mono">${esc(u.username)}${u.has_signature ? '<span class="sig-badge" title="Has signature"></span>' : ''}</td>
       <td>${esc(u.name)}</td>
+      <td class="mono fs-12">${esc(u.email||'')}</td>
       <td>${rolePill(u.role)}</td>
       <td class="perm-col text-center">${tick(m.create)}</td>
       <td class="perm-col text-center">${tick(m.status)}</td>
@@ -3292,26 +3299,56 @@ function openEditUserModal(id) {
   const roles = ['admin','manager','call_logger','junior_tech','senior_tech','client_support','admin_clerk','viewer'];
   if (SESSION?.role === 'sysadmin') roles.unshift('sysadmin');
   const opts = roles.map(r=>`<option value="${r}"${r===u.role?' selected':''}>${r==='sysadmin'?'System Administrator':r.replace(/_/g,' ')}</option>`).join('');
+  const sigMeta = u.signature_updated_by
+    ? `Updated by ${esc(u.signature_updated_by)} on ${esc((u.signature_updated_at||'').slice(0,10))}`
+    : '';
   openModal(`Edit User — ${esc(u.username)}`, `
     <input type="hidden" id="eu-id" value="${u.id}">
     <div class="login-group"><label class="login-label">Username</label><input class="login-input" value="${esc(u.username)}" readonly class="login-input inp-readonly"></div>
     <div class="login-group"><label class="login-label">Full Name</label><input class="login-input" id="eu-name" value="${esc(u.name)}" placeholder="First Last"></div>
+    <div class="login-group"><label class="login-label">Email</label><input class="login-input" type="email" id="eu-email" value="${esc(u.email||'')}" placeholder="user@example.com"></div>
     <div class="login-group"><label class="login-label">Title / Position</label><input class="login-input" id="eu-title" value="${esc(u.title||'')}" placeholder="e.g. Field Technician"></div>
     <div class="login-group"><label class="login-label">Role</label><select class="login-input" id="eu-role">${opts}</select></div>
     <div class="login-group"><label class="login-label">New Password <span class="pass-hint">(leave blank to keep)</span></label><input class="login-input" type="password" id="eu-pass" placeholder="min 8 characters"></div>
     <button class="btn-login-submit mt-8" data-action="saveEditUser">Save Changes</button>
+    <div class="sig-section">
+      <div class="sig-section-title">Signature</div>
+      <div id="eu-sig-current" class="sig-current-wrap" style="${u.has_signature?'':'display:none'}">
+        <div class="sig-preview-box"><img id="eu-sig-img" src="" alt="Signature" class="sig-img"></div>
+        <div class="sig-meta" id="eu-sig-meta">${sigMeta}</div>
+        <button class="btn btn-d btn-xs mt-4" data-action="removeUserSignature" data-id="${u.id}">Remove Signature</button>
+      </div>
+      <div class="sig-upload-row">
+        <input type="file" id="eu-sig-file" accept="image/png" style="display:none">
+        <label for="eu-sig-file" class="btn btn-g btn-s sig-upload-btn">${u.has_signature?'Replace Signature':'Upload Signature (PNG)'}</label>
+        <span class="sig-hint">PNG only — background will be removed automatically</span>
+      </div>
+      <div id="eu-sig-new-wrap" class="sig-new-wrap" style="display:none">
+        <div class="sig-preview-box"><img id="eu-sig-new-img" src="" alt="Preview" class="sig-img"></div>
+        <div class="sig-new-actions">
+          <button class="btn btn-g btn-s" data-action="saveUserSignature">Save Signature</button>
+          <button class="btn btn-d btn-xs" data-action="clearSigPreview">Cancel</button>
+        </div>
+      </div>
+    </div>
   `);
+  // Wire file input change
+  const sigFile = document.getElementById('eu-sig-file');
+  if (sigFile) sigFile.addEventListener('change', onSigFileSelected);
+  // Load current signature image if present
+  if (u.has_signature) loadUserSignature(u.id);
 }
 
 async function saveEditUser() {
   const id    = parseInt(document.getElementById('eu-id')?.value) || 0;
   const name  = document.getElementById('eu-name')?.value?.trim();
+  const email = document.getElementById('eu-email')?.value?.trim();
   const title = document.getElementById('eu-title')?.value?.trim();
   const role  = document.getElementById('eu-role')?.value;
   const pass  = document.getElementById('eu-pass')?.value;
   if (!id || !name) { toast('Name is required', 'err'); return; }
   if (pass && pass.length < 8) { toast('Password must be at least 8 characters', 'err'); return; }
-  const payload = { name, title, role };
+  const payload = { name, email, title, role };
   if (pass) payload.password = pass;
   const r = await api('PUT', `users.php?id=${id}`, payload);
   if (!r.success) { toast(r.error || 'Error saving user', 'err'); return; }
@@ -3331,6 +3368,112 @@ async function toggleUserActive(id, active) {
   await refreshUsers();
   renderUsers();
   toast(`User ${label}d`, 'ok');
+}
+
+/* ═══════════════════════════════════════════════════════
+   USER SIGNATURE
+═══════════════════════════════════════════════════════ */
+
+async function loadUserSignature(userId) {
+  const r = await api('GET', `user_signature.php?user_id=${userId}`);
+  if (!r.success || !r.data.has_signature) return;
+  const img  = document.getElementById('eu-sig-img');
+  const meta = document.getElementById('eu-sig-meta');
+  if (img)  img.src = r.data.signature_image;
+  if (meta && r.data.signature_updated_by) {
+    meta.textContent = `Updated by ${r.data.signature_updated_by} on ${(r.data.signature_updated_at||'').slice(0,10)}`;
+  }
+}
+
+function onSigFileSelected(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (file.type !== 'image/png') {
+    toast('Only PNG files are accepted', 'err');
+    e.target.value = '';
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const wrap = document.getElementById('eu-sig-new-wrap');
+    const img  = document.getElementById('eu-sig-new-img');
+    if (img)  img.src = ev.target.result;
+    if (wrap) wrap.style.display = '';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function saveUserSignature() {
+  const idEl  = document.getElementById('eu-id');
+  const newImg = document.getElementById('eu-sig-new-img');
+  if (!idEl || !newImg || !newImg.src.startsWith('data:')) { toast('No signature selected', 'err'); return; }
+  const id = parseInt(idEl.value);
+  const r  = await api('POST', `user_signature.php?user_id=${id}`, { signature_image: newImg.src });
+  if (!r.success) { toast(r.error || 'Upload failed', 'err'); return; }
+
+  // Show processed image returned by server
+  const currentWrap = document.getElementById('eu-sig-current');
+  const currentImg  = document.getElementById('eu-sig-img');
+  const newWrap     = document.getElementById('eu-sig-new-wrap');
+  const fileInput   = document.getElementById('eu-sig-file');
+  if (currentImg)  currentImg.src = r.data.signature_image;
+  if (currentWrap) currentWrap.style.display = '';
+  if (newWrap)     newWrap.style.display = 'none';
+  if (fileInput)   fileInput.value = '';
+
+  const u = (DB.users || []).find(x => x.id === id);
+  if (u) u.has_signature = true;
+  toast('Signature saved', 'ok');
+}
+
+async function removeUserSignature(id) {
+  if (!confirm('Remove this user\'s signature?')) return;
+  const r = await api('DELETE', `user_signature.php?user_id=${id}`);
+  if (!r.success) { toast(r.error || 'Error removing signature', 'err'); return; }
+  const wrap = document.getElementById('eu-sig-current');
+  if (wrap) wrap.style.display = 'none';
+  const u = (DB.users || []).find(x => x.id === id);
+  if (u) u.has_signature = false;
+  renderUsers();
+  toast('Signature removed', 'ok');
+}
+
+function clearSigPreview() {
+  const wrap  = document.getElementById('eu-sig-new-wrap');
+  const input = document.getElementById('eu-sig-file');
+  if (wrap)  wrap.style.display = 'none';
+  if (input) input.value = '';
+}
+
+function openSignAsModal(id) {
+  if (!can('user.update')) return;
+  const u = (DB.users || []).find(x => x.id === id);
+  if (!u) return;
+  const entityTypes = ['policy_ack','safety_file','quote','invoice','callout'];
+  const opts = entityTypes.map(t => `<option value="${t}">${t.replace(/_/g,' ')}</option>`).join('');
+  openModal(`Sign As — ${esc(u.username)}`, `
+    <input type="hidden" id="sa-user-id" value="${u.id}">
+    <div class="sig-as-notice">
+      <strong>Admin action:</strong> You are signing a document using ${esc(u.username)}'s stored signature.
+      This action is permanently recorded in the audit log.
+    </div>
+    <div class="login-group"><label class="login-label">Document Type</label><select class="login-input" id="sa-entity-type">${opts}</select></div>
+    <div class="login-group"><label class="login-label">Document Reference</label><input class="login-input" id="sa-entity-ref" placeholder="e.g. SAF-2026-001"></div>
+    <div class="login-group"><label class="login-label">Reason / Notes</label><input class="login-input" id="sa-reason" placeholder="e.g. User absent — manager authorised"></div>
+    <button class="btn-login-submit mt-8 btn-warn" data-action="submitSignAs">Sign as ${esc(u.username)}</button>
+  `);
+}
+
+async function submitSignAs() {
+  const id          = parseInt(document.getElementById('sa-user-id')?.value) || 0;
+  const entity_type = document.getElementById('sa-entity-type')?.value;
+  const entity_ref  = document.getElementById('sa-entity-ref')?.value?.trim();
+  const reason      = document.getElementById('sa-reason')?.value?.trim();
+  if (!id || !entity_ref) { toast('Document reference is required', 'err'); return; }
+  const r = await api('POST', `user_signature.php?user_id=${id}&action=sign_as`, { entity_type, entity_ref, reason });
+  if (!r.success) { toast(r.error || 'Error', 'err'); return; }
+  closeModalDirect();
+  toast(r.message || 'Signed and audited', 'ok');
 }
 
 /* ═══════════════════════════════════════════════════════

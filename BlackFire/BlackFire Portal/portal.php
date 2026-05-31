@@ -887,7 +887,7 @@ $cspNonce = base64_encode(random_bytes(16));
         </div>
         <div class="tw"><table id="users-rbac-table"><thead>
           <tr>
-            <th>Username</th><th>Name</th><th>Role</th>
+            <th>Username</th><th>Name</th><th>Email</th><th>Role</th>
             <th class="perm-col">Can Create Callout</th>
             <th class="perm-col">Update Status</th>
             <th class="perm-col">Assign PO</th>
