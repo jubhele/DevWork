@@ -31,16 +31,40 @@ if ($method === 'GET') {
     $params = [];
 
     if ($activeOnly) {
-        $where[] = 'is_active = 1';
+        $where[] = 'c.is_active = 1';
     }
     if ($q) {
         $like    = '%' . like_escape($q) . '%';
-        $where[] = '(name LIKE ? ESCAPE \'\\\\\' OR email LIKE ? ESCAPE \'\\\\\' OR contact_person LIKE ? ESCAPE \'\\\\\')';
-        array_push($params, $like, $like, $like);
+        $where[] = '(c.name LIKE ? ESCAPE \'\\\\\' OR c.email LIKE ? ESCAPE \'\\\\\' OR cc.contact_name LIKE ? ESCAPE \'\\\\\' OR cc.email LIKE ? ESCAPE \'\\\\\')';
+        array_push($params, $like, $like, $like, $like);
     }
 
     $sql_where = $where ? 'WHERE ' . implode(' AND ', $where) : '';
-    $rows = db_select("SELECT * FROM bf_clients $sql_where ORDER BY name", $params);
+    $rows = db_select(
+        "SELECT DISTINCT c.* FROM bf_clients c
+         LEFT JOIN bf_client_contacts cc ON cc.client_id = c.id
+         $sql_where ORDER BY c.name",
+        $params
+    );
+
+    // Attach contacts to each client row
+    if ($rows) {
+        $ids          = array_column($rows, 'id');
+        $ph           = implode(',', array_fill(0, count($ids), '?'));
+        $contacts     = db_select(
+            "SELECT * FROM bf_client_contacts WHERE client_id IN ($ph) ORDER BY client_id, is_primary DESC, id",
+            $ids
+        );
+        $contactsMap  = [];
+        foreach ($contacts as $ct) {
+            $contactsMap[$ct['client_id']][] = $ct;
+        }
+        foreach ($rows as &$row) {
+            $row['contacts'] = $contactsMap[$row['id']] ?? [];
+        }
+        unset($row);
+    }
+
     json_ok(['data' => $rows]);
 }
 
@@ -67,8 +91,14 @@ if ($method === 'POST') {
         ]
     );
 
+    save_client_contacts($id, $b['contacts'] ?? []);
+
     audit($usr['username'], 'CREATE', "Client created: " . clean($b['name']));
     $row = db_row("SELECT * FROM bf_clients WHERE id = ?", [$id]);
+    $row['contacts'] = db_select(
+        "SELECT * FROM bf_client_contacts WHERE client_id = ? ORDER BY is_primary DESC, id",
+        [$id]
+    );
     json_ok(['data' => $row], "Client " . clean($b['name']) . " created");
 }
 
@@ -94,10 +124,46 @@ if ($method === 'PUT') {
     $params[] = $id;
 
     db_exec("UPDATE bf_clients SET " . implode(', ', $sets) . " WHERE id = ?", $params);
+    if (isset($b['contacts'])) {
+        save_client_contacts($id, $b['contacts']);
+    }
     audit($usr['username'], 'UPDATE', "Client ID $id updated");
     $row = db_row("SELECT * FROM bf_clients WHERE id = ?", [$id]);
     if (!$row) json_err('Client not found', 404);
+    $row['contacts'] = db_select(
+        "SELECT * FROM bf_client_contacts WHERE client_id = ? ORDER BY is_primary DESC, id",
+        [$id]
+    );
     json_ok(['data' => $row], 'Client updated');
+}
+
+// ── Helpers ────────────────────────────────────────────
+function save_client_contacts(int $clientId, array $contacts): void {
+    db_exec("DELETE FROM bf_client_contacts WHERE client_id = ?", [$clientId]);
+    $primaryEmail = '';
+    foreach ($contacts as $ct) {
+        $isPrimary = !empty($ct['is_primary']) ? 1 : 0;
+        $email     = clean($ct['email'] ?? '', 150);
+        if ($isPrimary && $email && !$primaryEmail) {
+            $primaryEmail = $email;
+        }
+        db_insert(
+            "INSERT INTO bf_client_contacts (client_id, contact_name, email, phone, title, is_primary)
+             VALUES (?,?,?,?,?,?)",
+            [
+                $clientId,
+                clean($ct['contact_name'] ?? '', 255),
+                $email,
+                clean($ct['phone'] ?? '', 50),
+                clean($ct['title'] ?? '', 100),
+                $isPrimary,
+            ]
+        );
+    }
+    // Sync primary contact email back to bf_clients.email for backward compat
+    if ($primaryEmail) {
+        db_exec("UPDATE bf_clients SET email = ? WHERE id = ?", [$primaryEmail, $clientId]);
+    }
 }
 
 // ── DELETE — Soft delete ───────────────────────────────
