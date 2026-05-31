@@ -20,7 +20,10 @@ $uid    = (int)($_GET['id'] ?? 0);
 
 if ($method === 'GET') {
     require_perm('security.users');
-    $rows = db_select("SELECT id, username, name, role, title, active, last_login, created_at FROM bf_users ORDER BY id");
+    $rows = db_select("SELECT id, username, name, role, title, email, active, last_login, created_at,
+        (signature_image IS NOT NULL) AS has_signature,
+        signature_updated_by, signature_updated_at
+        FROM bf_users ORDER BY id");
     json_ok(['data' => $rows]);
 }
 
@@ -62,7 +65,7 @@ if ($method === 'PUT') {
     }
 
     $sets = []; $params = [];
-    foreach (['name', 'role', 'title', 'active'] as $f) {
+    foreach (['name', 'role', 'title', 'email', 'active'] as $f) {
         if (array_key_exists($f, $b)) {
             $sets[]   = "$f = ?";
             $params[] = $f === 'active' ? (int)filter_var($b[$f], FILTER_VALIDATE_BOOLEAN) : clean($b[$f]);
@@ -74,7 +77,7 @@ if ($method === 'PUT') {
     }
 
     audit($usr['username'], 'UPDATE', "User #$uid updated");
-    $row = db_row("SELECT id, username, name, role, title, active, last_login FROM bf_users WHERE id = ?", [$uid]);
+    $row = db_row("SELECT id, username, name, role, title, email, active, last_login FROM bf_users WHERE id = ?", [$uid]);
     json_ok(['data' => $row], 'User updated');
 }
 
