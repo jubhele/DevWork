@@ -171,6 +171,8 @@ document.addEventListener('click', function(e) {
     case 'closeClientModal':     closeClientModal(); break;
     case 'saveClient':           saveClient(); break;
     case 'deactivateClient':     deactivateClient(+el.dataset.id); break;
+    case 'addClientContact':     addClientContact(); break;
+    case 'removeClientContact':  removeClientContact(+el.dataset.idx); break;
     // Safety
     case 'newSafetyAudit':       newSafetyAudit(); break;
     case 'saveSafetyDraft':      saveSafetyDraft(); break;
@@ -444,6 +446,7 @@ function can(perm){ return SESSION?.role==='sysadmin' || (PERMS[perm]||[]).inclu
 let DB = { callouts:[], quotes:[], invoices:[], bank:[], users:[], safetyFiles:[], clients:[] };
 let SESSION = null;
 let AUDIT_LOG = [];
+let modalContacts = [];
 
 /* ── Data Refresh Functions ─────────────────────────── */
 async function refreshSafetyFiles() {
@@ -480,7 +483,12 @@ async function refreshClients() {
   }
 }
 function populateClientDropdowns() {
-  const opts = DB.clients.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+  const opts = DB.clients.map(c => {
+    const primary = (c.contacts || []).find(ct => +ct.is_primary) || (c.contacts || [])[0];
+    const email   = primary?.email || c.email || '';
+    const label   = c.name + (email ? ' — ' + email : '');
+    return `<option value="${c.id}">${esc(label)}</option>`;
+  }).join('');
   ['nc-client','nq-client','ni-client'].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
@@ -3734,30 +3742,38 @@ function renderClients(search = '') {
   let rows = [...(DB.clients || [])];
   if (search) {
     const q = search.toLowerCase();
-    rows = rows.filter(c =>
-      (c.name||'').toLowerCase().includes(q) ||
-      (c.email||'').toLowerCase().includes(q) ||
-      (c.contact_person||'').toLowerCase().includes(q)
-    );
+    rows = rows.filter(c => {
+      if ((c.name||'').toLowerCase().includes(q)) return true;
+      if ((c.email||'').toLowerCase().includes(q)) return true;
+      return (c.contacts||[]).some(ct =>
+        (ct.contact_name||'').toLowerCase().includes(q) ||
+        (ct.email||'').toLowerCase().includes(q)
+      );
+    });
   }
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="7" class="tbl-empty-cell">No clients found</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="tbl-empty-cell">No clients found</td></tr>';
     return;
   }
-  tbody.innerHTML = rows.map(c => `
-    <tr>
-      <td><strong>${esc(c.name)}</strong></td>
-      <td>${esc(c.email)}</td>
-      <td>${esc(c.phone)}</td>
-      <td>${esc(c.contact_person)}</td>
-      <td>${esc(c.vat_number)}</td>
-      <td><span class="badge badge-${c.is_active ? 'ok' : 'grey'}">${c.is_active ? 'Active' : 'Inactive'}</span></td>
-      <td>
-        <button class="btn btn-g btn-xs" data-action="openClientModal" data-id="${c.id}">Edit</button>
-        ${c.is_active ? `<button class="btn btn-d btn-xs" data-action="deactivateClient" data-id="${c.id}">Deactivate</button>` : ''}
-      </td>
-    </tr>
-  `).join('');
+  tbody.innerHTML = rows.map(c => {
+    const contacts = c.contacts || [];
+    const primary  = contacts.find(ct => +ct.is_primary) || contacts[0];
+    const contactCell = primary
+      ? `<div class="cc-name">${esc(primary.contact_name)}</div><div class="cc-email">${esc(primary.email)}</div>${contacts.length > 1 ? `<div class="cc-more">+${contacts.length - 1} more</div>` : ''}`
+      : (c.email ? `<div class="cc-email">${esc(c.email)}</div>` : '<span class="td-muted">—</span>');
+    return `
+      <tr>
+        <td><strong>${esc(c.name)}</strong></td>
+        <td>${contactCell}</td>
+        <td>${esc(c.phone)}</td>
+        <td>${esc(c.vat_number)}</td>
+        <td><span class="badge badge-${c.is_active ? 'ok' : 'grey'}">${c.is_active ? 'Active' : 'Inactive'}</span></td>
+        <td>
+          <button class="btn btn-g btn-xs" data-action="openClientModal" data-id="${c.id}">Edit</button>
+          ${c.is_active ? `<button class="btn btn-d btn-xs" data-action="deactivateClient" data-id="${c.id}">Deactivate</button>` : ''}
+        </td>
+      </tr>`;
+  }).join('');
 }
 
 function openClientModal(id) {
@@ -3768,19 +3784,25 @@ function openClientModal(id) {
   if (id) {
     const c = (DB.clients || []).find(x => x.id === id);
     if (c) {
-      document.getElementById('cm-name').value            = c.name || '';
-      document.getElementById('cm-email').value           = c.email || '';
-      document.getElementById('cm-phone').value           = c.phone || '';
-      document.getElementById('cm-vat').value             = c.vat_number || '';
-      document.getElementById('cm-address').value         = c.address || '';
-      document.getElementById('cm-contact').value         = c.contact_person || '';
-      document.getElementById('cm-contact-details').value = c.contact_details || '';
-      document.getElementById('cm-notes').value           = c.notes || '';
+      document.getElementById('cm-name').value    = c.name || '';
+      document.getElementById('cm-phone').value   = c.phone || '';
+      document.getElementById('cm-vat').value     = c.vat_number || '';
+      document.getElementById('cm-address').value = c.address || '';
+      document.getElementById('cm-notes').value   = c.notes || '';
+      modalContacts = (c.contacts || []).map(ct => ({
+        contact_name: ct.contact_name || '',
+        email:        ct.email || '',
+        phone:        ct.phone || '',
+        title:        ct.title || '',
+        is_primary:   +ct.is_primary || 0,
+      }));
     }
   } else {
-    ['cm-name','cm-email','cm-phone','cm-vat','cm-address','cm-contact','cm-contact-details','cm-notes']
+    ['cm-name','cm-phone','cm-vat','cm-address','cm-notes']
       .forEach(f => { const el = document.getElementById(f); if (el) el.value = ''; });
+    modalContacts = [];
   }
+  renderModalContacts();
   modal.style.display = 'flex';
 }
 
@@ -3794,15 +3816,15 @@ async function saveClient() {
   const name = document.getElementById('cm-name')?.value?.trim();
   if (!name) { toast('Client name is required', 'err'); return; }
 
+  const contacts = collectModalContacts();
+
   const payload = {
     name,
-    email:           document.getElementById('cm-email')?.value?.trim()           || '',
-    phone:           document.getElementById('cm-phone')?.value?.trim()           || '',
-    vat_number:      document.getElementById('cm-vat')?.value?.trim()             || '',
-    address:         document.getElementById('cm-address')?.value?.trim()         || '',
-    contact_person:  document.getElementById('cm-contact')?.value?.trim()         || '',
-    contact_details: document.getElementById('cm-contact-details')?.value?.trim() || '',
-    notes:           document.getElementById('cm-notes')?.value?.trim()           || '',
+    phone:      document.getElementById('cm-phone')?.value?.trim()   || '',
+    vat_number: document.getElementById('cm-vat')?.value?.trim()     || '',
+    address:    document.getElementById('cm-address')?.value?.trim() || '',
+    notes:      document.getElementById('cm-notes')?.value?.trim()   || '',
+    contacts,
   };
 
   const r = id
@@ -3823,6 +3845,65 @@ async function deactivateClient(id) {
   await refreshClients();
   renderClients('');
   toast('Client deactivated');
+}
+
+/* ── Client Contact Management ─────────────────────── */
+function addClientContact() {
+  modalContacts.push({ contact_name: '', email: '', phone: '', title: '', is_primary: modalContacts.length === 0 ? 1 : 0 });
+  renderModalContacts();
+}
+
+function removeClientContact(idx) {
+  modalContacts.splice(idx, 1);
+  if (modalContacts.length > 0 && !modalContacts.some(c => c.is_primary)) {
+    modalContacts[0].is_primary = 1;
+  }
+  renderModalContacts();
+}
+
+function renderModalContacts() {
+  const list = document.getElementById('cm-contacts-list');
+  if (!list) return;
+  if (!modalContacts.length) {
+    list.innerHTML = '<p class="cm-no-contacts">No contacts yet — click <em>+ Add Contact</em> to add one.</p>';
+    return;
+  }
+  list.innerHTML = modalContacts.map((ct, i) => `
+    <div class="cm-contact-row">
+      <input class="finput cm-ct-field" placeholder="Name" value="${esc(ct.contact_name)}" data-ci="${i}" data-field="contact_name">
+      <input class="finput cm-ct-field" type="email" placeholder="Email" value="${esc(ct.email)}" data-ci="${i}" data-field="email">
+      <input class="finput cm-ct-field" placeholder="Phone" value="${esc(ct.phone)}" data-ci="${i}" data-field="phone">
+      <input class="finput cm-ct-field" placeholder="Title / Role" value="${esc(ct.title)}" data-ci="${i}" data-field="title">
+      <label class="cm-primary-lbl" title="Set as primary contact">
+        <input type="radio" name="cm-primary" ${ct.is_primary ? 'checked' : ''} data-ci="${i}"> Primary
+      </label>
+      <button class="btn btn-d btn-xs" data-action="removeClientContact" data-idx="${i}" title="Remove contact">&times;</button>
+    </div>
+  `).join('');
+
+  // Sync radio changes back to modalContacts
+  list.querySelectorAll('input[name="cm-primary"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+      const ci = +radio.dataset.ci;
+      modalContacts.forEach((c, i) => { c.is_primary = i === ci ? 1 : 0; });
+    });
+  });
+}
+
+function collectModalContacts() {
+  const rows = document.querySelectorAll('#cm-contacts-list .cm-contact-row');
+  const checkedRadio = document.querySelector('#cm-contacts-list input[name="cm-primary"]:checked');
+  const primaryIdx   = checkedRadio ? +checkedRadio.dataset.ci : -1;
+  const result = [];
+  rows.forEach((row, i) => {
+    const name  = row.querySelector('[data-field="contact_name"]')?.value?.trim() || '';
+    const email = row.querySelector('[data-field="email"]')?.value?.trim() || '';
+    const phone = row.querySelector('[data-field="phone"]')?.value?.trim() || '';
+    const title = row.querySelector('[data-field="title"]')?.value?.trim() || '';
+    if (!name && !email) return;
+    result.push({ contact_name: name, email, phone, title, is_primary: i === primaryIdx ? 1 : 0 });
+  });
+  return result;
 }
 
 /* ── Back to Top Functionality ──────────────────────── */

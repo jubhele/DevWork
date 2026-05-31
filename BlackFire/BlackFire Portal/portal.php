@@ -712,7 +712,7 @@ $cspNonce = base64_encode(random_bytes(16));
       <div class="panel">
         <div class="tw">
           <table>
-            <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Contact Person</th><th>VAT No.</th><th>Status</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Name</th><th>Primary Contact</th><th>Phone</th><th>VAT No.</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody id="clients-table"></tbody>
           </table>
         </div>
@@ -730,13 +730,17 @@ $cspNonce = base64_encode(random_bytes(16));
           <input type="hidden" id="cm-id">
           <div class="fgrid">
             <div class="fgroup ffull"><label class="flbl">Client Name <span class="req">*</span></label><input class="finput" id="cm-name" placeholder="Company or client name"></div>
-            <div class="fgroup"><label class="flbl">Email</label><input type="email" class="finput" id="cm-email" placeholder="billing@company.co.za"></div>
-            <div class="fgroup"><label class="flbl">Phone</label><input class="finput" id="cm-phone" placeholder="+27 11 000 0000"></div>
+            <div class="fgroup"><label class="flbl">Phone (Main)</label><input class="finput" id="cm-phone" placeholder="+27 11 000 0000"></div>
             <div class="fgroup"><label class="flbl">VAT Number</label><input class="finput" id="cm-vat" placeholder="4XXXXXXXXX"></div>
             <div class="fgroup ffull"><label class="flbl">Address</label><textarea class="finput" id="cm-address" rows="2" placeholder="Street, suburb, city, postal code"></textarea></div>
-            <div class="fgroup"><label class="flbl">Contact Person</label><input class="finput" id="cm-contact" placeholder="Primary contact name"></div>
-            <div class="fgroup ffull"><label class="flbl">Contact Details</label><textarea class="finput" id="cm-contact-details" rows="2" placeholder="Direct phone, mobile, alternate email..."></textarea></div>
             <div class="fgroup ffull"><label class="flbl">Notes</label><textarea class="finput" id="cm-notes" rows="3" placeholder="Internal notes, contract details, billing terms..."></textarea></div>
+          </div>
+          <div class="cm-contacts-section">
+            <div class="cm-contacts-hdr">
+              <span class="flbl">Contacts</span>
+              <button type="button" class="btn btn-g btn-xs" data-action="addClientContact">+ Add Contact</button>
+            </div>
+            <div id="cm-contacts-list"></div>
           </div>
         </div>
         <div class="modal-footer flex-end">
