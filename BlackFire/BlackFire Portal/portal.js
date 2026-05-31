@@ -621,7 +621,9 @@ function normalizeSafetyFile(f) {
     id:               f.ref_id,
     contractor:       f.contractor       || '',
     contractorRep:    f.contractor_rep   || '',
+    contractorRepId:  f.contractor_rep_id ? parseInt(f.contractor_rep_id) : null,
     appointee162:     f.appointee162     || '',
+    appointee162Id:   f.appointee162_id  ? parseInt(f.appointee162_id)  : null,
     auditDate:        f.audit_date       || '',
     region:           f.region           || '',
     auditTeam:        f.audit_team       || '',
@@ -4188,7 +4190,7 @@ function safBlankFile(id){
     }));
   });
   return {
-    id, contractor:'', contractorRep:'', appointee162:'',
+    id, contractor:'', contractorRep:'', contractorRepId: null, appointee162:'', appointee162Id: null,
     auditDate: localDateStr(), region:'', auditTeam:'', scopeOfWork:'',
     manpower:0, supervisors:0, sheReps:0, firstAiders:0,
     sections, status:'Draft', auditorName:'', signOffDate:'',
@@ -4663,8 +4665,14 @@ function safUpdateScore(){
 function safReadHeader(file){
   const g=id=>(document.getElementById(id)?.value||'').trim();
   const n=id=>parseInt(document.getElementById(id)?.value)||0;
-  file.contractor=g('sah-contractor'); file.contractorRep=g('sah-rep');
-  file.appointee162=g('sah-appointee'); file.auditDate=g('sah-date');
+  file.contractor=g('sah-contractor');
+  const repId = parseInt(document.getElementById('sah-rep')?.value) || null;
+  file.contractorRepId = repId;
+  file.contractorRep = (proxyDB.users||[]).find(u=>u.id===repId)?.name || '';
+  const apptId = parseInt(document.getElementById('sah-appointee')?.value) || null;
+  file.appointee162Id = apptId;
+  file.appointee162 = (proxyDB.users||[]).find(u=>u.id===apptId)?.name || '';
+  file.auditDate=g('sah-date');
   file.region=g('sah-region'); file.auditTeam=g('sah-team');
   file.scopeOfWork=g('sah-scope'); file.manpower=n('sah-manpower');
   file.supervisors=n('sah-supervisors'); file.sheReps=n('sah-shereps');
@@ -4672,10 +4680,23 @@ function safReadHeader(file){
   file.signOffDate=g('sah-signoff-date');
 }
 
+function _safUserOpts(selectedId) {
+  const blank = '<option value="">— Select —</option>';
+  const opts = (proxyDB.users||[]).filter(u=>u.active!=0)
+    .sort((a,b)=>(a.name||'').localeCompare(b.name||''))
+    .map(u=>`<option value="${u.id}"${u.id===selectedId?' selected':''}>${esc(u.name)} — ${esc(u.title||u.role||'')}</option>`)
+    .join('');
+  return blank + opts;
+}
+
 function safFillHeader(file){
   const s=(id,v)=>{const e=document.getElementById(id);if(e)e.value=v||'';};
-  s('sah-contractor',file.contractor); s('sah-rep',file.contractorRep);
-  s('sah-appointee',file.appointee162); s('sah-date',file.auditDate);
+  s('sah-contractor',file.contractor);
+  const repEl=document.getElementById('sah-rep');
+  if(repEl) repEl.innerHTML=_safUserOpts(file.contractorRepId);
+  const apptEl=document.getElementById('sah-appointee');
+  if(apptEl) apptEl.innerHTML=_safUserOpts(file.appointee162Id);
+  s('sah-date',file.auditDate);
   s('sah-region',file.region); s('sah-team',file.auditTeam);
   s('sah-scope',file.scopeOfWork); s('sah-manpower',file.manpower||0);
   s('sah-supervisors',file.supervisors||0); s('sah-shereps',file.sheReps||0);
@@ -4691,8 +4712,12 @@ function newSafetyAudit(){
   if(inp) inp.value='';
   document.getElementById('saf-page-title').textContent='New Safety Audit';
   const today=localDateStr();
-  const fields=['sah-contractor','sah-rep','sah-appointee','sah-region','sah-team','sah-scope','sah-auditor-name'];
+  const fields=['sah-contractor','sah-region','sah-team','sah-scope','sah-auditor-name'];
   fields.forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  const repEl=document.getElementById('sah-rep');
+  if(repEl) repEl.innerHTML=_safUserOpts(null);
+  const apptEl=document.getElementById('sah-appointee');
+  if(apptEl) apptEl.innerHTML=_safUserOpts(null);
   ['sah-manpower','sah-supervisors','sah-shereps','sah-firstaiders'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='0';});
   document.getElementById('sah-date').value=today;
   document.getElementById('sah-signoff-date').value=today;
@@ -4779,8 +4804,10 @@ async function editSafetyFile(){
 
 function _safBuildApiBody(file, status){
   const body={
-    contractor:    file.contractor,    contractor_rep: file.contractorRep,
-    appointee162:  file.appointee162,  audit_date:     file.auditDate,
+    contractor:        file.contractor,
+    contractor_rep:    file.contractorRep,    contractor_rep_id: file.contractorRepId  || null,
+    appointee162:      file.appointee162,     appointee162_id:   file.appointee162Id   || null,
+    audit_date:        file.auditDate,
     region:        file.region,        audit_team:     file.auditTeam,
     scope_of_work: file.scopeOfWork,   manpower:       file.manpower,
     supervisors:   file.supervisors,   she_reps:       file.sheReps,
