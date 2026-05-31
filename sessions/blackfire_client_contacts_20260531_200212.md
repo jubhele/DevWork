@@ -31,8 +31,41 @@ Active model: claude-sonnet-4-6   Status: correct
 - Test: add a new client with 2 contacts, verify dropdown shows primary email
 - Test: edit existing AECI Chempark client — should pre-populate from migrated contact_person
 
+## Resumed 2026-05-31 — SQL dedup audit
+
+### Goal
+Audit all SQL INSERT statements across install/*.sql to ensure no file can insert duplicate records on re-run.
+
+### Findings
+All files were already protected except one:
+
+| File | Mechanism | Status |
+|------|-----------|--------|
+| `migration_client_contacts.sql` | `WHERE NOT EXISTS` subquery | ✅ |
+| `clients_migration.sql` | `ON DUPLICATE KEY UPDATE` | ✅ |
+| `safety_migration.sql` | `ON DUPLICATE KEY UPDATE` | ✅ |
+| `add_pay_counter.sql` | `ON DUPLICATE KEY UPDATE` | ✅ |
+| `combined_migration.sql` | `ON DUPLICATE KEY UPDATE` | ✅ |
+| `rbac_full_migration.sql` | `DELETE FROM` all rows then INSERT | ✅ |
+| `safety_seed_astute.sql` | `DELETE WHERE ref_id` + INSERT (CASCADE) | ✅ |
+| `safety_attachments_seed.sql` | `DELETE WHERE entity_type+entity_ref` + INSERT | ✅ |
+| `blackfire_testdata_part1.sql` | `INSERT IGNORE`; `DELETE WHERE file_ref` for items | ✅ |
+| `blackfire_testdata_part2.sql` | `INSERT IGNORE`; `DELETE WHERE file_ref` for items | ✅ |
+| `blackfire_testdata_part3.sql` | Mix of IGNORE, ON DUPLICATE KEY, DELETE+INSERT | ✅ |
+| `update_saf_120326_0001_may2026.sql` | `INSERT IGNORE` — **NO UNIQUE KEY on bf_safety_personnel** | ❌ → fixed |
+
+### Fix applied
+`update_saf_120326_0001_may2026.sql` line 5 (step 5): Changed `INSERT IGNORE INTO bf_safety_personnel` to `INSERT ... FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM bf_safety_personnel WHERE file_ref=... AND full_name=...)`.
+
+`bf_safety_personnel` has no UNIQUE constraint on (file_ref, full_name), so INSERT IGNORE would not prevent duplicates. `WHERE NOT EXISTS` is the correct guard.
+
 ## Learnings
-- (fill before session ends)
+- `INSERT IGNORE` is a no-op dedup guard on tables without a UNIQUE KEY — always verify the target table has the matching constraint
+- `FROM DUAL` is the MySQL-standard way to supply a constant row in an INSERT...SELECT...WHERE NOT EXISTS pattern; bare `SELECT ... WHERE` works in MySQL but trips linters
 _Session ended: 2026-05-31 20:08:52 (Claude Code / claude-sonnet-4-6)_
 _Session ended: 2026-05-31 20:15:25 (Claude Code / claude-sonnet-4-6)_
 _Session ended: 2026-05-31 20:20:38 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-31 20:36:11 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-31 20:57:07 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-31 21:04:00 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-05-31 21:05:08 (Claude Code / claude-sonnet-4-6)_
