@@ -34,18 +34,16 @@ SET NAMES utf8mb4;
 CREATE TABLE IF NOT EXISTS bf_mobile_tokens (
   id            INT           AUTO_INCREMENT PRIMARY KEY,
   user_id       INT           NOT NULL,
-  token_hash    CHAR(64)      NOT NULL UNIQUE COMMENT 'SHA-256 of the raw 32-byte token',
-  device_id     VARCHAR(255)  DEFAULT NULL  COMMENT 'client-supplied device fingerprint (expo-device id or UUID)',
-  device_name   VARCHAR(255)  DEFAULT NULL  COMMENT 'human-readable label (e.g. "iPhone 15 Pro")',
+  token_hash    CHAR(64)      NOT NULL UNIQUE,
+  device_id     VARCHAR(255)  DEFAULT NULL,
+  device_name   VARCHAR(255)  DEFAULT NULL,
   last_used_at  DATETIME      DEFAULT NULL,
-  expires_at    DATETIME      NOT NULL      COMMENT 'default: 30 days from issue',
+  expires_at    DATETIME      NOT NULL,
   revoked       TINYINT(1)    NOT NULL DEFAULT 0,
   created_at    TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT fk_mbt_user FOREIGN KEY (user_id) REFERENCES bf_users (id) ON DELETE CASCADE,
-  INDEX idx_token_hash  (token_hash),
-  INDEX idx_user        (user_id),
-  INDEX idx_expires     (expires_at),
-  INDEX idx_device      (device_id)
+  INDEX idx_user    (user_id),
+  INDEX idx_expires (expires_at),
+  INDEX idx_device  (device_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ── bf_mobile_rate_limits ─────────────────────────────────────────
