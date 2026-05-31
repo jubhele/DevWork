@@ -219,17 +219,23 @@ if ($method === 'POST') {
 
     $ref = next_ref_id('saf');
 
+    $rep_id  = !empty($b['contractor_rep_id']) ? (int)$b['contractor_rep_id'] : null;
+    $appt_id = !empty($b['appointee162_id'])   ? (int)$b['appointee162_id']   : null;
+
     db_insert(
         "INSERT INTO bf_safety_files
-         (ref_id, contractor, contractor_rep, appointee162, audit_date, region,
+         (ref_id, contractor, contractor_rep, contractor_rep_id,
+          appointee162, appointee162_id, audit_date, region,
           audit_team, scope_of_work, manpower, supervisors, she_reps, first_aiders,
-          auditor_name, sign_off_date, status, created_by)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+          auditor_name, sign_off_date, status, created_by, created_by_id, updated_by_id)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
         [
             $ref,
             clean($b['contractor']),
             clean($b['contractor_rep']  ?? ''),
+            $rep_id,
             clean($b['appointee162']    ?? ''),
+            $appt_id,
             ($b['audit_date'] && valid_date($b['audit_date'])) ? $b['audit_date'] : null,
             clean($b['region']          ?? ''),
             clean($b['audit_team']      ?? ''),
@@ -242,6 +248,8 @@ if ($method === 'POST') {
             ($b['sign_off_date'] && valid_date($b['sign_off_date'])) ? $b['sign_off_date'] : null,
             clean($b['status'] ?? 'Draft'),
             $user['username'],
+            $user['id'],
+            $user['id'],
         ]
     );
 
@@ -287,9 +295,9 @@ if ($method === 'PUT') {
         db_exec(
             "UPDATE bf_safety_files
              SET policy_email_sent = 1, policy_email_date = CURDATE(), policy_email_to = ?,
-                 updated_by = ?
+                 updated_by = ?, updated_by_id = ?
              WHERE ref_id = ?",
-            [$to, $user['username'], $ref_id]
+            [$to, $user['username'], $user['id'], $ref_id]
         );
         audit($user['username'], 'POLICY_EMAIL', "Policy acknowledgment email sent for $ref_id to $to");
         $row = db_row("SELECT * FROM bf_safety_files WHERE ref_id = ?", [$ref_id]);
@@ -338,6 +346,10 @@ if ($method === 'PUT') {
             $sets[]   = 'appointee = ?';
             $params[] = clean($b['appointee'], 100);
         }
+        if (array_key_exists('appointee_id', $b)) {
+            $sets[]   = 'appointee_id = ?';
+            $params[] = !empty($b['appointee_id']) ? (int)$b['appointee_id'] : null;
+        }
         if (array_key_exists('comments', $b)) {
             $sets[]   = 'comments = ?';
             $params[] = clean($b['comments'], 2000);
@@ -363,8 +375,8 @@ if ($method === 'PUT') {
             json_err('Only Submitted or In Progress files can be approved');
         }
         db_exec(
-            "UPDATE bf_safety_files SET status = 'Approved', updated_by = ? WHERE ref_id = ?",
-            [$user['username'], $ref_id]
+            "UPDATE bf_safety_files SET status = 'Approved', updated_by = ?, updated_by_id = ? WHERE ref_id = ?",
+            [$user['username'], $user['id'], $ref_id]
         );
         audit($user['username'], 'APPROVE', "Safety file $ref_id approved");
         $row = db_row("SELECT * FROM bf_safety_files WHERE ref_id = ?", [$ref_id]);
@@ -379,8 +391,16 @@ if ($method === 'PUT') {
         'first_aiders', 'auditor_name', 'sign_off_date', 'status',
     ];
 
-    $sets   = ['updated_by = ?'];
-    $params = [$user['username']];
+    $sets   = ['updated_by = ?', 'updated_by_id = ?'];
+    $params = [$user['username'], $user['id']];
+
+    $fk_fields = ['contractor_rep_id', 'appointee162_id'];
+    foreach ($fk_fields as $fk) {
+        if (array_key_exists($fk, $b)) {
+            $sets[]   = "$fk = ?";
+            $params[] = !empty($b[$fk]) ? (int)$b[$fk] : null;
+        }
+    }
 
     foreach ($header_fields as $field) {
         if (!array_key_exists($field, $b)) continue;
@@ -445,21 +465,24 @@ function _upsert_items(string $ref_id, array $sections): void {
                 $item['ap_status'], ['Open', 'In Progress', 'Resolved'], true
             ) ? $item['ap_status'] : 'Open';
 
+            $appointee_id = !empty($item['appointee_id']) ? (int)$item['appointee_id'] : null;
             db_exec(
                 "INSERT INTO bf_safety_items
-                    (file_ref, section_key, item_no, result, appointee, comments, ap_status)
-                 VALUES (?, ?, ?, ?, ?, ?, ?)
+                    (file_ref, section_key, item_no, result, appointee, appointee_id, comments, ap_status)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                  ON DUPLICATE KEY UPDATE
-                    result    = VALUES(result),
-                    appointee = VALUES(appointee),
-                    comments  = VALUES(comments),
-                    ap_status = VALUES(ap_status)",
+                    result       = VALUES(result),
+                    appointee    = VALUES(appointee),
+                    appointee_id = VALUES(appointee_id),
+                    comments     = VALUES(comments),
+                    ap_status    = VALUES(ap_status)",
                 [
                     $ref_id,
                     $sec_key,
                     $no,
                     $result,
                     clean($item['appointee'] ?? ''),
+                    $appointee_id,
                     clean($item['comments']  ?? '', 2000),
                     $ap,
                 ]

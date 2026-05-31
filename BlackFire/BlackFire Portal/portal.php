@@ -789,8 +789,8 @@ $cspNonce = base64_encode(random_bytes(16));
             <div class="pb">
               <div class="fgrid">
                 <div class="fgroup"><label class="flbl">Contractor <span class="req">*</span></label><input class="finput" id="sah-contractor" list="sah-contractor-dl" placeholder="Type or select contractor" autocomplete="off"><datalist id="sah-contractor-dl"></datalist></div>
-                <div class="fgroup"><label class="flbl">Contractor Rep</label><input class="finput" id="sah-rep" placeholder="Name"></div>
-                <div class="fgroup"><label class="flbl">16.2 Appointee</label><input class="finput" id="sah-appointee" placeholder="Name"></div>
+                <div class="fgroup"><label class="flbl">Contractor Rep</label><select class="finput" id="sah-rep"><option value="">— Select —</option></select></div>
+                <div class="fgroup"><label class="flbl">16.2 Appointee</label><select class="finput" id="sah-appointee"><option value="">— Select —</option></select></div>
                 <div class="fgroup"><label class="flbl">Audit Date <span class="req">*</span></label><input type="date" class="finput" id="sah-date"></div>
                 <div class="fgroup"><label class="flbl">Region / Site</label><input class="finput" id="sah-region" placeholder="e.g. AECI Chempark"></div>
                 <div class="fgroup"><label class="flbl">Audit Team</label><input class="finput" id="sah-team" placeholder="Auditor name(s)"></div>
