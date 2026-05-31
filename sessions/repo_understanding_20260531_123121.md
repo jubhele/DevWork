@@ -29,6 +29,9 @@ Understand what is in `jubhele/BlackFire` and `jubhele/umlilo-portal`, using loc
 - Ran `pnpm -r typecheck` in `umlilo-portal`; it passes for `packages/types`, `packages/ui-tokens`, and `packages/api-client`.
 - Re-ran contract sync and package typecheck before commit.
 - Committed `umlilo-portal` changes as `0cf0962 chore: generate shared portal contracts`.
+- Committed parent `BlackFire` workspace changes as `20e9487 chore: add umlilo contract sync workflow`.
+- Pushed `umlilo-portal` `master` to GitHub: `73ba4a2..0cf0962`.
+- Pushed `BlackFire` `Emzumbe` to GitHub: `c54804b..20e9487`.
 
 # Blockers / Next Steps
 
@@ -47,3 +50,4 @@ Understand what is in `jubhele/BlackFire` and `jubhele/umlilo-portal`, using loc
 - `jubhele/umlilo-portal` is public, default branch `master`, focused on the deployable Next.js web + Expo mobile monorepo.
 - `umlilo-portal` calls the existing Afrihost PHP API at `blackfiresolutions.co.za/api` while sharing TypeScript types, API wrappers, and design tokens across web and mobile.
 - First contract-sync workflow is now local and dependency-free: edit JSON contracts under `BlackFire/contracts/`, run `.\scripts\sync-umlilo-contracts.ps1`, then commit generated TypeScript changes in `umlilo-portal`.
+- Commit order matters while the gitlink exists: commit and push `umlilo-portal` first, then commit/push the parent `BlackFire` gitlink and contract-source changes.
