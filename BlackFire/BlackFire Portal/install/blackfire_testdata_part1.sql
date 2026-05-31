@@ -32,15 +32,7 @@ VALUES
 ('n.sithole',
  '$2y$12$hw21i39xr1aS0SDiiLwhfuF.uAJjwX2z/8FwQJxhucctMY8Q5lApe',
  'Nomvula Sithole','n.sithole@astuteinsights.co.za',
- 'call_logger','Call Logger',1,'2025-01-06 08:00:00'),
-('t.mokoena',
- '$2y$12$hw21i39xr1aS0SDiiLwhfuF.uAJjwX2z/8FwQJxhucctMY8Q5lApe',
- 'Thabo Mokoena','t.mokoena@astuteinsights.co.za',
- 'manager','Operations Supervisor',1,'2025-06-01 08:00:00'),
-('m.coetzee',
- '$2y$12$hw21i39xr1aS0SDiiLwhfuF.uAJjwX2z/8FwQJxhucctMY8Q5lApe',
- 'Maria Coetzee','m.coetzee@astuteinsights.co.za',
- 'junior_tech','First Aider',1,'2025-09-01 08:00:00');
+ 'call_logger','Call Logger',1,'2025-01-06 08:00:00');
 
 -- ── 2. SAFETY FILES ───────────────────────────────────────────
 INSERT IGNORE INTO bf_safety_files
