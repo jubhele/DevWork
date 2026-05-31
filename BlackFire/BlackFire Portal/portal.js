@@ -191,14 +191,12 @@ document.addEventListener('click', function(e) {
     case 'safToggleSection':     safToggleSection(el.dataset.sectionKey); break;
     case 'safSaveSection':       e.stopPropagation(); safSaveSection(el.dataset.sectionKey); break;
     case 'safSendPolicyToPersonnel': safSendPolicyToPersonnel(+el.dataset.id); break;
-    case 'safAddPersonnel':      safAddPersonnel(el.dataset.id); break;
     case 'safLinkPortalUser':    safLinkPortalUser(el.dataset.id); break;
     case 'safAddCompliance':     safAddCompliance(el.dataset.id); break;
     case 'safAddPolicyAck':      safAddPolicyAck(el.dataset.id); break;
     case 'safGenDocs':           safGenDocs(el.dataset.id); break;
-    case 'safSavePersonnel':     safSavePersonnel(el.dataset.id); break;
-    case 'safConfirmRemovePerson': safConfirmRemovePerson(+el.dataset.id, el.dataset.fileId, el.dataset.name); break;
     case 'safConfirmLinkUser':   safConfirmLinkUser(el.dataset.id); break;
+    case 'safConfirmRemovePerson': safConfirmRemovePerson(+el.dataset.id, el.dataset.fileId, el.dataset.name); break;
     case 'safDeleteCompliance':  safDeleteCompliance(+el.dataset.id, el.dataset.fileId); break;
     case 'safEditCompliance':    safEditCompliance(+el.dataset.id, el.dataset.fileId); break;
     case 'safReplaceComplianceDoc': safReplaceComplianceDoc(+el.dataset.id, el.dataset.fileId, +el.dataset.attId); break;
@@ -5032,8 +5030,7 @@ async function safViewFile(id){
         <div class="ph-title">People on File</div>
         <div class="saf-sec-act">
           <button class="btn btn-g btn-s" data-action="safSendPolicyToPersonnel" data-id="${id}">&#9993; Send Policy</button>
-          <button class="btn btn-g btn-s" data-action="safAddPersonnel" data-id="${id}">+ Add Person</button>
-          <button class="btn btn-g btn-s" data-action="safLinkPortalUser" data-id="${id}">+ Link Portal User</button>
+          <button class="btn btn-g btn-s" data-action="safLinkPortalUser" data-id="${id}">+ Add Person</button>
         </div>
       </div>
       <div class="pb" id="saf-personnel-panel"><div class="saf-att-empty">Loading personnel…</div></div>
@@ -6028,21 +6025,16 @@ function safRenderPersonnel(fileId,people){
   const gone  =people.filter(p=>p.is_active==0);
 
   const activeRows=active.map(p=>{
-    const portalTick = p.portal_user_id
-      ? `<span class="saf-portal-tick" title="Has portal account">&#10003;</span>`
-      : '';
-    const actionBtns = p.portal_user_id
-      ? `<button class="btn btn-g btn-xs" data-action="safPersonnelSendPolicy" data-id="${p.id}" title="Send policy">&#9993;</button>
-         <button class="btn btn-xs saf-cs-del-btn" data-action="safUnlinkUser" data-id="${p.portal_user_id}" data-file-id="${esc(fileId)}" data-name="${esc(p.full_name)}" title="Unlink portal account">&#10005;</button>`
-      : `<button class="btn btn-g btn-xs" data-action="safPersonnelSendPolicy" data-id="${p.id}" title="Send policy">&#9993;</button>
-         <button class="btn btn-g btn-xs" data-action="safRemovePerson" data-id="${p.id}" data-file-id="${esc(fileId)}" data-name="${esc(p.full_name)}">Remove</button>`;
+    const displayName  = esc(p.user_name  || p.full_name);
+    const displayEmail = p.user_email || p.email || '';
+    const actionBtns = `<button class="btn btn-g btn-xs" data-action="safPersonnelSendPolicy" data-id="${p.id}" title="Send policy">&#9993;</button>
+         <button class="btn btn-g btn-xs" data-action="safRemovePerson" data-id="${p.id}" data-file-id="${esc(fileId)}" data-name="${esc(p.user_name||p.full_name)}">Remove</button>`;
     return `<tr>
-    <td>${esc(p.full_name)}</td>
+    <td>${displayName}</td>
     <td>${esc(p.id_number||'—')}</td>
     <td>${esc(p.role)}</td>
     <td>${esc(p.company||'—')}</td>
-    <td>${p.email?`<a href="mailto:${esc(p.email)}" class="text-accent">${esc(p.email)}</a>`:'<span class="text-muted">—</span>'}</td>
-    <td class="saf-portal-col">${portalTick}</td>
+    <td>${displayEmail?`<a href="mailto:${esc(displayEmail)}" class="text-accent">${esc(displayEmail)}</a>`:'<span class="text-muted">—</span>'}</td>
     <td>${actionBtns}</td>
   </tr>`;
   }).join('');
@@ -6069,58 +6061,13 @@ function safRenderPersonnel(fileId,people){
 
   panel.innerHTML=active.length?`
     <div class="tw"><table class="saf-prs-tbl">
-      <thead><tr><th>Name</th><th>ID / Passport</th><th>Role</th><th>Company</th><th>Email</th><th class="saf-portal-col">Portal</th><th></th></tr></thead>
+      <thead><tr><th>Name</th><th>ID / Passport</th><th>Role</th><th>Company</th><th>Email</th><th></th></tr></thead>
       <tbody>${activeRows}</tbody>
     </table></div>${formerHtml}`
     :`<div class="saf-att-empty">No active people on file.${gone.length?' See former personnel below.':''}</div>${formerHtml}`;
   _safPersonnelCache = people;
-  _safLinkedUsersCache = active.filter(p => p.portal_user_id).map(p => ({ user_id: p.portal_user_id, name: p.full_name, role: p.role, title: p.role }));
+  _safLinkedUsersCache = active.filter(p => p.user_id).map(p => ({ user_id: p.user_id, name: p.user_name || p.full_name, role: p.role, title: p.role }));
   safUpdateComplianceHealth();
-}
-
-async function safAddPersonnel(fileId){
-  // Gather existing names from all safety files for datalist suggestions
-  const existing=[...new Set(
-    (proxyDB.safetyFiles||[]).flatMap(f=>(f._personnel||[]).map(p=>p.full_name)).filter(Boolean)
-      .concat((_safPersonnelCache||[]).map(p=>p.full_name))
-  )];
-  const dlOpts=existing.map(n=>`<option value="${esc(n)}">`).join('');
-  openModal('Add Person to Safety File',`
-    <div class="fgrid">
-      <div class="fgroup ffull"><label class="flbl">Full Name <span class="text-ember">*</span></label>
-        <input class="finput" id="prs-name" list="prs-name-dl" placeholder="Type or select name" autofocus autocomplete="off">
-        <datalist id="prs-name-dl">${dlOpts}</datalist>
-        <small class="flbl text-muted">Select existing or type a new name to create a new record</small></div>
-      <div class="fgroup"><label class="flbl">ID / Passport No.</label>
-        <input class="finput" id="prs-id" placeholder="8001015009087"></div>
-      <div class="fgroup"><label class="flbl">Role <span class="text-ember">*</span></label>
-        <select class="finput" id="prs-role">
-          <option>Employee</option><option>Subcontractor</option><option>Supervisor</option>
-          <option>SHE Rep</option><option>First Aider</option><option>Other</option>
-        </select></div>
-      <div class="fgroup ffull"><label class="flbl">Company (if different from contractor)</label>
-        <input class="finput" id="prs-co" list="prs-co-dl" placeholder="Leave blank if same as contractor" autocomplete="off">
-        <datalist id="prs-co-dl">${[...new Set((proxyDB.safetyFiles||[]).map(f=>f.contractor).filter(Boolean))].map(n=>`<option value="${esc(n)}">`).join('')}</datalist></div>
-      <div class="fgroup ffull"><label class="flbl">Email (used for policy acknowledgments)</label>
-        <input class="finput" id="prs-email" type="email" placeholder="person@company.co.za" autocomplete="off"></div>
-    </div>
-    <div class="mt2 flex-end"><button class="btn btn-p" data-action="safSavePersonnel" data-id="${fileId}">Add Person</button></div>
-  `);
-}
-
-async function safSavePersonnel(fileId){
-  const name=(document.getElementById('prs-name')?.value||'').trim();
-  if(!name){toast('Name is required','err');return;}
-  const idNo =(document.getElementById('prs-id')?.value||'').trim();
-  const role = document.getElementById('prs-role')?.value||'Employee';
-  const co   =(document.getElementById('prs-co')?.value||'').trim();
-  const email=(document.getElementById('prs-email')?.value||'').trim();
-  const r=await api('POST','safety_personnel.php',{file_ref:fileId,full_name:name,id_number:idNo,role,company:co,email});
-  if(!r.success){toast(r.error||'Failed to add person','err');return;}
-  toast('Person added');
-  closeModalDirect();
-  const people=await safLoadPersonnel(fileId);
-  safRenderPersonnel(fileId,people);
 }
 
 async function safRemovePerson(id,fileId,name){
@@ -6331,24 +6278,24 @@ function safUpdateComplianceHealth() {
 
 async function safLinkPortalUser(fileId) {
   const allUsers = proxyDB.users || [];
-  const linkedIds = new Set((_safPersonnelCache || []).filter(p => p.portal_user_id && p.is_active == 1).map(p => p.portal_user_id));
+  const linkedIds = new Set((_safPersonnelCache || []).filter(p => p.user_id && p.is_active == 1).map(p => p.user_id));
   const available = allUsers.filter(u => u.active != 0 && !linkedIds.has(u.id));
-  if (!available.length) { toast('No available portal users to link', 'info'); return; }
-  const opts = available.map(u => `<option value="${u.id}">${esc(u.name)} (${esc(u.role||u.title||'—')})</option>`).join('');
-  openModal('Link Portal User to Safety File', `
+  if (!available.length) { toast('All portal users are already on this file', 'info'); return; }
+  const opts = available.map(u => `<option value="${u.id}">${esc(u.name)} — ${esc(u.title||u.role||'—')}</option>`).join('');
+  openModal('Add Person to Safety File', `
     <p class="mb-10 text-muted fs-sm">
-      Linking a user adds them to the personnel roster and triggers the AECI induction check.
+      Only portal users can be added to a safety file. Their name and email are drawn from their portal profile.
     </p>
     <div class="fgroup ffull">
-      <label class="flbl">Portal User <span class="text-ember">*</span></label>
+      <label class="flbl">Select User <span class="text-ember">*</span></label>
       <select class="finput" id="link-user-sel">
-        <option value="">— Select user —</option>
+        <option value="">— Select —</option>
         ${opts}
       </select>
     </div>
     <div class="mt2 flex-end">
       <button class="btn btn-g btn-s mr-8" data-action="closeModalDirect">Cancel</button>
-      <button class="btn btn-p" data-action="safConfirmLinkUser" data-id="${fileId}">Link User</button>
+      <button class="btn btn-p" data-action="safConfirmLinkUser" data-id="${fileId}">Add to File</button>
     </div>
   `);
 }
