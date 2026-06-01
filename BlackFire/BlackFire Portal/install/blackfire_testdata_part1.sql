@@ -10,6 +10,7 @@ SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- ── 1. USERS ─────────────────────────────────────────────────
+-- Seeded user password: BlackFire@2026!
 INSERT IGNORE INTO bf_users
   (username,password_hash,name,email,role,title,active,created_at)
 VALUES
@@ -32,7 +33,41 @@ VALUES
 ('n.sithole',
  '$2y$12$hw21i39xr1aS0SDiiLwhfuF.uAJjwX2z/8FwQJxhucctMY8Q5lApe',
  'Nomvula Sithole','n.sithole@astuteinsights.co.za',
- 'call_logger','Call Logger',1,'2025-01-06 08:00:00');
+ 'call_logger','Call Logger',1,'2025-01-06 08:00:00'),
+-- Zanele Myeza — Safety & Compliance Officer (appointed 29/05/2026)
+-- OHS appointments: Safety Officer, Incident Investigator, Risk Assessor, Fall Protection Plan Developer
+-- Multi-role: safety_officer + manager (see bf_user_roles block below)
+('z.myeza',
+ '$2y$12$hw21i39xr1aS0SDiiLwhfuF.uAJjwX2z/8FwQJxhucctMY8Q5lApe',
+ 'Zanele Myeza','z.myeza@astuteinsights.co.za',
+ 'safety_officer','Safety & Compliance Officer',1,'2026-05-29 08:00:00'),
+-- Thabo Dlamini — Junior Technician (referenced in Q3 2025+ audit teams as K. Dlamini)
+('t.dlamini',
+ '$2y$12$hw21i39xr1aS0SDiiLwhfuF.uAJjwX2z/8FwQJxhucctMY8Q5lApe',
+ 'Thabo Dlamini','t.dlamini@astuteinsights.co.za',
+ 'junior_tech','Junior Technician',1,'2025-07-01 08:00:00'),
+-- Yolanda Herbst — AECI SHE Representative (client-side contact, viewer access)
+('y.herbst',
+ '$2y$12$hw21i39xr1aS0SDiiLwhfuF.uAJjwX2z/8FwQJxhucctMY8Q5lApe',
+ 'Yolanda Herbst','y.herbst@aeci.co.za',
+ 'viewer','AECI SHE Representative',1,'2025-03-10 08:00:00');
+
+-- ── 1b. MULTI-ROLE ASSIGNMENTS ────────────────────────────────
+-- Run migration_user_roles.sql first to create bf_user_roles table.
+-- Single-role users are backfilled by that migration automatically.
+-- Entries below add ADDITIONAL roles beyond the primary bf_users.role.
+
+-- Zanele Myeza: primary safety_officer + management oversight
+INSERT IGNORE INTO bf_user_roles (user_id, role)
+SELECT id, 'safety_officer' FROM bf_users WHERE username = 'z.myeza'
+UNION ALL
+SELECT id, 'manager'        FROM bf_users WHERE username = 'z.myeza';
+
+-- Sibulelo Mtolo (sibu): primary admin + site safety inspection roles
+INSERT IGNORE INTO bf_user_roles (user_id, role)
+SELECT id, 'admin'          FROM bf_users WHERE username = 'sibu'
+UNION ALL
+SELECT id, 'safety_officer' FROM bf_users WHERE username = 'sibu';
 
 -- ── 2. SAFETY FILES ───────────────────────────────────────────
 INSERT IGNORE INTO bf_safety_files
