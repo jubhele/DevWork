@@ -14,7 +14,6 @@
 --   Sibulelo Mtolo  (sibu)            Construction Supervisor, Emergency
 --                                     Co-ordinator, Hand Tools / Ladder /
 --                                     Portable Electric Inspector
---   Penny Nzimande  (penny.nzimande)  SHE Rep
 --
 -- Previous occupants were seed/test data only:
 --   Kitso Marupi, Thabo Mokoena, Maria Coetzee,
@@ -26,17 +25,15 @@
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
-SET @jshange_id = (SELECT id FROM bf_users WHERE username = 'j.shange'       LIMIT 1);
-SET @zmyeza_id  = (SELECT id FROM bf_users WHERE username = 'z.myeza'        LIMIT 1);
-SET @sibu_id    = (SELECT id FROM bf_users WHERE username = 'sibu'           LIMIT 1);
-SET @penny_id   = (SELECT id FROM bf_users WHERE username = 'penny.nzimande' LIMIT 1);
+SET @jshange_id = (SELECT id FROM bf_users WHERE username = 'j.shange' LIMIT 1);
+SET @zmyeza_id  = (SELECT id FROM bf_users WHERE username = 'z.myeza'  LIMIT 1);
+SET @sibu_id    = (SELECT id FROM bf_users WHERE username = 'sibu'     LIMIT 1);
 
 -- Verify all users exist before proceeding
 SELECT
-    CONCAT('j.shange       = ', IFNULL(@jshange_id, 'NOT FOUND')) AS jshange_check,
-    CONCAT('z.myeza        = ', IFNULL(@zmyeza_id,  'NOT FOUND')) AS zmyeza_check,
-    CONCAT('sibu           = ', IFNULL(@sibu_id,    'NOT FOUND')) AS sibu_check,
-    CONCAT('penny.nzimande = ', IFNULL(@penny_id,   'NOT FOUND')) AS penny_check;
+    CONCAT('j.shange = ', IFNULL(@jshange_id, 'NOT FOUND')) AS jshange_check,
+    CONCAT('z.myeza  = ', IFNULL(@zmyeza_id,  'NOT FOUND')) AS zmyeza_check,
+    CONCAT('sibu     = ', IFNULL(@sibu_id,    'NOT FOUND')) AS sibu_check;
 
 -- ── 1. Remove all current personnel for SAF-120326-0001 ───────────
 --    All existing rows are seed/test data — no real-world records lost.
@@ -53,9 +50,6 @@ VALUES
    'Astute Insights (Pty) Ltd', 1, @jshange_id, '2026-05-29 08:00:00'),
 
   ('SAF-120326-0001', @sibu_id,    'Sibulelo Mtolo', 'Construction Supervisor',
-   'Astute Insights (Pty) Ltd', 1, @jshange_id, '2026-05-29 08:00:00'),
-
-  ('SAF-120326-0001', @penny_id,   'Penny Nzimande', 'SHE Rep',
    'Astute Insights (Pty) Ltd', 1, @jshange_id, '2026-05-29 08:00:00');
 
 SET FOREIGN_KEY_CHECKS = 1;
