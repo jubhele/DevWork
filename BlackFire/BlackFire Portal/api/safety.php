@@ -97,10 +97,13 @@ function insert_blank_items(string $ref_id): void {
 
 function build_sections(string $ref_id): array {
     $rows = db_select(
-        "SELECT section_key, item_no, result, appointee, comments, ap_status
-           FROM bf_safety_items
-          WHERE file_ref = ?
-          ORDER BY section_key, item_no",
+        "SELECT si.section_key, si.item_no, si.result,
+                si.appointee_id, u.name AS appointee_name,
+                si.comments, si.ap_status
+           FROM bf_safety_items si
+           LEFT JOIN bf_users u ON u.id = si.appointee_id
+          WHERE si.file_ref = ?
+          ORDER BY si.section_key, si.item_no",
         [$ref_id]
     );
     $sections = [];
@@ -112,12 +115,13 @@ function build_sections(string $ref_id): array {
         $idx = (int)$r['item_no'] - 1;
         if (isset($sections[$sec])) {
             $sections[$sec][$idx] = [
-                'no'        => (int)$r['item_no'],
-                'result'    => $r['result'],
-                'appointee' => $r['appointee'] ?? '',
-                'comments'  => $r['comments']  ?? '',
-                'ap_status' => $r['ap_status']  ?? 'Open',
-                'uploads'   => [],
+                'no'           => (int)$r['item_no'],
+                'result'       => $r['result'],
+                'appointee_id' => $r['appointee_id'] ? (int)$r['appointee_id'] : null,
+                'appointee'    => $r['appointee_name'] ?? '',
+                'comments'     => $r['comments']  ?? '',
+                'ap_status'    => $r['ap_status']  ?? 'Open',
+                'uploads'      => [],
             ];
         }
     }
@@ -125,7 +129,8 @@ function build_sections(string $ref_id): array {
     foreach ($sections as $sec => &$items) {
         foreach ($items as $idx => &$item) {
             if ($item === null) {
-                $item = ['no' => $idx + 1, 'result' => null, 'appointee' => '',
+                $item = ['no' => $idx + 1, 'result' => null,
+                         'appointee_id' => null, 'appointee' => '',
                          'comments' => '', 'ap_status' => 'Open', 'uploads' => []];
             }
         }
@@ -342,10 +347,6 @@ if ($method === 'PUT') {
         $sets   = ['updated_at = NOW()'];
         $params = [];
 
-        if (array_key_exists('appointee', $b)) {
-            $sets[]   = 'appointee = ?';
-            $params[] = clean($b['appointee'], 100);
-        }
         if (array_key_exists('appointee_id', $b)) {
             $sets[]   = 'appointee_id = ?';
             $params[] = !empty($b['appointee_id']) ? (int)$b['appointee_id'] : null;
@@ -468,11 +469,10 @@ function _upsert_items(string $ref_id, array $sections): void {
             $appointee_id = !empty($item['appointee_id']) ? (int)$item['appointee_id'] : null;
             db_exec(
                 "INSERT INTO bf_safety_items
-                    (file_ref, section_key, item_no, result, appointee, appointee_id, comments, ap_status)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    (file_ref, section_key, item_no, result, appointee_id, comments, ap_status)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)
                  ON DUPLICATE KEY UPDATE
                     result       = VALUES(result),
-                    appointee    = VALUES(appointee),
                     appointee_id = VALUES(appointee_id),
                     comments     = VALUES(comments),
                     ap_status    = VALUES(ap_status)",
@@ -481,7 +481,6 @@ function _upsert_items(string $ref_id, array $sections): void {
                     $sec_key,
                     $no,
                     $result,
-                    clean($item['appointee'] ?? ''),
                     $appointee_id,
                     clean($item['comments']  ?? '', 2000),
                     $ap,

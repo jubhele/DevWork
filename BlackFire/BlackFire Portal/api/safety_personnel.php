@@ -50,7 +50,7 @@ if ($method === 'GET') {
            LEFT JOIN bf_users uu ON uu.id = sp.updated_by_id
           WHERE sp.file_ref = ?
           ORDER BY sp.is_active DESC,
-                   COALESCE(u.name, sp.full_name) ASC",
+                   u.name ASC",
         [$file_ref]
     );
     json_ok(['data' => $rows]);
@@ -90,21 +90,20 @@ if ($method === 'POST') {
         db_exec(
             "UPDATE bf_safety_personnel
              SET is_active = 1, user_id = ?, portal_user_id = ?,
-                 full_name = ?,
                  removed_at = NULL, removed_reason = '', removed_by = '',
                  removed_by_id = NULL,
                  updated_by = ?, updated_by_id = ?
              WHERE id = ?",
-            [$uid, $uid, $pu['name'], $user['username'], $user['id'], $existing['id']]
+            [$uid, $uid, $user['username'], $user['id'], $existing['id']]
         );
     } else {
         $role = in_array($pu['title'], VALID_ROLES, true) ? $pu['title']
               : (in_array($pu['role'],  VALID_ROLES, true) ? $pu['role'] : 'Employee');
         db_insert(
             "INSERT INTO bf_safety_personnel
-             (file_ref, user_id, portal_user_id, full_name, role, created_by, created_by_id)
-             VALUES (?, ?, ?, ?, ?, ?, ?)",
-            [$file_ref, $uid, $uid, $pu['name'], $role, $user['username'], $user['id']]
+             (file_ref, user_id, portal_user_id, role, created_by, created_by_id)
+             VALUES (?, ?, ?, ?, ?, ?)",
+            [$file_ref, $uid, $uid, $role, $user['username'], $user['id']]
         );
     }
 
@@ -119,7 +118,7 @@ if ($method === 'POST') {
            LEFT JOIN bf_users ur ON ur.id = sp.removed_by_id
            LEFT JOIN bf_users uu ON uu.id = sp.updated_by_id
           WHERE sp.file_ref = ?
-          ORDER BY sp.is_active DESC, COALESCE(u.name, sp.full_name) ASC",
+          ORDER BY sp.is_active DESC, u.name ASC",
         [$file_ref]
     );
     json_ok(['data' => $rows], 'User added to safety file');
@@ -128,7 +127,13 @@ if ($method === 'POST') {
 /* ── PUT update / remove / reinstate ─────────────────────────── */
 if ($method === 'PUT') {
     if (!$id) json_err('Missing id');
-    $person = db_row("SELECT * FROM bf_safety_personnel WHERE id = ?", [$id]);
+    $person = db_row(
+        "SELECT sp.*, u.name AS user_name
+           FROM bf_safety_personnel sp
+           LEFT JOIN bf_users u ON u.id = sp.user_id
+          WHERE sp.id = ?",
+        [$id]
+    );
     if (!$person) json_err('Person not found', 404);
 
     $b      = get_body();
@@ -145,7 +150,7 @@ if ($method === 'PUT') {
             [$reason, $user['username'], $user['id'], $id]
         );
         audit($user['username'], 'REMOVE',
-            "Personnel $id ({$person['full_name']}) removed from {$person['file_ref']}: $reason");
+            "Personnel $id ({$person['user_name']}) removed from {$person['file_ref']}: $reason");
         $row = db_row("SELECT * FROM bf_safety_personnel WHERE id = ?", [$id]);
         json_ok(['data' => $row], 'Person removed — record retained for audit');
     }
@@ -160,7 +165,7 @@ if ($method === 'PUT') {
             [$user['username'], $user['id'], $id]
         );
         audit($user['username'], 'REINSTATE',
-            "Personnel $id ({$person['full_name']}) reinstated on {$person['file_ref']}");
+            "Personnel $id ({$person['user_name']}) reinstated on {$person['file_ref']}");
         $row = db_row("SELECT * FROM bf_safety_personnel WHERE id = ?", [$id]);
         json_ok(['data' => $row], 'Person reinstated');
     }
@@ -216,11 +221,17 @@ if ($method === 'DELETE') {
 
     require_perm('safety.delete');
     if (!$id) json_err('Missing id');
-    $person = db_row("SELECT * FROM bf_safety_personnel WHERE id = ?", [$id]);
+    $person = db_row(
+        "SELECT sp.*, u.name AS user_name
+           FROM bf_safety_personnel sp
+           LEFT JOIN bf_users u ON u.id = sp.user_id
+          WHERE sp.id = ?",
+        [$id]
+    );
     if (!$person) json_err('Person not found', 404);
     db_exec("DELETE FROM bf_safety_personnel WHERE id = ?", [$id]);
     audit($user['username'], 'DELETE',
-        "Personnel $id ({$person['full_name']}) hard-deleted from {$person['file_ref']}");
+        "Personnel $id ({$person['user_name']}) hard-deleted from {$person['file_ref']}");
     json_ok([], 'Person deleted');
 }
 
