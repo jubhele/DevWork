@@ -54,10 +54,12 @@ if ($method === 'GET' && $action === 'list') {
 
     api_headers();
     $rows = db_select(
-        "SELECT id, original_name, file_size, mime_type, uploaded_by, created_at
-           FROM bf_attachments
-          WHERE entity_type = ? AND entity_ref = ?
-          ORDER BY created_at DESC",
+        "SELECT f.id, f.original_name, f.file_size, f.mime_type,
+                COALESCE(u.username, '') AS uploaded_by, f.created_at
+           FROM bf_attachments f
+           LEFT JOIN bf_users u ON u.id = f.uploaded_by_id
+          WHERE f.entity_type = ? AND f.entity_ref = ?
+          ORDER BY f.created_at DESC",
         [$entity_type, $entity_ref]
     );
     json_ok(['attachments' => $rows]);

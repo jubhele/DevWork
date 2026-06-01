@@ -37,10 +37,13 @@ if (!$file) {
 }
 
 $nts_items = db_select(
-    "SELECT section_key, item_no, appointee, comments
-       FROM bf_safety_items
-      WHERE file_ref = ? AND result = 'Not to Standard'
-      ORDER BY section_key, item_no",
+    "SELECT si.section_key, si.item_no,
+            COALESCE(u.name, '') AS appointee,
+            si.comments
+       FROM bf_safety_items si
+       LEFT JOIN bf_users u ON u.id = si.appointee_id
+      WHERE si.file_ref = ? AND si.result = 'Not to Standard'
+      ORDER BY si.section_key, si.item_no",
     [$ref_id]
 );
 

@@ -139,9 +139,11 @@ function build_sections(string $ref_id): array {
     // Load per-item evidence from bf_attachments (entity_ref = "{file_ref}:{sec}:{no}")
     try {
         $atts = db_select(
-            "SELECT id, entity_ref, original_name, file_size, mime_type, uploaded_by, created_at
-               FROM bf_attachments
-              WHERE entity_type = 'safety_item' AND entity_ref LIKE ?",
+            "SELECT f.id, f.entity_ref, f.original_name, f.file_size, f.mime_type,
+                    COALESCE(u.username, '') AS uploaded_by, f.created_at
+               FROM bf_attachments f
+               LEFT JOIN bf_users u ON u.id = f.uploaded_by_id
+              WHERE f.entity_type = 'safety_item' AND f.entity_ref LIKE ?",
             [$ref_id . ':%']
         );
         foreach ($atts as $att) {

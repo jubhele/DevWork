@@ -101,13 +101,11 @@ if ($method === 'POST') {
             [$uid, $user['id'], $existing['id']]
         );
     } else {
-        $role = in_array($pu['title'], VALID_ROLES, true) ? $pu['title']
-              : (in_array($pu['role'],  VALID_ROLES, true) ? $pu['role'] : 'Other');
         db_insert(
             "INSERT INTO bf_safety_personnel
-             (file_ref, user_id, role, created_by_id)
-             VALUES (?, ?, ?, ?)",
-            [$file_ref, $uid, $role, $user['id']]
+             (file_ref, user_id, created_by_id)
+             VALUES (?, ?, ?)",
+            [$file_ref, $uid, $user['id']]
         );
     }
 
