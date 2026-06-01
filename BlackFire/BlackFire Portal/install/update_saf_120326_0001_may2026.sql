@@ -1,130 +1,116 @@
 -- ============================================================
 -- Safety File Update — SAF-120326-0001 (Astute Insights Q1 2026)
--- Source: NewFiles folder — G:\My Drive\JS\Astute Insights\BlackFire\
---           Admin Finance\AECI\Safety File\NewFiles
--- Date applied: 2026-05-31
--- Applied by: Jubhele Shange / admin
+-- Source: NewFiles folder dated 29/05/2026
+-- Applied by: admin
 --
--- DOCUMENTS RECEIVED (18 files, all dated 29/05/2026 unless noted):
--- ─ Appointment letters (PDFs — signed by Zanele Myeza):
---   • SAFETY OFFICER - COMPANY REPRESENTATIVE-4.pdf    → H4
---   • RISK ASSESSORS APOINTMENT REG 9 (1) --5.pdf      → H11
---   • FALL PROTECTION PLAN DEVELOPER-2.pdf             → H12
---   • INCIDENT INVESTIGATOR - TEAM-2.pdf               → H32
--- ─ Supporting documents (confirm already-passing items):
---   • BRA-AI-00_ HIRA (Baseline) - Rev 00.pdf          → B3 (already TS)
---   • Fall protection plan-2.pdf                       → E3 (already TS)
---   • Training registers.pdf                           → D2/D3 (already TS)
---   • Organogram.docx                                  → A9 (already TS)
---   • Risk_Review_and_Monitoring_Plan_...docx           → B5 (already TS)
---   • PPE Policy.doc                                   → E9 (already TS)
---   • Portable electrical tools- SWP.doc               → B6 (already TS)
---   • CONSTRUCTION SUPERVISOR.doc                      → H5 (N/A, .doc unreadable)
---   • 16.1 CHIEF EXECUTIVE OFFICER (1).doc             → CEO 16.1 appointment
---   • EMERGENCY CO-ORDINATOR - TEAM.doc                → G section support
---   • HAND TOOLS INSPECTOR - Copy (3).doc              → equipment support
---   • LADDER INSPECTOR.doc                             → equipment support
---   • PORTABLE ELECTRIC EQUIPMENT INSPECTOR.doc        → F section support
---   • Penny Nzimande - sign.png                        → signature asset
+-- People are referenced by user_id FK only (bf_users).
+-- No free-text names written — display names come from JOIN bf_users.
 --
--- ITEM CHANGES (main sections only):
---   H4  N/A           → To Standard  +1 applicable, +1 pass
+-- ITEM CHANGES:
+--   H4  N/A             → To Standard  +1 applicable, +1 pass
 --   H11 Not to Standard → To Standard               +1 pass
 --   H12 Not to Standard → To Standard               +1 pass
---   H32 To Standard   → (unchanged, comment updated only)
+--   H32 To Standard     → appointee_id updated, comment updated
 --
--- SCORE:
---   Before: main 39/49 = 79.59%  band YELLOW
---   After:  main 42/50 = 84.00%  band YELLOW
---   (Portal live view includes I-section bonus: +10% → ~94% GREEN)
+-- SCORE: main 39/49 = 79.59% YELLOW  →  42/50 = 84.00% YELLOW
 -- ============================================================
 
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 1;
 
+-- ── Resolve Zanele Myeza's user_id ───────────────────────────
+SET @zm_id = (SELECT id FROM bf_users WHERE username = 'z.myeza');
+SELECT CASE WHEN @zm_id IS NULL
+            THEN 'ERROR: z.myeza not found — run fix_aeci_personnel_backfill.sql first'
+            ELSE CONCAT('OK — z.myeza user_id = ', @zm_id)
+       END AS preflight;
+
 -- ── 1. H4 — Construction Site Safety Officer (Reg 8(5)) ──────
---    Was: N/A  →  Now: To Standard (Zanele Myeza, 29/05/2026)
 UPDATE bf_safety_items
-   SET result    = 'To Standard',
-       appointee = 'Zanele Myeza',
-       comments  = 'Construction Site Safety Officer (Reg 8(5)) appointed — Zanele Myeza. Signed appointment letter in file, 29/05/2026.',
-       ap_status = 'Resolved'
+   SET result       = 'To Standard',
+       appointee_id = @zm_id,
+       comments     = 'Construction Site Safety Officer (Reg 8(5)) — Zanele Myeza. Signed appointment letter in file, 29/05/2026.',
+       ap_status    = 'Resolved'
  WHERE file_ref    = 'SAF-120326-0001'
    AND section_key = 'H'
    AND item_no     = 4;
 
 -- ── 2. H11 — Risk Assessor (Reg 9(1)) ────────────────────────
---    Was: Not to Standard (exam pending Mar 2026)
---    Now: To Standard (Zanele Myeza appointment letter in file)
 UPDATE bf_safety_items
-   SET result    = 'To Standard',
-       appointee = 'Zanele Myeza',
-       comments  = 'Risk Assessor (Reg 9(1)) appointed — Zanele Myeza. Signed appointment letter in file, 29/05/2026. Supersedes pending IRCA exam status.',
-       ap_status = 'Resolved'
+   SET result       = 'To Standard',
+       appointee_id = @zm_id,
+       comments     = 'Risk Assessor (Reg 9(1)) — Zanele Myeza. Signed appointment letter in file, 29/05/2026. Supersedes pending IRCA exam status.',
+       ap_status    = 'Resolved'
  WHERE file_ref    = 'SAF-120326-0001'
    AND section_key = 'H'
    AND item_no     = 11;
 
 -- ── 3. H12 — Fall Protection Plan Developer (Reg 10(1)) ──────
---    Was: Not to Standard (appointment letter being drafted)
---    Now: To Standard (Zanele Myeza appointment letter in file)
 UPDATE bf_safety_items
-   SET result    = 'To Standard',
-       appointee = 'Zanele Myeza',
-       comments  = 'Fall Protection Plan Developer (Reg 10(1)) appointed — Zanele Myeza. Signed appointment letter in file, 29/05/2026.',
-       ap_status = 'Resolved'
+   SET result       = 'To Standard',
+       appointee_id = @zm_id,
+       comments     = 'Fall Protection Plan Developer (Reg 10(1)) — Zanele Myeza. Signed appointment letter in file, 29/05/2026.',
+       ap_status    = 'Resolved'
  WHERE file_ref    = 'SAF-120326-0001'
    AND section_key = 'H'
    AND item_no     = 12;
 
--- ── 4. H32 — Incident Investigator (comment update only) ─────
---    Refilwe Khumalo remains the original appointee.
---    Zanele Myeza added to investigation team 29/05/2026.
+-- ── 4. H32 — Incident Investigator (add Zanele Myeza to team) ─
 UPDATE bf_safety_items
-   SET comments  = 'Incident Investigator — Refilwe Khumalo (original, current) + Zanele Myeza added to team 29/05/2026. Both appointment letters in file.',
-       ap_status = 'Resolved'
+   SET appointee_id = @zm_id,
+       comments     = 'Incident Investigator team: Refilwe Khumalo (original) + Zanele Myeza added 29/05/2026. Both appointment letters in file.',
+       ap_status    = 'Resolved'
  WHERE file_ref    = 'SAF-120326-0001'
    AND section_key = 'H'
    AND item_no     = 32;
 
--- ── 5. Add Zanele Myeza to personnel ─────────────────────────
---    role = 'Other' (Safety Officer / Risk Assessor / FPP Developer
---    are not in the Employee/Supervisor/SHE Rep/First Aider ENUM)
---    bf_safety_personnel has no UNIQUE key — use WHERE NOT EXISTS to prevent
---    duplicates on re-run instead of INSERT IGNORE (which only silences key conflicts).
+-- ── 5. Add Zanele Myeza to bf_safety_personnel ───────────────
+-- full_name derived from bf_users — no hardcoded string.
+-- uk_sp_file_user (file_ref, user_id) prevents duplicates on re-run.
 INSERT INTO bf_safety_personnel
-  (file_ref, full_name, id_number, role, company, is_active, created_by, created_at)
-SELECT 'SAF-120326-0001', 'Zanele Myeza', '', 'Other', 'Astute Insights (Pty) Ltd', 1, 'admin', '2026-05-31 00:00:00'
-FROM DUAL
-WHERE NOT EXISTS (
+  (file_ref, user_id, full_name, id_number, role, company, is_active, created_by, created_at)
+SELECT
+  'SAF-120326-0001',
+  u.id,
+  u.name,         -- pulled from bf_users, not hardcoded
+  '',
+  'Other',
+  '',             -- company pulled from bf_users.company if that column exists, else join at display time
+  1, 'admin', '2026-05-31 00:00:00'
+FROM bf_users u
+WHERE u.username = 'z.myeza'
+  AND NOT EXISTS (
     SELECT 1 FROM bf_safety_personnel
-    WHERE file_ref = 'SAF-120326-0001' AND full_name = 'Zanele Myeza'
-);
+     WHERE file_ref = 'SAF-120326-0001' AND user_id = u.id
+  );
 
--- ── 6. Update safety file header score & band ────────────────
---    main 42/50 = 84.00%  YELLOW
---    Note: portal live score includes I-section bonus (+10%)
+-- ── 6. Update safety file score & band ───────────────────────
 UPDATE bf_safety_files
    SET score      = 84.00,
        band       = 'YELLOW',
        updated_by = 'admin'
  WHERE ref_id = 'SAF-120326-0001';
 
--- ── 7. Verify ────────────────────────────────────────────────
+-- ── 7. Verify — all names via JOIN, no raw text ───────────────
 SELECT ref_id, score, band, updated_by, updated_at
   FROM bf_safety_files
  WHERE ref_id = 'SAF-120326-0001';
 
-SELECT section_key, item_no, result, appointee, LEFT(comments,80) AS comments_preview, ap_status
-  FROM bf_safety_items
- WHERE file_ref = 'SAF-120326-0001'
-   AND section_key = 'H'
-   AND item_no IN (4,11,12,32)
- ORDER BY item_no;
+SELECT si.section_key, si.item_no, si.result,
+       u.username, u.name AS appointee_name,
+       LEFT(si.comments, 70) AS comments_preview,
+       si.ap_status
+  FROM bf_safety_items si
+  JOIN bf_users u ON u.id = si.appointee_id
+ WHERE si.file_ref    = 'SAF-120326-0001'
+   AND si.section_key = 'H'
+   AND si.item_no IN (4, 11, 12, 32)
+ ORDER BY si.item_no;
 
-SELECT full_name, role, company, created_at
-  FROM bf_safety_personnel
- WHERE file_ref = 'SAF-120326-0001'
-   AND full_name = 'Zanele Myeza';
+SELECT sp.file_ref, u.username, u.name, sp.role, sp.created_at
+  FROM bf_safety_personnel sp
+  JOIN bf_users u ON u.id = sp.user_id
+ WHERE sp.file_ref = 'SAF-120326-0001'
+   AND sp.user_id  = @zm_id;
 
 -- End of update
