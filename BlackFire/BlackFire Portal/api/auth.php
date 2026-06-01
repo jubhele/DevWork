@@ -91,6 +91,7 @@ if ($action === 'login' && $method === 'POST') {
         'username'  => $row['username'],
         'name'      => $row['name'],
         'role'      => $row['role'],
+        'roles'     => _user_roles((int) $row['id']),
         'title'     => $row['title'],
         'client_id' => $row['client_id'] !== null ? (int)$row['client_id'] : null,
     ];
@@ -247,6 +248,7 @@ if ($action === 'mobile_login' && $method === 'POST') {
         'username'  => $row['username'],
         'name'      => $row['name'],
         'role'      => $row['role'],
+        'roles'     => _user_roles((int) $row['id']),
         'title'     => $row['title'],
         'client_id' => $row['client_id'] !== null ? (int)$row['client_id'] : null,
     ];

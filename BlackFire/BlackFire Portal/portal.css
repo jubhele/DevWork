@@ -1650,6 +1650,10 @@ textarea.saf-cmt { resize:vertical; min-height:28px; width:100% }
 /* User management */
 .row-inactive { opacity:0.5 }
 .btn-enable { background:var(--pill-ok-bg);color:var(--pill-ok-txt);border:none;border-radius:4px;padding:2px 8px;cursor:pointer }
+/* Multi-role checkbox grid in user create/edit modals */
+.roles-cb-grid { display:flex;flex-wrap:wrap;gap:6px 16px;padding:6px 0 }
+.role-cb-item  { display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer;white-space:nowrap }
+.role-cb-item input[type=checkbox] { accent-color:var(--accent,#c0392b);width:14px;height:14px;cursor:pointer }
 
 /* Misc form helpers */
 .inp-readonly { opacity:0.6 }
