@@ -210,15 +210,17 @@ if ($method === 'PUT') {
     require_perm('callout.update');
 
     // Techs may only update callouts assigned to them
-    if (in_array($usr['role'], ['junior_tech', 'senior_tech'], true)) {
+    $usr_roles = !empty($usr['roles']) ? $usr['roles'] : [$usr['role']];
+    if (count(array_intersect($usr_roles, ['junior_tech', 'senior_tech'])) > 0
+        && count(array_intersect($usr_roles, ['admin', 'manager', 'sysadmin'])) === 0) {
         $ownership = db_row("SELECT assigned_to FROM bf_callouts WHERE ref_id = ?", [$ref_id]);
         if (!$ownership) json_err('Callout not found', 404);
         if ($ownership['assigned_to'] !== $usr['username']) json_err('You can only update callouts assigned to you', 403);
     }
 
-    // Permission gates on specific fields
-    if (isset($b['status']) && !can('callout.update_status', $usr['role'])) json_err('No permission to update status', 403);
-    if (isset($b['po'])     && !can('callout.assign_po', $usr['role']))     json_err('No permission to assign PO', 403);
+    // Permission gates on specific fields — use can() without role arg to check all user roles
+    if (isset($b['status']) && !can('callout.update_status')) json_err('No permission to update status', 403);
+    if (isset($b['po'])     && !can('callout.assign_po'))     json_err('No permission to assign PO', 403);
 
     $sets   = [];
     $params = [];
