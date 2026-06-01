@@ -441,7 +441,10 @@ const PERMS = {
   'safety.delete':             ['admin','sysadmin','manager'],
   'safety.approve':            ['admin','sysadmin','manager'],
 };
-function can(perm){ return SESSION?.role==='sysadmin' || (PERMS[perm]||[]).includes(SESSION?.role); }
+function can(perm){
+  const roles = SESSION?.roles?.length ? SESSION.roles : (SESSION?.role ? [SESSION.role] : []);
+  return roles.includes('sysadmin') || (PERMS[perm]||[]).some(r => roles.includes(r));
+}
 
 /* ═══════════════════════════════════════════════════════
    IN-MEMORY CACHE (populated from API on login/refresh)
@@ -506,8 +509,8 @@ function populateLinkedDropdowns() {
   const techEl = document.getElementById('nc-tech');
   if (techEl) {
     const TECH_ROLES = ['junior_tech', 'senior_tech'];
-    const techs = (DB.users || []).filter(u => TECH_ROLES.includes(u.role) && u.active != 0);
-    const techOpts = techs.map(u => `<option value="${esc(u.username)}">${esc(u.name)} (${esc(ROLE_LABELS[u.role]||u.role)})</option>`).join('');
+    const techs = (DB.users || []).filter(u => { const rs = u.roles?.length ? u.roles : [u.role]; return rs.some(r=>TECH_ROLES.includes(r)) && u.active != 0; });
+    const techOpts = techs.map(u => { const rs=u.roles?.length?u.roles:[u.role]; const lbl=rs.map(r=>ROLE_LABELS[r]||r).join(', '); return `<option value="${esc(u.username)}">${esc(u.name)} (${esc(lbl)})</option>`; }).join('');
     const cur = techEl.value;
     techEl.innerHTML = '<option value="">— Unassigned —</option>' + techOpts;
     if (cur) techEl.value = cur;
@@ -774,18 +777,17 @@ async function doLogin(){
   document.getElementById('ptb-user').textContent = SESSION.name;
 
   document.documentElement.dataset.state = 'portal';
-  document.getElementById('dash-sub').textContent = `AECI CHEMPARK  -  ${(ROLE_LABELS[SESSION.role]||SESSION.role).toUpperCase()} VIEW`;
+  { const _rl = SESSION.roles?.length > 1 ? SESSION.roles.map(r=>ROLE_LABELS[r]||r).join(' + ') : (ROLE_LABELS[SESSION.role]||SESSION.role);
+    document.getElementById('dash-sub').textContent = `AECI CHEMPARK  -  ${_rl.toUpperCase()} VIEW`; }
 
   // Load all data from API
   toast('Loading data…', 'ok');
   await refreshAll();
 
-  // Navigate to first page for role
-  const firstPage = {
-    call_logger:'p-new-callout', junior_tech:'p-callouts',
-    senior_tech:'p-callouts', client_support:'p-dashboard', admin_clerk:'p-callouts',
-    safety_officer:'p-safety',
-  }[SESSION.role] || 'p-dashboard';
+  // Navigate to first page for role (supports multi-role — first match wins)
+  const _roleMap2 = { call_logger:'p-new-callout', junior_tech:'p-callouts', senior_tech:'p-callouts', client_support:'p-dashboard', admin_clerk:'p-callouts', safety_officer:'p-safety' };
+  const _allRoles2 = SESSION.roles?.length ? SESSION.roles : [SESSION.role];
+  const firstPage = Object.entries(_roleMap2).find(([r])=>_allRoles2.includes(r))?.[1] || 'p-dashboard';
   showPortalPage(firstPage, null);
   updateBadges();
   startIdleTimer();
@@ -1655,7 +1657,7 @@ function renderInfoPanel(pageId){
   const notMyCaps = pageCaps.filter(c => !can(c.perm));
   const roleSection = pageCaps.length && SESSION ? `
     <div class="ipanel-section">
-      <div class="ipanel-section-lbl">Your access — ${esc(ROLE_LABELS[SESSION.role]||SESSION.role)}</div>
+      <div class="ipanel-section-lbl">Your access — ${esc((SESSION.roles?.length>1?SESSION.roles.map(r=>ROLE_LABELS[r]||r).join(', '):(ROLE_LABELS[SESSION.role]||SESSION.role)))}</div>
       ${myCaps.length
         ? myCaps.map(c=>`<div class="ipanel-can"><span class="ipanel-can-icon">✓</span>${esc(c.label)}</div>`).join('')
         : '<div class="ro-note">Read-only access on this page.</div>'}
@@ -2242,9 +2244,9 @@ function renderSupDashboard() {
   const safSubmitted  = safFiles.filter(f=>(f.status||'').toLowerCase()==='submitted').length;
   const users         = DB.users || [];
 
-  // Users by role
+  // Users by role (a user with multiple roles is counted once per role)
   const roleGroups = {};
-  users.forEach(u=>{ roleGroups[u.role]=(roleGroups[u.role]||0)+1; });
+  users.forEach(u=>{ const rs=u.roles?.length?u.roles:[u.role]; rs.forEach(r=>{ roleGroups[r]=(roleGroups[r]||0)+1; }); });
   const roleRows = Object.entries(roleGroups).length
     ? Object.entries(roleGroups).map(([role,cnt])=>`
         <tr>
@@ -2401,12 +2403,12 @@ function openAssignPO(id){
 }
 
 function openAssignTech(id){
-  const techs=proxyDB.users.filter(u=>u.role==='junior_tech'||u.role==='senior_tech');
+  const techs=proxyDB.users.filter(u=>{ const rs=u.roles?.length?u.roles:[u.role]; return rs.some(r=>r==='junior_tech'||r==='senior_tech'); });
   openModal(`Assign Technician - ${id}`,`
     <div class="fgroup"><label class="flbl">Select Technician</label>
       <select class="finput" id="tech-sel">
         <option value="">- Select -</option>
-        ${techs.map(t=>`<option value="${esc(t.username)}">${esc(t.name)}  -  ${esc(ROLE_LABELS[t.role])}</option>`).join('')}
+        ${techs.map(t=>{ const rs=t.roles?.length?t.roles:[t.role]; const lbl=rs.map(r=>ROLE_LABELS[r]||r).join(', '); return `<option value="${esc(t.username)}">${esc(t.name)}  -  ${esc(lbl)}</option>`; }).join('')}
       </select>
     </div>
     <div class="mt3 flex-end"><button class="btn btn-p" data-action="saveTechAssign" data-id="${esc(id)}">Assign</button></div>
@@ -3236,7 +3238,10 @@ function renderUsers(){
   const thActions = document.getElementById('users-th-actions');
   if (thActions) thActions.style.display = canEdit ? 'table-cell' : 'none';
   document.getElementById('users-table-body').innerHTML=proxyDB.users.map(u=>{
-    const m=matrix[u.role]||{create:'-',status:'-',po:'-',finance:'-',quote:'-',approve:'-',admin:'-'};
+    const uRoles = u.roles?.length ? u.roles : [u.role];
+    // Merge capability matrix across all assigned roles
+    const m={create:'-',status:'-',po:'-',finance:'-',quote:'-',approve:'-',admin:'-'};
+    for(const r of uRoles){ const rm=matrix[r]||{}; for(const k of Object.keys(m)){ if(rm[k]&&rm[k]!=='-'){ m[k]=(rm[k]==='✓'||m[k]==='✓')?'✓':rm[k]; } } }
     const actionCell = canEdit ? `<td>
       <button class="btn btn-g btn-xs" data-action="openEditUserModal" data-id="${u.id}">Edit</button>
       ${u.has_signature ? `<button class="btn btn-g btn-xs" data-action="openSignAsModal" data-id="${u.id}">Sign As</button>` : ''}
@@ -3246,7 +3251,7 @@ function renderUsers(){
       <td class="mono">${esc(u.username)}${u.has_signature ? '<span class="sig-badge" title="Has signature"></span>' : ''}</td>
       <td>${esc(u.name)}</td>
       <td class="mono fs-12">${esc(u.email||'')}</td>
-      <td>${rolePill(u.role)}</td>
+      <td>${uRoles.map(rolePill).join(' ')}</td>
       <td class="perm-col text-center">${tick(m.create)}</td>
       <td class="perm-col text-center">${tick(m.status)}</td>
       <td class="perm-col text-center">${tick(m.po)}</td>
@@ -3267,17 +3272,25 @@ function togglePermCols(){
   btn.textContent = collapsed ? '► Expand Permissions' : '◄ Collapse Permissions';
 }
 
+function _roleCheckboxes(selectedRoles, idPrefix){
+  const all = ['admin','manager','admin_clerk','call_logger','junior_tech','senior_tech','client_support','safety_officer','viewer'];
+  if (SESSION?.roles?.includes('sysadmin') || SESSION?.role === 'sysadmin') all.unshift('sysadmin');
+  return all.map(r=>{
+    const checked = selectedRoles.includes(r) ? ' checked' : '';
+    const lbl = ROLE_LABELS[r] || r.replace(/_/g,' ');
+    return `<label class="role-cb-item"><input type="checkbox" class="role-cb" name="${idPrefix}-roles" value="${r}"${checked}> ${esc(lbl)}</label>`;
+  }).join('');
+}
+
 function openCreateUserModal(){
   if (!can('user.create')) return;
-  const roles = ['admin','manager','call_logger','junior_tech','senior_tech','client_support','admin_clerk','viewer'];
-  if (SESSION?.role === 'sysadmin') roles.unshift('sysadmin');
-  const opts = roles.map(r=>`<option value="${r}">${r==='sysadmin'?'System Administrator':r.replace(/_/g,' ')}</option>`).join('');
   openModal('New User', `
     <div class="login-group"><label class="login-label">Username</label><input class="login-input" id="nu-user" placeholder="username"></div>
     <div class="login-group"><label class="login-label">Full Name</label><input class="login-input" id="nu-name" placeholder="First Last"></div>
     <div class="login-group"><label class="login-label">Email</label><input class="login-input" type="email" id="nu-email" placeholder="user@example.com"></div>
     <div class="login-group"><label class="login-label">Title / Position</label><input class="login-input" id="nu-title" placeholder="e.g. Field Technician"></div>
-    <div class="login-group"><label class="login-label">Role</label><select class="login-input" id="nu-role">${opts}</select></div>
+    <div class="login-group"><label class="login-label">Roles <span class="pass-hint">(select one or more)</span></label>
+      <div class="roles-cb-grid">${_roleCheckboxes(['viewer'], 'nu')}</div></div>
     <div class="login-group"><label class="login-label">Password</label><input class="login-input" type="password" id="nu-pass" placeholder="min 8 characters"></div>
     <button class="btn-login-submit mt-8" data-action="saveNewUser">Create User</button>
   `);
@@ -3288,11 +3301,12 @@ async function saveNewUser(){
   const name     = document.getElementById('nu-name')?.value?.trim();
   const email    = document.getElementById('nu-email')?.value?.trim();
   const title    = document.getElementById('nu-title')?.value?.trim();
-  const role     = document.getElementById('nu-role')?.value;
+  const roles    = [...document.querySelectorAll('input.role-cb[name="nu-roles"]:checked')].map(c=>c.value);
   const password = document.getElementById('nu-pass')?.value;
   if (!username || !name || !password) { toast('Username, name and password are required', 'err'); return; }
   if (password.length < 8) { toast('Password must be at least 8 characters', 'err'); return; }
-  const r = await api('POST', 'users.php', { username, name, email, title, role, password });
+  if (!roles.length) { toast('Select at least one role', 'err'); return; }
+  const r = await api('POST', 'users.php', { username, name, email, title, roles, password });
   if (!r.success) { toast(r.error || 'Error creating user', 'err'); return; }
   closeModalDirect();
   await refreshUsers();
@@ -3304,9 +3318,7 @@ function openEditUserModal(id) {
   if (!can('user.update')) return;
   const u = (DB.users || []).find(x => x.id === id);
   if (!u) return;
-  const roles = ['admin','manager','call_logger','junior_tech','senior_tech','client_support','admin_clerk','viewer'];
-  if (SESSION?.role === 'sysadmin') roles.unshift('sysadmin');
-  const opts = roles.map(r=>`<option value="${r}"${r===u.role?' selected':''}>${r==='sysadmin'?'System Administrator':r.replace(/_/g,' ')}</option>`).join('');
+  const currentRoles = u.roles?.length ? u.roles : [u.role];
   const sigMeta = u.signature_updated_by
     ? `Updated by ${esc(u.signature_updated_by)} on ${esc((u.signature_updated_at||'').slice(0,10))}`
     : '';
@@ -3316,7 +3328,8 @@ function openEditUserModal(id) {
     <div class="login-group"><label class="login-label">Full Name</label><input class="login-input" id="eu-name" value="${esc(u.name)}" placeholder="First Last"></div>
     <div class="login-group"><label class="login-label">Email</label><input class="login-input" type="email" id="eu-email" value="${esc(u.email||'')}" placeholder="user@example.com"></div>
     <div class="login-group"><label class="login-label">Title / Position</label><input class="login-input" id="eu-title" value="${esc(u.title||'')}" placeholder="e.g. Field Technician"></div>
-    <div class="login-group"><label class="login-label">Role</label><select class="login-input" id="eu-role">${opts}</select></div>
+    <div class="login-group"><label class="login-label">Roles <span class="pass-hint">(select one or more)</span></label>
+      <div class="roles-cb-grid">${_roleCheckboxes(currentRoles, 'eu')}</div></div>
     <div class="login-group"><label class="login-label">New Password <span class="pass-hint">(leave blank to keep)</span></label><input class="login-input" type="password" id="eu-pass" placeholder="min 8 characters"></div>
     <button class="btn-login-submit mt-8" data-action="saveEditUser">Save Changes</button>
     <div class="sig-section">
@@ -3350,11 +3363,12 @@ async function saveEditUser() {
   const name  = document.getElementById('eu-name')?.value?.trim();
   const email = document.getElementById('eu-email')?.value?.trim();
   const title = document.getElementById('eu-title')?.value?.trim();
-  const role  = document.getElementById('eu-role')?.value;
+  const roles = [...document.querySelectorAll('input.role-cb[name="eu-roles"]:checked')].map(c=>c.value);
   const pass  = document.getElementById('eu-pass')?.value;
   if (!id || !name) { toast('Name is required', 'err'); return; }
   if (pass && pass.length < 8) { toast('Password must be at least 8 characters', 'err'); return; }
-  const payload = { name, email, title, role };
+  if (!roles.length) { toast('Select at least one role', 'err'); return; }
+  const payload = { name, email, title, roles };
   if (pass) payload.password = pass;
   const r = await api('PUT', `users.php?id=${id}`, payload);
   if (!r.success) { toast(r.error || 'Error saving user', 'err'); return; }
@@ -3575,13 +3589,12 @@ document.addEventListener('DOMContentLoaded', async ()=>{
     buildNav();
     document.getElementById('ptb-user').textContent = SESSION.name;
     document.documentElement.dataset.state = 'portal';
-    document.getElementById('dash-sub').textContent = `AECI CHEMPARK  -  ${(ROLE_LABELS[SESSION.role]||SESSION.role).toUpperCase()} VIEW`;
+    { const _rl = SESSION.roles?.length > 1 ? SESSION.roles.map(r=>ROLE_LABELS[r]||r).join(' + ') : (ROLE_LABELS[SESSION.role]||SESSION.role);
+      document.getElementById('dash-sub').textContent = `AECI CHEMPARK  -  ${_rl.toUpperCase()} VIEW`; }
     await refreshAll();
-    const firstPage = {
-      call_logger:'p-new-callout', junior_tech:'p-callouts',
-      senior_tech:'p-callouts', client_support:'p-dashboard', admin_clerk:'p-callouts',
-      safety_officer:'p-safety',
-    }[SESSION.role] || 'p-dashboard';
+    const _roleMap = { call_logger:'p-new-callout', junior_tech:'p-callouts', senior_tech:'p-callouts', client_support:'p-dashboard', admin_clerk:'p-callouts', safety_officer:'p-safety' };
+    const _allRoles = SESSION.roles?.length ? SESSION.roles : [SESSION.role];
+    const firstPage = Object.entries(_roleMap).find(([r])=>_allRoles.includes(r))?.[1] || 'p-dashboard';
     showPortalPage(firstPage, null);
     updateBadges();
     startIdleTimer();

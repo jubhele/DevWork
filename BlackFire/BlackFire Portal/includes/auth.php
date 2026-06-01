@@ -22,6 +22,26 @@ function _load_role_perms(): array {
 }
 
 /**
+ * Return all roles assigned to a user from bf_user_roles.
+ * Falls back to bf_users.role if the junction table has no rows for this user.
+ * Cached per user_id for the lifetime of this request.
+ */
+function _user_roles(int $user_id): array {
+    static $cache = [];
+    if (isset($cache[$user_id])) return $cache[$user_id];
+    require_once __DIR__ . '/db.php';
+    $rows = db_select("SELECT role FROM bf_user_roles WHERE user_id = ? ORDER BY role", [$user_id]);
+    $roles = array_column($rows, 'role');
+    if (!$roles) {
+        // Migration not yet run — fall back to bf_users.role
+        $row = db_row("SELECT role FROM bf_users WHERE id = ?", [$user_id]);
+        $roles = $row && $row['role'] ? [$row['role']] : [];
+    }
+    $cache[$user_id] = $roles;
+    return $roles;
+}
+
+/**
  * Start or resume session (called on every page/api load)
  */
 function bf_session_start(): void {
@@ -93,11 +113,13 @@ function current_user(): ?array {
 
     db_exec("UPDATE bf_mobile_tokens SET last_used_at = NOW() WHERE id = ?", [$row['token_id']]);
 
+    $uid = (int) $row['user_id'];
     return [
-        'id'        => (int) $row['user_id'],
+        'id'        => $uid,
         'username'  => $row['username'],
         'name'      => $row['name'],
         'role'      => $row['role'],
+        'roles'     => _user_roles($uid),
         'title'     => $row['title'],
         'client_id' => $row['client_id'] !== null ? (int)$row['client_id'] : null,
     ];
@@ -149,17 +171,26 @@ function require_auth(): array {
 }
 
 /**
- * Check if a role has a permission (reads from bf_role_permissions table).
+ * Check if the current user (or an explicit role) has a permission.
+ * When $role is omitted, all of the current user's roles are checked — any match grants access.
+ * When $role is provided, only that single role is checked (backward-compat for internal callers).
  */
 function can(string $perm, ?string $role = null): bool {
-    if ($role === null) {
-        $user = current_user();
-        if (!$user) return false;
-        $role = $user['role'];
+    if ($role !== null) {
+        if ($role === 'sysadmin') return true;
+        $perms = _load_role_perms();
+        return in_array($role, $perms[$perm] ?? [], true);
     }
-    if ($role === 'sysadmin') return true;
+
+    $user = current_user();
+    if (!$user) return false;
+    $roles = !empty($user['roles']) ? $user['roles'] : [$user['role']];
+    if (in_array('sysadmin', $roles, true)) return true;
     $perms = _load_role_perms();
-    return in_array($role, $perms[$perm] ?? [], true);
+    foreach ($roles as $r) {
+        if (in_array($r, $perms[$perm] ?? [], true)) return true;
+    }
+    return false;
 }
 
 /**
@@ -167,7 +198,7 @@ function can(string $perm, ?string $role = null): bool {
  */
 function require_perm(string $perm): array {
     $user = require_auth();
-    if (!can($perm, $user['role'])) {
+    if (!can($perm)) {
         http_response_code(403);
         echo json_encode(['success' => false, 'error' => 'Permission denied']);
         exit;
