@@ -40,17 +40,7 @@ VALUES
 ('z.myeza',
  '$2y$12$hw21i39xr1aS0SDiiLwhfuF.uAJjwX2z/8FwQJxhucctMY8Q5lApe',
  'Zanele Myeza','z.myeza@astuteinsights.co.za',
- 'safety_officer','Safety & Compliance Officer',1,'2026-05-29 08:00:00'),
--- Thabo Dlamini — Junior Technician (referenced in Q3 2025+ audit teams as K. Dlamini)
-('t.dlamini',
- '$2y$12$hw21i39xr1aS0SDiiLwhfuF.uAJjwX2z/8FwQJxhucctMY8Q5lApe',
- 'Thabo Dlamini','t.dlamini@astuteinsights.co.za',
- 'junior_tech','Junior Technician',1,'2025-07-01 08:00:00'),
--- Yolanda Herbst — AECI SHE Representative (client-side contact, viewer access)
-('y.herbst',
- '$2y$12$hw21i39xr1aS0SDiiLwhfuF.uAJjwX2z/8FwQJxhucctMY8Q5lApe',
- 'Yolanda Herbst','y.herbst@aeci.co.za',
- 'viewer','AECI SHE Representative',1,'2025-03-10 08:00:00');
+ 'safety_officer','Safety & Compliance Officer',1,'2026-05-29 08:00:00');
 
 -- ── 1b. MULTI-ROLE ASSIGNMENTS ────────────────────────────────
 -- Run migration_user_roles.sql first to create bf_user_roles table.
