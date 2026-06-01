@@ -3382,12 +3382,12 @@ async function toggleUserActive(id, active) {
 
 async function loadUserSignature(userId) {
   const r = await api('GET', `user_signature.php?user_id=${userId}`);
-  if (!r.success || !r.data.has_signature) return;
+  if (!r.success || !r.has_signature) return;
   const img  = document.getElementById('eu-sig-img');
   const meta = document.getElementById('eu-sig-meta');
-  if (img)  img.src = r.data.signature_image;
-  if (meta && r.data.signature_updated_by) {
-    meta.textContent = `Updated by ${r.data.signature_updated_by} on ${(r.data.signature_updated_at||'').slice(0,10)}`;
+  if (img)  img.src = r.signature_image;
+  if (meta && r.signature_updated_by) {
+    meta.textContent = `Updated by ${r.signature_updated_by} on ${(r.signature_updated_at||'').slice(0,10)}`;
   }
 }
 
@@ -3420,7 +3420,7 @@ async function saveUserSignature() {
   const currentImg  = document.getElementById('eu-sig-img');
   const newWrap     = document.getElementById('eu-sig-new-wrap');
   const fileInput   = document.getElementById('eu-sig-file');
-  if (currentImg)  currentImg.src = r.data.signature_image;
+  if (currentImg)  currentImg.src = r.signature_image;
   if (currentWrap) currentWrap.classList.remove('hidden');
   if (newWrap)     newWrap.classList.add('hidden');
   if (fileInput)   fileInput.value = '';
