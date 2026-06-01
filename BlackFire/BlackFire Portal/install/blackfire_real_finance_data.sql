@@ -501,12 +501,66 @@ VALUES
 ('2025-08-29','Vendor payment — Siyasiza Group (A1026/A1027/A1028)','Vendor Payment','A1026-A1028',0.00,2550.00,'2025-08-29 12:00:00'),
 ('2025-11-30','Vendor payment — Siyasiza Group (A1029–A1033)','Vendor Payment','A1029-A1033', 0.00,6620.00,'2025-11-30 12:00:00');
 
+-- ── 7. COST OF SALES — reverse-engineered from 30% margin rule ─
+-- Rule: where no supplier invoice exists, AECI invoice = internal cost × 1.30
+-- → cost = invoice_amount / 1.30  (rounded to 2 dp)
+-- Covers all 41 invoices (29 paid + 12 outstanding) on the invoice date.
+-- Siyasiza actual cash costs (§6 above) are additional outflows for those jobs.
+-- Megahertz Invoice_1308/1310/1313 amounts still TBC — add when PDFs extracted.
+INSERT INTO bf_transactions
+  (trans_date, description, category, reference, credit, debit, created_at)
+VALUES
+-- ── Paid invoices (29) ────────────────────────────────────────
+('2024-11-02','Cost of services — AECI Chempark (CP0833)','Cost of Sales','COST-CP0833', 0.00, 62993.46,'2024-11-02 10:00:00'),
+('2024-12-09','Cost of services — AECI Chempark (CP0893)','Cost of Sales','COST-CP0893', 0.00,  6103.85,'2024-12-09 10:00:00'),
+('2024-12-18','Cost of services — AECI Chempark (CP0903)','Cost of Sales','COST-CP0903', 0.00,  5160.85,'2024-12-18 10:00:00'),
+('2025-01-06','Cost of services — AECI Chempark (CP0934)','Cost of Sales','COST-CP0934', 0.00, 14358.90,'2025-01-06 10:00:00'),
+('2025-02-18','Cost of services — AECI Chempark (CP0975)','Cost of Sales','COST-CP0975', 0.00,  9244.23,'2025-02-18 10:00:00'),
+('2025-03-26','Cost of services — AECI Chempark (CP1028)','Cost of Sales','COST-CP1028', 0.00, 17405.38,'2025-03-26 10:00:00'),
+('2025-03-26','Cost of services — AECI Chempark (CP1038)','Cost of Sales','COST-CP1038', 0.00, 15193.27,'2025-03-26 10:00:00'),
+('2025-03-31','Cost of services — AECI Chempark (CP1026)','Cost of Sales','COST-CP1026', 0.00, 25211.54,'2025-03-31 10:00:00'),
+('2025-04-22','Cost of services — AECI Chempark (CP1082)','Cost of Sales','COST-CP1082', 0.00,  3007.69,'2025-04-22 10:00:00'),
+('2025-04-22','Cost of services — AECI Chempark (CP1063)','Cost of Sales','COST-CP1063', 0.00,  3848.08,'2025-04-22 10:00:00'),
+('2025-05-29','Cost of services — AECI Chempark (CP1112)','Cost of Sales','COST-CP1112', 0.00, 27949.42,'2025-05-29 10:00:00'),
+('2025-05-29','Cost of services — AECI Chempark (CP1126)','Cost of Sales','COST-CP1126', 0.00, 10896.78,'2025-05-29 10:00:00'),
+('2025-05-29','Cost of services — AECI Chempark (CP1196)','Cost of Sales','COST-CP1196', 0.00,  2521.15,'2025-05-29 10:00:00'),
+('2025-05-29','Cost of services — AECI Chempark (CP1211)','Cost of Sales','COST-CP1211', 0.00,  1592.31,'2025-05-29 10:00:00'),
+('2025-05-29','Cost of services — AECI Chempark (CP1205)','Cost of Sales','COST-CP1205', 0.00,  2521.15,'2025-05-29 10:00:00'),
+('2025-08-18','Cost of services — AECI Chempark (CP1247)','Cost of Sales','COST-CP1247', 0.00,  3494.23,'2025-08-18 10:00:00'),
+('2025-09-09','Cost of services — AECI Chempark (CP1271)','Cost of Sales','COST-CP1271', 0.00,   973.08,'2025-09-09 10:00:00'),
+('2025-10-01','Cost of services — AECI Chempark (CP1294)','Cost of Sales','COST-CP1294', 0.00,  6723.08,'2025-10-01 10:00:00'),
+('2025-10-17','Cost of services — AECI Chempark (CP0974)','Cost of Sales','COST-CP0974', 0.00, 14358.90,'2025-10-17 10:00:00'),
+('2025-10-31','Cost of services — AECI Chempark (CP1301)','Cost of Sales','COST-CP1301', 0.00, 26091.81,'2025-10-31 10:00:00'),
+('2025-12-08','Cost of services — AECI Chempark (CP1401)','Cost of Sales','COST-CP1401', 0.00,   973.08,'2025-12-08 10:00:00'),
+('2025-12-08','Cost of services — AECI Chempark (CP1388)','Cost of Sales','COST-CP1388', 0.00,  1548.08,'2025-12-08 10:00:00'),
+('2026-01-06','Cost of services — AECI Chempark (CP1407)','Cost of Sales','COST-CP1407', 0.00,  8205.25,'2026-01-06 10:00:00'),
+('2026-01-21','Cost of services — AECI Chempark (CP1447)','Cost of Sales','COST-CP1447', 0.00, 25963.46,'2026-01-21 10:00:00'),
+('2026-01-22','Cost of services — AECI Chempark (CP1446)','Cost of Sales','COST-CP1446', 0.00,   973.08,'2026-01-22 10:00:00'),
+('2026-01-26','Cost of services — AECI Chempark (CP1459)','Cost of Sales','COST-CP1459', 0.00,  6520.11,'2026-01-26 10:00:00'),
+('2026-01-30','Cost of services — AECI Chempark (CP1455)','Cost of Sales','COST-CP1455', 0.00,  6961.92,'2026-01-30 10:00:00'),
+('2026-02-09','Cost of services — AECI Chempark (CP1482)','Cost of Sales','COST-CP1482', 0.00,  1769.23,'2026-02-09 10:00:00'),
+('2026-02-09','Cost of services — AECI Chempark (CP1483)','Cost of Sales','COST-CP1483', 0.00,  2846.15,'2026-02-09 10:00:00'),
+-- ── Outstanding invoices (12) — cost incurred, revenue not yet received ──
+('2026-03-03','Cost of services — AECI Chempark (CP1492)','Cost of Sales','COST-CP1492', 0.00, 12699.85,'2026-03-03 10:00:00'),
+('2026-03-03','Cost of services — AECI Chempark (CP1535)','Cost of Sales','COST-CP1535', 0.00,  6653.85,'2026-03-03 10:00:00'),
+('2026-03-03','Cost of services — AECI Chempark (CP1491)','Cost of Sales','COST-CP1491', 0.00, 15788.46,'2026-03-03 10:00:00'),
+('2026-03-03','Cost of services — AECI Chempark (CP1536)','Cost of Sales','COST-CP1536', 0.00,  1346.15,'2026-03-03 10:00:00'),
+('2026-03-03','Cost of services — AECI Chempark (CP1527)','Cost of Sales','COST-CP1527', 0.00, 28300.27,'2026-03-03 10:00:00'),
+('2026-03-03','Cost of services — AECI Chempark (CP1532)','Cost of Sales','COST-CP1532', 0.00,  7769.23,'2026-03-03 10:00:00'),
+('2026-03-03','Cost of services — AECI Chempark (CP1485)','Cost of Sales','COST-CP1485', 0.00,  7346.15,'2026-03-03 10:00:00'),
+('2026-03-12','Cost of services — AECI Chempark (CP1550)','Cost of Sales','COST-CP1550', 0.00,  8153.85,'2026-03-12 10:00:00'),
+('2026-03-12','Cost of services — AECI Chempark (CP1551)','Cost of Sales','COST-CP1551', 0.00, 18300.00,'2026-03-12 10:00:00'),
+('2026-03-23','Cost of services — AECI Chempark (CP1469)','Cost of Sales','COST-CP1469', 0.00, 21664.74,'2026-03-23 10:00:00'),
+('2026-04-01','Cost of services — AECI Chempark (CP1592)','Cost of Sales','COST-CP1592', 0.00, 17232.31,'2026-04-01 10:00:00'),
+('2026-04-20','Cost of services — AECI Chempark (CP1590)','Cost of Sales','COST-CP1590', 0.00,  3096.15,'2026-04-20 10:00:00');
+
 SET FOREIGN_KEY_CHECKS = 1;
 -- ── Summary ──────────────────────────────────────────────────
 -- Callouts inserted:  34 new (historical + Mar–Apr 2026)
 --                      7 existing testdata refs kept (CO-040226-0001 etc.)
 -- Invoices inserted:  41 (all using real INV-AI naming from BFS statements)
 -- Payments inserted:  31 rows across 15 batch payment events
--- Transactions:       29 income credits + 2 vendor expense debits = 31 total
--- Outstanding:        12 invoices as of 2026-04-20 = R192,855.31
+-- Transactions:       29 income credits + 2 Siyasiza vendor debits + 41 cost-of-sales = 72 total
+-- Cost of sales:      invoice_amount / 1.30 per job (30% margin rule, no supplier invoice)
+-- Outstanding:        12 invoices as of 2026-04-20 = R192,855.31 (costs already recorded)
 -- Megahertz invoices: Invoice_1308/1310/1313 (Feb–Mar 2026) — amounts TBC from PDFs
