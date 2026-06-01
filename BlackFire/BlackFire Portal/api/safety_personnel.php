@@ -27,7 +27,12 @@ require_perm('safety.view');
 $method = $_SERVER['REQUEST_METHOD'];
 $id     = (int)($_GET['id'] ?? 0);
 
-const VALID_ROLES = ['Employee','Subcontractor','Supervisor','SHE Rep','First Aider','Other'];
+const VALID_ROLES = [
+    'Employee', 'Subcontractor', 'Supervisor', 'SHE Rep', 'First Aider', 'Other',
+    'CEO', 'Safety Officer', 'Construction Supervisor', 'Risk Assessor',
+    'Incident Investigator', 'Fall Protection Plan Developer', 'Emergency Co-ordinator',
+    'Hand Tools Inspector', 'Ladder Inspector', 'Portable Electric Equipment Inspector',
+];
 
 /* ── GET ──────────────────────────────────────────────────────── */
 if ($method === 'GET') {
@@ -80,8 +85,8 @@ if ($method === 'POST') {
 
     $existing = db_row(
         "SELECT id, is_active FROM bf_safety_personnel
-          WHERE file_ref = ? AND (user_id = ? OR portal_user_id = ?)",
-        [$file_ref, $uid, $uid]
+          WHERE file_ref = ? AND user_id = ?",
+        [$file_ref, $uid]
     );
 
     if ($existing && $existing['is_active']) json_err('User already on this safety file');
@@ -89,21 +94,20 @@ if ($method === 'POST') {
     if ($existing) {
         db_exec(
             "UPDATE bf_safety_personnel
-             SET is_active = 1, user_id = ?, portal_user_id = ?,
-                 removed_at = NULL, removed_reason = '', removed_by = '',
-                 removed_by_id = NULL,
-                 updated_by = ?, updated_by_id = ?
+             SET is_active = 1, user_id = ?,
+                 removed_at = NULL, removed_reason = '',
+                 removed_by_id = NULL, updated_by_id = ?
              WHERE id = ?",
-            [$uid, $uid, $user['username'], $user['id'], $existing['id']]
+            [$uid, $user['id'], $existing['id']]
         );
     } else {
         $role = in_array($pu['title'], VALID_ROLES, true) ? $pu['title']
-              : (in_array($pu['role'],  VALID_ROLES, true) ? $pu['role'] : 'Employee');
+              : (in_array($pu['role'],  VALID_ROLES, true) ? $pu['role'] : 'Other');
         db_insert(
             "INSERT INTO bf_safety_personnel
-             (file_ref, user_id, portal_user_id, role, created_by, created_by_id)
-             VALUES (?, ?, ?, ?, ?, ?)",
-            [$file_ref, $uid, $uid, $role, $user['username'], $user['id']]
+             (file_ref, user_id, role, created_by_id)
+             VALUES (?, ?, ?, ?)",
+            [$file_ref, $uid, $role, $user['id']]
         );
     }
 
@@ -144,10 +148,9 @@ if ($method === 'PUT') {
         db_exec(
             "UPDATE bf_safety_personnel
              SET is_active = 0, removed_at = CURDATE(),
-                 removed_reason = ?,
-                 removed_by = ?, removed_by_id = ?
+                 removed_reason = ?, removed_by_id = ?
              WHERE id = ?",
-            [$reason, $user['username'], $user['id'], $id]
+            [$reason, $user['id'], $id]
         );
         audit($user['username'], 'REMOVE',
             "Personnel $id ({$person['user_name']}) removed from {$person['file_ref']}: $reason");
@@ -159,10 +162,9 @@ if ($method === 'PUT') {
         db_exec(
             "UPDATE bf_safety_personnel
              SET is_active = 1, removed_at = NULL, removed_reason = '',
-                 removed_by = '', removed_by_id = NULL,
-                 updated_by = ?, updated_by_id = ?
+                 removed_by_id = NULL, updated_by_id = ?
              WHERE id = ?",
-            [$user['username'], $user['id'], $id]
+            [$user['id'], $id]
         );
         audit($user['username'], 'REINSTATE',
             "Personnel $id ({$person['user_name']}) reinstated on {$person['file_ref']}");
@@ -171,8 +173,8 @@ if ($method === 'PUT') {
     }
 
     // Only safety-specific fields are editable; name/email come from bf_users
-    $sets   = ['updated_by = ?', 'updated_by_id = ?'];
-    $params = [$user['username'], $user['id']];
+    $sets   = ['updated_by_id = ?'];
+    $params = [$user['id']];
 
     if (array_key_exists('id_number', $b)) { $sets[] = 'id_number = ?'; $params[] = clean($b['id_number'], 30); }
     if (array_key_exists('role', $b) && in_array($b['role'], VALID_ROLES, true)) {
@@ -199,18 +201,17 @@ if ($method === 'DELETE') {
 
         $prs = db_row(
             "SELECT id FROM bf_safety_personnel
-              WHERE file_ref = ? AND (user_id = ? OR portal_user_id = ?) AND is_active = 1",
-            [$file_ref, $uid, $uid]
+              WHERE file_ref = ? AND user_id = ? AND is_active = 1",
+            [$file_ref, $uid]
         );
         if (!$prs) json_err('Link not found', 404);
 
         db_exec(
             "UPDATE bf_safety_personnel
              SET is_active = 0, removed_at = CURDATE(),
-                 removed_reason = 'Portal user unlinked',
-                 removed_by = ?, removed_by_id = ?
+                 removed_reason = 'Portal user unlinked', removed_by_id = ?
              WHERE id = ?",
-            [$user['username'], $user['id'], $prs['id']]
+            [$user['id'], $prs['id']]
         );
 
         $pu = db_row("SELECT name FROM bf_users WHERE id = ?", [$uid]);
