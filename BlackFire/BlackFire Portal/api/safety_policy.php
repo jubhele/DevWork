@@ -27,14 +27,20 @@ if ($method === 'PUT') {
     if ($action === 'ack') {
         $token = clean($_GET['token'] ?? '', 64);
         if (!$token) json_err('Missing token', 400);
-        $rec = db_row("SELECT * FROM bf_policy_acks WHERE token = ? AND status IN ('Pending','Sent')", [$token]);
+        $rec = db_row(
+            "SELECT pa.*, u.name AS recipient_name
+               FROM bf_policy_acks pa
+               LEFT JOIN bf_users u ON u.id = pa.recipient_id
+              WHERE pa.token = ? AND pa.status IN ('Pending','Sent')",
+            [$token]
+        );
         if (!$rec) json_err('Invalid or already-used acknowledgment link', 404);
         $ip = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'] ?? '';
         db_exec(
             "UPDATE bf_policy_acks SET status='Acknowledged', acked_at=NOW(), acked_ip=? WHERE id=?",
             [substr($ip, 0, 45), $rec['id']]
         );
-        json_ok(['name' => $rec['recipient_name'], 'policy' => $rec['policy_title']], 'Acknowledgment recorded');
+        json_ok(['name' => $rec['recipient_name'] ?? '', 'policy' => $rec['policy_title']], 'Acknowledgment recorded');
     }
 }
 
@@ -46,7 +52,10 @@ if ($method === 'GET') {
     $ref = clean($_GET['file_ref'] ?? '', 30);
     if (!$ref) json_err('Missing file_ref');
     $rows = db_select(
-        "SELECT * FROM bf_policy_acks WHERE file_ref = ? ORDER BY created_at DESC",
+        "SELECT pa.*, u.name AS recipient_name, u.email AS recipient_email
+           FROM bf_policy_acks pa
+           LEFT JOIN bf_users u ON u.id = pa.recipient_id
+          WHERE pa.file_ref = ? ORDER BY pa.created_at DESC",
         [$ref]
     );
     json_ok(['data' => $rows]);
@@ -55,33 +64,38 @@ if ($method === 'GET') {
 /* ── POST create ─────────────────────────────────────── */
 if ($method === 'POST') {
     $b = get_body();
-    require_fields($b, ['file_ref', 'policy_title', 'recipient_name']);
+    require_fields($b, ['file_ref', 'policy_title', 'recipient_id']);
     $ref   = clean($b['file_ref'], 30);
     $title = clean($b['policy_title'], 255);
     $body  = clean($b['policy_body'] ?? '', 5000);
-    $name  = clean($b['recipient_name'], 255);
-    $email = clean($b['recipient_email'] ?? '', 255);
-    $token = bin2hex(random_bytes(32)); // 64-char hex token
+    $uid   = (int)$b['recipient_id'];
+    $token = bin2hex(random_bytes(32));
+
+    $ru = db_row("SELECT name, email FROM bf_users WHERE id = ? AND active = 1", [$uid]);
+    if (!$ru) json_err('Portal user not found or inactive', 404);
+    $name  = $ru['name'];
+    $email = $ru['email'] ?? '';
 
     $id = db_insert(
-        "INSERT INTO bf_policy_acks (file_ref, policy_title, policy_body, recipient_name, recipient_email, token, status, created_by)
-         VALUES (?, ?, ?, ?, ?, ?, 'Pending', ?)",
-        [$ref, $title, $body, $name, $email, $token, $user['username']]
+        "INSERT INTO bf_policy_acks (file_ref, policy_title, policy_body, recipient_id, token, status, created_by_id)
+         VALUES (?, ?, ?, ?, ?, 'Pending', ?)",
+        [$ref, $title, $body, $uid, $token, $user['id']]
     );
 
-    // Optionally send email right away if email provided
     $sent = false;
     if ($email && filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $sent = _send_ack_email($email, $name, $title, $body, $token, $ref, $cfg);
         if ($sent) {
-            db_exec(
-                "UPDATE bf_policy_acks SET status='Sent', sent_at=NOW() WHERE id=?",
-                [$id]
-            );
+            db_exec("UPDATE bf_policy_acks SET status='Sent', sent_at=NOW() WHERE id=?", [$id]);
         }
     }
 
-    $row = db_row("SELECT * FROM bf_policy_acks WHERE id = ?", [$id]);
+    $row = db_row(
+        "SELECT pa.*, u.name AS recipient_name, u.email AS recipient_email
+           FROM bf_policy_acks pa LEFT JOIN bf_users u ON u.id = pa.recipient_id
+          WHERE pa.id = ?",
+        [$id]
+    );
     audit($user['username'], 'POLICY_ACK_CREATE',
           "Policy ack created for $ref — $name — $title" . ($sent ? ' (email sent)' : ''));
     json_ok(['data' => $row], $sent ? "Acknowledgment request sent to $email" : "Acknowledgment request created");
@@ -91,7 +105,12 @@ if ($method === 'POST') {
 if ($method === 'PUT') {
     $id  = (int)($_GET['id'] ?? 0);
     if (!$id) json_err('Missing id');
-    $rec = db_row("SELECT * FROM bf_policy_acks WHERE id = ?", [$id]);
+    $rec = db_row(
+        "SELECT pa.*, u.name AS recipient_name, u.email AS recipient_email
+           FROM bf_policy_acks pa LEFT JOIN bf_users u ON u.id = pa.recipient_id
+          WHERE pa.id = ?",
+        [$id]
+    );
     if (!$rec) json_err('Record not found', 404);
     $b      = get_body();
     $action = clean($b['action'] ?? '', 30);
@@ -101,16 +120,17 @@ if ($method === 'PUT') {
             "UPDATE bf_policy_acks SET status='Acknowledged', acked_at=NOW(), acked_ip='manual' WHERE id=?",
             [$id]
         );
+        $rname = $rec['recipient_name'] ?? 'recipient';
         audit($user['username'], 'POLICY_ACK_MANUAL',
-              "Manual acknowledgment recorded for #{$id} ({$rec['recipient_name']})");
-        json_ok([], 'Acknowledgment recorded for ' . $rec['recipient_name']);
+              "Manual acknowledgment recorded for #{$id} ({$rname})");
+        json_ok([], 'Acknowledgment recorded for ' . $rname);
     }
 
     if ($action === 'resend') {
-        $email = $rec['recipient_email'];
+        $email = $rec['recipient_email'] ?? '';
         if (!$email || !filter_var($email, FILTER_VALIDATE_EMAIL))
             json_err('No valid email on this record');
-        $sent = _send_ack_email($email, $rec['recipient_name'], $rec['policy_title'],
+        $sent = _send_ack_email($email, $rec['recipient_name'] ?? '', $rec['policy_title'],
                                 $rec['policy_body'] ?? '', $rec['token'], $rec['file_ref'], $cfg);
         if (!$sent) json_err('Failed to send email — check SMTP config');
         db_exec(

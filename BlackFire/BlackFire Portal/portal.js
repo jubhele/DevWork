@@ -6071,8 +6071,8 @@ function safRenderPersonnel(fileId,people){
          <button class="btn btn-g btn-xs" data-action="safRemovePerson" data-id="${p.id}" data-file-id="${esc(fileId)}" data-name="${esc(p.user_name||p.full_name)}">Remove</button>`;
     return `<tr>
     <td>${displayName}</td>
-    <td>${esc(p.id_number||'—')}</td>
-    <td>${esc(p.role)}</td>
+    <td>—</td>
+    <td>${esc(p.user_title||'—')}</td>
     <td>${esc(p.company||'—')}</td>
     <td>${displayEmail?`<a href="mailto:${esc(displayEmail)}" class="text-accent">${esc(displayEmail)}</a>`:'<span class="text-muted">—</span>'}</td>
     <td>${actionBtns}</td>
@@ -6413,8 +6413,7 @@ function safRenderCompliance(fileId,records){
 async function safAddCompliance(fileId){
   const people=await safLoadPersonnel(fileId);
   const active=people.filter(p=>p.is_active==1);
-  // Datalist with active personnel names — allow typing a new name to create on the fly
-  const prsOpts=active.map(p=>`<option data-id="${p.id}" value="${esc(p.full_name)}">`).join('');
+  const prsOpts=active.map(p=>`<option value="${p.id}">${esc(p.user_name||'—')}</option>`).join('');
   const typeOpts=COMPLIANCE_TYPES.map((t,i)=>
     `<option value="${i}" data-cat="${t.category}" data-scope="${t.scope}" data-months="${t.months}">${t.type}</option>`
   ).join('');
@@ -6448,9 +6447,10 @@ async function safAddCompliance(fileId){
       </div>
       <div class="fgroup ffull" id="cmp-person-row">
         <label class="flbl">Person (leave blank for company-level)</label>
-        <input class="finput" id="cmp-person" list="cmp-person-dl" placeholder="Type or select person name, or leave blank" autocomplete="off">
-        <datalist id="cmp-person-dl"><option value="">${prsOpts}</datalist>
-        <small class="flbl text-muted">Type a new name to add them to the personnel roster automatically</small>
+        <select class="finput" id="cmp-person-sel">
+          <option value="">— Company-level / leave blank —</option>
+          ${prsOpts}
+        </select>
       </div>
       <div class="fgroup">
         <label class="flbl">Issue / Completion Date <span class="text-ember">*</span></label>
@@ -6517,24 +6517,9 @@ async function safSaveCompliance(fileId){
   const issueDate =(document.getElementById('cmp-issue')?.value||null);
   const expiryDate=(document.getElementById('cmp-expiry')?.value||null);
   const months    =parseInt(document.getElementById('cmp-months')?.value||'12');
-  const personName=(document.getElementById('cmp-person')?.value||'').trim();
   const notes     =(document.getElementById('cmp-notes')?.value||'').trim();
   if(!issueDate){toast('Issue date is required','err');return;}
-  // Resolve person name → personnel ID; create if not on file yet
-  let personId = null;
-  if(personName && scope!=='Company'){
-    const existing=(_safPersonnelCache||[]).find(p=>p.full_name===personName&&p.is_active==1);
-    if(existing){
-      personId=existing.id;
-    } else {
-      const nr=await api('POST','safety_personnel.php',{file_ref:fileId,full_name:personName,id_number:'',role:'Employee',company:''});
-      if(!nr.success){toast('Could not create personnel record for '+personName,'err');return;}
-      personId=nr.data?.id||null;
-      // Refresh cache so health check sees the new person
-      const freshPeople=await safLoadPersonnel(fileId);
-      safRenderPersonnel(fileId,freshPeople);
-    }
-  }
+  const personId=parseInt(document.getElementById('cmp-person-sel')?.value||'0')||null;
   const r=await api('POST','safety_compliance.php',{
     file_ref:fileId,compliance_type:cType,category,scope,
     issue_date:issueDate,expiry_date:expiryDate,renewal_months:months,
@@ -6687,18 +6672,26 @@ function safPersonnelSendPolicy(personId){
   if(!person) return;
   const fileId=document.getElementById('saf-detail-content')?.dataset?.fileId;
   if(!fileId) return;
-  safAddPolicyAck(fileId,{name:person.full_name, email:person.email||''});
+  safAddPolicyAck(fileId,{userId: person.user_id});
+}
+
+function safPakEmailPreview(sel){
+  const uid=parseInt(sel.value||'0');
+  const u=(proxyDB.users||[]).find(x=>x.id===uid);
+  const email=u?.email||'';
+  const row=document.getElementById('pak-email-row');
+  const show=document.getElementById('pak-email-show');
+  if(row) row.style.display=email?'':'none';
+  if(show) show.textContent=email||'—';
 }
 
 function safAddPolicyAck(fileId, prefill={}){
-  const people=_safPersonnelCache||[];
-  const active=people.filter(p=>p.is_active==1);
-  if(!active.length){
-    toast('No active personnel on file — add personnel before sending policy emails.','warn');
+  const allUsers=(proxyDB.users||[]).filter(u=>u.active!=0);
+  if(!allUsers.length){
+    toast('No portal users available.','warn');
     return;
   }
-  const dlOpts=active.map(p=>`<option value="${esc(p.full_name)}">`).join('');
-  const emailDlOpts=active.filter(p=>p.email).map(p=>`<option value="${esc(p.email)}">${esc(p.full_name)}</option>`).join('');
+  const opts=allUsers.map(u=>`<option value="${u.id}">${esc(u.name)} — ${esc(u.title||u.role||'—')}</option>`).join('');
   const COMMON_POLICIES=[
     'Health & Safety Policy','PPE Policy & Procedure','Emergency Evacuation Procedure',
     'Incident & Near-Miss Reporting Procedure','Contractor Site Rules & Induction',
@@ -6706,8 +6699,6 @@ function safAddPolicyAck(fileId, prefill={}){
     'Toolbox Talk — General Site Safety',
   ];
   const polOpts=COMMON_POLICIES.map(p=>`<option value="${esc(p)}">`).join('');
-  const prefillName =prefill.name  ? esc(prefill.name)  : '';
-  const prefillEmail=prefill.email ? esc(prefill.email) : '';
   openModal('Send Policy for Acknowledgment',`
     <div class="fgrid">
       <div class="fgroup ffull"><label class="flbl">Policy / Procedure Title <span class="text-ember">*</span></label>
@@ -6715,30 +6706,35 @@ function safAddPolicyAck(fileId, prefill={}){
         <datalist id="pak-title-dl">${polOpts}</datalist></div>
       <div class="fgroup ffull"><label class="flbl">Policy Content / Summary (optional — shown to recipient)</label>
         <textarea class="finput" id="pak-body" rows="4" placeholder="Paste key points or summary of the policy..."></textarea></div>
-      <div class="fgroup"><label class="flbl">Recipient Name <span class="text-ember">*</span></label>
-        <input class="finput" id="pak-name" list="pak-name-dl" placeholder="Type or select person" autocomplete="off" value="${prefillName}">
-        <datalist id="pak-name-dl">${dlOpts}</datalist></div>
-      <div class="fgroup"><label class="flbl">Recipient Email (leave blank for in-person sign-off)</label>
-        <input class="finput" id="pak-email" type="email" list="pak-email-dl" placeholder="employee@company.co.za" value="${prefillEmail}">
-        <datalist id="pak-email-dl">${emailDlOpts}</datalist></div>
+      <div class="fgroup ffull"><label class="flbl">Select Recipient <span class="text-ember">*</span></label>
+        <select class="finput" id="pak-user-sel">
+          <option value="">— Select portal user —</option>
+          ${opts}
+        </select></div>
+      <div class="fgroup ffull" id="pak-email-row" style="display:none"><label class="flbl">Email</label>
+        <div class="finput" style="background:#f5f5f5;color:#666;cursor:default" id="pak-email-show">—</div></div>
     </div>
     <div class="mt2 flex-end">
       <button class="btn btn-g btn-s mr-8" data-action="closeModalDirect">Cancel</button>
       <button class="btn btn-p" data-action="safSavePolicyAck" data-id="${fileId}">Create &amp; Send</button>
     </div>
   `);
+  const sel=document.getElementById('pak-user-sel');
+  if(sel){
+    sel.addEventListener('change',()=>safPakEmailPreview(sel));
+    if(prefill.userId){ sel.value=prefill.userId; safPakEmailPreview(sel); }
+  }
 }
 
 async function safSavePolicyAck(fileId){
   const title=(document.getElementById('pak-title')?.value||'').trim();
   const body =(document.getElementById('pak-body')?.value||'').trim();
-  const name =(document.getElementById('pak-name')?.value||'').trim();
-  const email=(document.getElementById('pak-email')?.value||'').trim();
+  const uid  =parseInt(document.getElementById('pak-user-sel')?.value||'0');
   if(!title){toast('Policy title is required','err');return;}
-  if(!name) {toast('Recipient name is required','err');return;}
-  const r=await api('POST','safety_policy.php',{file_ref:fileId,policy_title:title,policy_body:body,recipient_name:name,recipient_email:email});
+  if(!uid)  {toast('Please select a recipient','err');return;}
+  const r=await api('POST','safety_policy.php',{file_ref:fileId,policy_title:title,policy_body:body,recipient_id:uid});
   if(!r.success){toast(r.error||'Failed','err');return;}
-  toast(email?'Policy sent to '+email:'Acknowledgment request created — mark acknowledged when signed','ok');
+  toast('Acknowledgment request created','ok');
   closeModalDirect();
   const acks=await safLoadPolicyAcks(fileId);
   safRenderPolicyAcks(fileId,acks);
