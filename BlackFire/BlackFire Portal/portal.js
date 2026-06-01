@@ -1023,7 +1023,7 @@ function toast(msg,type=''){
   setTimeout(()=>{t.classList.add('hiding');setTimeout(()=>t.remove(),400);},6000);
 }
 function audit(action,detail=''){
-  AUDIT_LOG.unshift({ts:new Date().toLocaleTimeString('en-ZA',{hour:'2-digit',minute:'2-digit',second:'2-digit'}),user:SESSION?.username||'?',role:SESSION?.role||'?',action,detail,level:'info'});
+  AUDIT_LOG.unshift({ts:new Date().toISOString(),user:SESSION?.username||'?',role:SESSION?.role||'?',action,detail,level:'info'});
   if(AUDIT_LOG.length>200) AUDIT_LOG.pop();
 }
 
@@ -1903,7 +1903,7 @@ function showPortalPage(id, el){
     'p-income':       async()=>{ await Promise.all([refreshInvoices(), refreshTransactions()]); renderIncome(); },
     'p-reconcile':    async()=>{ await refreshTransactions(); renderReconcile(); },
     'p-log-payment':  async()=>{ await refreshInvoices(); renderPayList(); },
-    'p-audit':        async()=>{ const r=await api('GET','audit.php?limit=200'); AUDIT_LOG=(r.data||[]).map(e=>({ts:e.created_at?.slice(11,19)||'',user:e.username,role:'',action:e.action,detail:e.detail,level:'info'})); renderAudit(); },
+    'p-audit':        async()=>{ const r=await api('GET','audit.php?limit=200'); AUDIT_LOG=(r.data||[]).map(e=>({ts:e.created_at||'',user:e.username,role:'',action:e.action,detail:e.detail,level:'info'})); renderAudit(); },
     'p-home':         async()=>{ renderPortalHome(); },
     'p-services':     async()=>{ buildSvcGrid('portal'); },
     'p-new-quote':    async()=>{ initNewQuote(); },
@@ -3208,7 +3208,7 @@ function renderAudit(filter=''){
   const items=filter?AUDIT_LOG.filter(e=>e.action.toLowerCase().includes(filter.toLowerCase())||e.user.toLowerCase().includes(filter.toLowerCase())||e.detail.toLowerCase().includes(filter.toLowerCase())):AUDIT_LOG;
   document.getElementById('audit-list').innerHTML=items.length?items.map(e=>`
     <div class="audit-row">
-      <div class="audit-ts">${esc(e.ts)}</div>
+      <div class="audit-ts">${fmtDT(e.ts)}</div>
       <div class="audit-user">${esc(e.user)}</div>
       <div class="audit-action"><strong>${esc(e.action)}</strong> - ${esc(e.detail)}</div>
       <div class="audit-lvl info">${esc(e.role||e.level)}</div>
@@ -4199,7 +4199,7 @@ function safBlankFile(id){
   const sections = {};
   SAFETY_SECTIONS.forEach(sec=>{
     sections[sec.key] = sec.items.map(item=>({
-      no: item.no, result: null, appointee: '', comments: '', uploads: [],
+      no: item.no, result: null, appointee_id: null, comments: '', uploads: [],
     }));
   });
   return {
@@ -4310,7 +4310,7 @@ function safBuildSections(){
       const rNA  = s.result==='N/A'             ? 'checked' : '';
       const rNot = s.result==='Not to Standard' ? 'checked' : '';
       const rStd = s.result==='To Standard'     ? 'checked' : '';
-      const apo  = esc(s.appointee||'');
+      const apoId = s.appointee_id ? parseInt(s.appointee_id) : null;
       const cmt  = esc(s.comments||'');
       const upCount = (s.uploads||[]).length;
       const rowCls = s.result==='N/A'?'saf-row-na':s.result==='Not to Standard'?'saf-row-nts':s.result==='To Standard'?'saf-row-ts':'';
@@ -4321,7 +4321,7 @@ function safBuildSections(){
         <td class="saf-radio-cell"><label class="saf-radio-lbl"><input type="radio" name="saf_${sec.key}_${idx}" value="N/A" ${rNA} data-action="safItemChanged" data-section-key="${sec.key}" data-item-idx="${idx}"> N/A</label></td>
         <td class="saf-radio-cell saf-nts"><label class="saf-radio-lbl"><input type="radio" name="saf_${sec.key}_${idx}" value="Not to Standard" ${rNot} data-action="safItemChanged" data-section-key="${sec.key}" data-item-idx="${idx}"> NTS</label></td>
         <td class="saf-radio-cell saf-ts"><label class="saf-radio-lbl"><input type="radio" name="saf_${sec.key}_${idx}" value="To Standard" ${rStd} data-action="safItemChanged" data-section-key="${sec.key}" data-item-idx="${idx}"> TS</label></td>
-        ${sec.key==='H'?`<td><input class="finput finput-sm" placeholder="Name" value="${apo}" data-action="safAppointeeChanged" data-section-key="${sec.key}" data-item-idx="${idx}"></td>`:''}
+        ${sec.key==='H'?`<td><select class="finput finput-sm" data-action="safAppointeeChanged" data-section-key="${sec.key}" data-item-idx="${idx}">${_safUserOpts(apoId)}</select></td>`:''}
         <td><textarea class="finput finput-sm saf-cmt" rows="1" placeholder="Findings..." data-action="safCommentChanged" data-section-key="${sec.key}" data-item-idx="${idx}">${cmt}</textarea></td>
         <td class="saf-upload-cell">${_safUploadCellInner(sec.key, idx, upCount, s.result)}</td>
       </tr>`;
@@ -4366,7 +4366,7 @@ function safGetOrInitFile(){
   if(!mem.sections){
     mem.sections = {};
     SAFETY_SECTIONS.forEach(sec=>{
-      mem.sections[sec.key] = sec.items.map(item=>({no:item.no, result:null, appointee:'', comments:'', uploads:[]}));
+      mem.sections[sec.key] = sec.items.map(item=>({no:item.no, result:null, appointee_id:null, comments:'', uploads:[]}));
     });
   }
   return mem;
@@ -4396,7 +4396,7 @@ function safItemChanged(sec, idx, radio){
 function safAppointeeChanged(sec, idx, inp){
   const file = safGetOrInitFile();
   if(!file||!file.sections[sec]) return;
-  file.sections[sec][idx].appointee = inp.value;
+  file.sections[sec][idx].appointee_id = parseInt(inp.value)||null;
   file.updatedAt = new Date().toISOString();
 }
 
@@ -4439,11 +4439,11 @@ async function safSaveSection(secKey){
 
   // Existing file: upsert only this section's items
   const sectionItems=(mem.sections[secKey]||[]).map(item=>({
-    no:        item.no,
-    result:    item.result||null,
-    appointee: item.appointee||'',
-    comments:  item.comments||'',
-    ap_status: item.apStatus||item.ap_status||'Open',
+    no:           item.no,
+    result:       item.result||null,
+    appointee_id: item.appointee_id||null,
+    comments:     item.comments||'',
+    ap_status:    item.apStatus||item.ap_status||'Open',
   }));
   if(btn){btn.disabled=true;btn.textContent='…';}
   const r=await api('PUT','safety.php?id='+id,{sections:{[secKey]:sectionItems}});
@@ -4831,11 +4831,11 @@ function _safBuildApiBody(file, status){
   const sections={};
   SAFETY_SECTIONS.forEach(sec=>{
     sections[sec.key]=(file.sections[sec.key]||[]).map(item=>({
-      no:         item.no,
-      result:     item.result||null,
-      appointee:  item.appointee||'',
-      comments:   item.comments||'',
-      ap_status:  item.apStatus||item.ap_status||'Open',
+      no:           item.no,
+      result:       item.result||null,
+      appointee_id: item.appointee_id||null,
+      comments:     item.comments||'',
+      ap_status:    item.apStatus||item.ap_status||'Open',
     }));
   });
   body.sections=sections;
@@ -5033,7 +5033,7 @@ async function safViewFile(id){
       checkHtml+=`<tr>
         <td>${item.no}</td><td>${esc(item.ref||'')}</td><td>${esc(item.criteria)}</td>
         <td class="${resCls}">${esc(sv.result||'—')}</td>
-        ${sec.key==='H'?`<td>${esc(sv.appointee||'')}</td>`:''}
+        ${sec.key==='H'?`<td>${esc((proxyDB.users||[]).find(u=>u.id===(sv.appointee_id?parseInt(sv.appointee_id):null))?.name||'')}</td>`:''}
         <td>${esc(sv.comments||'')}</td>
         <td class="saf-rpt-ev-cell">${evCell}</td>
       </tr>`;
@@ -5740,7 +5740,7 @@ async function safDownloadPack(id){
       const sv=saved[idx]||{};
       const rc=sv.result==='To Standard'?'grn':sv.result==='Not to Standard'?'red':sv.result==='N/A'?'muted':'';
       checkHtml+=`<tr><td class="num">${item.no}</td><td class="ref">${e(item.ref||'')}</td><td>${e(item.criteria)}</td>
-        <td class="${rc}">${e(sv.result||'—')}</td>${sec.key==='H'?`<td>${e(sv.appointee||'')}</td>`:''}
+        <td class="${rc}">${e(sv.result||'—')}</td>${sec.key==='H'?`<td>${e((proxyDB.users||[]).find(u=>u.id===(sv.appointee_id?parseInt(sv.appointee_id):null))?.name||'')}</td>`:''}
         <td class="comment">${e(sv.comments||'')}</td></tr>`;
     });
     checkHtml+='</tbody></table></div>';
