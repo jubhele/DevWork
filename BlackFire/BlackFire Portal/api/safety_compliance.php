@@ -33,10 +33,11 @@ if ($method === 'GET') {
     if ($action === 'due_soon') {
         // Cross-file: items expiring within 60 days or already expired
         $rows = db_select(
-            "SELECT c.*, p.full_name, p.role, f.contractor
+            "SELECT c.*, u.name AS person_name, u.role AS person_role, f.contractor
                FROM bf_safety_compliance c
                LEFT JOIN bf_safety_personnel p ON c.personnel_id = p.id
-               LEFT JOIN bf_safety_files f     ON c.file_ref     = f.ref_id
+               LEFT JOIN bf_users u            ON u.id = p.user_id
+               LEFT JOIN bf_safety_files f     ON c.file_ref = f.ref_id
               WHERE c.expiry_date IS NOT NULL
                 AND c.expiry_date <= DATE_ADD(CURDATE(), INTERVAL 60 DAY)
               ORDER BY c.expiry_date ASC
@@ -49,11 +50,12 @@ if ($method === 'GET') {
     if (!$file_ref) json_err('Missing file_ref or action');
 
     $rows = db_select(
-        "SELECT c.*, p.full_name, p.role,
+        "SELECT c.*, u.name AS person_name, u.role AS person_role,
                 a.id AS att_id, a.original_name AS att_name,
                 a.file_size AS att_size, a.mime_type AS att_mime
            FROM bf_safety_compliance c
            LEFT JOIN bf_safety_personnel p ON c.personnel_id = p.id
+           LEFT JOIN bf_users u            ON u.id = p.user_id
            LEFT JOIN bf_attachments a
                   ON a.entity_type = 'safety_compliance'
                  AND a.entity_ref  = CAST(c.id AS CHAR)
@@ -93,7 +95,7 @@ if ($method === 'POST') {
     $new_id = db_insert(
         "INSERT INTO bf_safety_compliance
          (file_ref, personnel_id, compliance_type, category, scope,
-          issue_date, expiry_date, renewal_months, document_ref, notes, created_by)
+          issue_date, expiry_date, renewal_months, document_ref, notes, created_by_id)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         [
             $file_ref,
@@ -106,16 +108,17 @@ if ($method === 'POST') {
             max(0, (int)($b['renewal_months'] ?? 12)),
             clean($b['document_ref'] ?? '', 255),
             clean($b['notes'] ?? '', 2000),
-            $user['username'],
+            $user['id'],
         ]
     );
     audit($user['username'], 'CREATE',
         "Compliance record $new_id added to $file_ref: " . clean($b['compliance_type']));
 
     $rows = db_select(
-        "SELECT c.*, p.full_name, p.role
+        "SELECT c.*, u.name AS person_name, u.role AS person_role
            FROM bf_safety_compliance c
            LEFT JOIN bf_safety_personnel p ON c.personnel_id = p.id
+           LEFT JOIN bf_users u            ON u.id = p.user_id
           WHERE c.id = ?",
         [$new_id]
     );
@@ -129,8 +132,8 @@ if ($method === 'PUT') {
     if (!$rec) json_err('Record not found', 404);
 
     $b      = get_body();
-    $sets   = ['updated_by = ?'];
-    $params = [$user['username']];
+    $sets   = ['updated_by_id = ?'];
+    $params = [$user['id']];
 
     if (array_key_exists('compliance_type', $b)) {
         $sets[] = 'compliance_type = ?'; $params[] = clean($b['compliance_type'], 100);
@@ -164,9 +167,10 @@ if ($method === 'PUT') {
     audit($user['username'], 'UPDATE', "Compliance record $id updated on {$rec['file_ref']}");
 
     $rows = db_select(
-        "SELECT c.*, p.full_name, p.role
+        "SELECT c.*, u.name AS person_name, u.role AS person_role
            FROM bf_safety_compliance c
            LEFT JOIN bf_safety_personnel p ON c.personnel_id = p.id
+           LEFT JOIN bf_users u            ON u.id = p.user_id
           WHERE c.id = ?",
         [$id]
     );

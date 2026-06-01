@@ -12,8 +12,10 @@
 --   l.sithole  Lelo Sithole     ADMIN CLERK
 --   n.sithole  Nomvula Sithole  CALL LOGGER
 --
--- Also removes Thabo Mokoena and Maria Coetzee who are fictional
--- test-data-only names (no portal users exist for them).
+-- Rows with no user_id (Thabo Mokoena, Maria Coetzee — fictional,
+-- no portal users) are purged in migration_drop_personnel_text_cols.sql §1
+-- which removes all user_id IS NULL rows before dropping full_name.
+-- Run that migration after this script.
 --
 -- Safe to re-run (DELETE is idempotent when rows are already gone).
 -- ============================================================
@@ -31,28 +33,13 @@ SELECT
     CONCAT('l.sithole = ', IFNULL(@lsithole_id, 'NOT FOUND')) AS lsithole_check,
     CONCAT('n.sithole = ', IFNULL(@nsithole_id, 'NOT FOUND')) AS nsithole_check;
 
--- ── 1. Remove by user_id FK (rows already backfilled) ─────────────
+-- ── 1. Remove by user_id FK ────────────────────────────────────
 DELETE FROM bf_safety_personnel
  WHERE user_id IN (@jmthembu_id, @rkhumalo_id, @lsithole_id, @nsithole_id);
 
--- ── 2. Remove any remaining rows by full_name (user_id still NULL) ─
-DELETE FROM bf_safety_personnel
- WHERE user_id IS NULL
-   AND full_name IN ('James Mthembu', 'Refilwe Khumalo',
-                     'Lelo Sithole',  'Nomvula Sithole');
-
--- ── 3. Also remove Thabo Mokoena and Maria Coetzee (no portal user,
---       fictional test data across all files) ────────────────────────
-DELETE FROM bf_safety_personnel
- WHERE user_id IS NULL
-   AND full_name IN ('Thabo Mokoena', 'Maria Coetzee');
-
--- ── 4. Verify — confirm none remain ───────────────────────────────
-SELECT sp.id, sp.file_ref, IFNULL(u.name, sp.full_name) AS person, sp.role
+-- ── 2. Verify — confirm none remain ───────────────────────────
+SELECT sp.id, sp.file_ref, u.name AS person, u.username
   FROM bf_safety_personnel sp
-  LEFT JOIN bf_users u ON u.id = sp.user_id
- WHERE (sp.user_id IN (@jmthembu_id, @rkhumalo_id, @lsithole_id, @nsithole_id)
-        OR sp.full_name IN ('James Mthembu', 'Refilwe Khumalo',
-                            'Lelo Sithole',  'Nomvula Sithole',
-                            'Thabo Mokoena', 'Maria Coetzee'));
+  JOIN bf_users u ON u.id = sp.user_id
+ WHERE sp.user_id IN (@jmthembu_id, @rkhumalo_id, @lsithole_id, @nsithole_id);
 -- Expected: 0 rows

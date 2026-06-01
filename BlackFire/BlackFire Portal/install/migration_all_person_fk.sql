@@ -18,7 +18,7 @@ SET FOREIGN_KEY_CHECKS = 0;   -- allow FK additions in any order
 
 -- uk_file_portal_user is a composite UNIQUE KEY (file_ref, portal_user_id).
 -- Must drop the index before dropping portal_user_id or MySQL errors with #1072.
-ALTER TABLE bf_safety_personnel DROP INDEX uk_file_portal_user;
+ALTER TABLE bf_safety_personnel DROP INDEX IF EXISTS uk_file_portal_user;
 
 -- email/created_by/removed_by come from bf_users via JOIN; portal_user_id duplicates user_id
 -- IF EXISTS guards against re-runs (email/created_by/removed_by already dropped in prior run)
@@ -87,8 +87,7 @@ ALTER TABLE bf_attachments DROP COLUMN uploaded_by;
 -- ════════════════════════════════════════════════════════════
 
 ALTER TABLE `bf_safety_file_users`
-  ADD COLUMN IF NOT EXISTS `added_by_id` INT UNSIGNED NULL AFTER `added_by`,
-  MODIFY COLUMN `added_by` VARCHAR(50) NULL DEFAULT NULL;
+  ADD COLUMN IF NOT EXISTS `added_by_id` INT UNSIGNED NULL AFTER `added_by`;
 
 UPDATE `bf_safety_file_users` sfu
   JOIN `bf_users` u ON u.username = sfu.added_by
@@ -104,6 +103,7 @@ ALTER TABLE `bf_safety_file_users`
     FOREIGN KEY (`user_id`) REFERENCES `bf_users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   ADD CONSTRAINT `fk_sfu_added_by`
     FOREIGN KEY (`added_by_id`) REFERENCES `bf_users`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE `bf_safety_file_users` DROP COLUMN IF EXISTS `added_by`;
 
 -- ════════════════════════════════════════════════════════════
 -- 6. bf_policy_acks — add created_by_id FK + backfill
@@ -111,8 +111,7 @@ ALTER TABLE `bf_safety_file_users`
 -- ════════════════════════════════════════════════════════════
 
 ALTER TABLE `bf_policy_acks`
-  ADD COLUMN IF NOT EXISTS `created_by_id` INT UNSIGNED NULL AFTER `created_by`,
-  MODIFY COLUMN `created_by` VARCHAR(100) NULL DEFAULT NULL;
+  ADD COLUMN IF NOT EXISTS `created_by_id` INT UNSIGNED NULL AFTER `created_by`;
 
 UPDATE `bf_policy_acks` pa
   JOIN `bf_users` u ON u.username = pa.created_by
@@ -124,6 +123,7 @@ ALTER TABLE `bf_policy_acks`
 ALTER TABLE `bf_policy_acks`
   ADD CONSTRAINT `fk_pa_created_by`
     FOREIGN KEY (`created_by_id`) REFERENCES `bf_users`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE `bf_policy_acks` DROP COLUMN IF EXISTS `created_by`;
 
 -- ════════════════════════════════════════════════════════════
 -- 7. Replace Kitso Marupi with Zanele Myeza across ALL tables
