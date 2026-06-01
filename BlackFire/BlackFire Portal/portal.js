@@ -3321,17 +3321,17 @@ function openEditUserModal(id) {
     <button class="btn-login-submit mt-8" data-action="saveEditUser">Save Changes</button>
     <div class="sig-section">
       <div class="sig-section-title">Signature</div>
-      <div id="eu-sig-current" class="sig-current-wrap" style="${u.has_signature?'':'display:none'}">
+      <div id="eu-sig-current" class="sig-current-wrap${u.has_signature?'':' hidden'}">
         <div class="sig-preview-box"><img id="eu-sig-img" src="" alt="Signature" class="sig-img"></div>
         <div class="sig-meta" id="eu-sig-meta">${sigMeta}</div>
         <button class="btn btn-d btn-xs mt-4" data-action="removeUserSignature" data-id="${u.id}">Remove Signature</button>
       </div>
       <div class="sig-upload-row">
-        <input type="file" id="eu-sig-file" accept="image/png" style="display:none">
+        <input type="file" id="eu-sig-file" accept="image/png" class="hidden">
         <label for="eu-sig-file" class="btn btn-g btn-s sig-upload-btn">${u.has_signature?'Replace Signature':'Upload Signature (PNG)'}</label>
         <span class="sig-hint">PNG only — background removed automatically</span>
       </div>
-      <div id="eu-sig-new-wrap" class="sig-new-wrap" style="display:none">
+      <div id="eu-sig-new-wrap" class="sig-new-wrap hidden">
         <div class="sig-preview-box"><img id="eu-sig-new-img" src="" alt="Preview" class="sig-img"></div>
         <div class="sig-new-actions">
           <button class="btn btn-g btn-s" data-action="saveUserSignature">Save Signature</button>
@@ -3404,7 +3404,7 @@ function onSigFileSelected(e) {
     const wrap = document.getElementById('eu-sig-new-wrap');
     const img  = document.getElementById('eu-sig-new-img');
     if (img)  img.src = ev.target.result;
-    if (wrap) wrap.style.display = '';
+    if (wrap) wrap.classList.remove('hidden');
   };
   reader.readAsDataURL(file);
 }
@@ -3421,8 +3421,8 @@ async function saveUserSignature() {
   const newWrap     = document.getElementById('eu-sig-new-wrap');
   const fileInput   = document.getElementById('eu-sig-file');
   if (currentImg)  currentImg.src = r.data.signature_image;
-  if (currentWrap) currentWrap.style.display = '';
-  if (newWrap)     newWrap.style.display = 'none';
+  if (currentWrap) currentWrap.classList.remove('hidden');
+  if (newWrap)     newWrap.classList.add('hidden');
   if (fileInput)   fileInput.value = '';
   const u = (DB.users || []).find(x => x.id === id);
   if (u) u.has_signature = true;
@@ -3434,7 +3434,7 @@ async function removeUserSignature(id) {
   const r = await api('DELETE', `user_signature.php?user_id=${id}`);
   if (!r.success) { toast(r.error || 'Error removing signature', 'err'); return; }
   const wrap = document.getElementById('eu-sig-current');
-  if (wrap) wrap.style.display = 'none';
+  if (wrap) wrap.classList.add('hidden');
   const u = (DB.users || []).find(x => x.id === id);
   if (u) u.has_signature = false;
   renderUsers();
@@ -3444,7 +3444,7 @@ async function removeUserSignature(id) {
 function clearSigPreview() {
   const wrap  = document.getElementById('eu-sig-new-wrap');
   const input = document.getElementById('eu-sig-file');
-  if (wrap)  wrap.style.display = 'none';
+  if (wrap)  wrap.classList.add('hidden');
   if (input) input.value = '';
 }
 
