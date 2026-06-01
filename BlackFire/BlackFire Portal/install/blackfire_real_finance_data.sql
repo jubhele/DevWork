@@ -29,11 +29,8 @@ DELETE FROM bf_payments WHERE payment_ref IN (
   'PAY-100824-0001','PAY-101224-0001','PAY-200225-0001',
   'PAY-160725-0001','PAY-240426-0001'
 );
-DELETE FROM bf_transactions WHERE reference IN (
-  'INV-210724-0001','INV-041124-0001','INV-150125-0001','INV-150625-0001',
-  'INV-060326-0001','INV-060326-0002','INV-060326-0003','INV-090326-0001',
-  'INV-120326-0001','INV-120326-0002','INV-120326-0003'
-);
+-- Wipe all transactions — rebuild entirely from real BFS billing data below
+DELETE FROM bf_transactions;
 DELETE FROM bf_statements WHERE ref_id IN (
   'STMT-060326-0001','STMT-130326-0001'
 );
@@ -462,21 +459,6 @@ VALUES
 -- Credits  = income (AECI paying Astute Insights)
 -- Debits   = vendor expenses (Siyasiza Group callout services)
 -- Source: BFS account statements + Siyasiza_Statement_2[1].xlsx
-
--- Clear any stale real-ref entries before re-inserting
-DELETE FROM bf_transactions WHERE reference IN (
-  'INV-AI20241014','INV-AI20241015','INV-AI20241218',
-  'INV-AI20250106','INV-AI20250218',
-  'INV-AI20250326','INV-AI20250327','INV-AI20250331',
-  'INV-AI250422','INV-AI20250422',
-  'INV-AI20250611','INV-AI250611','INV-AI20250711','INV-AI250718','INV-AI20250718',
-  'INV-AI20250818','INV-AI20250909',
-  'INV-AI20251001','INV-AI20251017','INV-AI20251031',
-  'INV-AI081225','INV-AI20251208',
-  'INV-AI06012026','INV-AI20260121','INV-AI20260122','INV-AI20260126','INV-AI20260130',
-  'INV-AI090226','INV-AI20260209',
-  'A1026-A1028','A1029-A1033'
-);
 
 INSERT INTO bf_transactions
   (trans_date, description, category, reference, credit, debit, created_at)
