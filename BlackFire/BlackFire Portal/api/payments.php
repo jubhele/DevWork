@@ -74,8 +74,8 @@ if ($method === 'POST') {
             );
             db_insert(
                 "INSERT INTO bf_payments
-                 (payment_ref, invoice_ref, invoice_id, client_id, client_name, amount, payment_date, notes, logged_by, logged_by_user_id)
-                 VALUES (?,?,?,?,?,?,?,?,?,?)",
+                 (payment_ref, invoice_ref, invoice_id, client_id, client_name, amount, payment_date, notes, logged_by_user_id)
+                 VALUES (?,?,?,?,?,?,?,?,?)",
                 [
                     $pay_ref,
                     $inv['ref_id'],
@@ -85,7 +85,6 @@ if ($method === 'POST') {
                     $inv['amount'],
                     $pay_date,
                     $notes,
-                    $usr['username'],
                     (int)$usr['id'],
                 ]
             );

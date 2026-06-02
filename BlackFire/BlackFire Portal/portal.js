@@ -69,6 +69,31 @@ async function apiUpload(entityType, entityRef, fileInput) {
   }
 }
 
+/* ── Table column sort ─────────────────────────────────────────────── */
+function sortTableByCol(th) {
+  const table = th.closest('table');
+  if (!table) return;
+  const tbody = table.querySelector('tbody');
+  if (!tbody) return;
+  const ths = Array.from(th.closest('tr').querySelectorAll('th'));
+  const col = ths.indexOf(th);
+  const asc = th.dataset.sort !== 'asc';
+  ths.forEach(h => delete h.dataset.sort);
+  th.dataset.sort = asc ? 'asc' : 'desc';
+  const rows = Array.from(tbody.querySelectorAll('tr'));
+  rows.sort((a, b) => {
+    const ac = a.querySelectorAll('td')[col];
+    const bc = b.querySelectorAll('td')[col];
+    const at = ac ? (ac.dataset.sortVal || ac.textContent.trim()) : '';
+    const bt = bc ? (bc.dataset.sortVal || bc.textContent.trim()) : '';
+    const an = parseFloat(at.replace(/[^0-9.\-]/g, ''));
+    const bn = parseFloat(bt.replace(/[^0-9.\-]/g, ''));
+    if (!isNaN(an) && !isNaN(bn)) return asc ? an - bn : bn - an;
+    return asc ? at.localeCompare(bt) : bt.localeCompare(at);
+  });
+  rows.forEach(r => tbody.appendChild(r));
+}
+
 /* ── data-action click dispatcher ──────────────────────────────────── */
 document.addEventListener('click', function(e) {
   // Close mobile nav when tapping outside it
@@ -78,6 +103,8 @@ document.addEventListener('click', function(e) {
       closeMobileMenu();
     }
   }
+  const sortTh = e.target.closest('thead th');
+  if (sortTh && !('nosort' in sortTh.dataset)) { sortTableByCol(sortTh); return; }
   const el = e.target.closest('[data-action]');
   if (!el) return;
   const action = el.dataset.action;
@@ -559,6 +586,7 @@ function normalizeCallout(c) {
   return {
     id:               c.ref_id || c.id,
     client:           c.client_name,
+    clientId:         c.client_id ? Number(c.client_id) : null,
     clientEmail:      c.client_email || '',
     service:          c.service,
     location:         c.location,
@@ -873,6 +901,7 @@ const DASH_WIDGETS = [
   { id:'w-fin',        label:'Finance',             desc:'Invoiced MTD · net balance · 6-month revenue chart', perm:'invoice.view' },
   { id:'w-alerts',     label:'Live Alerts',         desc:'Overdue invoices · urgent callouts · pending approvals', perm: null },
   { id:'w-compliance', label:'Compliance Alerts',   desc:'Expiring and overdue safety certificates',          perm:'safety.view' },
+  { id:'w-compare',    label:'Period Comparisons',  desc:'MTD vs PY MTD · YTD vs PY YTD · QTD vs PY QTD',   perm:'invoice.view' },
 ];
 
 function getDashPrefs() {
@@ -1952,10 +1981,11 @@ function renderDashboard(){
   if(!container) return;
 
   // Resolve which widgets are on for this user
-  const showOps  = isWidgetOn('w-ops')        && can('callout.view');
-  const showFin  = isWidgetOn('w-fin')        && (can('invoice.view') || can('finance.income'));
-  const showAlrt = isWidgetOn('w-alerts');
-  const showComp = isWidgetOn('w-compliance') && can('safety.view');
+  const showOps     = isWidgetOn('w-ops')        && can('callout.view');
+  const showFin     = isWidgetOn('w-fin')        && (can('invoice.view') || can('finance.income'));
+  const showAlrt    = isWidgetOn('w-alerts');
+  const showComp    = isWidgetOn('w-compliance') && can('safety.view');
+  const showCompare = isWidgetOn('w-compare')    && (can('invoice.view') || can('finance.income'));
 
   const now = new Date();
 
@@ -1964,6 +1994,10 @@ function renderDashboard(){
   const pq   = proxyDB.quotes.filter(q=>q.status==='Draft'||q.status==='Sent'||q.status==='Pending Approval').length;
   const mtd  = proxyDB.invoices.filter(i=>{const d=new Date(i.date+'T00:00:00');return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();}).reduce((a,i)=>a+i.amount,0);
   const net  = proxyDB.bank.reduce((a,b)=>a+(b.credit||0)-(b.debit||0),0);
+  const completedMTD  = proxyDB.callouts.filter(c=>{const cd=new Date(c.date+'T00:00:00');return (c.status==='Completed'||c.status==='Invoiced')&&cd.getMonth()===now.getMonth()&&cd.getFullYear()===now.getFullYear();}).length;
+  const outstandingVal= proxyDB.invoices.filter(i=>i.status==='Sent'||i.status==='Overdue').reduce((a,i)=>a+i.amount,0);
+  const ytd           = proxyDB.invoices.filter(i=>{const d=new Date(i.date+'T00:00:00');return i.status==='Paid'&&d.getFullYear()===now.getFullYear();}).reduce((a,i)=>a+i.amount,0);
+  const quotePipeVal  = proxyDB.quotes.filter(q=>q.status==='Sent'||q.status==='Pending Approval').reduce((a,q)=>a+((q.items||[]).reduce((s,it)=>s+((it.qty||0)*(it.unit||0)),0)),0);
 
   // KPI cards — build only the ones the user has on and can see
   const kpiCards=[];
@@ -1977,6 +2011,22 @@ function renderDashboard(){
     const fmtMtd=fmt(mtd), fmtNet=fmt(net);
     if(can('invoice.view')) kpiCards.push(`<div class="kcard k2"><div class="klbl">Invoiced MTD</div><div class="kval${kv(fmtMtd)}">${fmtMtd}</div><div class="ksub">Month to date</div></div>`);
     if(can('finance.income')) kpiCards.push(`<div class="kcard k4"><div class="klbl">Net Balance</div><div class="kval${kv(fmtNet)}">${fmtNet}</div><div class="ksub">Credits − Debits</div></div>`);
+  }
+
+  // Second KPI row — extended performance metrics
+  const kpiCards2=[];
+  if(showOps){
+    const sCmtd=String(completedMTD);
+    kpiCards2.push(`<div class="kcard k4"><div class="klbl">Completed MTD</div><div class="kval${kv(sCmtd)}">${sCmtd}</div><div class="ksub">Jobs closed this month</div></div>`);
+  }
+  if(showFin&&can('finance.income')){
+    const fmtYtd=fmt(ytd), fmtOut=fmt(outstandingVal);
+    kpiCards2.push(`<div class="kcard k1"><div class="klbl">YTD Revenue</div><div class="kval${kv(fmtYtd)}">${fmtYtd}</div><div class="ksub">Paid invoices this year</div></div>`);
+    kpiCards2.push(`<div class="kcard k2"><div class="klbl">Outstanding</div><div class="kval${kv(fmtOut)}">${fmtOut}</div><div class="ksub">Unpaid invoices total</div></div>`);
+  }
+  if(showFin&&can('quote.view')&&quotePipeVal>0){
+    const fmtQpv=fmt(quotePipeVal);
+    kpiCards2.push(`<div class="kcard k3"><div class="klbl">Quote Pipeline</div><div class="kval${kv(fmtQpv)}">${fmtQpv}</div><div class="ksub">Active quotes value</div></div>`);
   }
 
   // Alerts
@@ -2003,10 +2053,44 @@ function renderDashboard(){
   const maxRev=Math.max(...revData,1);
   const chartBars=revData.map((v,i)=>`<div class="cbar-w"><div class="cval">${v>0?'R'+Math.round(v/1000)+'K':''}</div><div class="cbar" data-h="${Math.max(4,Math.round((v/maxRev)*100))}" title="${fmt(v)}"></div><div class="clbl">${months[i].lbl}</div></div>`).join('');
 
+  // Invoice aging bars (for insight panel)
+  const invPaid   =proxyDB.invoices.filter(i=>i.status==='Paid');
+  const invSent   =proxyDB.invoices.filter(i=>i.status==='Sent');
+  const invOverdue=proxyDB.invoices.filter(i=>i.status==='Overdue');
+  const invDraft  =proxyDB.invoices.filter(i=>i.status==='Draft');
+  const invTotal  =Math.max(proxyDB.invoices.length,1);
+  const invAgingBars=[
+    {lbl:'Paid',   cnt:invPaid.length,   val:fmt(invPaid.reduce((a,i)=>a+i.amount,0)),   col:'var(--green)'},
+    {lbl:'Sent',   cnt:invSent.length,   val:fmt(invSent.reduce((a,i)=>a+i.amount,0)),   col:'var(--amber)'},
+    {lbl:'Overdue',cnt:invOverdue.length,val:fmt(invOverdue.reduce((a,i)=>a+i.amount,0)),col:'var(--ember)'},
+    {lbl:'Draft',  cnt:invDraft.length,  val:fmt(invDraft.reduce((a,i)=>a+i.amount,0)),  col:'var(--muted)'},
+  ].map(r=>`<div class="mb-14">
+    <div class="flex-sb mb-5"><span class="mlbl-xs">${r.lbl} (${r.cnt})</span><span class="mlbl-sm">${r.val}</span></div>
+    <div class="prog-bar"><div class="prog-fill" data-w="${Math.round(r.cnt/invTotal*100)}" data-bg="${r.col}"></div></div>
+  </div>`).join('');
+
+  // Callout activity breakdown bars (for insight panel)
+  const coTotal=Math.max(proxyDB.callouts.length,1);
+  const coActivityBars=[{s:'Open',col:'var(--blue)'},{s:'In Progress',col:'var(--amber)'},{s:'Completed',col:'var(--green)'},{s:'Invoiced',col:'var(--muted)'}].map(({s,col})=>{
+    const cnt=proxyDB.callouts.filter(c=>c.status===s).length;
+    return `<div class="mb-14">
+      <div class="flex-sb mb-5"><span class="mlbl-xs">${s}</span><span class="mlbl-sm">${cnt}</span></div>
+      <div class="prog-bar"><div class="prog-fill" data-w="${Math.round(cnt/coTotal*100)}" data-bg="${col}"></div></div>
+    </div>`;
+  }).join('');
+  const prioBars=[{s:'Emergency',col:'var(--ember)'},{s:'Urgent',col:'var(--amber)'},{s:'Normal',col:'var(--blue)'},{s:'Routine',col:'var(--muted)'}].map(({s,col})=>{
+    const cnt=proxyDB.callouts.filter(c=>c.priority===s).length;
+    return `<div class="mb-14">
+      <div class="flex-sb mb-5"><span class="mlbl-xs">${s}</span><span class="mlbl-sm">${cnt}</span></div>
+      <div class="prog-bar"><div class="prog-fill" data-w="${Math.round(cnt/coTotal*100)}" data-bg="${col}"></div></div>
+    </div>`;
+  }).join('');
+
   // Build HTML
   let html='';
 
   if(kpiCards.length) html+=`<div class="kgrid kgrid--auto">${kpiCards.join('')}</div>`;
+  if(kpiCards2.length) html+=`<div class="kgrid kgrid--auto" style="margin-top:-6px">${kpiCards2.join('')}</div>`;
 
   if(showAlrt) html+=`<div class="alert-strip" id="dash-alerts">${alertsHtml}</div>`;
 
@@ -2031,16 +2115,99 @@ function renderDashboard(){
   else if(panelL)         html+=panelL;
   else if(panelR)         html+=panelR;
 
-  if(!kpiCards.length&&!showAlrt&&!showComp&&!panelL&&!panelR)
+  // Insight panels — Invoice Aging + Callout Activity
+  const insightL=(showFin&&can('invoice.view'))?`<div class="panel">
+    <div class="ph"><div class="ph-title">Invoice Aging</div><button class="btn btn-g btn-s" data-action="navPage" data-page="p-invoices">View All</button></div>
+    <div class="pb">${invAgingBars}</div>
+  </div>`:null;
+  const insightR=showOps?`<div class="panel">
+    <div class="ph"><div class="ph-title">Callout Activity</div></div>
+    <div class="pb">
+      <div class="mlbl-xs" style="display:block;margin-bottom:10px">By Status</div>
+      ${coActivityBars}
+      <div class="mlbl-xs" style="display:block;margin:14px 0 10px">By Priority</div>
+      ${prioBars}
+    </div>
+  </div>`:null;
+
+  if(insightL&&insightR)  html+=`<div class="twocol">${insightL}${insightR}</div>`;
+  else if(insightL)       html+=insightL;
+  else if(insightR)       html+=insightR;
+
+  if(showCompare) html+=buildPeriodComparison(now, showOps);
+
+  if(!kpiCards.length&&!kpiCards2.length&&!showAlrt&&!showComp&&!panelL&&!panelR&&!insightL&&!insightR&&!showCompare)
     html=`<div class="dash-empty-state"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg><p>Your dashboard is empty.<br><button class="btn btn-g btn-s" data-action="showDashEditor">Edit Layout</button> to add widgets.</p></div>`;
 
   container.innerHTML=html;
   container.querySelectorAll('.cbar[data-h]').forEach(b=>{ b.style.height=b.dataset.h+'px'; });
+  applyProgFills(container);
 
   // Nav badges (always update regardless of widget visibility)
   const nbCo=document.getElementById('nb-co');if(nbCo)nbCo.textContent=open;
   const nbInv=document.getElementById('nb-inv');if(nbInv)nbInv.textContent=proxyDB.invoices.filter(i=>i.status==='Sent'||i.status==='Overdue').length;
   const nbQte=document.getElementById('nb-qte');if(nbQte)nbQte.textContent=proxyDB.quotes.filter(q=>q.status==='Pending Approval').length;
+}
+
+function buildPeriodComparison(now, showOps) {
+  const cy = now.getFullYear(), cm = now.getMonth();
+  const py = cy - 1;
+  const curQ = Math.floor(cm / 3);
+
+  // Helpers
+  const invSum = filter => proxyDB.invoices.filter(filter).reduce((a,i) => a + i.amount, 0);
+  const d = s => new Date(s + 'T00:00:00');
+
+  const mtdRev   = invSum(i => { const dt=d(i.date); return dt.getFullYear()===cy && dt.getMonth()===cm; });
+  const pyMtdRev = invSum(i => { const dt=d(i.date); return dt.getFullYear()===py && dt.getMonth()===cm; });
+  const ytdRev   = invSum(i => { const dt=d(i.date); return dt.getFullYear()===cy && dt.getMonth()<=cm; });
+  const pyYtdRev = invSum(i => { const dt=d(i.date); return dt.getFullYear()===py && dt.getMonth()<=cm; });
+  const qtdRev   = invSum(i => { const dt=d(i.date); return dt.getFullYear()===cy && Math.floor(dt.getMonth()/3)===curQ; });
+  const pyQtdRev = invSum(i => { const dt=d(i.date); return dt.getFullYear()===py && Math.floor(dt.getMonth()/3)===curQ; });
+
+  const coMtd   = proxyDB.callouts.filter(c => { const dt=d(c.date); return dt.getFullYear()===cy && dt.getMonth()===cm; }).length;
+  const pyCoMtd = proxyDB.callouts.filter(c => { const dt=d(c.date); return dt.getFullYear()===py && dt.getMonth()===cm; }).length;
+
+  const monthName = now.toLocaleDateString('en-ZA', {month:'short'});
+  const ytdLbl = `Jan–${monthName}`;
+
+  function pctDelta(curr, prev) {
+    if(prev===0 && curr===0) return {pct:0, dir:'flat'};
+    if(prev===0) return {pct:100, dir:'up'};
+    const p = Math.round(((curr-prev)/prev)*100);
+    return {pct:Math.abs(p), dir: p>0?'up': p<0?'down':'flat'};
+  }
+
+  function cmpCard(title, curr, prev, isCurrency, subPrev) {
+    const {pct, dir} = pctDelta(curr, prev);
+    const arrow = dir==='up'?'↑': dir==='down'?'↓':'→';
+    const cls = `pcomp-delta pcomp-delta--${dir}`;
+    const currStr = isCurrency ? fmt(curr) : String(curr);
+    const prevStr = isCurrency ? fmt(prev) : String(prev);
+    return `<div class="pcomp-card">
+      <div class="pcomp-title">${title}</div>
+      <div class="pcomp-main">
+        <span class="pcomp-val">${currStr}</span>
+        <span class="${cls}">${arrow} ${pct}%</span>
+      </div>
+      <div class="pcomp-footer">vs ${subPrev}: <strong>${prevStr}</strong></div>
+    </div>`;
+  }
+
+  let cards = '';
+  cards += cmpCard('MTD Revenue',    mtdRev,   pyMtdRev,   true,  `${monthName} ${py}`);
+  cards += cmpCard('YTD Revenue',    ytdRev,   pyYtdRev,   true,  `${ytdLbl} ${py}`);
+  cards += cmpCard(`Q${curQ+1} Revenue`, qtdRev, pyQtdRev, true,  `Q${curQ+1} ${py}`);
+  if(showOps && can('callout.view'))
+    cards += cmpCard('Callouts MTD', coMtd, pyCoMtd, false, `${monthName} ${py}`);
+
+  return `<div class="panel mt2">
+    <div class="ph">
+      <div class="ph-title">Period Comparisons</div>
+      <span class="ph-badge">vs Prior Year</span>
+    </div>
+    <div class="pb pcomp-grid">${cards}</div>
+  </div>`;
 }
 
 async function safLoadDashCompliance(){
@@ -2476,8 +2643,8 @@ function prefillQuoteFromJob(id){
   const c=proxyDB.callouts.find(x=>x.id===id);if(!c)return;
   showPortalPage('p-new-quote',null);
   setTimeout(()=>{
-    const el=document.getElementById('nq-jobref');if(el)el.value=id;
-    const cl=document.getElementById('nq-client');if(cl)cl.value=c.client;
+    const el=document.getElementById('nq-callout-ref');if(el)el.value=id;
+    const cl=document.getElementById('nq-client');if(cl&&c.clientId)cl.value=c.clientId;
   },50);
 }
 
@@ -3732,13 +3899,14 @@ async function saveQuote(){
 
   if (!clientId) { toast('Please select a client', 'err'); return; }
 
-  // Collect line items
-  const rows = document.querySelectorAll('.qi-row');
+  // Collect line items from the actual row HTML (inputs indexed by position)
+  const rows = document.querySelectorAll('#li-body tr');
   const items = [];
   rows.forEach(row => {
-    const desc = row.querySelector('.qi-desc')?.value?.trim();
-    const qty  = parseFloat(row.querySelector('.qi-qty')?.value) || 1;
-    const unit = parseFloat(row.querySelector('.qi-unit')?.value) || 0;
+    const ins  = row.querySelectorAll('input');
+    const desc = ins[0]?.value?.trim();
+    const qty  = parseFloat(ins[1]?.value) || 1;
+    const unit = parseFloat(ins[2]?.value) || 0;
     if (desc) items.push({ desc, qty, unit });
   });
 
@@ -5333,7 +5501,13 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;bac
 .section-head.collapsed{border-radius:6px}
 .tbl-wrap{overflow-x:auto;border:1px solid var(--border);border-top:none;border-radius:0 0 6px 6px;margin-bottom:6px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
 table{border-collapse:collapse;width:100%;min-width:720px}
-thead th{background:var(--surface2);color:var(--text2);padding:8px 14px;text-align:left;border-right:1px solid var(--border);border-bottom:1px solid var(--border);white-space:nowrap;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+thead th{background:var(--surface2);color:var(--text2);padding:8px 14px;text-align:left;border-right:1px solid var(--border);border-bottom:1px solid var(--border);white-space:nowrap;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;user-select:none;position:relative}
+thead th::after{content:'⇅';display:inline-block;margin-left:5px;opacity:.2;font-size:9px;vertical-align:middle}
+thead th[data-sort="asc"]::after{content:'↑';opacity:.85;color:var(--accent)}
+thead th[data-sort="desc"]::after{content:'↓';opacity:.85;color:var(--accent)}
+thead th[data-sort="asc"],thead th[data-sort="desc"]{color:var(--accent)}
+thead th[data-nosort]{cursor:default}
+thead th[data-nosort]::after{display:none}
 tbody td{padding:8px 14px;border-right:1px solid var(--surface3);border-bottom:1px solid var(--surface3);vertical-align:top;color:var(--text2);font-size:12px}
 tbody tr:nth-child(odd) td{background:var(--row-odd)}
 tbody tr:nth-child(even) td{background:var(--row-even)}

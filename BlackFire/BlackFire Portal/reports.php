@@ -133,13 +133,14 @@ function r_payment_batches(): array {
 function r_personnel(): array {
     try {
         return db_select("
-            SELECT sp.file_ref, sp.full_name, sp.role, sp.id_number,
+            SELECT sp.file_ref, u.name AS full_name, u.title AS role,
                    sp.company, COUNT(DISTINCT sc.id) AS compliance_records
             FROM bf_safety_personnel sp
+            JOIN  bf_users u ON u.id = sp.user_id
             LEFT JOIN bf_safety_compliance sc ON sc.personnel_id = sp.id
             WHERE sp.is_active = 1
-            GROUP BY sp.id
-            ORDER BY sp.file_ref ASC, sp.full_name ASC
+            GROUP BY sp.id, sp.file_ref, u.name, u.title, sp.company
+            ORDER BY sp.file_ref ASC, u.name ASC
         ");
     } catch (Throwable $e) { return []; }
 }
@@ -150,7 +151,7 @@ function r_compliance(): array {
             SELECT sc.file_ref, sc.compliance_type, sc.category, sc.scope,
                    DATE(sc.issue_date) AS issue_date,
                    DATE(sc.expiry_date) AS expiry_date,
-                   COALESCE(sp.full_name, 'Company-wide') AS person,
+                   COALESCE(u.name, 'Company-wide') AS person,
                    CASE
                      WHEN sc.expiry_date IS NULL THEN 'N/A'
                      WHEN sc.expiry_date < CURDATE() THEN 'Expired'
@@ -159,6 +160,7 @@ function r_compliance(): array {
                    END AS validity
             FROM bf_safety_compliance sc
             LEFT JOIN bf_safety_personnel sp ON sp.id = sc.personnel_id
+            LEFT JOIN bf_users u ON u.id = sp.user_id
             ORDER BY sc.file_ref ASC, sc.compliance_type ASC
         ");
     } catch (Throwable $e) { return []; }
@@ -240,6 +242,39 @@ $total_invoiced = array_sum(array_column($invoices, 'total_amount'));
 $total_paid     = array_sum(array_column($invoices, 'paid_amount'));
 $paid_count     = count(array_filter($invoices, fn($r) => strtolower((string)($r['invoice_status'] ?? '')) === 'paid'));
 $sig_signed     = count(array_filter($signatures, fn($r) => strtolower((string)($r['status'] ?? '')) === 'signed'));
+$outstanding     = $total_invoiced - $total_paid;
+$overdue_count   = count(array_filter($invoices, fn($r) => strtolower((string)($r['invoice_status'] ?? '')) === 'overdue'));
+$personnel_count = count($personnel);
+
+// Group invoices by ref_id for collapse/expand rows (payments as children)
+$invoices_grouped = [];
+foreach ($invoices as $row) {
+    $id = $row['ref_id'];
+    if (!isset($invoices_grouped[$id])) {
+        $invoices_grouped[$id] = [
+            'ref_id'         => $row['ref_id'],
+            'invoice_date'   => $row['invoice_date'],
+            'due_date'       => $row['due_date'],
+            'total_amount'   => $row['total_amount'],
+            'invoice_status' => $row['invoice_status'],
+            'payments'       => [],
+        ];
+    }
+    if (!empty($row['payment_ref'])) {
+        $invoices_grouped[$id]['payments'][] = [
+            'payment_ref'    => $row['payment_ref'],
+            'paid_date'      => $row['paid_date'],
+            'paid_amount'    => $row['paid_amount'],
+            'has_remittance' => $row['has_remittance'],
+        ];
+    }
+}
+
+// Business period from invoice dates
+$inv_dates = array_filter(array_column($invoices, 'invoice_date'));
+$biz_from  = !empty($inv_dates) ? date('M Y', strtotime(min($inv_dates))) : '';
+$biz_to    = !empty($inv_dates) ? date('M Y', strtotime(max($inv_dates))) : '';
+$biz_range = $biz_from ? $biz_from . ($biz_to && $biz_to !== $biz_from ? ' — ' . $biz_to : '') : 'No data';
 
 // ─── HELPERS ───────────────────────────────────────────────────────────────
 function band_pill(string $band): string {
@@ -368,6 +403,14 @@ a{color:inherit;text-decoration:none}
 .kpi.accent .kpi-value{color:var(--accent)}
 .kpi.green  .kpi-value{color:var(--green)}
 
+.inv-row.expandable{cursor:pointer}
+.inv-row.expandable:hover td{background:var(--row-hover)}
+.tog-icon{display:inline-block;font-size:.6rem;color:var(--muted);margin-right:2px;transition:transform .15s}
+.inv-detail td{background:var(--surface2)}
+.inv-pmt-tbl{width:100%;border-collapse:collapse}
+.inv-pmt-tbl th{background:var(--surface3);font-size:.7rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:6px 8px;text-align:left}
+.inv-pmt-tbl td{padding:6px 8px;font-size:.82rem;border-bottom:1px solid var(--border)}
+
 .tab-bar{display:flex;gap:2px;margin-bottom:20px;background:var(--surface2);border-radius:10px;padding:4px;flex-wrap:wrap}
 .tab-btn{flex:1;min-width:120px;padding:8px 12px;border:none;background:transparent;border-radius:7px;cursor:pointer;font-family:'Instrument Sans',sans-serif;font-size:.82rem;font-weight:600;color:var(--muted);transition:all .15s;white-space:nowrap;text-align:center}
 .tab-btn:hover{color:var(--text);background:var(--surface3)}
@@ -457,13 +500,32 @@ td.hi{color:var(--text);font-weight:600}
     <div class="kpi">
       <div class="kpi-label">Callouts</div>
       <div class="kpi-value"><?= count($callouts) ?></div>
-      <div class="kpi-sub">Jul 2024 — Mar 2026</div>
+      <div class="kpi-sub"><?= count($callouts) > 0 ? $biz_range : 'No callouts on record' ?></div>
     </div>
     <div class="kpi">
       <div class="kpi-label">Digital Signatures</div>
       <div class="kpi-value"><?= count($signatures) ?></div>
       <div class="kpi-sub"><?= $sig_signed ?> signed · <?= count($uploads) ?> upload tokens</div>
     </div>
+    <?php if ($can_financial): ?>
+    <div class="kpi green">
+      <div class="kpi-label">Amount Collected</div>
+      <div class="kpi-value">R <?= number_format($total_paid, 0) ?></div>
+      <div class="kpi-sub"><?= $paid_count ?> invoice<?= $paid_count !== 1 ? 's' : '' ?> settled</div>
+    </div>
+    <div class="kpi <?= $outstanding > 0 ? 'accent' : '' ?>">
+      <div class="kpi-label">Outstanding</div>
+      <div class="kpi-value">R <?= number_format(max(0, $outstanding), 0) ?></div>
+      <div class="kpi-sub"><?= $overdue_count > 0 ? $overdue_count . ' overdue' : ($outstanding <= 0 ? 'All settled' : 'Pending payment') ?></div>
+    </div>
+    <?php endif ?>
+    <?php if ($can_safety && $personnel_count > 0): ?>
+    <div class="kpi">
+      <div class="kpi-label">Personnel On File</div>
+      <div class="kpi-value"><?= $personnel_count ?></div>
+      <div class="kpi-sub">Active site personnel</div>
+    </div>
+    <?php endif ?>
   </div>
 
   <!-- Tab Bar (only shows tabs this user can access) -->
@@ -566,7 +628,11 @@ td.hi{color:var(--text);font-weight:600}
           </tr>
         </thead>
         <tbody>
-<?php foreach ($callouts as $c): ?>
+<?php if (empty($callouts)): ?>
+          <tr><td colspan="10" style="text-align:center;color:var(--muted);padding:28px 16px">
+            No callout records found. Callouts are logged from the portal's <strong>Call Log</strong> module.
+          </td></tr>
+<?php else: foreach ($callouts as $c): ?>
           <tr>
             <td class="mono hi"><?= htmlspecialchars($c['ref_id']) ?></td>
             <td class="mono"><?= nilstr($c['date']) ?></td>
@@ -579,7 +645,7 @@ td.hi{color:var(--text);font-weight:600}
             <td class="mono"><?= nilstr($c['invoice_ref']) ?></td>
             <td><?= $c['invoice_status'] ? status_pill(ucfirst(strtolower($c['invoice_status']))) : '<span class="pill p-dflt">—</span>' ?></td>
           </tr>
-<?php endforeach ?>
+<?php endforeach; endif ?>
         </tbody>
       </table>
     </div>
@@ -602,7 +668,7 @@ td.hi{color:var(--text);font-weight:600}
     </div>
 
     <div class="tbl-wrap">
-      <div class="tbl-label">Invoices</div>
+      <div class="tbl-label">Invoices <span style="font-weight:400;color:var(--muted);font-size:.75rem">— click a row to expand payments</span></div>
       <table>
         <thead>
           <tr>
@@ -611,23 +677,60 @@ td.hi{color:var(--text);font-weight:600}
             <th>Due</th>
             <th>Amount</th>
             <th>Status</th>
-            <th>Payment Ref</th>
-            <th>Paid Date</th>
+            <th>Payments</th>
+            <th>Last Paid</th>
             <th>Remittance</th>
           </tr>
         </thead>
         <tbody>
-<?php foreach ($invoices as $i): ?>
-          <tr>
-            <td class="mono hi"><?= htmlspecialchars($i['ref_id']) ?></td>
-            <td class="mono"><?= nilstr($i['invoice_date']) ?></td>
-            <td class="mono"><?= nilstr($i['due_date']) ?></td>
-            <td class="mono"><?= zar((float)$i['total_amount']) ?></td>
-            <td><?= status_pill(ucfirst(strtolower((string)($i['invoice_status'] ?? '')))) ?></td>
-            <td class="mono"><?= nilstr($i['payment_ref']) ?></td>
-            <td class="mono"><?= nilstr($i['paid_date']) ?></td>
-            <td class="mono" style="text-align:center"><?= $i['has_remittance'] ? '✓' : '—' ?></td>
+<?php foreach ($invoices_grouped as $inv):
+    $hasP = !empty($inv['payments']);
+    $uid  = 'inv_' . preg_replace('/[^a-z0-9]/i', '_', $inv['ref_id']);
+    $lastPmt  = $hasP ? end($inv['payments']) : null;
+    $anyRemit = $hasP && count(array_filter($inv['payments'], fn($p) => $p['has_remittance'])) > 0;
+?>
+          <tr class="inv-row<?= $hasP ? ' expandable' : '' ?>"
+              <?= $hasP ? 'onclick="toggleInv(\''.$uid.'\')"' : '' ?>>
+            <td class="mono hi">
+              <?php if ($hasP): ?><span class="tog-icon" id="icon-<?= $uid ?>">▶</span> <?php endif ?>
+              <?= htmlspecialchars($inv['ref_id']) ?>
+            </td>
+            <td class="mono"><?= nilstr($inv['invoice_date']) ?></td>
+            <td class="mono"><?= nilstr($inv['due_date']) ?></td>
+            <td class="mono"><?= zar((float)$inv['total_amount']) ?></td>
+            <td><?= status_pill(ucfirst(strtolower((string)($inv['invoice_status'] ?? '')))) ?></td>
+            <td class="mono" style="text-align:center"><?= $hasP ? count($inv['payments']) : '—' ?></td>
+            <td class="mono"><?= $lastPmt ? nilstr($lastPmt['paid_date']) : '—' ?></td>
+            <td class="mono" style="text-align:center"><?= $anyRemit ? '✓' : '—' ?></td>
           </tr>
+<?php if ($hasP): ?>
+          <tr class="inv-detail" id="<?= $uid ?>" style="display:none">
+            <td colspan="8" style="padding:0 0 4px 0">
+              <table class="inv-pmt-tbl">
+                <thead>
+                  <tr>
+                    <th style="padding-left:36px">Payment Ref</th>
+                    <th>Paid Date</th>
+                    <th>Amount</th>
+                    <th>Remittance</th>
+                    <th colspan="4"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                <?php foreach ($inv['payments'] as $p): ?>
+                  <tr>
+                    <td class="mono hi" style="padding-left:36px"><?= htmlspecialchars($p['payment_ref']) ?></td>
+                    <td class="mono"><?= nilstr($p['paid_date']) ?></td>
+                    <td class="mono"><?= zar((float)$p['paid_amount']) ?></td>
+                    <td class="mono" style="text-align:center"><?= $p['has_remittance'] ? '✓' : '—' ?></td>
+                    <td colspan="4"></td>
+                  </tr>
+                <?php endforeach ?>
+                </tbody>
+              </table>
+            </td>
+          </tr>
+<?php endif ?>
 <?php endforeach ?>
         </tbody>
       </table>
@@ -694,16 +797,20 @@ td.hi{color:var(--text);font-weight:600}
           </tr>
         </thead>
         <tbody>
-<?php foreach ($personnel as $p): ?>
+<?php if (empty($personnel)): ?>
+          <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:28px 16px">
+            No personnel records found. Run <strong>cleanup_data_persons.sql</strong> to load workforce data.
+          </td></tr>
+<?php else: foreach ($personnel as $p): ?>
           <tr>
             <td class="hi"><?= nilstr($p['full_name']) ?></td>
             <td><?= nilstr($p['role']) ?></td>
             <td><?= nilstr($p['company']) ?></td>
-            <td class="mono"><?= nilstr($p['id_number']) ?></td>
+            <td class="mono">—</td>
             <td class="mono"><?= nilstr($p['file_ref']) ?></td>
             <td style="text-align:center"><?= (int)$p['compliance_records'] ?></td>
           </tr>
-<?php endforeach ?>
+<?php endforeach; endif ?>
         </tbody>
       </table>
     </div>
@@ -724,7 +831,11 @@ td.hi{color:var(--text);font-weight:600}
           </tr>
         </thead>
         <tbody>
-<?php foreach ($compliance as $c): ?>
+<?php if (empty($compliance)): ?>
+          <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:28px 16px">
+            No compliance records found.
+          </td></tr>
+<?php else: foreach ($compliance as $c): ?>
           <tr>
             <td class="hi"><?= nilstr($c['compliance_type']) ?></td>
             <td><?= nilstr($c['category']) ?></td>
@@ -735,7 +846,7 @@ td.hi{color:var(--text);font-weight:600}
             <td class="mono"><?= nilstr($c['expiry_date']) ?></td>
             <td><?= status_pill((string)($c['validity'] ?? '—')) ?></td>
           </tr>
-<?php endforeach ?>
+<?php endforeach; endif ?>
         </tbody>
       </table>
     </div>
@@ -844,6 +955,16 @@ td.hi{color:var(--text);font-weight:600}
       history.replaceState(null, '', '?tab=' + t);
     });
   });
+
+  function toggleInv(uid) {
+    const detail = document.getElementById(uid);
+    const icon   = document.getElementById('icon-' + uid);
+    if (!detail) return;
+    const open = detail.style.display !== 'none';
+    detail.style.display = open ? 'none' : '';
+    if (icon) icon.textContent = open ? '▶' : '▼';
+  }
+  window.toggleInv = toggleInv;
 
   const themeBtn = document.getElementById('themeToggle');
   const html = document.documentElement;

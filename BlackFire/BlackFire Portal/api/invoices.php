@@ -81,8 +81,8 @@ if ($method === 'POST') {
     $id  = db_insert(
         "INSERT INTO bf_invoices
          (ref_id, client_id, client_name, client_email, amount, due_date, status,
-          quote_ref, quote_id, callout_ref, callout_id, po, invoice_date, sent_by, sent_by_user_id)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+          quote_ref, quote_id, callout_ref, callout_id, po, invoice_date, sent_by_user_id)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
         [
             $ref,
             $client_id,
@@ -97,7 +97,6 @@ if ($method === 'POST') {
             $callout_id_fk,
             clean($b['po'] ?? ''),
             date('Y-m-d'),
-            $usr['username'],
             (int)$usr['id'],
         ]
     );
@@ -129,8 +128,8 @@ if ($method === 'PUT') {
         if (!$sent) json_err('Failed to send invoice email — check SMTP settings');
 
         db_exec(
-            "UPDATE bf_invoices SET status = 'Sent', sent_at = NOW(), sent_by = ?, client_email = ? WHERE ref_id = ?",
-            [$usr['username'], $to, $ref_id]
+            "UPDATE bf_invoices SET status = 'Sent', sent_at = NOW(), sent_by_user_id = ?, client_email = ? WHERE ref_id = ?",
+            [(int)$usr['id'], $to, $ref_id]
         );
         audit($usr['username'], 'INVOICE_SENT', "Invoice {$ref_id} sent to {$to}");
         $inv = db_row("SELECT * FROM bf_invoices WHERE ref_id = ?", [$ref_id]);
@@ -159,8 +158,8 @@ if ($method === 'PUT') {
                 [$pay_date, "Payment received — {$inv['client_name']}", 'Invoice Payment', $ref_id, $inv['amount'], 0]
             );
             db_exec(
-                "INSERT INTO bf_payments (invoice_ref, client_name, amount, payment_date, notes, logged_by) VALUES (?,?,?,?,?,?)",
-                [$ref_id, $inv['client_name'], $amount, $pay_date, $notes, $usr['username']]
+                "INSERT INTO bf_payments (invoice_ref, client_name, amount, payment_date, notes, logged_by_user_id) VALUES (?,?,?,?,?,?)",
+                [$ref_id, $inv['client_name'], $amount, $pay_date, $notes, (int)$usr['id']]
             );
             $db->commit();
         } catch (Exception $e) {
