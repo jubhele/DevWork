@@ -44,7 +44,8 @@ UPDATE bf_digital_signatures SET created_by = 'z.myeza'  WHERE created_by = 'kit
 -- ════════════════════════════════════════════════════════════
 -- 2. bf_safety_personnel
 --    §1 of finalize migration purged all rows with user_id IS NULL.
---    Re-insert with user_id FK for the 5 files seeded in part3.
+--    Re-insert with user_id FK for files still in scope.
+--    SAF-150125-0001 and SAF-120625-0001 removed — not in scope.
 --    (SAF-120326-0001 already handled by fix_saf_120326_0001_personnel.sql)
 -- ════════════════════════════════════════════════════════════
 
@@ -52,25 +53,11 @@ UPDATE bf_digital_signatures SET created_by = 'z.myeza'  WHERE created_by = 'kit
 DELETE sp FROM bf_safety_personnel sp
   JOIN bf_safety_files sf ON sf.ref_id = sp.file_ref
  WHERE sp.file_ref IN (
-   'SAF-150125-0001','SAF-120625-0001','SAF-150925-0001',
-   'SAF-150126-0001','SAF-210526-0001'
+   'SAF-150925-0001','SAF-150126-0001','SAF-210526-0001'
  );
 
 -- INSERT ... SELECT: only inserts a row when the file_ref exists in bf_safety_files.
 -- If a safety file hasn't been seeded yet the row is silently skipped.
--- Re-run this script after seeding part2 to pick up any skipped files.
-
-INSERT INTO bf_safety_personnel (file_ref, user_id, company, is_active, created_at)
-SELECT f.ref_id, @uid_zmyeza, 'Astute Insights (Pty) Ltd', 1, '2025-01-15 10:00:00' FROM bf_safety_files f WHERE f.ref_id = 'SAF-150125-0001' LIMIT 1;
-INSERT INTO bf_safety_personnel (file_ref, user_id, company, is_active, created_at)
-SELECT f.ref_id, @uid_sibu,   'Astute Insights (Pty) Ltd', 1, '2025-01-15 10:00:00' FROM bf_safety_files f WHERE f.ref_id = 'SAF-150125-0001' LIMIT 1;
-
-INSERT INTO bf_safety_personnel (file_ref, user_id, company, is_active, created_at)
-SELECT f.ref_id, @uid_zmyeza, 'Astute Insights (Pty) Ltd', 1, '2025-06-12 10:00:00' FROM bf_safety_files f WHERE f.ref_id = 'SAF-120625-0001' LIMIT 1;
-INSERT INTO bf_safety_personnel (file_ref, user_id, company, is_active, created_at)
-SELECT f.ref_id, @uid_sibu,   'Astute Insights (Pty) Ltd', 1, '2025-06-12 10:00:00' FROM bf_safety_files f WHERE f.ref_id = 'SAF-120625-0001' LIMIT 1;
-INSERT INTO bf_safety_personnel (file_ref, user_id, company, is_active, created_at)
-SELECT f.ref_id, @uid_penny,  'Astute Insights (Pty) Ltd', 1, '2025-06-12 10:00:00' FROM bf_safety_files f WHERE f.ref_id = 'SAF-120625-0001' LIMIT 1;
 
 INSERT INTO bf_safety_personnel (file_ref, user_id, company, is_active, created_at)
 SELECT f.ref_id, @uid_jshange,'Astute Insights (Pty) Ltd', 1, '2025-09-15 10:00:00' FROM bf_safety_files f WHERE f.ref_id = 'SAF-150925-0001' LIMIT 1;
@@ -217,17 +204,6 @@ INSERT IGNORE INTO bf_policy_acks
   (file_ref, policy_title, token, recipient_id, created_by_id,
    status, sent_at, acked_at, acked_ip, created_at)
 VALUES
--- SAF-150125-0001 — Jan 2025: z.myeza + sibu acknowledge H&S Policy
-('SAF-150125-0001','Health & Safety Policy — Astute Insights 2025',
- 'pa0100000000000000000000000000000000000000000000000000000000000001',
- @uid_zmyeza, @uid_jshange,
- 'Acknowledged','2025-01-15 08:00:00','2025-01-15 09:05:22','196.6.14.55','2025-01-15 08:00:00'),
-
-('SAF-150125-0001','Health & Safety Policy — Astute Insights 2025',
- 'pa0200000000000000000000000000000000000000000000000000000000000002',
- @uid_sibu, @uid_jshange,
- 'Acknowledged','2025-01-15 08:00:00','2025-01-15 10:12:44','196.6.14.55','2025-01-15 08:00:00'),
-
 -- SAF-150126-0001 — Jan 2026: all 4 real users acknowledge updated policy
 ('SAF-150126-0001','Health & Safety Policy — Astute Insights 2026',
  'pa0300000000000000000000000000000000000000000000000000000000000003',

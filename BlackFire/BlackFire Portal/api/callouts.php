@@ -95,8 +95,8 @@ if ($method === 'POST') {
     $id  = db_insert(
         "INSERT INTO bf_callouts
          (ref_id, client_id, client_name, client_email, service, location, tech, assigned_to, assigned_to_user_id,
-          priority, status, approval_status, callout_date, callout_time, notes, logged_by, logged_by_user_id, po)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+          priority, status, approval_status, callout_date, callout_time, notes, logged_by_user_id, po)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
         [
             $ref,
             $client_id,
@@ -113,7 +113,6 @@ if ($method === 'POST') {
             $b['callout_date'],
             clean($b['callout_time'] ?? '08:00'),
             clean($b['notes'] ?? '', 2000),
-            $usr['username'],
             (int)$usr['id'],
             clean($b['po'] ?? ''),
         ]
@@ -161,8 +160,8 @@ if ($method === 'PUT') {
             db_insert(
                 "INSERT INTO bf_invoices
                  (ref_id, client_id, client_name, client_email, amount, due_date, status,
-                  callout_ref, callout_id, invoice_date, sent_by, sent_by_user_id)
-                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+                  callout_ref, callout_id, invoice_date, sent_by_user_id)
+                 VALUES (?,?,?,?,?,?,?,?,?,?,?)",
                 [
                     $inv_ref,
                     $callout['client_id'] ?? null,
@@ -174,7 +173,6 @@ if ($method === 'PUT') {
                     $ref_id,
                     $callout['id'],
                     date('Y-m-d'),
-                    $usr['username'],
                     (int)$usr['id'],
                 ]
             );
@@ -250,8 +248,8 @@ if ($method === 'PUT') {
                 db_insert(
                     "INSERT INTO bf_invoices
                      (ref_id, client_id, client_name, client_email, amount, due_date, status,
-                      callout_ref, callout_id, invoice_date, sent_by, sent_by_user_id)
-                     VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+                      callout_ref, callout_id, invoice_date, sent_by_user_id)
+                     VALUES (?,?,?,?,?,?,?,?,?,?,?)",
                     [
                         $inv_ref,
                         $callout['client_id'] ?? null,
@@ -263,7 +261,6 @@ if ($method === 'PUT') {
                         $ref_id,
                         $callout['id'],
                         date('Y-m-d'),
-                        $usr['username'],
                         (int)$usr['id'],
                     ]
                 );
