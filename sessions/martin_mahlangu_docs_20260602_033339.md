@@ -21,14 +21,21 @@ Active model: claude-sonnet-4-6   Status: correct
 - Output path: G:\My Drive\JS\Astute Insights\BlackFire\Admin Exo\
 
 ## Work Done
-- Offer Letter: Blackfire_Offer_Letter_Martin_Mahlangu.docx + .pdf
-- Supplier Agreement + Annexure A: Blackfire_Supplier_Agreement_Martin_Mahlangu.docx + .pdf
+- Offer Letter: Blackfire_Offer_Letter_Martin_Mahlangu.html (open in browser → Print → Save as PDF; or open in Word → Save As .docx)
+- Supplier Agreement + Annexure A: Blackfire_Supplier_Agreement_Martin_Mahlangu.html (same export path)
+- Both files at: G:\My Drive\JS\Astute Insights\BlackFire\Admin Exo\
 
 ## Blockers / Next Steps
-- Banking details outstanding — payment section references this; update agreement once received
-- No signature yet — documents are ready for wet/digital signing
+- Banking details outstanding — payment clause references this; update agreement once received
+- No signature yet — documents ready for wet/digital signing
+- To export PDF: open HTML in Chrome/Edge → Ctrl+P → Save as PDF → set paper A4, no headers/footers
+- To export Word: open HTML in Word → File → Save As → .docx
 
 ## Learnings
-- Word COM: table cell text with [char]13 paragraph separator + per-paragraph font formatting is the cleanest approach for the two-column branded header
-- The branded header (left: BLACKFIRE text, right: orange-filled address box) is a table, not a logo image
-_Session ended: 2026-06-02 03:47:49 (Claude Code / claude-sonnet-4-6)_
+- Word COM with CheckSpellingAsYouType enabled is catastrophically slow (~1 call per character triggers spell-check); always disable before TypeText loops
+- Switched to HTML generation — far faster, zero COM dependencies, opens cleanly in Word or prints to PDF from any browser
+- The branded header (BLACKFIRE left / orange box right) translates cleanly to a 2-column HTML table with inline CSS
+- @page { size: A4; margin: ... } in CSS controls PDF margins when printing from browser
+_Session ended: 2026-06-02 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-06-02 06:40:43 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-06-02 06:47:12 (Claude Code / claude-sonnet-4-6)_

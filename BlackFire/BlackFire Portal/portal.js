@@ -11,6 +11,32 @@ const API_BASE = (() => {
   return (p || '') + '/api';
 })();
 
+/* ── CSP-safe style helpers ─────────────────────────────────────── */
+const _cspNonce = document.querySelector('meta[name="csp-nonce"]')?.content ?? '';
+function _injectStyle(id, css) {
+  let s = document.getElementById(id);
+  if (!s) {
+    s = document.createElement('style');
+    s.id = id;
+    if (_cspNonce) s.setAttribute('nonce', _cspNonce);
+    document.head.appendChild(s);
+  }
+  s.textContent = css;
+}
+const $show = (el, d = '') => {
+  if (!el) return;
+  ['d-none','d-block','d-flex','d-iflex','d-tcell'].forEach(c => el.classList.remove(c));
+  if (d === 'flex')         el.classList.add('d-flex');
+  else if (d === 'inline-flex') el.classList.add('d-iflex');
+  else if (d === 'table-cell')  el.classList.add('d-tcell');
+  else if (d === 'block')   el.classList.add('d-block');
+};
+const $hide = el => {
+  if (!el) return;
+  ['d-block','d-flex','d-iflex','d-tcell'].forEach(c => el.classList.remove(c));
+  el.classList.add('d-none');
+};
+
 async function api(method, endpoint, data = null) {
   const opts = {
     method,
@@ -247,10 +273,12 @@ document.addEventListener('click', function(e) {
 
 /* ── Post-render helpers for dynamic styles ────────────────────────── */
 function applyProgFills(root) {
-  (root||document).querySelectorAll('.prog-fill[data-w]').forEach(el => {
-    el.style.width = el.dataset.w + '%';
-    if (el.dataset.bg) el.style.background = el.dataset.bg;
+  let css = '';
+  (root||document).querySelectorAll('.prog-fill[data-w]').forEach((el, i) => {
+    el.dataset.pfi = i;
+    css += `.prog-fill[data-pfi="${i}"]{width:${el.dataset.w}%;${el.dataset.bg ? `background:${el.dataset.bg};` : ''}}`;
   });
+  if (css) _injectStyle('pf-css', css);
 }
 
 /* ── input / change event delegation ───────────────────────────────── */
@@ -704,17 +732,17 @@ async function loadCaptcha(){
 }
 
 function showLoginPanel(){
-  document.getElementById('login-panel').style.display  = '';
-  document.getElementById('forgot-panel').style.display = 'none';
-  document.getElementById('newpass-panel').style.display = 'none';
+  $show(document.getElementById('login-panel'));
+  $hide(document.getElementById('forgot-panel'));
+  $hide(document.getElementById('newpass-panel'));
   loadCaptcha();
 }
 
 function showForgotPassword(){
-  document.getElementById('login-panel').style.display  = 'none';
-  document.getElementById('forgot-panel').style.display = 'block';
-  document.getElementById('newpass-panel').style.display = 'none';
-  document.getElementById('forgot-msg').style.display = 'none';
+  $hide(document.getElementById('login-panel'));
+  $show(document.getElementById('forgot-panel'), 'block');
+  $hide(document.getElementById('newpass-panel'));
+  $hide(document.getElementById('forgot-msg'));
   document.getElementById('fp-user').value = '';
 }
 
@@ -724,10 +752,9 @@ async function doRequestReset(){
   const msgEl = document.getElementById('forgot-msg');
   const r = await api('POST', 'auth.php?action=reset_request', { username: u });
   msgEl.textContent = r.message || (r.success ? 'Reset email sent if account exists.' : r.error);
-  msgEl.style.background = r.success ? 'var(--grn-glow)' : 'var(--emb-glow)';
-  msgEl.style.borderColor = r.success ? 'rgba(26,122,64,.3)' : 'rgba(192,57,43,.3)';
-  msgEl.style.color = r.success ? 'var(--pill-paid-txt)' : 'var(--pill-ovr-txt)';
-  msgEl.style.display = 'block';
+  msgEl.classList.toggle('msg--ok', !!r.success);
+  msgEl.classList.toggle('msg--err', !r.success);
+  $show(msgEl, 'block');
 }
 
 async function doResetPassword(){
@@ -737,17 +764,16 @@ async function doResetPassword(){
   if (!p1 || !p2) return;
   if (p1 !== p2) {
     msgEl.textContent = 'Passwords do not match.';
-    msgEl.style.display = 'block';
+    $show(msgEl, 'block');
     return;
   }
   const token = new URLSearchParams(window.location.search).get('reset_token');
-  if (!token) { msgEl.textContent = 'Invalid reset link.'; msgEl.style.display = 'block'; return; }
+  if (!token) { msgEl.textContent = 'Invalid reset link.'; $show(msgEl, 'block'); return; }
   const r = await api('POST', 'auth.php?action=reset_password', { token, password: p1 });
   msgEl.textContent = r.message || (r.success ? 'Password updated. Please log in.' : r.error);
-  msgEl.style.background = r.success ? 'var(--grn-glow)' : 'var(--emb-glow)';
-  msgEl.style.borderColor = r.success ? 'rgba(26,122,64,.3)' : 'rgba(192,57,43,.3)';
-  msgEl.style.color = r.success ? 'var(--pill-paid-txt)' : 'var(--pill-ovr-txt)';
-  msgEl.style.display = 'block';
+  msgEl.classList.toggle('msg--ok', !!r.success);
+  msgEl.classList.toggle('msg--err', !r.success);
+  $show(msgEl, 'block');
   if (r.success) {
     setTimeout(()=>{ history.replaceState(null,'',window.location.pathname); showLoginPanel(); }, 2500);
   }
@@ -936,10 +962,10 @@ function activateNavGroup(groupId) {
 
   if (!visible.length) {
     linksEl.innerHTML = '';
-    if (subBar) subBar.style.visibility = 'hidden';
+    if (subBar) subBar.classList.add('invis');
     return;
   }
-  if (subBar) subBar.style.visibility = '';
+  if (subBar) subBar.classList.remove('invis');
   linksEl.innerHTML = visible.map(item => {
     const badge = item.badge ? `<span class="pnbadge" id="${item.badge}">0</span>` : '';
     return `<div class="pnitem" data-page="${item.id}" data-action="navPage">${item.label}${badge}</div>`;
@@ -1876,7 +1902,7 @@ function filterSvc(el,cat,ctx){
 function submitContact(){
   const n=document.getElementById('cf-name').value.trim();
   if(!n){alert('Please fill in your name');return;}
-  document.getElementById('cf-success').style.display='block';
+  $show(document.getElementById('cf-success'), 'block');
   ['cf-name','cf-company','cf-phone','cf-email','cf-location','cf-message'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
 }
 
@@ -1889,9 +1915,9 @@ function goLogin(){
   // Check for reset_token in URL
   const params = new URLSearchParams(window.location.search);
   if (params.get('reset_token')) {
-    document.getElementById('login-panel').style.display  = 'none';
-    document.getElementById('forgot-panel').style.display = 'none';
-    document.getElementById('newpass-panel').style.display = 'block';
+    $hide(document.getElementById('login-panel'));
+    $hide(document.getElementById('forgot-panel'));
+    $show(document.getElementById('newpass-panel'), 'block');
   } else {
     showLoginPanel();
   }
@@ -2090,7 +2116,7 @@ function renderDashboard(){
   let html='';
 
   if(kpiCards.length) html+=`<div class="kgrid kgrid--auto">${kpiCards.join('')}</div>`;
-  if(kpiCards2.length) html+=`<div class="kgrid kgrid--auto" style="margin-top:-6px">${kpiCards2.join('')}</div>`;
+  if(kpiCards2.length) html+=`<div class="kgrid kgrid--auto kgrid-neg-top">${kpiCards2.join('')}</div>`;
 
   if(showAlrt) html+=`<div class="alert-strip" id="dash-alerts">${alertsHtml}</div>`;
 
@@ -2123,9 +2149,9 @@ function renderDashboard(){
   const insightR=showOps?`<div class="panel">
     <div class="ph"><div class="ph-title">Callout Activity</div></div>
     <div class="pb">
-      <div class="mlbl-xs" style="display:block;margin-bottom:10px">By Status</div>
+      <div class="mlbl-xs mlbl-section-top">By Status</div>
       ${coActivityBars}
-      <div class="mlbl-xs" style="display:block;margin:14px 0 10px">By Priority</div>
+      <div class="mlbl-xs mlbl-section-mid">By Priority</div>
       ${prioBars}
     </div>
   </div>`:null;
@@ -2140,7 +2166,7 @@ function renderDashboard(){
     html=`<div class="dash-empty-state"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg><p>Your dashboard is empty.<br><button class="btn btn-g btn-s" data-action="showDashEditor">Edit Layout</button> to add widgets.</p></div>`;
 
   container.innerHTML=html;
-  container.querySelectorAll('.cbar[data-h]').forEach(b=>{ b.style.height=b.dataset.h+'px'; });
+  { let css=''; container.querySelectorAll('.cbar[data-h]').forEach((b,i)=>{ b.dataset.cbi=i; css+=`.cbar[data-cbi="${i}"]{height:${b.dataset.h}px;}`; }); if(css)_injectStyle('cbar-op-css',css); }
   applyProgFills(container);
 
   // Nav badges (always update regardless of widget visibility)
@@ -2399,7 +2425,7 @@ function renderFinDashboard() {
         <button class="btn btn-g" data-action="navPage" data-page="p-transactions">View Transactions →</button>
       </div>
     </div>` : ''}`;
-  el.querySelectorAll('.cbar[data-h]').forEach(b=>{ b.style.height=b.dataset.h+'%'; });
+  { let css=''; el.querySelectorAll('.cbar[data-h]').forEach((b,i)=>{ b.dataset.cbi=i; css+=`.cbar[data-cbi="${i}"]{height:${b.dataset.h}%;}`; }); if(css)_injectStyle('cbar-fin-css',css); }
   applyProgFills(el);
 }
 
@@ -2487,7 +2513,7 @@ function renderCallouts(search='',filter=''){
   const canCreate=can('callout.create');
 
   // Show/hide new callout button
-  const btn=document.getElementById('btn-newco');if(btn)btn.style.display=canCreate?'':'none';
+  const btn=document.getElementById('btn-newco');if(btn){ canCreate?$show(btn):$hide(btn); }
 
   const tbody=document.getElementById('co-table');
   tbody.innerHTML=items.length?items.map(c=>{
@@ -2708,7 +2734,7 @@ function renderQuotes(search='',filter=''){
   const canDel=can('quote.delete');
 
   const btn=document.getElementById('btn-newq');
-  if(btn)btn.style.display=can('capture.new_quote')?'':'none';
+  if(btn){ can('capture.new_quote')?$show(btn):$hide(btn); }
 
   document.getElementById('qte-table').innerHTML=items.length?items.map(q=>{
     const{total}=qtot(q.items);
@@ -2798,8 +2824,8 @@ function initNewQuote(){
   const isSeniorTech=SESSION?.role==='senior_tech';
   document.getElementById('nq-page-title').textContent=isSeniorTech?'Submit Quote for Approval':'New Quote';
   document.getElementById('nq-page-sub').textContent=isSeniorTech?'SENIOR TECH  -  PENDING MANAGER REVIEW':'BUILD PROPOSAL';
-  document.getElementById('nq-pending-notice').style.display=isSeniorTech?'block':'none';
-  document.getElementById('nq-status-group').style.display=isSeniorTech?'none':'block';
+  isSeniorTech?$show(document.getElementById('nq-pending-notice'),'block'):$hide(document.getElementById('nq-pending-notice'));
+  isSeniorTech?$hide(document.getElementById('nq-status-group')):$show(document.getElementById('nq-status-group'));
   document.getElementById('nq-submit-btn').textContent=isSeniorTech?'Submit for Approval →':'Save Quote';
   const due=new Date();due.setDate(due.getDate()+30);
   document.getElementById('nq-valid').value=localDateStr(due);
@@ -2858,7 +2884,7 @@ function renderInvoices(search='',filter=''){
   if(search) items=items.filter(i=>i.id.toLowerCase().includes(search.toLowerCase())||i.client.toLowerCase().includes(search.toLowerCase()));
   if(filter) items=items.filter(i=>i.status===filter);
   const canMod=can('invoice.create');const canPaid=can('invoice.mark_paid');const canDel=can('invoice.delete');const canSend=can('invoice.send');
-  const btn=document.getElementById('btn-newinv');if(btn)btn.style.display=canMod?'':'none';
+  const btn=document.getElementById('btn-newinv');if(btn){ canMod?$show(btn):$hide(btn); }
   document.getElementById('inv-table').innerHTML=items.length?items.map(inv=>`
     <tr><td class="mono">${esc(inv.id)}</td><td>${esc(inv.client)}</td><td class="amt">${fmt(inv.amount)}</td><td class="tc-11 nowrap">${fmtD(inv.dueDate)}</td><td>${pillH(inv.status)}</td>
     <td><div class="bgrp">
@@ -2964,7 +2990,7 @@ function renderTransactions(search=''){
   const tn=tc-td;
   document.getElementById('tx-credits').textContent=fmt(tc);
   document.getElementById('tx-debits').textContent=fmt(td);
-  const nel=document.getElementById('tx-net');nel.textContent=fmt(tn);nel.style.color=tn>=0?'var(--pill-paid-txt)':'var(--pill-ovr-txt)';
+  const nel=document.getElementById('tx-net');nel.textContent=fmt(tn);nel.classList.toggle('net--pos',tn>=0);nel.classList.toggle('net--neg',tn<0);
   document.getElementById('tx-table').innerHTML=items.length?items.map(b=>`
     <tr><td class="nowrap">${fmtD(b.date)}</td><td>${esc(b.desc)}</td><td><span class="mlbl-9">${esc(b.cat)}</span></td><td class="mono">${esc(b.ref||'-')}</td>
     <td class="amt text-ok">${b.credit>0?fmt(b.credit):'-'}</td>
@@ -3221,7 +3247,7 @@ function renderReconcile(){
     <div class="panel mb2">
       <div class="ph"><div class="ph-title">Statement Comparison</div></div>
       <div class="pb">
-        <div class="fgrid" style="max-width:480px">
+        <div class="fgrid fgrid-narrow">
           <div class="fgroup ffull">
             <label class="flbl">External Statement Closing Balance (R)</label>
             <input type="number" class="finput" id="recon-ext" value="${savedExternal||''}" placeholder="Paste balance from your statement" step="0.01">
@@ -3253,7 +3279,7 @@ function renderReconcile(){
     </div>
 
     ${dupeKeys.size>0?`
-    <div class="panel mb2" style="border-top:2px solid var(--pill-ovr)">
+    <div class="panel mb2 panel-warn-top">
       <div class="ph"><div class="ph-title">⚠ Possible Duplicate Transactions</div></div>
       <div class="pb">
         <table class="dtable">
@@ -3262,7 +3288,7 @@ function renderReconcile(){
             <td>${esc(date)}</td><td>${esc(desc)}</td>
             <td class="amt text-ok">${parseFloat(cr)>0?fmt(parseFloat(cr)):'-'}</td>
             <td class="amt text-ovr">${parseFloat(db)>0?fmt(parseFloat(db)):'-'}</td>
-            <td style="color:var(--pill-ovr-txt);font-weight:bold">${seen[k]}×</td>
+            <td class="td-dupe-count">${seen[k]}×</td>
           </tr>`;}).join('')}</tbody>
         </table>
       </div>
@@ -3279,11 +3305,11 @@ function renderReconcile(){
               run+=(t.credit||0)-(t.debit||0);
               const k=`${t.date}|${t.desc}|${t.credit||0}|${t.debit||0}`;
               const isDupe=dupeKeys.has(k);
-              return`<tr ${isDupe?'style="background:rgba(244,67,54,.08)"':''}>
+              return`<tr${isDupe?' class="tr-dupe"':''}>
                 <td class="nowrap">${fmtD(t.date)}</td>
-                <td>${esc(t.desc)}${isDupe?' <span style="color:var(--pill-ovr-txt);font-size:10px">DUP</span>':''}</td>
+                <td>${esc(t.desc)}${isDupe?' <span class="span-dup">DUP</span>':''}</td>
                 <td><span class="mlbl-9">${esc(t.cat||t.category||'')}</span></td>
-                <td class="mono" style="font-size:11px">${esc(t.ref||'-')}</td>
+                <td class="mono td-ref-sm">${esc(t.ref||'-')}</td>
                 <td class="amt text-ok">${(t.credit||0)>0?fmt(t.credit):'-'}</td>
                 <td class="amt text-ovr">${(t.debit||0)>0?fmt(t.debit):'-'}</td>
                 <td class="amt ${run>=0?'text-ok':'text-ovr'}">${fmt(run)}</td>
@@ -3309,11 +3335,11 @@ function renderReconcile(){
       : diff>0
         ? `Portal is ${fmt(Math.abs(diff))} higher than statement — check for duplicate credits or unmatched debit entries.`
         : `Portal is ${fmt(Math.abs(diff))} lower than statement — check for missing payment entries.`;
-    box.innerHTML=`<div class="sumbox" style="margin:0">
+    box.innerHTML=`<div class="sumbox sumbox-flush">
       <div class="sumrow"><span>External Statement</span><span class="mono">${fmt(ext)}</span></div>
       <div class="sumrow"><span>Portal Net Balance</span><span class="mono">${fmt(portalNet)}</span></div>
       <div class="sumrow tot ${cls}"><span>Difference (Portal − Statement)</span><span class="mono">${sign}${fmt(diff)}</span></div>
-      <div style="margin-top:8px;font-size:12px;color:var(--text-muted)">${msg}</div>
+      <div class="recon-msg">${msg}</div>
     </div>`;
   }
   extInput.addEventListener('input', calcDiff);
@@ -3400,10 +3426,10 @@ function renderUsers(){
   };
   const tick=(v)=>v==='✓'?`<span class="text-ok">✓</span>`:v==='-'?`<span class="text-muted">-</span>`:`<span class="text-warn fs-10">${v}</span>`;
   const bar = document.getElementById('users-create-bar');
-  if (bar) bar.style.display = can('user.create') ? 'block' : 'none';
+  if (bar) { can('user.create') ? $show(bar, 'block') : $hide(bar); }
   const canEdit = can('user.update');
   const thActions = document.getElementById('users-th-actions');
-  if (thActions) thActions.style.display = canEdit ? 'table-cell' : 'none';
+  if (thActions) { canEdit ? $show(thActions, 'table-cell') : $hide(thActions); }
   document.getElementById('users-table-body').innerHTML=proxyDB.users.map(u=>{
     const uRoles = u.roles?.length ? u.roles : [u.role];
     // Merge capability matrix across all assigned roles
@@ -3721,7 +3747,7 @@ function closeModalDirect(){ document.getElementById('modal-overlay').classList.
 function syncPublicNavOffset(){
   const eb=document.querySelector('.emergency-bar');
   const pn=document.getElementById('pub-nav');
-  if(eb&&pn) pn.style.top=eb.offsetHeight+'px';
+  if(eb&&pn) _injectStyle('nav-top-css',`#pub-nav{top:${eb.offsetHeight}px;}`);
 }
 
 document.addEventListener('DOMContentLoaded', async ()=>{
@@ -3743,9 +3769,9 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   // If URL has reset_token, jump straight to new-password panel
   if(new URLSearchParams(window.location.search).get('reset_token')){
     document.documentElement.dataset.state='login';
-    document.getElementById('login-panel').style.display  = 'none';
-    document.getElementById('forgot-panel').style.display = 'none';
-    document.getElementById('newpass-panel').style.display = 'block';
+    $hide(document.getElementById('login-panel'));
+    $hide(document.getElementById('forgot-panel'));
+    $show(document.getElementById('newpass-panel'), 'block');
     return;
   }
   // Restore session on page reload — skip probe (and its 401) when no session hint cookie exists
@@ -4122,12 +4148,12 @@ function openClientModal(id) {
     modalContacts = [];
   }
   renderModalContacts();
-  modal.style.display = 'flex';
+  $show(modal, 'flex');
 }
 
 function closeClientModal() {
   const modal = document.getElementById('client-modal');
-  if (modal) modal.style.display = 'none';
+  if (modal) $hide(modal);
 }
 
 async function saveClient() {
@@ -4662,7 +4688,7 @@ function _safCanonicalName(sec, idx, filename){
 function _safUploadCellInner(sec, idx, upCount, result){
   const needsEvidence = result === 'To Standard' && upCount === 0;
   const inputId  = `saf-up-${sec}-${idx}`;
-  const warnStyle= needsEvidence ? ' style="background:#f97316;color:#fff;border-color:#f97316"' : '';
+  const warnClass= needsEvidence ? ' btn-evidence-warn' : '';
   const title    = needsEvidence ? 'To Standard — attach supporting evidence'
                  : upCount > 0   ? `${upCount} evidence file(s) — click to upload more`
                  :                 'Attach evidence document';
@@ -4672,7 +4698,7 @@ function _safUploadCellInner(sec, idx, upCount, result){
   const viewBtn  = upCount > 0
     ? `<button class="btn btn-g btn-xs" data-action="safShowItemDocs" data-ev-sec="${sec}" data-ev-idx="${idx}" title="View evidence files">&#128065;</button>`
     : '';
-  return `<input type="file" id="${inputId}" class="hidden" data-action="safHandleUpload" data-section-key="${sec}" data-item-idx="${idx}">${viewBtn}<button class="btn btn-g btn-xs"${warnStyle} data-action="triggerFileInput" data-target-id="${inputId}" title="${title}">${lbl}</button>`;
+  return `<input type="file" id="${inputId}" class="hidden" data-action="safHandleUpload" data-section-key="${sec}" data-item-idx="${idx}">${viewBtn}<button class="btn btn-g btn-xs${warnClass}" data-action="triggerFileInput" data-target-id="${inputId}" title="${title}">${lbl}</button>`;
 }
 
 async function safShowItemDocs(sec, idx, fileId){
@@ -4689,10 +4715,10 @@ async function safShowItemDocs(sec, idx, fileId){
   const fileIcon = m => m==='application/pdf' ? '&#128196;' : (m||'').startsWith('image/') ? '&#128444;' : '&#128196;';
   const fmtSz    = b => b<1024 ? b+'B' : b<1048576 ? (b/1024).toFixed(1)+'KB' : (b/1048576).toFixed(1)+'MB';
   const rows = uploads.map(u=>`
-    <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
+    <div class="upload-item-row">
       <span>${fileIcon(u.mime_type)}</span>
-      <span style="flex:1;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(u.original_name)}">${esc(u.original_name)}</span>
-      <span style="font-size:10px;color:var(--muted)">${fmtSz(u.file_size)}</span>
+      <span class="upload-item-name" title="${esc(u.original_name)}">${esc(u.original_name)}</span>
+      <span class="upload-item-size">${fmtSz(u.file_size)}</span>
       ${(u.mime_type==='application/pdf'||(u.mime_type||'').startsWith('image/'))?`<button class="btn btn-g btn-xs" data-action="openDocViewer" data-id="${u.id}" data-name="${esc(u.original_name)}" data-mime="${esc(u.mime_type||'')}">&#128065; View</button>`:''}
       <a class="btn btn-g btn-xs" href="api/files.php?action=download&id=${u.id}" download="${esc(u.original_name)}">&#8595;</a>
     </div>`).join('');
@@ -4701,10 +4727,10 @@ async function safShowItemDocs(sec, idx, fileId){
   overlay.id = 'saf-item-docs-popup';
   overlay.className = 'saf-rename-overlay';
   overlay.innerHTML = `
-    <div class="saf-rename-box" style="max-width:480px;width:92vw">
+    <div class="saf-rename-box saf-rename-box--docs">
       <div class="saf-rename-title">Evidence — Section ${sec}, Item ${idx+1} (${uploads.length} file${uploads.length!==1?'s':''})</div>
-      <div style="margin-top:10px;max-height:320px;overflow-y:auto">${rows}</div>
-      <div style="margin-top:14px;text-align:right">
+      <div class="upload-list-body">${rows}</div>
+      <div class="modal-actions-row">
         <button class="btn btn-g" id="saf-item-docs-close">Close</button>
       </div>
     </div>`;
@@ -6044,14 +6070,14 @@ function _safUpdateApproveBtn(fileId){
   if(!btn) return;
   const file=proxyDB.safetyFiles.find(f=>f.id===fileId);
   const st=file?.status||'';
-  btn.style.display=(st==='Submitted'||st==='In Progress')?'inline-flex':'none';
+  (st==='Submitted'||st==='In Progress')?$show(btn,'inline-flex'):$hide(btn);
 }
 
 function _safUpdateDeactivateBtn(fileId){
   const btn=document.getElementById('saf-deactivate-btn');
   if(!btn) return;
   const canDel=can('security.users')||can('safety.delete');
-  btn.style.display=canDel&&fileId?'inline-flex':'none';
+  canDel&&fileId?$show(btn,'inline-flex'):$hide(btn);
 }
 
 async function deactivateSafetyFile(){
@@ -6855,7 +6881,7 @@ function safPakEmailPreview(sel){
   const email=u?.email||'';
   const row=document.getElementById('pak-email-row');
   const show=document.getElementById('pak-email-show');
-  if(row) row.style.display=email?'':'none';
+  if(row){ email?$show(row):$hide(row); }
   if(show) show.textContent=email||'—';
 }
 
@@ -6885,8 +6911,8 @@ function safAddPolicyAck(fileId, prefill={}){
           <option value="">— Select portal user —</option>
           ${opts}
         </select></div>
-      <div class="fgroup ffull" id="pak-email-row" style="display:none"><label class="flbl">Email</label>
-        <div class="finput" style="background:#f5f5f5;color:#666;cursor:default" id="pak-email-show">—</div></div>
+      <div class="fgroup ffull d-none" id="pak-email-row"><label class="flbl">Email</label>
+        <div class="finput finput-readonly" id="pak-email-show">—</div></div>
     </div>
     <div class="mt2 flex-end">
       <button class="btn btn-g btn-s mr-8" data-action="closeModalDirect">Cancel</button>

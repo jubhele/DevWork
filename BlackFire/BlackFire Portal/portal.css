@@ -1743,3 +1743,38 @@ textarea.saf-cmt { resize:vertical; min-height:28px; width:100% }
 }
 .btn-warn { background:var(--ember,#c0392b) }
 
+/* ── CSP-safe utility classes (no inline styles in JS/HTML) ── */
+.d-none  { display: none         !important; }
+.d-block { display: block        !important; }
+.d-flex  { display: flex         !important; }
+.d-iflex { display: inline-flex  !important; }
+.d-tcell { display: table-cell   !important; }
+.invis   { visibility: hidden; }
+
+/* Dynamic state feedback */
+.msg--ok  { background: var(--grn-glow); border-color: rgba(26,122,64,.3); color: var(--pill-paid-txt); }
+.msg--err { background: var(--emb-glow); border-color: rgba(192,57,43,.3); color: var(--pill-ovr-txt); }
+.net--pos { color: var(--pill-paid-txt); }
+.net--neg { color: var(--pill-ovr-txt); }
+
+/* HTML-template inline-style replacements */
+.btn-evidence-warn { background: #f97316 !important; color: #fff !important; border-color: #f97316 !important; }
+.kgrid-neg-top   { margin-top: -6px; }
+.mlbl-section-top { display: block; margin-bottom: 10px; }
+.mlbl-section-mid { display: block; margin: 14px 0 10px; }
+.fgrid-narrow    { max-width: 480px; }
+.panel-warn-top  { border-top: 2px solid var(--pill-ovr); }
+.td-dupe-count   { color: var(--pill-ovr-txt); font-weight: bold; }
+.tr-dupe         { background: rgba(244,67,54,.08); }
+.span-dup        { color: var(--pill-ovr-txt); font-size: 10px; }
+.td-ref-sm       { font-size: 11px; }
+.sumbox-flush    { margin: 0; }
+.recon-msg       { margin-top: 8px; font-size: 12px; color: var(--text-muted); }
+.upload-item-row  { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border); }
+.upload-item-name { flex: 1; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.upload-item-size { font-size: 10px; color: var(--muted); }
+.upload-list-body { margin-top: 10px; max-height: 320px; overflow-y: auto; }
+.modal-actions-row { margin-top: 14px; text-align: right; }
+.finput-readonly  { background: #f5f5f5; color: #666; cursor: default; }
+.saf-rename-box--docs { max-width: 480px; width: 92vw; }
+

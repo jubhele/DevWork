@@ -95,7 +95,8 @@ $cspNonce = base64_encode(random_bytes(16));
   }
 }
 </script>
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; script-src 'self' 'nonce-<?= $cspNonce ?>'; connect-src 'self'; object-src 'none';">
+<meta name="csp-nonce" content="<?= htmlspecialchars($cspNonce, ENT_QUOTES) ?>">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' https://fonts.googleapis.com 'nonce-<?= $cspNonce ?>'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; script-src 'self' 'nonce-<?= $cspNonce ?>'; connect-src 'self'; object-src 'none';">
 <title>BlackFire Solutions - Fire, taught to behave.</title>
 <link rel="icon" href="./favicon.ico?v=20260521" sizes="any">
 <link rel="icon" type="image/png" sizes="512x512" href="./favicon-512x512.png?v=20260521">
