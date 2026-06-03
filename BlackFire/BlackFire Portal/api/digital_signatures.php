@@ -164,7 +164,7 @@ function _sig_send_email(
     array  $cfg
 ): bool {
     require_once __DIR__ . '/../includes/mailer.php';
-    $company  = $cfg['company_name']  ?? 'Astute Insights / BlackFire Solutions';
+    $company  = $cfg['company_name']  ?? 'BlackFire Solutions';
     $co_email = $cfg['company_email'] ?? 'info@blackfiresolutions.co.za';
     $base_url = $cfg['portal_base_url'] ?? 'https://portal.umlilo.co.za';
     $url      = rtrim($base_url, '/') . '/sign.php?token=' . urlencode($token);

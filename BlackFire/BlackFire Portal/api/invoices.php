@@ -30,12 +30,18 @@ if ($method === 'GET') {
 
     if ($q) {
         $like  = '%' . like_escape($q) . '%';
-        $where = 'WHERE (ref_id LIKE ? ESCAPE \'\\\\\' OR client_name LIKE ? ESCAPE \'\\\\\' OR status LIKE ? ESCAPE \'\\\\\' OR po LIKE ? ESCAPE \'\\\\\')';
-        $params = [$like, $like, $like, $like];
+        $where = 'WHERE (ref_id LIKE ? ESCAPE \'\\\\\' OR invoice_no LIKE ? ESCAPE \'\\\\\' OR client_name LIKE ? ESCAPE \'\\\\\' OR status LIKE ? ESCAPE \'\\\\\' OR po LIKE ? ESCAPE \'\\\\\')';
+        $params = [$like, $like, $like, $like, $like];
     }
 
     $total = db_row("SELECT COUNT(*) AS n FROM bf_invoices $where", $params)['n'] ?? 0;
-    $rows  = db_select("SELECT * FROM bf_invoices $where ORDER BY invoice_date DESC LIMIT {$pg['limit']} OFFSET {$pg['offset']}", $params);
+    $rows  = db_select(
+        "SELECT i.*, COALESCE(u.username,'') AS sent_by
+           FROM bf_invoices i
+           LEFT JOIN bf_users u ON u.id = i.sent_by_user_id
+          $where ORDER BY i.invoice_date DESC LIMIT {$pg['limit']} OFFSET {$pg['offset']}",
+        $params
+    );
     json_ok(['data' => $rows, 'total' => (int)$total]);
 }
 
@@ -77,14 +83,18 @@ if ($method === 'POST') {
         $callout_id_fk = $crow ? (int)$crow['id'] : null;
     }
 
-    $ref = next_ref_id('inv');
+    $ref        = next_ref_id('inv');
+    $invoice_no = clean($b['invoice_no'] ?? '', 50);
+    if (!$invoice_no) $invoice_no = $ref;
+
     $id  = db_insert(
         "INSERT INTO bf_invoices
-         (ref_id, client_id, client_name, client_email, amount, due_date, status,
+         (ref_id, invoice_no, client_id, client_name, client_email, amount, due_date, status,
           quote_ref, quote_id, callout_ref, callout_id, po, invoice_date, sent_by_user_id)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
         [
             $ref,
+            $invoice_no,
             $client_id,
             $client_name,
             $client_email,
@@ -178,7 +188,7 @@ if ($method === 'PUT') {
     if (!$inv) json_err('Invoice not found', 404);
     if ($inv['status'] === 'Paid') json_err('Cannot modify a paid invoice directly.');
 
-    $allowed = ['status', 'due_date', 'po', 'amount'];
+    $allowed = ['status', 'due_date', 'po', 'amount', 'invoice_no'];
     $sets = []; $params = [];
     foreach ($allowed as $f) {
         if (array_key_exists($f, $b)) {

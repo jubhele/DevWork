@@ -38,6 +38,22 @@ if (file_exists($envFile)) {
  * Format: base64( IV[16 bytes] || AES-256-CBC ciphertext )
  * Falls back to plaintext BF_DB_PASS for local development.
  */
+/**
+ * Read a config value from env vars, $_ENV, $_SERVER, or a defined() constant.
+ * Mirrors the same multi-source lookup used by bf_decrypt() — needed because
+ * putenv() is disabled on some shared hosts (e.g. Afrihost cPanel).
+ * blackfire_secrets.php can set values via define(); cPanel sets them as env vars.
+ */
+if (!function_exists('cfg_env')) {
+function cfg_env(string $key, string $default = ''): string {
+    return getenv($key)
+        ?: ($_ENV[$key]    ?? null)
+        ?: ($_SERVER[$key] ?? null)
+        ?: (defined($key)  ? constant($key) : null)
+        ?: $default;
+}
+}
+
 if (!function_exists('bf_decrypt')) {
 function bf_decrypt(string $encoded): string {
     // Check all possible sources — putenv() is disabled on some shared hosts
@@ -49,15 +65,15 @@ function bf_decrypt(string $encoded): string {
         // Fallback for local development: try plaintext password from env
         $plainPass = getenv('BF_DB_PASS') ?: ($_ENV['BF_DB_PASS'] ?? '');
         if ($plainPass) {
-            error_log('BlackFire: Using plaintext BF_DB_PASS (local dev mode)');
+            error_log('[Portal] Using plaintext BF_DB_PASS (local dev mode)');
             return $plainPass;
         }
-        error_log('BlackFire: BF_APP_KEY is not set and BF_DB_PASS is missing — decryption failed');
+        error_log('[Portal] BF_APP_KEY is not set and BF_DB_PASS is missing — decryption failed');
         return '';
     }
     $raw  = base64_decode($encoded);
     if (!$raw || strlen($raw) < 17) {
-        error_log('BlackFire: Invalid encrypted value format');
+        error_log('[Portal] Invalid encrypted value format');
         return '';
     }
     $iv   = substr($raw, 0, 16);
@@ -102,7 +118,7 @@ return [
     // �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
     'timezone'          => 'Africa/Johannesburg',
     'session_ttl'       => 3600,                  // 1 hour
-    'session_name'      => 'BLKFR_SESSION',
+    'session_name'      => cfg_env('SESSION_NAME', 'BLKFR_SESSION'),
     'remember_duration' => 604800,                // 7 days
     'max_login_attempts' => 5,
     'lockout_duration'  => 900,                  // 15 minutes
@@ -114,7 +130,7 @@ return [
     // EMAIL (for notifications & contact form)
     // �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
     'mail_from'      => 'noreply@blackfiresolutions.co.za',
-    'mail_from_name' => 'BlackFire Solutions',
+    'mail_from_name' => cfg_env('COMPANY_NAME', 'BlackFire Solutions'),
     'mail_host'      => 'mail.blackfiresolutions.co.za',
     'mail_port'      => 587,
     'mail_username'  => 'noreply@blackfiresolutions.co.za',
@@ -125,16 +141,24 @@ return [
     // �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
     // BUSINESS CONFIG
     // �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
-    'company_name'   => 'BlackFire Solutions',
-    'company_phone'  => '+27 68 912 6581',
-    'company_email'  => 'info@blackfiresolutions.co.za',
-    'company_addr'   => 'Johannesburg, South Africa',
-    'invoice_prefix' => 'INV',
-    'quote_prefix'   => 'QTE',
-    'callout_prefix' => 'CO',
-    'default_rate'   => 450,                     // R/hour
-    'default_currency' => 'ZAR',
-    'tax_rate'       => 0.15,                    // 15% VAT
+    // Values read from: cPanel env vars → blackfire_secrets.php constants → .env → hardcoded fallback.
+    // Update cPanel > Software > PHP > Environment Variables for production.
+    // After Phase 1 (bf_host_companies table), the DB row takes precedence over these.
+    'company_name'        => cfg_env('COMPANY_NAME',       'BlackFire Solutions'),
+    'company_legal_name'  => cfg_env('COMPANY_LEGAL_NAME', 'Astute Insights Pty Ltd'),
+    'company_reg'         => cfg_env('COMPANY_REG',        '2021/964381/07'),
+    'company_vat'         => cfg_env('COMPANY_VAT',        '4060310358'),
+    'company_phone'       => cfg_env('COMPANY_PHONE',      '073 693 8446'),
+    'company_email'       => cfg_env('COMPANY_EMAIL',      'accounts@astuteinsights.co.za'),
+    'company_addr'        => cfg_env('COMPANY_ADDR',       '102 Aloeridge 2, Stoneridge Street, Greenstone, 1616'),
+    'company_tagline'     => cfg_env('COMPANY_TAGLINE',    'Fire, taught to behave.'),
+    'company_logo'        => cfg_env('COMPANY_LOGO',       './blackfire_logo_transparent.png'),
+    'invoice_prefix'      => cfg_env('INVOICE_PREFIX',     'INV'),
+    'quote_prefix'        => cfg_env('QUOTE_PREFIX',       'QTE'),
+    'callout_prefix'      => cfg_env('CALLOUT_PREFIX',     'CO'),
+    'default_rate'        => 450,
+    'default_currency'    => 'ZAR',
+    'tax_rate'            => 0.15,
 
     // �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
     // AUDIT & LOGGING
@@ -153,13 +177,5 @@ return [
     'feature_audit'       => true,
     'feature_users'       => true,
     'feature_integration' => false,  // Third-party integrations
-
-    // �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
-    // CLIENT: AECI CHEMPARK
-    // �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
-    'aeci_site'     => 'Chempark, Modderfontein, Johannesburg',
-    'aeci_contact'  => 'Site Manager',
-    'aeci_email'    => 'admin@chempark.co.za',
-    'aeci_budget'   => 150000,  // Monthly budget in R
 ];
 ?>

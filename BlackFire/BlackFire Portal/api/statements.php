@@ -104,7 +104,10 @@ if ($method === 'GET') {
 
     $total = db_row("SELECT COUNT(*) AS n FROM bf_statements $where", $params)['n'] ?? 0;
     $rows  = db_select(
-        "SELECT * FROM bf_statements $where ORDER BY created_at DESC LIMIT {$pg['limit']} OFFSET {$pg['offset']}",
+        "SELECT s.*, COALESCE(u.username,'') AS released_by
+           FROM bf_statements s
+           LEFT JOIN bf_users u ON u.id = s.released_by_user_id
+          $where ORDER BY s.created_at DESC LIMIT {$pg['limit']} OFFSET {$pg['offset']}",
         $params
     );
 
@@ -209,8 +212,8 @@ if ($method === 'PUT') {
     }
 
     db_exec(
-        "UPDATE bf_statements SET status = 'released', released_by = ?, released_at = NOW(), from_email = ?, to_emails = ? WHERE ref_id = ?",
-        [$user['username'], $from_email, implode(',', $clean_tos), $ref_id]
+        "UPDATE bf_statements SET status = 'released', released_by_user_id = ?, released_at = NOW(), from_email = ?, to_emails = ? WHERE ref_id = ?",
+        [(int)$user['id'], $from_email, implode(',', $clean_tos), $ref_id]
     );
 
     audit($user['username'], 'STATEMENT_RELEASED',

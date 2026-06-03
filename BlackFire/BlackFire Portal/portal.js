@@ -224,6 +224,8 @@ document.addEventListener('click', function(e) {
     // Dashboard
     case 'showDashEditor':       showDashEditor(); break;
     case 'saveDashEditorPrefs':  saveDashEditorPrefs(); break;
+    case 'setDashDefaultForAll':  setDashDefaultForAll(); break;
+    case 'resetDashLayoutForAll': resetDashLayoutForAll(); break;
     // Clients
     case 'openClientModal':      openClientModal(el.dataset.id ? +el.dataset.id : null); break;
     case 'closeClientModal':     closeClientModal(); break;
@@ -421,10 +423,33 @@ async function deleteAttachment(id, entityType, entityRef) {
 }
 
 /* ── Document viewer (inline PDF / image preview) ─────────────────── */
-function openDocViewer(id, name, mime) {
+let _dvBlobUrl = null;
+
+async function openDocViewer(id, name, mime) {
   const isPdf = mime === 'application/pdf';
   const isImg = mime && mime.startsWith('image/');
-  const src   = `${API_BASE}/files.php?action=view&id=${id}`;
+
+  // Revoke any previous blob URL before creating a new one
+  if (_dvBlobUrl) { URL.revokeObjectURL(_dvBlobUrl); _dvBlobUrl = null; }
+
+  if (isPdf || isImg) {
+    // Fetch as blob so the iframe/img uses a blob: URL — this bypasses any
+    // server-level X-Frame-Options or CSP that would block an iframe pointing
+    // directly at the API endpoint.
+    try {
+      const res = await fetch(`${API_BASE}/files.php?action=view&id=${id}`, { credentials: 'same-origin' });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        toast(json.error || 'Could not load file', 'err');
+        return;
+      }
+      _dvBlobUrl = URL.createObjectURL(await res.blob());
+    } catch (e) {
+      toast('Could not load file', 'err');
+      return;
+    }
+  }
+
   let body;
   if (isPdf) {
     body = `<div class="dv-wrap">
@@ -432,7 +457,7 @@ function openDocViewer(id, name, mime) {
         <span class="dv-name">${esc(name)}</span>
         <a href="${API_BASE}/files.php?action=download&id=${id}" class="btn btn-g btn-s">&#8595; Download</a>
       </div>
-      <iframe src="${src}" class="dv-iframe" title="${esc(name)}"></iframe>
+      <iframe src="${_dvBlobUrl}" class="dv-iframe" title="${esc(name)}"></iframe>
     </div>`;
   } else if (isImg) {
     body = `<div class="text-center">
@@ -440,7 +465,7 @@ function openDocViewer(id, name, mime) {
         <span class="dv-name">${esc(name)}</span>
         <a href="${API_BASE}/files.php?action=download&id=${id}" class="btn btn-g btn-s">&#8595; Download</a>
       </div>
-      <img src="${src}" alt="${esc(name)}" class="dv-img">
+      <img src="${_dvBlobUrl}" alt="${esc(name)}" class="dv-img">
     </div>`;
   } else {
     body = `<div class="dv-unsup">
@@ -507,6 +532,7 @@ function can(perm){
 let DB = { callouts:[], quotes:[], invoices:[], bank:[], users:[], safetyFiles:[], clients:[] };
 let SESSION = null;
 let AUDIT_LOG = [];
+let _dashPrefsCache = null; // populated from DB at login via loadDashPrefsFromAPI()
 let modalContacts = [];
 
 /* ── Data Refresh Functions ─────────────────────────── */
@@ -585,7 +611,7 @@ function populateLinkedDropdowns() {
   const niQuoteEl = document.getElementById('ni-quote-ref');
   if (niQuoteEl) {
     const quotes = proxyDB.quotes.filter(q => q.status !== 'Cancelled');
-    const qOpts  = quotes.map(q => `<option value="${esc(q.id)}">${esc(q.id)} — ${esc(q.client)} (${esc(q.status)})</option>`).join('');
+    const qOpts  = quotes.map(q => `<option value="${esc(q.id)}">${esc(q.quoteNo)} — ${esc(q.client)} (${esc(q.status)})</option>`).join('');
     const cur = niQuoteEl.value;
     niQuoteEl.innerHTML = '<option value="">— None —</option>' + qOpts;
     if (cur) niQuoteEl.value = cur;
@@ -613,6 +639,7 @@ async function refreshAll() {
 function normalizeCallout(c) {
   return {
     id:               c.ref_id || c.id,
+    jobNo:            c.job_no || c.ref_id || c.id,
     client:           c.client_name,
     clientId:         c.client_id ? Number(c.client_id) : null,
     clientEmail:      c.client_email || '',
@@ -637,6 +664,7 @@ function normalizeQuote(q) {
   const items = (q.items || []).map(i => ({ desc: i.description, qty: Number(i.qty), unit: Number(i.unit_price) }));
   return {
     id:             q.ref_id || q.id,
+    quoteNo:        q.quote_no || q.ref_id || q.id,
     client:         q.client_name,
     clientId:       q.client_id ? Number(q.client_id) : null,
     items,
@@ -646,11 +674,13 @@ function normalizeQuote(q) {
     submittedBy:    q.submitted_by,
     source:         q.source,
     approvalStatus: q.approval_status,
+    calloutRef:     q.callout_ref || '',
   };
 }
 function normalizeInvoice(i) {
   return {
     id:          i.ref_id || i.id,
+    invoiceNo:   i.invoice_no || i.ref_id || i.id,
     client:      i.client_name,
     clientEmail: i.client_email || '',
     amount:      Number(i.amount),
@@ -679,10 +709,10 @@ function normalizeSafetyFile(f) {
   return {
     id:               f.ref_id,
     contractor:       f.contractor       || '',
-    contractorRep:    f.contractor_rep   || '',
-    contractorRepId:  f.contractor_rep_id ? parseInt(f.contractor_rep_id) : null,
-    appointee162:     f.appointee162     || '',
-    appointee162Id:   f.appointee162_id  ? parseInt(f.appointee162_id)  : null,
+    contractorRep:    f.contractor_rep_name  || '',
+    contractorRepId:  f.contractor_rep_id   ? parseInt(f.contractor_rep_id)  : null,
+    appointee162:     f.appointee162_name   || '',
+    appointee162Id:   f.appointee162_id     ? parseInt(f.appointee162_id)    : null,
     auditDate:        f.audit_date       || '',
     region:           f.region           || '',
     auditTeam:        f.audit_team       || '',
@@ -834,9 +864,10 @@ async function doLogin(){
   { const _rl = SESSION.roles?.length > 1 ? SESSION.roles.map(r=>ROLE_LABELS[r]||r).join(' + ') : (ROLE_LABELS[SESSION.role]||SESSION.role);
     document.getElementById('dash-sub').textContent = `AECI CHEMPARK  -  ${_rl.toUpperCase()} VIEW`; }
 
-  // Load all data from API
+  // Load all data from API (including dashboard layout)
   toast('Loading data…', 'ok');
-  await refreshAll();
+  _dashPrefsCache = null; // clear any previous user's cache before re-loading
+  await Promise.all([refreshAll(), loadDashPrefsFromAPI()]);
 
   // Navigate to first page for role (supports multi-role — first match wins)
   const _roleMap2 = { call_logger:'p-new-callout', junior_tech:'p-callouts', senior_tech:'p-callouts', client_support:'p-dashboard', admin_clerk:'p-callouts', safety_officer:'p-safety' };
@@ -852,6 +883,7 @@ async function doLogout(){
   stopIdleTimer();
   await api('POST', 'auth.php?action=logout');
   SESSION = null;
+  _dashPrefsCache = null;
   DB = { callouts:[], quotes:[], invoices:[], bank:[], users:[], safetyFiles:[], clients:[] };
   document.getElementById('l-user').value = '';
   document.getElementById('l-pass').value = '';
@@ -931,15 +963,75 @@ const DASH_WIDGETS = [
 ];
 
 function getDashPrefs() {
-  try { return JSON.parse(localStorage.getItem('bf_dash_' + (SESSION?.username||'')) || '{}'); }
-  catch { return {}; }
+  // In-memory cache populated from DB at login — primary source of truth
+  if (_dashPrefsCache) return _dashPrefsCache;
+  // localStorage fallback: used before login completes or when API is unreachable
+  try {
+    const raw = localStorage.getItem('bf_dash_' + (SESSION?.username||''));
+    if (raw) {
+      const p = JSON.parse(raw);
+      if (p && typeof p === 'object') {
+        // Migrate old flat format {w-ops: true, ...} → new structured format
+        if (!p.enabled && !p.order) return { enabled: p, order: DASH_WIDGETS.map(w=>w.id), customized: true };
+        return p;
+      }
+    }
+  } catch {}
+  // Fall through to admin default stored locally
+  try {
+    const def = localStorage.getItem('bf_dash_default');
+    if (def) { const p = JSON.parse(def); if (p) return p; }
+  } catch {}
+  return { enabled: {}, order: DASH_WIDGETS.map(w=>w.id) };
+}
+function getDashWidgetOrder(prefs) {
+  const allIds = DASH_WIDGETS.map(w=>w.id);
+  const saved  = prefs?.order || [];
+  const ordered = saved.filter(id => allIds.includes(id));
+  allIds.forEach(id => { if (!ordered.includes(id)) ordered.push(id); });
+  return ordered;
 }
 function saveDashPrefs(prefs) {
-  localStorage.setItem('bf_dash_' + (SESSION?.username||''), JSON.stringify(prefs));
+  const withTs = { ...prefs, savedAt: Date.now() };
+  _dashPrefsCache = withTs;
+  localStorage.setItem('bf_dash_' + (SESSION?.username||''), JSON.stringify(withTs));
+  api('PUT', 'dashboard_prefs.php', withTs); // fire-and-forget DB persist
 }
-function isWidgetOn(id) {
-  const p = getDashPrefs();
-  return p[id] !== false;
+
+async function loadDashPrefsFromAPI() {
+  const r = await api('GET', 'dashboard_prefs.php');
+  if (!r.success) return; // keep localStorage fallback
+
+  if (r.user_layout) {
+    _dashPrefsCache = r.user_layout;
+    localStorage.setItem('bf_dash_' + (SESSION?.username||''), JSON.stringify(r.user_layout));
+    return;
+  }
+
+  // No server layout — check localStorage for migration of pre-DB data
+  try {
+    const localRaw = localStorage.getItem('bf_dash_' + (SESSION?.username||''));
+    if (localRaw) {
+      const lp = JSON.parse(localRaw);
+      if (lp && lp.customized) {
+        _dashPrefsCache = lp;
+        api('PUT', 'dashboard_prefs.php', lp); // migrate to DB silently
+        return;
+      }
+    }
+  } catch {}
+
+  // Use admin default from server
+  if (r.default_layout) {
+    _dashPrefsCache = r.default_layout;
+    localStorage.setItem('bf_dash_default', JSON.stringify(r.default_layout));
+  }
+  // null _dashPrefsCache → getDashPrefs() falls through to system default
+}
+function isWidgetOn(id, prefs) {
+  const p = prefs || getDashPrefs();
+  if (p.enabled) return p.enabled[id] !== false;  // new format
+  return p[id] !== false;                          // old format fallback
 }
 
 function findGroupForPage(pageId) {
@@ -1098,24 +1190,79 @@ let INFO_MODE = localStorage.getItem('bf-info') === 'on';
 
 /* How-to guide content for each portal page */
 const PAGE_INFO = {
+  'p-home': {
+    title: 'Portal Home',
+    sub: 'Welcome & quick navigation',
+    purpose: 'The starting point for every session — shows your role, available modules, and quick-access links to the areas most relevant to your work.',
+    steps: [
+      'Check your displayed role in the top bar — this determines which modules and actions you can access.',
+      'Use the navigation panel on the left to move between modules. Items you do not have access to will not appear.',
+      'Click any module card on the home screen to jump directly into that section.',
+      'Use the Help (?) button at the top right on any page to open the how-to guide for that specific screen.',
+      'If you cannot find a module you expect to see, contact your Admin — your role may need to be updated.',
+    ],
+    tips: [
+      'Bookmark the portal URL in your browser for fast daily access.',
+      'If the portal looks different from what you remember, check your role — an Admin may have adjusted your access.',
+      'The nav badge numbers (red circles) highlight pages with items needing attention. Check these first each morning.',
+    ],
+    faqs: [
+      { q: 'I can\'t see a module I need. What should I do?', a: 'Contact your Admin or Manager. Access is controlled by your role — they can update it.' },
+      { q: 'How do I change my password?', a: 'Use the Forgot Password link on the login screen, or ask an Admin to reset it from the Users & Roles page.' },
+      { q: 'Is the portal data live?', a: 'Yes — all data reflects the current state of the system. There is no offline or staging mode.' },
+      { q: 'Can I use the portal on my phone?', a: 'Yes — the portal is mobile-responsive. Some data-dense pages (like the Call Log) are easier to use on a larger screen.' },
+    ],
+    linked: 'All modules.',
+    access: ['admin','sysadmin','manager','admin_clerk','senior_tech','call_logger','viewer','client_support','junior_tech'],
+  },
+  'p-services': {
+    title: 'Service Catalogue',
+    sub: 'Available service types & categories',
+    purpose: 'A reference list of all service categories and types used when logging callouts and quotes. Keeping this accurate ensures consistent reporting and correct billing.',
+    steps: [
+      'Browse the grid of service categories — each card shows the category name and number of active service types within it.',
+      'Click a category card to see the individual service types it contains.',
+      'Service types are used as the "Type" field when logging a new callout or creating a quote line item.',
+      'If a service type you need is not listed, contact your Admin to have it added.',
+      'Do not improvise service descriptions — always select from the catalogue to ensure consistency in reports.',
+    ],
+    tips: [
+      'Consistent service type selection is critical for accurate operations reports. Avoid selecting "Other" unless nothing fits.',
+      'If you find yourself regularly using "Other", submit a suggestion to get the relevant type added to the catalogue.',
+      'Service categories group related types — e.g. all CCTV-related work falls under a single category for reporting.',
+    ],
+    faqs: [
+      { q: 'Who can add or edit service types?', a: 'Only Admins and Sysadmins can modify the service catalogue. Contact your Admin with a description of the new type needed.' },
+      { q: 'What if a service type has been discontinued?', a: 'Contact your Admin to deactivate it. Old records that reference it will be preserved.' },
+      { q: 'How do service types affect billing?', a: 'Service type is used to categorise callouts and quote line items. Finance uses these categories for revenue reporting.' },
+    ],
+    linked: 'Callouts, Quotes.',
+    access: ['admin','sysadmin','manager','admin_clerk','senior_tech','call_logger','viewer','client_support','junior_tech'],
+  },
   'p-dashboard': {
     title: 'Dashboard',
     sub: 'Your control centre',
-    purpose: 'The central hub showing live activity across the entire portal — callouts, invoices, safety compliance, and recent audit events at a glance.',
+    purpose: 'The central hub showing live activity across the entire portal — callouts, invoices, safety compliance, and recent audit events at a glance. Every metric card pulls from live data, so what you see reflects the current state of the system.',
     steps: [
-      'Review the key metric cards at the top — badge numbers flag items needing attention.',
-      'Check the recent callouts and outstanding invoices panels for anything requiring follow-up.',
-      'Use the quick-action buttons to jump directly to the relevant module.',
-      'The safety compliance summary shows whether any OHS documents are overdue.',
-      'The audit feed at the bottom shows the 5 most recent actions across all users.',
+      'Review the key metric cards at the top — badge numbers in red flag items needing urgent attention; amber numbers indicate items to monitor.',
+      'Check the Recent Callouts panel for any open incidents that have not been assigned or progressed since yesterday.',
+      'Check the Outstanding Invoices panel — anything overdue (past payment terms) should be followed up today.',
+      'Review the Safety Compliance summary — it shows the percentage of safety files currently compliant and flags any that are expiring within 30 days.',
+      'Scan the Audit Feed at the bottom — it shows the 5 most recent actions across all users. Anything unexpected warrants investigation.',
+      'Use the quick-action buttons on each panel to jump directly to that module without navigating the sidebar.',
+      'Drag and drop dashboard panels to rearrange them into an order that suits your workflow.',
     ],
     tips: [
-      'Refresh the dashboard when you arrive each morning — it reflects the live state of the system.',
-      'Red badge numbers on the nav indicate urgent items — don\'t ignore them.',
+      'Check the dashboard every morning before starting work — it gives you the full picture in under a minute.',
+      'Red badge numbers on the nav sidebar indicate urgent items across all pages. Clear these before end of day.',
+      'If the Recent Callouts panel shows the same open incidents day after day, escalate — they may be stalled.',
+      'The dashboard does not auto-refresh. Navigate away and back (or reload) to get the latest data.',
     ],
     faqs: [
       { q: 'Why are my badge counts different from what I expect?', a: 'Badges update every time you navigate to a page. Click away and back to force a refresh.' },
-      { q: 'Can I customise which cards appear on the dashboard?', a: 'Not yet — layout customisation is a planned feature. Submit a suggestion below to prioritise it.' },
+      { q: 'Can I customise which panels appear on the dashboard?', a: 'Yes — drag panels to reorder them. Your layout is saved automatically per user.' },
+      { q: 'What does the compliance percentage on the dashboard mean?', a: 'It shows the proportion of active safety files with an Approved or compliant status. Files with expired review dates lower this score.' },
+      { q: 'I see activity on the audit feed I don\'t recognise. What should I do?', a: 'Navigate to the full Audit Log (if you have access) and search by that username. If you cannot investigate yourself, contact your Sysadmin immediately.' },
     ],
     linked: 'Operations, Finance, Support — all modules feed into this view.',
     access: ['admin','sysadmin','manager','admin_clerk','senior_tech','call_logger','viewer','client_support','junior_tech'],
@@ -1123,20 +1270,24 @@ const PAGE_INFO = {
   'p-ops-dashboard': {
     title: 'Operations Overview',
     sub: 'Operational health at a glance',
-    purpose: 'Shows real-time status of callouts and quotes — active incidents, open items, and team workload in one view.',
+    purpose: 'A real-time snapshot of the operations workload — open callouts, pending quotes, technician utilisation, and a timeline summary. Use this page to quickly identify bottlenecks and prioritise follow-ups before they become delays.',
     steps: [
-      'Check pending callouts — anything in Open status needs a technician assigned.',
-      'Review quotes awaiting approval — managers can approve directly from here.',
-      'Use quick-action buttons to log a new callout or submit a new quote.',
-      'Click any summary card to drill into the full list for that module.',
+      'Check the Open Callouts count — anything above your expected daily average needs investigation. Click through to the Call Log.',
+      'Review the Callouts by Status breakdown: Open means unassigned or not yet started; Assigned means a technician is scheduled; In Progress means active on-site work; Awaiting Parts means blocked on materials.',
+      'Check the Quotes Pending Approval count — these block the billing cycle. Managers should clear these daily.',
+      'Review the Quotes by Status panel to see how many are drafted, pending, approved, or expired.',
+      'Use the quick-action buttons to log a new callout, submit a new quote, or view the full Timeline.',
     ],
     tips: [
-      'If the open callout count is high, check the Call Log for items stuck in Open for more than 24 hours.',
-      'Pending approval quotes block the billing cycle — review them daily.',
+      'Open callouts older than 24 hours without a status update are a red flag — check with the assigned technician.',
+      'Pending approval quotes that are 48+ hours old should be chased — the approver may not have seen the notification.',
+      'Use this page in your morning stand-up to quickly run through the team\'s active workload.',
     ],
     faqs: [
-      { q: 'What\'s the difference between Operations Overview and the main Dashboard?', a: 'The main Dashboard covers all modules. Operations Overview focuses only on callouts and quotes.' },
-      { q: 'How do I assign a technician to a callout from here?', a: 'Navigate to the Call Log using the quick action button and expand the callout row.' },
+      { q: 'What\'s the difference between Operations Overview and the main Dashboard?', a: 'The main Dashboard shows a cross-module summary including finance and safety. Operations Overview focuses only on callouts and quotes — it is the ops team\'s daily work page.' },
+      { q: 'How do I assign a technician to a callout from here?', a: 'Navigate to the Call Log using the quick action button, expand the callout row, and select the technician.' },
+      { q: 'What does "Awaiting Parts" status mean?', a: 'The technician has been on-site but the job cannot be completed until materials or equipment arrive. These should have an expected resolution date noted in the callout description.' },
+      { q: 'Why does the callout count on this page differ from the main Dashboard badge?', a: 'The main Dashboard badge counts all open callouts. This page may show a filtered view based on date range or status. Check the filter settings at the top.' },
     ],
     linked: 'Callouts, Quotes, Timeline.',
     access: ['admin','sysadmin','manager','call_logger','senior_tech','junior_tech','client_support','admin_clerk','viewer'],
@@ -1144,19 +1295,24 @@ const PAGE_INFO = {
   'p-timeline': {
     title: 'Timeline',
     sub: 'Chronological event view',
-    purpose: 'A time-ordered view of callouts and quotes, useful for spotting busy periods and understanding workload patterns.',
+    purpose: 'A time-ordered view of all callouts and quotes plotted against a calendar axis. Use it to spot demand peaks, plan technician availability, and identify periods of unusual activity.',
     steps: [
-      'Scroll through the timeline to see events plotted by date.',
-      'Use this to plan resource allocation during known busy periods.',
-      'Click any event to see its full detail in the Call Log or Quote Log.',
+      'The timeline loads with all available records plotted by their logged date.',
+      'Scroll horizontally to move through time — older events are to the left, newer ones to the right.',
+      'Each event block shows the reference number, client, and status. Colour coding indicates type: callouts in one colour, quotes in another.',
+      'Click any event block to see its summary. Use the link in the summary to open the full record in the Call Log or Quote Log.',
+      'Use this view to identify busy periods and compare against current technician availability for scheduling.',
     ],
     tips: [
-      'Dense clusters on the timeline indicate high-demand days — use this to plan staffing.',
-      'If events look sparse, check that callouts are being logged promptly and not batched.',
+      'Dense clusters of events on a single day indicate high-demand periods — use this information when planning leave or shifts.',
+      'If the timeline looks sparse for recent periods, check whether callouts are being logged in real-time or batched at the end of the day.',
+      'The timeline is a read-only view — you cannot create or edit records here. Use it for visibility only.',
     ],
     faqs: [
-      { q: 'How far back does the timeline go?', a: 'The timeline shows all available records. Scroll up to go back further in time.' },
-      { q: 'Can I filter by client or technician?', a: 'Not yet — submit a suggestion below to prioritise it.' },
+      { q: 'How far back does the timeline go?', a: 'All available records are plotted — there is no cut-off. Scroll left to go further back.' },
+      { q: 'Can I filter the timeline by client, technician, or service type?', a: 'Not yet — the timeline shows all events. Filtering is a planned enhancement. Submit a suggestion below to prioritise it.' },
+      { q: 'Why do some events overlap on the timeline?', a: 'Overlapping blocks indicate multiple callouts or quotes logged on the same date. They are stacked vertically so each one remains visible.' },
+      { q: 'Can I zoom in or out on the timeline?', a: 'Not currently. Use the scroll on your mouse or trackpad to move through dates horizontally.' },
     ],
     linked: 'Callouts, Quotes.',
     access: ['admin','sysadmin','manager','call_logger','senior_tech','junior_tech','client_support','admin_clerk','viewer'],
@@ -1164,23 +1320,30 @@ const PAGE_INFO = {
   'p-callouts': {
     title: 'Call Log',
     sub: 'Incident & service callout tracker',
-    purpose: 'The complete record of every security callout — incident type, location, assigned technician, PO number, and resolution status.',
+    purpose: 'The complete, auditable record of every security callout — incident type, location, assigned technician, PO number, status, and resolution. This is the operations team\'s primary working page.',
     steps: [
-      'Click "+ Log Call" to create a new callout. Fill in the client, site, service type, and description.',
-      'Use the search box to filter by client name, reference number, or status.',
-      'Click any row to expand it — update status, assign a technician, or add a PO number.',
-      'Once work is complete, update status to Closed. A manager must confirm closure.',
-      'Closed callouts can be converted to invoices from the expanded row.',
+      'Click "+ Log Call" to create a new callout. Complete all required fields: client, site, service type, description, and priority.',
+      'Use the search box to filter by client name, reference number, technician, or status. Combining filters narrows results quickly.',
+      'Click any row to expand it and see the full callout detail — timestamps, description, attachments, and action history.',
+      'From the expanded row: update the status, assign or reassign a technician, add a PO number, or attach documents.',
+      'Status lifecycle: Open → Assigned → In Progress → Awaiting Parts (if blocked) → Closed. Move statuses forward as work progresses.',
+      'Once work is fully complete, set status to Closed. A Manager or Admin must then confirm closure to lock the record.',
+      'Confirmed-closed callouts can be converted to an invoice directly from the expanded row — this pre-fills the billing line items.',
     ],
     tips: [
-      'Always assign a PO number before sending a job to a subcontractor — finance needs it for reconciliation.',
-      'Close callouts within 24 hours of completion. Open callouts inflate the ops dashboard counts.',
-      'Never delete a callout unless it was logged in error — use Closed status to archive.',
+      'Always assign a PO number before dispatching a subcontractor. Finance requires it for invoice matching and payment reconciliation.',
+      'Update the status to In Progress when a technician is on-site — this gives the ops team real-time visibility.',
+      'Close callouts within 24 hours of job completion. Every open callout inflates the ops dashboard counts and obscures true workload.',
+      'Never delete a callout unless it was logged in error and has no related invoice or quote. Use Closed to archive completed work.',
+      'Use the description field to capture key detail: exact location, nature of fault, steps taken, and materials used.',
     ],
     faqs: [
-      { q: 'Can I edit a callout after saving?', a: 'Yes — expand the row. Most fields remain editable until the callout is Closed.' },
-      { q: 'How do I link a callout to an invoice?', a: 'Open the callout and use "Convert to Invoice" — it pre-fills the line item with the service details.' },
-      { q: 'Why can\'t I delete a callout?', a: 'Only Admins and Managers can delete records. Contact your manager if a record needs removing.' },
+      { q: 'Can I edit a callout after saving?', a: 'Yes — expand the row and most fields remain editable until the callout is Confirmed Closed. After that, only Admins can make amendments.' },
+      { q: 'How do I link a callout to an invoice?', a: 'Open the expanded row for a closed callout and click "Convert to Invoice" — it pre-fills the invoice with the service type and description.' },
+      { q: 'Why can\'t I delete a callout?', a: 'Only Admins and Managers have delete permission, and only when no linked invoice or quote exists. Contact your manager if a record needs removing.' },
+      { q: 'What\'s the difference between Assigned and In Progress?', a: 'Assigned means a technician has been scheduled but has not yet started. In Progress means they are actively working on-site.' },
+      { q: 'Can I attach files to a callout?', a: 'Yes — expand the callout row and use the Attachments section to upload photos, reports, or supporting documents (PDF, Word, Excel, JPEG/PNG, max 10 MB each).' },
+      { q: 'What is the Priority field used for?', a: 'Priority (Low / Medium / High / Critical) is for internal triage. Critical should be used for active security breaches or imminent danger — these should also be escalated by phone immediately.' },
     ],
     linked: 'Clients, Technicians, Quotes, Invoices.',
     access: ['admin','sysadmin','manager','call_logger','senior_tech','junior_tech','client_support','admin_clerk','viewer'],
@@ -1188,22 +1351,29 @@ const PAGE_INFO = {
   'p-quotes': {
     title: 'Quote Log',
     sub: 'Quotation management',
-    purpose: 'Create, track, and approve service quotations. Approved quotes convert directly into invoices.',
+    purpose: 'Create, track, and approve service quotations. Every approved quote can convert directly into an invoice, eliminating manual re-entry. Declined quotes remain on record for reference.',
     steps: [
-      'Click "+ Submit Quote" to draft a new quotation. Select the client and set a valid-until date.',
-      'Add line items — each needs a description, quantity, and unit rate. Totals are calculated automatically.',
-      'Submit the quote — it moves to Pending Approval. You will be notified when it is reviewed.',
-      'A manager or admin can approve or decline. Declined quotes can be revised and resubmitted.',
-      'Approved quotes can be converted to an invoice with one click from the expanded row.',
+      'Click "+ Submit Quote" to draft a new quotation. Select the client, set a valid-until date, and add an internal reference note if helpful.',
+      'Add line items: each needs a description, quantity, and unit rate. Break labour and materials into separate lines — clients expect itemised quotes.',
+      'The system calculates subtotal, VAT (if applicable), and total automatically. Verify these before submitting.',
+      'Click Submit — the quote moves to Pending Approval and the approver is notified.',
+      'A Manager or Admin reviews the quote: Approved quotes unlock the Convert to Invoice action; Declined quotes return to you with a reason.',
+      'If a quote is declined, review the decline reason, make corrections, and resubmit. The original version is preserved in the audit trail.',
+      'To convert an approved quote, expand the row and click "Convert to Invoice" — billing details are pre-filled.',
     ],
     tips: [
-      'Double-check the VAT treatment before submitting — incorrect VAT causes billing issues downstream.',
-      'Set realistic valid-until dates — expired quotes cannot be converted without re-approval.',
+      'Double-check the VAT treatment (inclusive vs exclusive) before submitting — incorrect VAT creates billing corrections that are time-consuming to unwind.',
+      'Set the valid-until date at least 2 weeks out. Quotes that expire before the client signs off require a full re-approval cycle.',
+      'If you need approval urgently, notify the approver directly — the system notification may sit unread.',
+      'Use the Notes field to add context for the approver: what prompted the quote, any client-specific terms, or urgency.',
     ],
     faqs: [
-      { q: 'Can I edit a quote after submitting?', a: 'Not once it is Pending Approval. Only Admins can edit at that stage — withdraw and resubmit if you made an error.' },
-      { q: 'What happens when a quote expires?', a: 'It is marked Expired. The client must accept a revised quote before it can be converted.' },
-      { q: 'Can I send the quote directly to the client?', a: 'Not yet — export the details and send manually. A direct send feature is planned.' },
+      { q: 'Can I edit a quote after submitting?', a: 'Not once it is Pending Approval — it is in the approver\'s queue. Only Admins can edit at this stage. Withdraw and resubmit if you made an error before approval.' },
+      { q: 'What happens when a quote expires?', a: 'It is automatically marked Expired. The client must agree to a revised valid-until date before a new quote can be raised and submitted.' },
+      { q: 'Can I send the quote directly to the client from the portal?', a: 'Not yet — download the quote details and send manually. A direct client send feature is planned.' },
+      { q: 'Can I duplicate a quote for a similar job?', a: 'Not yet — recreate it manually. Submit a suggestion below to request this feature.' },
+      { q: 'What does "Pending Approval" mean for my workflow?', a: 'You are waiting on a Manager or Admin to review. You cannot convert or send the quote until it is approved. If it is urgent, contact the approver directly.' },
+      { q: 'How long should approval take?', a: 'The target is same business day. If a quote has been pending for more than 24 hours, follow up with the approver directly.' },
     ],
     linked: 'Clients, Invoices (conversion), Callouts.',
     access: ['admin','sysadmin','manager','senior_tech','client_support','admin_clerk','viewer'],
@@ -1211,20 +1381,26 @@ const PAGE_INFO = {
   'p-finance-dashboard': {
     title: 'Finance Overview',
     sub: 'Financial health summary',
-    purpose: 'High-level financial snapshot — total invoiced, amount collected, outstanding balance, and recent bank activity.',
+    purpose: 'A real-time financial snapshot — total amount invoiced this period, total collected, outstanding balance owed, and recent transaction activity. Use this page daily to stay on top of cash flow.',
     steps: [
-      'Review the total outstanding balance — this is money owed across all active invoices.',
-      'Check recent transactions to confirm payments are being logged correctly.',
-      'Use quick links to drill into Invoices, Transactions, or the Income Statement.',
-      'Alert the billing team if outstanding balance is growing without corresponding new payments.',
+      'Review the Total Outstanding figure — this is the sum of all unpaid invoice balances. Compare it to your expected monthly inflow.',
+      'Check the Overdue Invoices count — invoices past their payment terms. Each one needs a follow-up action this week.',
+      'Review the Recent Transactions panel to confirm payments are being logged promptly after clearing the bank.',
+      'Check the Invoice Aging breakdown (if visible) — it shows how long outstanding invoices have been unpaid (0–30 days, 31–60, 60+).',
+      'Use the quick-action links to drill into Invoices, Transactions, or the Income Statement for more detail.',
+      'If outstanding balance is growing month-on-month without matching inflows, alert the billing team immediately.',
     ],
     tips: [
-      'If outstanding is high but transactions look normal, check for invoices marked Sent but not followed up.',
-      'Month-end: ensure all transactions for the period are captured before generating the Income Statement.',
+      'If outstanding is high but transactions look normal, check for invoices marked Sent that have not been followed up.',
+      'Month-end: ensure all transactions for the period are captured and reconciled before generating the Income Statement.',
+      'Aging invoices in the 60+ day bucket are collections risk — escalate these to management.',
+      'The finance dashboard reflects posted data only. Verbal client commitments to pay are not reflected here.',
     ],
     faqs: [
-      { q: 'Why does my outstanding not match the bank statement?', a: 'Invoices are logged when created, but payments may not be logged yet. Check the Transactions module.' },
-      { q: 'Who can see financial data?', a: 'Finance data is restricted to Admin, Sysadmin, Manager, and Admin Clerk roles.' },
+      { q: 'Why does my outstanding total not match the bank statement?', a: 'The outstanding figure is based on invoices logged in the portal, not what has cleared the bank. Log payments via Log Payment to reduce outstanding balances.' },
+      { q: 'Who can see financial data?', a: 'Finance data is restricted to Admin, Sysadmin, Manager, and Admin Clerk roles. Other roles see the ops and support dashboards instead.' },
+      { q: 'What is the difference between the finance dashboard and the Income Statement?', a: 'The finance dashboard shows current snapshot figures. The Income Statement is a period report (income vs expense) for accounting and management reporting.' },
+      { q: 'Why do totals on this page look different after I log a payment?', a: 'Payment logging updates the invoice status immediately. Navigate away and back to refresh the dashboard totals.' },
     ],
     linked: 'Invoices, Transactions, Statements, Income Statement.',
     access: ['admin','sysadmin','manager','admin_clerk'],
@@ -1232,23 +1408,31 @@ const PAGE_INFO = {
   'p-invoices': {
     title: 'Invoices',
     sub: 'Invoice management',
-    purpose: 'Create, send, and track all invoices — from draft through to paid.',
+    purpose: 'Create, send, and track all client invoices — from draft through to paid. This is the primary billing module. Accuracy here directly affects cash flow and financial reporting.',
     steps: [
-      'Click "+ New Invoice" to create. Select the client and billing period.',
-      'Add line items — description, quantity, and unit rate. VAT is calculated automatically.',
-      'Use the Send button to email the invoice directly to the client.',
-      'Mark an invoice as Paid once payment is confirmed. This updates the finance dashboard immediately.',
-      'Invoices can also be generated automatically from an approved quote.',
+      'Click "+ New Invoice" to create. Select the client and set the billing period (e.g. "May 2026 Retainer" or the relevant callout date range).',
+      'Add line items: description, quantity, and unit rate for each chargeable item. VAT is calculated automatically based on the rate configured for the client.',
+      'Review the subtotal, VAT, and total before saving. Once saved, the invoice appears in the Invoices list immediately.',
+      'Use the Send button to email the invoice directly to the client\'s billing contact on record.',
+      'When payment is received and confirmed in the bank, click Mark as Paid. The finance dashboard updates instantly.',
+      'If a client pays partially, use Log Payment and enter the partial amount — the invoice will show remaining balance.',
+      'Invoices can also be generated automatically from an approved quote — use "Convert to Invoice" on the Quote Log.',
+      'To add supporting documentation (e.g. job completion report, delivery note), expand the invoice row and use the Attachments section.',
     ],
     tips: [
-      'Send invoices promptly — a delay between work completion and invoicing slows cash flow.',
-      'Never mark an invoice as Paid until you have confirmed the bank deposit. Reversing a payment is disruptive.',
-      'If a client queries an invoice, use the attachment feature to add supporting documentation.',
+      'Send invoices within 24 hours of completing the work — delays in invoicing are the leading cause of delayed payment.',
+      'Never mark an invoice as Paid until you have confirmed the bank deposit. Reversals require Admin intervention and create audit noise.',
+      'If a client queries an invoice, use the Attachments section to add supporting documentation before responding.',
+      'Use a consistent, descriptive format for invoice line items: "Armed Response Retainer — May 2026" is more useful than "Monthly service".',
+      'Invoices marked Sent but unpaid after 30 days should trigger a follow-up call, not just a reminder email.',
     ],
     faqs: [
-      { q: 'Can I edit an invoice after sending it?', a: 'Contact an admin — sent invoices are locked to maintain the audit trail.' },
-      { q: 'What if a client pays partially?', a: 'Log a partial payment in Log Payment. The invoice status will reflect the outstanding amount.' },
-      { q: 'How do I void a cancelled invoice?', a: 'Delete it (Admin/Manager only). Add a note in the suggestion box below for the record.' },
+      { q: 'Can I edit an invoice after sending it?', a: 'No — sent invoices are locked. Contact an Admin who can unlock it for amendment. Any change is logged in the audit trail.' },
+      { q: 'What if a client pays partially?', a: 'Log a partial payment via Log Payment. The invoice status changes to Partial — the remaining balance stays in outstanding.' },
+      { q: 'How do I void or cancel an invoice?', a: 'Delete it (Admin/Manager only) if no payment has been logged against it. If a payment was already logged, contact a Sysadmin — a credit note process is required.' },
+      { q: 'Can I add a discount to an invoice?', a: 'Yes — add a line item with a negative amount (e.g. description "Loyalty Discount", quantity 1, rate −500.00).' },
+      { q: 'What invoice number format does the system use?', a: 'The system auto-generates sequential references (INV-001, INV-002, etc.). Do not attempt to set this manually.' },
+      { q: 'What if the client\'s billing email is wrong?', a: 'Update the client\'s billing contact email in the Clients module first, then use the Send button — it will use the updated address.' },
     ],
     linked: 'Clients, Quotes (conversion), Transactions, Statements.',
     access: ['admin','sysadmin','manager','client_support','admin_clerk','viewer'],
@@ -1256,20 +1440,25 @@ const PAGE_INFO = {
   'p-statement': {
     title: 'Statements',
     sub: 'Client account statements',
-    purpose: 'Generate a statement of account for any client — a summary of invoices and payments for a selected period.',
+    purpose: 'Generate a statement of account for any client showing all invoices, payments received, and the running outstanding balance for a chosen period. Statements are used for monthly client billing reviews and dispute resolution.',
     steps: [
-      'Select the client from the dropdown.',
-      'Choose the statement period (date range).',
-      'Review the statement — it lists all invoices, payment dates, and running balance.',
-      'Download as PDF, or release it directly to the client via the portal.',
+      'Select the client from the dropdown — only active clients with at least one invoice are listed.',
+      'Set the statement period: choose a start date and end date that covers the billing period you want to report.',
+      'The statement generates automatically — it shows every invoice raised in the period, each payment received, and the cumulative running balance.',
+      'Review the closing balance carefully. It should match what the client owes as of the end date.',
+      'Download as PDF for your records, or release it directly to the client contact via the portal.',
+      'For disputed balances, use the Attachments section on individual invoices to add supporting documentation before releasing the statement.',
     ],
     tips: [
-      'Send statements monthly even if the balance is zero — it builds client trust and reduces disputes.',
-      'Confirm all transactions for the period are logged before releasing a statement.',
+      'Send statements at the end of every month, even if the balance is zero — it builds client trust and reduces disputes.',
+      'Confirm all payments for the period are logged in Log Payment before releasing. A statement with missing payments shows a higher balance than expected and triggers unnecessary disputes.',
+      'If a client says their records don\'t match, ask them to share their payment confirmations and cross-reference against the transactions in the portal.',
     ],
     faqs: [
-      { q: 'Can clients view their own statements?', a: 'Not directly in this portal version. Download and email the PDF to the client.' },
-      { q: 'What if a statement shows the wrong balance?', a: 'Check that all payments for the period are logged in Log Payment. Missing payments cause discrepancies.' },
+      { q: 'Can clients view their own statements directly in the portal?', a: 'Not in this version of the portal. Download the PDF and email it to the client, or use the release button to send via the portal\'s email integration.' },
+      { q: 'What if the statement shows the wrong closing balance?', a: 'Check that all payments for the period have been logged in Log Payment. Missing payments are the most common cause of discrepancies.' },
+      { q: 'Can I generate a statement for a period that straddles two months?', a: 'Yes — set any custom start and end date. The statement will include all invoices and payments within that range.' },
+      { q: 'What if a client says they paid but it doesn\'t show on the statement?', a: 'Ask for their proof of payment (bank confirmation or EFT receipt). If the payment cleared, log it in Log Payment with the bank reference — the statement will update.' },
     ],
     linked: 'Invoices, Clients.',
     access: ['admin','sysadmin','manager','client_support','admin_clerk'],
@@ -1277,20 +1466,25 @@ const PAGE_INFO = {
   'p-transactions': {
     title: 'Transactions',
     sub: 'Bank transaction log',
-    purpose: 'Record every money-in and money-out bank transaction for reconciliation and income reporting.',
+    purpose: 'Record every money-in and money-out bank transaction for reconciliation and income reporting. This ledger feeds directly into the Income Statement and Reconciliation tools — accurate entries produce accurate reports.',
     steps: [
-      'Log each transaction as it appears on the bank statement — date, description, and amount.',
-      'Set the type: Income or Expense.',
-      'Use the description field to note the invoice reference or supplier name for easy reconciliation.',
-      'This data feeds the Income Statement — accurate entries mean accurate reports.',
+      'Log each transaction as it appears on the bank statement: date, description, type (Income/Expense), and exact amount.',
+      'Set the type correctly: Income for any money received (client payments, refunds credited); Expense for any money paid out (subcontractor payments, operational costs, bank fees).',
+      'Use the description field to record the invoice reference or supplier name. Format: "INV-042 PAYMENT — AECI" or "TECH LABOUR — J SMITH".',
+      'Add the bank reference number if available — this links the transaction to a specific bank statement line for reconciliation.',
+      'Check that this transaction feeds correctly into the Income Statement by reviewing the net figures after saving.',
     ],
     tips: [
-      'Log transactions daily, not in batches at month-end — batching leads to errors and missed entries.',
-      'Use consistent descriptions, e.g. "INV-001 PAYMENT" not just "payment" — so reconciliation is simple.',
+      'Log transactions daily as they appear on the bank statement — batching at month-end leads to errors, missed entries, and reconciliation headaches.',
+      'Use a consistent description format across all entries. "PAYMENT" on its own is not useful — include the invoice number or client name every time.',
+      'Bank fees and admin charges are Expenses — do not forget to log these or your reconciliation will show a gap.',
+      'Do not log invoices here. Invoices are created in the Invoices module. Transactions are actual bank movements only.',
     ],
     faqs: [
-      { q: 'Do I log invoices here too?', a: 'No — invoices are logged in the Invoices module. Transactions are only actual bank movements.' },
-      { q: 'I logged the wrong amount — how do I fix it?', a: 'Contact an Admin. Only Admins can edit or delete transaction records to maintain the audit trail.' },
+      { q: 'What is the difference between logging a payment here and using Log Payment?', a: 'Log Payment marks a specific invoice as paid and creates a linked transaction. The Transactions page is for logging raw bank movements — use both for a complete picture.' },
+      { q: 'I logged the wrong amount — how do I fix it?', a: 'Contact an Admin. Only Admins can edit or delete transaction records to maintain audit integrity.' },
+      { q: 'Should I log VAT separately?', a: 'No — log the full amount including VAT as it appears on the bank statement. The Income Statement uses these gross amounts. VAT reconciliation is handled separately by your accountant.' },
+      { q: 'What if I don\'t have a bank reference for a transaction?', a: 'Leave the reference field blank and note the reason in the description field (e.g. "CASH DEPOSIT — NO REF"). This makes the reconciliation gap explainable.' },
     ],
     linked: 'Invoices, Income Statement.',
     access: ['admin','sysadmin','manager','admin_clerk'],
@@ -1298,20 +1492,25 @@ const PAGE_INFO = {
   'p-income': {
     title: 'Income Statement',
     sub: 'Profit & loss summary',
-    purpose: 'A period-based income versus expense report showing net financial performance.',
+    purpose: 'A period-based report comparing total income (revenue received) against total expenses (money paid out), producing a net profit or loss figure. This report is used for management reporting, accounting, and tax preparation.',
     steps: [
-      'Select the reporting period (month or custom date range).',
-      'Review total income, total expenses, and the net profit/loss figure.',
-      'Verify the figures match expectations before exporting.',
-      'Export for use in accounting software or management reporting.',
+      'Select the reporting period using the start and end date pickers. Common periods: calendar month, quarter, or financial year.',
+      'The system calculates Total Income (sum of all Income-type transactions), Total Expenses (sum of all Expense-type transactions), and Net Result (Income − Expenses).',
+      'Review each line carefully — if any category looks unexpectedly high or low, drill into the Transactions page to investigate.',
+      'Verify the figures match your bank statement totals for the same period before exporting.',
+      'Export as PDF for management reporting, audit submission, or sharing with your accountant.',
     ],
     tips: [
-      'Only generate this report after confirming all transactions for the period are captured.',
-      'If income looks unexpectedly low, check for invoices not yet marked as paid.',
+      'Only generate this report after confirming all transactions for the period are captured and correct. Incomplete transaction data produces a misleading net figure.',
+      'If income looks unexpectedly low, check the Invoices module for payments that have been received but not yet logged.',
+      'If expenses look unexpectedly high, check for duplicate transaction entries — a common batching error.',
+      'Run the Income Statement at the end of every month immediately after reconciliation. Do not leave it until year-end.',
     ],
     faqs: [
-      { q: 'Does this report include VAT?', a: 'It reflects transaction values as logged. Ensure VAT is handled consistently when logging transactions.' },
-      { q: 'Can I export to Excel?', a: 'PDF download is available. Excel export is on the roadmap — submit a suggestion below to prioritise it.' },
+      { q: 'Does this report include unpaid invoices (accrual) or only received payments (cash)?', a: 'This report uses the cash basis — it reflects actual bank transactions logged in the Transactions module, not invoice totals.' },
+      { q: 'Does this report include VAT?', a: 'It reflects transaction values as logged. If you log gross (VAT-inclusive) amounts, the report is gross. Discuss with your accountant whether you need net reporting and adjust your entry practice accordingly.' },
+      { q: 'Can I export to Excel?', a: 'PDF download is currently available. Excel export is on the roadmap — submit a suggestion below to prioritise it.' },
+      { q: 'What if the net result doesn\'t match what I expect?', a: 'Work backwards: first verify your Total Income matches known payments for the period, then verify Total Expenses against your bank statement expenses. The discrepancy will isolate to missing or duplicate entries in the Transactions ledger.' },
     ],
     linked: 'Transactions, Invoices.',
     access: ['admin','sysadmin','manager','admin_clerk'],
@@ -1319,21 +1518,27 @@ const PAGE_INFO = {
   'p-reconcile': {
     title: 'Reconciliation',
     sub: 'Portal vs external statement',
-    purpose: 'Compare the portal\'s transaction total against your bank or client statement to identify missing, duplicate, or incorrect entries.',
+    purpose: 'Compare the portal\'s running transaction total against your actual bank or client statement to identify missing, duplicate, or incorrectly entered transactions. A zero difference means the portal perfectly matches your bank.',
     steps: [
-      'Enter the closing balance from your external statement in the input at the top.',
-      'The portal calculates its own net balance and shows the difference.',
-      'Review the transactions listed — look for duplicates or entries that don\'t match the statement.',
-      'Log any missing transactions via the Transactions page, then refresh.',
+      'Obtain your bank or client statement for the reconciliation period and note the closing balance.',
+      'Enter the closing balance from the external statement in the input field at the top of this page.',
+      'The portal calculates its own net balance: SUM(Income) − SUM(Expense) across all logged transactions.',
+      'The Difference is shown prominently. A value of 0.00 means the portal matches the statement exactly.',
+      'If the difference is not zero: scroll through the transaction list and look for duplicates, missing entries, or amounts that differ from the statement.',
+      'Log any missing transactions via the Transactions page and return here to recheck. Delete duplicates via the Transactions page (Admin only).',
+      'Repeat until the difference reaches zero. Document any unresolved items for your accountant.',
     ],
     tips: [
-      'A zero difference means the portal matches the statement exactly.',
-      'Positive difference (portal > statement) usually means a duplicate credit in the portal.',
-      'Negative difference (portal < statement) usually means a missing payment entry.',
+      'A positive difference (portal total > statement) usually means a duplicate credit entry in the portal.',
+      'A negative difference (portal total < statement) usually means a payment or income entry is missing from the portal.',
+      'Reconcile at least monthly — the longer you leave it, the harder it is to trace individual discrepancies.',
+      'Always reconcile before generating the Income Statement. An unreconciled statement produces unreliable P&L figures.',
     ],
     faqs: [
-      { q: 'Where does the portal balance come from?', a: 'It is SUM(credit) − SUM(debit) across all rows in the Transactions ledger.' },
-      { q: 'Can I delete a duplicate transaction?', a: 'Only Admins can delete transactions. Use the Transactions page to identify and remove duplicates.' },
+      { q: 'Where does the portal balance figure come from?', a: 'It is SUM(amount) for Income rows minus SUM(amount) for Expense rows across all transactions in the Transactions ledger.' },
+      { q: 'Can I delete a duplicate transaction myself?', a: 'Only Admins can delete transactions. Identify the duplicate in the Transactions page and ask your Admin to remove it.' },
+      { q: 'What if I cannot get the difference to zero?', a: 'Document the remaining gap and the transactions you have checked. Share this with your accountant — some gaps are timing differences (e.g. payments in transit) that clear in the next period.' },
+      { q: 'Does this tool reconcile invoices against payments, or only bank transactions?', a: 'This tool reconciles the Transactions ledger against an external statement. Invoice-level matching (invoice vs payment) is done in the Invoices and Log Payment modules.' },
     ],
     linked: 'Transactions, Income Statement.',
     access: ['admin','sysadmin','manager','admin_clerk'],
@@ -1341,20 +1546,25 @@ const PAGE_INFO = {
   'p-clients': {
     title: 'Clients',
     sub: 'Client master records',
-    purpose: 'The master list of all clients — company name, contact person, billing address, and account status.',
+    purpose: 'The master list of all clients — company name, contact person, billing email, physical address, and account status. Every callout, quote, invoice, and statement must be linked to a client record. Keeping these records accurate is fundamental to correct billing.',
     steps: [
-      'Add a new client before creating invoices or statements for them.',
-      'Ensure the billing contact email is accurate — it is used when sending invoices.',
-      'Keep the physical address current — it appears on invoices and statements.',
-      'Deactivate a client record when they are no longer active — preserves history without cluttering dropdowns.',
+      'Before creating a callout, quote, or invoice for a new client, create their record here first.',
+      'Fill in all fields: Company Name (exactly as it should appear on invoices), Billing Contact Name, Billing Email, Physical Address, and an Account Reference code if you use one.',
+      'Use the edit button to update details when a client changes contact person, billing email, or address.',
+      'If a client has multiple sites, add each site address in the Sites field so technicians can select the correct location on callouts.',
+      'When a client relationship ends, deactivate their record — this preserves all historical invoices and callouts without cluttering the active client dropdown.',
     ],
     tips: [
-      'Create the client record before logging their first callout or quote — you cannot link records to an unlisted client.',
-      'Use the company trading name exactly as it should appear on invoices.',
+      'Always create the client record before logging their first callout or quote. You cannot link records retroactively to an unlisted client.',
+      'Use the exact trading name as it should appear on tax invoices — not the informal name you call them.',
+      'The billing email is used every time an invoice is sent. Verify it with the client before the first invoice run.',
+      'If a client has multiple billing contacts (e.g. accounts department and a line manager), add both emails separated by a semicolon.',
     ],
     faqs: [
-      { q: 'Can I delete a client?', a: 'Not if they have linked invoices or callouts. Deactivate the record instead to preserve history.' },
-      { q: 'What is the Account Reference field?', a: 'Your internal client code for cross-referencing with accounting systems or filing.' },
+      { q: 'Can I delete a client record?', a: 'Not if they have linked invoices, callouts, or quotes. Deactivate the record instead — all historical data is preserved and remains accessible.' },
+      { q: 'What is the Account Reference field?', a: 'Your internal client code for cross-referencing with accounting systems or physical filing. Can be the client\'s debtor number from your accounting software.' },
+      { q: 'How do I handle a client with multiple sites?', a: 'Add all site addresses in the client record. When logging a callout, select the specific site from the dropdown.' },
+      { q: 'A client has been acquired by another company — how do I update their record?', a: 'Update the Company Name and billing details. Do not create a new record — historical records should remain linked to avoid gaps in their invoice history.' },
     ],
     linked: 'Invoices, Statements, Callouts.',
     access: ['admin','sysadmin','manager','admin_clerk','client_support'],
@@ -1362,19 +1572,23 @@ const PAGE_INFO = {
   'p-support-dashboard': {
     title: 'Support Overview',
     sub: 'Administration health check',
-    purpose: 'A daily admin snapshot — user account status, safety file compliance, and recent system activity.',
+    purpose: 'A consolidated admin snapshot — user account status, safety file compliance percentage, expiring documents, and recent system activity. Use this page to catch compliance and access control issues before they escalate.',
     steps: [
-      'Check for any user accounts that need attention (new requests, role changes).',
-      'Review the safety compliance status — flag any documents nearing their review date.',
-      'Scan the recent audit feed for any unusual or unexpected actions.',
-      'Use quick links to manage Users, Safety Files, or view the full Audit Log.',
+      'Check the Users panel — it shows total active accounts and flags any with unusual status (e.g. locked accounts or role mismatches).',
+      'Review the Safety Compliance percentage — anything below 90% needs investigation. Click through to Safety Files to identify the non-compliant items.',
+      'Check the Expiring Documents count — these are safety files with review dates within the next 30 days. Act on them now, not when they expire.',
+      'Scan the Recent Audit Feed for unexpected activity — unusual actions outside business hours, bulk deletes, or role changes not initiated by you.',
+      'Use the quick links to jump directly to Users & Roles, Safety Files, or the full Audit Log.',
     ],
     tips: [
-      'Review this dashboard at the start of each week — compliance issues caught early are easier to resolve.',
-      'Unexpected audit entries outside business hours warrant immediate investigation.',
+      'Review this dashboard at the start of each Monday morning — compliance issues found on Monday can be resolved by Friday. Compliance issues found on Friday become emergencies.',
+      'Unexpected audit entries outside business hours (evenings, weekends) warrant immediate investigation. Contact the Sysadmin if you see unusual activity.',
+      'A compliance percentage below 75% typically means one or more safety files are expired or have outstanding critical corrective actions.',
     ],
     faqs: [
-      { q: 'Who has access to this dashboard?', a: 'Admin, Sysadmin, Manager, Admin Clerk, and Viewer roles. Sensitive sub-pages have additional permission gates.' },
+      { q: 'Who has access to this dashboard?', a: 'Admin, Sysadmin, Manager, Admin Clerk, and Viewer roles. Sensitive sub-pages (Audit Log, Users) have additional permission gates.' },
+      { q: 'What counts as a compliance issue on this dashboard?', a: 'Any safety file with a status of Expired, Overdue, or with open critical corrective actions counts against the compliance score.' },
+      { q: 'What should I do if the compliance percentage has suddenly dropped?', a: 'Navigate to Safety Files and filter by status to find the non-compliant records. Expired review dates are the most common cause.' },
     ],
     linked: 'Users & Roles, Safety Files, Audit Log.',
     access: ['admin','sysadmin','manager','admin_clerk','viewer'],
@@ -1382,23 +1596,28 @@ const PAGE_INFO = {
   'p-users': {
     title: 'Users & Roles',
     sub: 'User account management',
-    purpose: 'Create and manage portal user accounts. Roles control exactly what each person can see and do.',
+    purpose: 'Create and manage all portal user accounts. A user\'s role determines precisely which modules they can see and which actions they can take. Correct role assignment is the foundation of portal security.',
     steps: [
-      'Click "+ New User" to create an account. Set username, email, and a temporary password.',
-      'Assign the correct role — this determines which modules and actions are available.',
-      'Use the edit button to change a user\'s role or reset their password.',
-      'Deactivate accounts immediately when staff leave — do not delete them, to preserve audit history.',
-      'All user changes are automatically logged in the Audit Log.',
+      'Click "+ New User" to create an account. Enter a unique username, full name, email address, and a temporary password.',
+      'Assign the correct role from the list below. If unsure, start with the most restrictive role that meets their needs.',
+      'Send the login credentials to the user securely — do not send via public chat or shared email.',
+      'Ask the user to change their password on first login using the profile settings.',
+      'To update a role or reset a password, click the edit button on the user\'s row.',
+      'Deactivate accounts immediately when staff leave — do not delete. Deactivated users cannot log in, but all their historical records are preserved.',
+      'All user changes — creation, role changes, password resets, deactivation — are automatically recorded in the Audit Log.',
     ],
     tips: [
-      'Apply least privilege — assign the minimum role that lets someone do their job.',
-      'Never share login credentials. Every person must have their own account for audit integrity.',
-      'Deactivate ex-staff accounts the same day they leave — not the following week.',
+      'Apply least privilege: assign the minimum role that lets a person do their job. You can always expand access later.',
+      'Never share login credentials between people. Every individual must have their own account. Shared accounts destroy audit trail integrity.',
+      'Deactivate ex-staff accounts on their last day, not the following week. A former employee with active credentials is a security incident waiting to happen.',
+      'Review the full user list quarterly — look for accounts that have not logged in for 90+ days and deactivate if no longer needed.',
     ],
     faqs: [
-      { q: 'What is the difference between Admin and Sysadmin?', a: 'Sysadmin has unrestricted access to all functions. Admin has broad access but some restrictions remain.' },
-      { q: 'Can a user change their own password?', a: 'Yes — there is a Forgot Password flow on the login screen. Admins can also reset passwords from here.' },
-      { q: 'What happens to data when I deactivate a user?', a: 'Their records remain intact. They just cannot log in. All historical actions are preserved in the Audit Log.' },
+      { q: 'What is the difference between Admin and Sysadmin?', a: 'Sysadmin has unrestricted access to every function in the portal. Admin has broad access but cannot perform certain system-level actions (like resetting all data or accessing system configuration).' },
+      { q: 'Can a user have multiple roles?', a: 'Yes — multi-role accounts are supported. Only assign additional roles when genuinely needed; each additional role expands access.' },
+      { q: 'Can a user change their own password?', a: 'Yes — via the Forgot Password link on the login screen, or via their profile settings once logged in. Admins can also force-reset from this page.' },
+      { q: 'What happens to records when I deactivate a user?', a: 'All records they created remain intact. Their name still appears on historical callouts, invoices, and audit entries. They simply cannot log in.' },
+      { q: 'What does each role provide access to?', a: 'Sysadmin: full access. Admin: full access minus system config. Manager: operations, finance overview, approvals. Admin Clerk: finance, invoices, clients. Senior Tech: callouts, quotes, safety. Call Logger: logging callouts only. Junior Tech: view callouts. Viewer: read-only. Client Support: client-facing modules.' },
     ],
     linked: 'Audit Log (all changes are recorded automatically).',
     access: ['admin','sysadmin','manager','admin_clerk'],
@@ -1406,23 +1625,27 @@ const PAGE_INFO = {
   'p-safety': {
     title: 'Safety Files',
     sub: 'OHS compliance document store',
-    purpose: 'Store, track, and manage all Occupational Health & Safety compliance documents — policies, appointments, and audit reports.',
+    purpose: 'Store, track, and manage all Occupational Health & Safety compliance documents for contractors and internal teams — policies, appointment letters, risk assessments, permits, and audit reports. Each file has a compliance score, review date, and action plan.',
     steps: [
-      'Upload a new safety document using the "+ New File" button. Tag it with the correct document type.',
-      'Set a review date so the system alerts you when it is nearing expiry.',
-      'Once a document has been signed off, mark it as Approved.',
-      'Monitor the compliance dashboard — expired or expiring documents are highlighted automatically.',
-      'Use the Safety Audit tab to conduct a formal OHS audit against the Act.',
+      'Click "+ New File" to create a safety file for a contractor or site. Enter the contractor name, representative, and scope of work.',
+      'Upload the required compliance documents using the "+ Upload Document" button. Tag each document with the correct type (e.g. Policy, Appointment Letter, Risk Assessment, Method Statement, Permit).',
+      'Set a review date for each document — this is when it must be re-verified. Set it 2 weeks before the actual expiry date to allow processing time.',
+      'Once a document is signed and verified, mark it as Approved. Unapproved documents do not count towards the compliance score.',
+      'Monitor the Safety Files list — files with expired or expiring documents are highlighted in amber or red.',
+      'To conduct a formal OHS Act audit, click through to the Safety Audit module from this page.',
     ],
     tips: [
-      'Keep your Section 16.2 appointment letters current — they expire when a responsible person changes role.',
-      'Upload the signed version of each document, not the draft. Unsigned documents provide no legal protection.',
-      'Set review dates 2 weeks before actual expiry to allow processing time.',
+      'Always upload the signed, final version of a document — not a draft. Unsigned documents have no legal standing.',
+      'Section 16.2 appointment letters expire whenever the appointed person changes role or leaves. Review these every time there is a personnel change.',
+      'Set review dates for all documents when creating the file, even if they are not due for months — future-you will thank present-you.',
+      'If a file\'s compliance score is low, use the "Generate Docs" feature from the Safety File Detail page to create corrective action templates in bulk.',
     ],
     faqs: [
-      { q: 'Who can approve a safety document?', a: 'Admins and Managers only. The approver must verify the document is signed and current before approving.' },
-      { q: 'What file formats are accepted?', a: 'PDF, Word (DOC/DOCX), Excel (XLS/XLSX), and JPEG/PNG. Maximum 10 MB per file.' },
-      { q: 'Can I attach multiple files to one safety record?', a: 'Yes — use the attachments panel on the record to upload supplementary documents.' },
+      { q: 'Who can approve a safety document?', a: 'Admins and Managers only. The approver must physically verify the document is signed, current, and complete before approving.' },
+      { q: 'What file formats are accepted?', a: 'PDF, Word (DOC/DOCX), Excel (XLS/XLSX), and JPEG/PNG images. Maximum 10 MB per file.' },
+      { q: 'What is the difference between Safety Files and Safety Audit?', a: 'Safety Files is the document store — it holds all compliance documents for a contractor. Safety Audit is the formal OHS Act audit form — it assesses the contractor against legislative requirements and produces a compliance score.' },
+      { q: 'Can I attach multiple documents to one safety file?', a: 'Yes — use the Attachments section within the file record. There is no limit on the number of documents per file.' },
+      { q: 'What document types should I include in a complete safety file?', a: 'At minimum: OHS Policy (signed by 16.1), Section 16.2 Appointment Letter, Method Statement, Risk Assessment, Hazard Identification and Risk Assessment (HIRA), Company Registration, Proof of Liability Insurance, and Toolbox Talk records.' },
     ],
     linked: 'Safety Audit, Clients, Audit Log.',
     access: ['admin','sysadmin','manager','senior_tech','junior_tech','call_logger','client_support','admin_clerk','viewer'],
@@ -1430,24 +1653,28 @@ const PAGE_INFO = {
   'p-safety-audit': {
     title: 'Safety Audit',
     sub: 'OHS Act formal audit form',
-    purpose: 'Conduct and record a formal safety audit against OHS Act requirements. Creates a permanent compliance record.',
+    purpose: 'Conduct and record a formal safety audit of a contractor against OHS Act requirements. The audit produces a compliance score, a section-by-section findings report, and an action plan. The submitted record is tamper-proof and serves as the official compliance record.',
     steps: [
-      'Click "+ New Audit" to start. Enter the contractor, representative, and Section 16.2 appointee.',
-      'Set the audit date, region, team members, and scope of work.',
-      'Work through each section of the checklist — record findings, ratings, and corrective actions.',
-      'Click Save Draft at any point. You can return and continue later.',
-      'Once all sections are completed, click Submit. The audit is locked from this point.',
-      'Attach the signed audit report PDF to the submitted record.',
+      'Click "+ New Audit" to begin. Enter the contractor name, site representative name, Section 16.2 appointee, and audit date.',
+      'Set the region (for multi-region operations), the audit team members present, and the scope of work being audited.',
+      'Work through each section of the audit checklist — each item is scored: Compliant, Non-Compliant, Partial, or Not Applicable.',
+      'For every Non-Compliant or Partial item, record the specific finding in the finding field and note the required corrective action, owner, and deadline.',
+      'Use Save Draft at any point during the audit to preserve your progress. You can return to a draft and continue later.',
+      'Once all sections are completed and reviewed, click Submit. The audit is locked from this point — scores and findings cannot be changed.',
+      'Attach the signed, physical audit report PDF to the submitted record in the Attachments section.',
     ],
     tips: [
-      'Complete audits in one sitting where possible — returning to a draft after a long gap risks inconsistent findings.',
-      'Document corrective action owners and deadlines in findings fields — vague findings are not actionable.',
-      'Get the Section 16.2 appointee to sign off physically before attaching the document.',
+      'Complete the audit in one sitting where possible — gaps between sections risk inconsistent findings and timeline confusion.',
+      'Every Non-Compliant finding must have a named owner and a specific deadline. "Management will fix" is not acceptable — a person and a date are required.',
+      'Before submitting, get the Section 16.2 appointee and site representative to physically sign off on the findings. Attach the signed form.',
+      'Score generously but honestly — a 90% score that hides real issues is more dangerous than an 80% score with clear actions.',
     ],
     faqs: [
-      { q: 'Can I edit a submitted audit?', a: 'No — submitted audits are locked. Contact an Admin if a genuine amendment is needed; they will note the change in the audit log.' },
-      { q: 'What is a Section 16.2 appointee?', a: 'Under the OHS Act, the employer (16.1) must appoint someone in writing to assist with compliance. This person is the 16.2 appointee.' },
-      { q: 'How often should audits be conducted?', a: 'At minimum annually, or whenever significant site changes occur. High-risk sites should audit more frequently.' },
+      { q: 'Can I edit a submitted audit?', a: 'No — submitted audits are locked. This is intentional: submitted audits are legal compliance records. Contact an Admin if a genuine factual error needs correcting; all amendments are logged.' },
+      { q: 'What is a Section 16.2 appointee?', a: 'Under the OHS Act, the employer (Section 16.1, typically the CEO/MD) must appoint a competent person in writing to assist with OHS compliance. This person — the 16.2 appointee — is personally accountable for compliance on-site.' },
+      { q: 'How often should audits be conducted?', a: 'At minimum annually. High-risk sites or contractors involved in electrical, at-height, or confined space work should be audited every 6 months. Audits are also required after significant incidents or major scope changes.' },
+      { q: 'Who should conduct the audit?', a: 'A qualified Safety Officer or an Astute Insights-certified auditor. The auditor must be independent — they should not be an employee of the contractor being audited.' },
+      { q: 'What happens to the compliance score after the audit?', a: 'The score is captured at submission and becomes the Baseline score on the Safety File Detail page. As corrective actions are closed, the Projected score updates — showing the expected score on re-submission.' },
     ],
     linked: 'Safety Files, Clients, Audit Log.',
     access: ['admin','sysadmin','manager','senior_tech'],
@@ -1455,22 +1682,26 @@ const PAGE_INFO = {
   'p-audit': {
     title: 'Audit Log',
     sub: 'Immutable system activity record',
-    purpose: 'A tamper-evident log of every significant action in the portal — who did what, and when.',
+    purpose: 'A tamper-evident log of every significant action taken in the portal — who did it, what they did, when, and on which record. The audit log cannot be edited or deleted. It is your primary tool for investigating discrepancies, security incidents, and user activity.',
     steps: [
-      'Use the search box to filter by username, action keyword, or record reference.',
-      'Look for PAGE_SUGGESTION entries — these are comments left by users via this Guide panel.',
-      'Cross-reference timestamps with user reports when investigating discrepancies.',
-      'Logs are read-only and cannot be altered — this is by design.',
+      'Use the search box to filter entries. You can search by username, action keyword (e.g. "DELETE", "LOGIN", "UPDATE"), or record reference (e.g. "INV-042", "CALL-0019").',
+      'Each log entry shows: timestamp, username, action type, and detail (which record was affected and what changed).',
+      'Look for PAGE_SUGGESTION entries — these are feedback comments left by users via the Guide panel on any page. Review them weekly.',
+      'Cross-reference timestamps with user reports when investigating a discrepancy. "I didn\'t change that" can often be verified or disproven here.',
+      'For security incidents: filter by username and time range to reconstruct exactly what a user did during a session.',
     ],
     tips: [
-      'Check the audit log before making bulk changes — you need a baseline of what "normal" looks like.',
-      'PAGE_SUGGESTION entries are valuable user feedback — review them weekly and act on recurring themes.',
-      'Unusual activity outside business hours warrants immediate investigation.',
+      'Before making bulk changes (e.g. mass status updates), note the current state in the audit log — you need a baseline to confirm the changes took effect correctly.',
+      'PAGE_SUGGESTION entries are valuable user feedback — recurring suggestions about the same feature or pain point should be escalated to management.',
+      'Activity outside business hours (evenings, weekends, public holidays) is unusual for this portal. Flag it immediately.',
+      'The audit log is most useful when it is read regularly, not only during incidents. A weekly 5-minute scan is your early warning system.',
     ],
     faqs: [
-      { q: 'Can audit entries be deleted?', a: 'No — the audit log is immutable by design. This is a legal and compliance requirement.' },
-      { q: 'How far back do logs go?', a: 'All entries since the portal went live are retained. No automatic expiry is applied.' },
-      { q: 'Who can see the audit log?', a: 'Only Admin and Sysadmin roles. If a manager needs access, contact a Sysadmin to review the role configuration.' },
+      { q: 'Can audit entries be deleted or modified?', a: 'No — the audit log is immutable by design. This is a legal and compliance requirement for financial and security systems.' },
+      { q: 'How far back do audit logs go?', a: 'All entries since the portal went live are retained indefinitely. No automatic expiry is applied.' },
+      { q: 'Who can see the audit log?', a: 'Only Admin and Sysadmin roles have access to the full audit log. If a Manager needs to investigate a specific incident, a Sysadmin can provide a filtered export.' },
+      { q: 'Can I export the audit log?', a: 'Not directly from this page — contact a Sysadmin to export a date-range extract for external reporting or handover to external auditors.' },
+      { q: 'What types of actions are logged?', a: 'All significant actions: logins, failed logins, record creation, edits, status changes, deletions, role changes, user deactivations, invoice sends, payment logs, safety file approvals, and audit submissions.' },
     ],
     linked: 'All modules — every significant action across the portal is recorded here.',
     access: ['admin','sysadmin'],
@@ -1478,21 +1709,27 @@ const PAGE_INFO = {
   'p-new-callout': {
     title: 'Log New Callout',
     sub: 'Create an incident or service record',
-    purpose: 'Log a new security incident or service callout as it comes in.',
+    purpose: 'Log a new security incident, service request, or maintenance callout as it comes in. Accurate, timely logging is essential for billing, reporting, and audit purposes.',
     steps: [
-      'Select the client and their site location.',
-      'Choose the service type from the dropdown.',
-      'Write a clear, specific description of the incident or service request.',
-      'Assign a technician if already known — you can update this later from the Call Log.',
-      'Click Save — the callout is created immediately with a unique reference number.',
+      'Select the Client from the dropdown. If the client is not listed, create their record in the Clients module first.',
+      'Select the Site — this is the specific location for the callout. If multiple sites exist for this client, choose the correct one.',
+      'Select the Service Type from the dropdown. Use the closest matching type — do not use "Other" unless nothing fits.',
+      'Set the Priority: Low (scheduled maintenance), Medium (standard service request), High (time-sensitive fault), Critical (active security breach or imminent danger).',
+      'Write a clear, specific Description. Include: what happened or was requested, exact location details, any equipment involved, and what action has been taken so far (if any).',
+      'Assign a Technician if already confirmed — leave blank if not yet known and assign later from the Call Log.',
+      'Click Save — the callout is created immediately with a unique reference number (CALL-XXXX). Confirm the reference to the client or caller.',
     ],
     tips: [
-      'Log callouts as they happen, not hours later — accurate timestamps matter for incident reporting.',
-      'Be specific in the description: "CCTV Camera 3 offline, Sector B" is more useful than "CCTV issue".',
+      'Log the callout as it happens, not hours later. Timestamps are used for SLA reporting and billing — late logging creates inaccurate records.',
+      'Be specific: "CCTV Camera 3 offline at Gate B, Sector North — no image since 14h30" is useful. "CCTV issue" is not.',
+      'Critical callouts must also be escalated by phone immediately — do not rely on the portal notification for urgent incidents.',
+      'If the same client site has recurring issues, note the pattern in the description — "Third CCTV fault at this location in 30 days".',
     ],
     faqs: [
-      { q: 'What if I don\'t know which technician to assign?', a: 'Leave it blank and save. Assign the technician from the Call Log once one is confirmed.' },
-      { q: 'Is there a limit to how many callouts I can log?', a: 'No limit. Log every callout — it builds your response history and supports billing.' },
+      { q: 'What if I don\'t know which technician to assign?', a: 'Leave the Technician field blank and save. You can assign from the Call Log once a technician is confirmed — the callout is created and timestamped regardless.' },
+      { q: 'Is there a limit to how many callouts I can log?', a: 'No limit. Log every callout — the history builds your service record, supports billing, and is required for any future SLA or contract review.' },
+      { q: 'What happens after I save?', a: 'The callout appears immediately in the Call Log with status Open. Assigned users receive a notification. You can return to the Call Log at any time to update status, assign a technician, or add a PO number.' },
+      { q: 'Can I edit a callout I just saved?', a: 'Yes — go to the Call Log, find your callout, expand the row, and edit any field. Changes are logged in the audit trail.' },
     ],
     linked: 'Call Log, Clients.',
     access: ['admin','sysadmin','manager','call_logger','client_support'],
@@ -1500,21 +1737,27 @@ const PAGE_INFO = {
   'p-new-quote': {
     title: 'New Quote',
     sub: 'Draft a service quotation',
-    purpose: 'Create a quotation for services to be rendered. Must be approved before being sent to a client.',
+    purpose: 'Create a quotation for services to be rendered. The quote is reviewed and approved before being shared with the client or converted to an invoice. Every submitted quote creates an auditable trail from proposal to billing.',
     steps: [
-      'Select the client and set a valid-until date.',
-      'Add line items — description, quantity, and unit rate for each service.',
-      'Review the calculated total and confirm VAT treatment.',
-      'Click Submit to send for approval. You will be notified when it is reviewed.',
-      'Once approved, convert it to an invoice from the Quote Log.',
+      'Select the Client. If the client is not listed, create their record in Clients first.',
+      'Set the Valid Until date — this is the date after which the client can no longer accept the quote at these prices. Minimum 2 weeks out; 30 days is standard.',
+      'Add an internal Reference note (optional) to help identify the quote in the list — e.g. "CCTV Upgrade Proposal Q2 2026".',
+      'Add line items — click "+ Add Line". For each line: enter a description, quantity, and unit rate (ex-VAT). The system calculates the line total.',
+      'Break labour and materials into separate lines — do not bundle them. "Labour: 8 hours × R450/hr" and "Materials: Cable (50m) × R35/m" are clearer than "Installation and supplies".',
+      'Review the subtotal, VAT amount, and total. Confirm the VAT treatment is correct for this client.',
+      'Add any notes or terms in the Notes field — e.g. payment terms, delivery lead time, validity conditions.',
+      'Click Submit to send for approval. Click Save Draft to save without submitting if you need to return later.',
     ],
     tips: [
-      'Break labour and materials into separate line items — clients prefer itemised quotes.',
-      'Set the valid-until date at least 2 weeks out — rushed quotes that expire before sign-off cause rework.',
+      'Itemised quotes with clear descriptions get approved faster than bundled ones — the approver can see exactly what is being billed.',
+      'Include a brief scope-of-work explanation in the Notes field. It helps the approver understand the context and helps the client during sign-off.',
+      'Set valid-until dates generously — a quote that expires during client review requires a full restart.',
     ],
     faqs: [
-      { q: 'Can I save a quote as a draft?', a: 'Save it at any point — it stays in Draft status until you click Submit.' },
-      { q: 'Can I duplicate an existing quote for a similar job?', a: 'Not yet — recreate it manually. Submit a suggestion below to request this feature.' },
+      { q: 'Can I save as a draft and come back later?', a: 'Yes — click Save Draft. The quote stays in Draft status and does not enter the approval queue until you click Submit.' },
+      { q: 'Can I duplicate an existing quote?', a: 'Not yet — recreate it manually for now. Submit a suggestion below to prioritise this feature.' },
+      { q: 'Can I submit a quote without line items?', a: 'No — at least one line item is required. A quote with no line items cannot be approved or converted to an invoice.' },
+      { q: 'What if I submitted a quote with an error?', a: 'If it is still Pending Approval, contact the approver and ask them to decline it with a reason. Revise and resubmit. Admins can also edit pending quotes directly.' },
     ],
     linked: 'Quote Log, Invoices, Clients.',
     access: ['admin','sysadmin','manager','senior_tech'],
@@ -1522,21 +1765,27 @@ const PAGE_INFO = {
   'p-new-invoice': {
     title: 'New Invoice',
     sub: 'Create a client invoice',
-    purpose: 'Generate an invoice for services delivered. Can be created from scratch or from an approved quote.',
+    purpose: 'Generate a tax invoice for services delivered. Invoices can be created from scratch or auto-generated from an approved quote. Every saved invoice is immediately visible in the Invoices module.',
     steps: [
-      'Select the client and billing period.',
-      'Add line items — description, quantity, and unit rate. VAT is calculated automatically.',
-      'Review the total carefully before saving.',
-      'Click Save. The invoice is live in the Invoices module immediately.',
-      'Go to Invoices and use the Send button to email it to the client.',
+      'Select the Client from the dropdown.',
+      'Set the Billing Period — use a descriptive format: "May 2026 Armed Response Retainer" or "CALL-0042 — Fence Repair 15 May 2026".',
+      'Set the Invoice Date — this is the official billing date that appears on the invoice.',
+      'Add line items: description, quantity, and unit rate (ex-VAT). VAT is calculated and displayed automatically.',
+      'For discounts: add a line item with a negative rate (e.g. quantity 1, rate −500.00, description "Discount — Early Settlement").',
+      'Review the total carefully — check client name, billing period, all line descriptions, and the VAT total before saving.',
+      'Click Save. The invoice is created with an auto-generated reference number (INV-XXX) and is immediately live.',
+      'Navigate to the Invoices module and use the Send button to email the invoice to the client\'s billing contact.',
     ],
     tips: [
-      'Always cross-reference the invoice against the callout or quote it relates to before saving.',
-      'Use a consistent description format, e.g. "Armed Response Retainer — May 2026".',
+      'Always cross-reference the invoice against the callout or approved quote before saving — ensures you are billing for work that was actually done and agreed.',
+      'Cross-check the client\'s billing email in the Clients record before sending. Invoices sent to the wrong contact cause payment delays.',
+      'Use the same description format consistently across all invoices for the same service — it makes statements and aged debtor reports much easier to read.',
     ],
     faqs: [
-      { q: 'Can I add a discount line item?', a: 'Yes — add a line item with a negative amount to represent a discount.' },
-      { q: 'What invoice number format is used?', a: 'The system auto-generates a sequential reference (INV-XXX). Do not set it manually.' },
+      { q: 'What invoice number format is used?', a: 'The system auto-generates sequential references (INV-001, INV-002, etc.). Do not attempt to set or change the number manually.' },
+      { q: 'Can I add a discount line item?', a: 'Yes — add a line with a negative unit rate. The system will subtract it from the total correctly.' },
+      { q: 'What if I need to invoice the same client for multiple callouts?', a: 'You can add multiple line items to one invoice — one line per callout or service. This is the preferred approach for monthly billing consolidation.' },
+      { q: 'Can I save an invoice as a draft before sending?', a: 'The invoice is saved immediately on creation but does not leave the portal until you click Send. You have time to review it first.' },
     ],
     linked: 'Invoices, Clients, Quotes.',
     access: ['admin','sysadmin','manager','admin_clerk'],
@@ -1544,20 +1793,25 @@ const PAGE_INFO = {
   'p-log-payment': {
     title: 'Log Payment',
     sub: 'Record a payment received',
-    purpose: 'Record a payment against an outstanding invoice, marking it as settled.',
+    purpose: 'Record a payment against a specific outstanding invoice. Logging a payment marks the invoice as Paid (or Partial if not fully settled) and feeds the transaction into the financial records. This is a critical step — unlogged payments inflate the outstanding balance and distort financial reports.',
     steps: [
-      'Select the invoice from the dropdown — only outstanding invoices are listed.',
-      'Enter the amount received and the date the payment cleared.',
-      'Add a bank reference number (EFT reference or cheque number).',
-      'Click Confirm — the invoice status updates to Paid instantly.',
+      'Select the Invoice from the dropdown — only invoices with an outstanding balance are listed.',
+      'Enter the Payment Date — the date the payment actually cleared your bank account (not the date the client initiated it).',
+      'Enter the Amount Received. If the client paid the full invoice amount, this will match the invoice total. If partial, enter only the amount received.',
+      'Enter the Bank Reference — the EFT reference, cheque number, or transaction ID from your bank statement. This is required for reconciliation.',
+      'Add any Notes if relevant — e.g. "Client confirmed payment by email on 1 Jun 2026 before bank clearance".',
+      'Click Confirm. The invoice status updates immediately: Paid if fully settled, Partial if still outstanding.',
     ],
     tips: [
-      'Only log a payment once it has cleared the bank — do not log pending EFTs.',
-      'Always include the bank reference. Without it, the payment cannot be matched during reconciliation.',
+      'Only log a payment once it has cleared the bank. Do not log a payment on the day a client sends an EFT — EFTs can fail.',
+      'Always include the bank reference number. Without it, you cannot match this entry to a specific bank statement line during reconciliation.',
+      'If a client regularly pays short (e.g. rounds down), log the exact amount received. Discuss the shortfall separately — do not adjust the invoice.',
     ],
     faqs: [
-      { q: 'What if a client pays two invoices in one EFT?', a: 'Log a separate payment entry for each invoice. Use the same bank reference for both.' },
-      { q: 'I logged the wrong amount — how do I fix it?', a: 'Contact an Admin. Payment records cannot be self-corrected to maintain the audit trail.' },
+      { q: 'What if a client pays two invoices in one EFT transfer?', a: 'Log a separate payment entry for each invoice. Use the same bank reference for both entries — this links them to the same transaction.' },
+      { q: 'I logged the wrong amount — how do I fix it?', a: 'Contact an Admin immediately. Payment records cannot be self-corrected to maintain audit trail integrity. The Admin will reverse the entry and you can re-log correctly.' },
+      { q: 'What if the client paid but the invoice is not in the dropdown?', a: 'The invoice may already be marked as Paid, or it may not exist yet. Check the Invoices module. If the invoice has not been created, create it first and then log the payment.' },
+      { q: 'Does logging a payment automatically create a transaction entry?', a: 'Yes — a corresponding Income transaction is created in the Transactions ledger automatically. You do not need to log it separately.' },
     ],
     linked: 'Invoices, Transactions.',
     access: ['admin','sysadmin','manager','admin_clerk'],
@@ -1565,28 +1819,32 @@ const PAGE_INFO = {
   'p-safety-detail': {
     title: 'Safety File Detail',
     sub: 'Compliance score & action plan',
-    purpose: 'View and manage the full compliance record for a single safety file — overall audit score, section-by-section breakdown, corrective action plan, personnel, attachments, and policy acknowledgements.',
+    purpose: 'The full compliance record for a single safety file — overall audit score, section-by-section breakdown, corrective action plan, personnel records, attachments, and policy acknowledgements. This is where compliance gaps are worked through and resolved.',
     steps: [
-      'Check the audit score badge at the top: GREEN (90%+), YELLOW (75–89%), ORANGE (51–74%), or RED (below 51% — critical).',
-      'Review the Summary of Compliance table to see which sections have the most non-compliant items.',
-      'Expand the Action Plan to see every item not to standard. Assign an owner and target date in the Notes field.',
-      'Use the Status dropdown on each action item to track progress: Open → In Progress → Fixed.',
-      'Upload the signed corrective action documents in the Attachments section.',
-      'Click "Approve" once all items are resolved and the file is ready to be locked as compliant.',
+      'Check the Compliance Score badge at the top: GREEN = 90%+ (compliant), YELLOW = 75–89% (monitor), ORANGE = 51–74% (action required within 30 days), RED = below 51% (critical — immediate action).',
+      'Review the Summary of Compliance table — it shows each audit section with its score and number of non-compliant items. Identify the highest-impact sections.',
+      'Open the Action Plan tab to see every item that is not to standard. Each item shows the finding, required action, and current status.',
+      'Assign an owner and target date to each action item. Enter these in the Notes field — "Owner: J. Smith | Due: 15 Jun 2026".',
+      'Use the Status dropdown on each item to track progress: Open → In Progress → Fixed. Update this as the contractor works through corrections.',
+      'When a corrective action is closed, upload the supporting evidence in the Attachments section (e.g. photo of repaired equipment, updated appointment letter).',
+      'Once all critical and high-priority items are resolved and supporting documents are attached, click Approve to lock the file as compliant.',
+      'Use Generate Docs to produce template corrective action documents for all outstanding items in one step.',
+      'Use the Tracker button to download a standalone Excel action tracker to share with the contractor.',
     ],
     tips: [
-      'Address RED and ORANGE sections first — these carry the highest legal and compliance risk.',
-      'Always record the corrective action owner and deadline in the Notes field. Vague findings cannot be enforced.',
-      'Use the "Generate Docs" button to create template corrective action documents for all non-compliant items in one step.',
-      'Use the "Tracker" button to download a standalone action tracker you can share with the contractor.',
-      'Print the full pack (Print / Download Pack) before each compliance review meeting.',
+      'Focus on RED and ORANGE sections first — these carry legal liability under the OHS Act and COID Act.',
+      'Never leave the owner and deadline fields blank on an action item. Unassigned actions never get fixed.',
+      'The Projected Score (shown alongside the Baseline) updates in real time as you mark items Fixed — use it to show the contractor what their score will look like on re-submission.',
+      'Print or download the full pack before every compliance review meeting — it includes all sections, findings, and the current action plan.',
+      'If a contractor disputes a finding, note it in the finding\'s notes field with the date and their response. Do not remove or soften the finding unless you have verified it is incorrect.',
     ],
     faqs: [
-      { q: 'What do the score colour bands mean?', a: 'GREEN = 90%+ (fully compliant), YELLOW = 75–89% (monitor), ORANGE = 51–74% (action required within 30 days), RED = below 51% (critical — immediate corrective action).' },
-      { q: 'Can I edit the audit once it is submitted?', a: 'Use the Edit button while the file is in Draft or Active status. Once Approved, the record is locked. Contact an Admin if an amendment is genuinely needed.' },
-      { q: 'How do I track corrective actions?', a: 'Use the Status dropdown and Notes field on each Action Plan item. For a printable version to share with the contractor, click the Tracker button.' },
-      { q: 'What is the Baseline audit score?', a: 'The score the file received when it was first submitted to AST. The Projected score updates as you mark items Fixed, showing what the score will be on re-submission.' },
-      { q: 'Who can approve a safety file?', a: 'Only Admin and Manager roles. The approver should verify all corrective actions are closed and supporting documents are attached before approving.' },
+      { q: 'What do the score colour bands mean exactly?', a: 'GREEN = 90%+ (fully compliant, no action required), YELLOW = 75–89% (minor non-conformances to monitor), ORANGE = 51–74% (significant gaps, corrective action plan required within 30 days), RED = below 51% (critical non-compliance — work may need to be stopped until resolved).' },
+      { q: 'Can I edit the audit after it is submitted?', a: 'Use the Edit button while the file is in Draft or Active status. Once Approved, the record is locked to protect its legal integrity. Contact an Admin if a genuine factual amendment is needed — all changes are logged.' },
+      { q: 'How do I track corrective actions?', a: 'Use the Status dropdown and Notes field on each Action Plan item. For a version to share with the contractor outside the portal, click the Tracker button to download an Excel-based action tracker.' },
+      { q: 'What is the Baseline score vs the Projected score?', a: 'Baseline is the score the file received when first submitted to Astute Insights. Projected shows what the score will be on re-submission if all items currently marked Fixed are accepted. Use Projected to demonstrate progress to the client.' },
+      { q: 'Who can approve a safety file?', a: 'Only Admin and Manager roles. The approver must verify that all critical and high-priority corrective actions are closed and that supporting documents are attached before approving.' },
+      { q: 'What is the Generate Docs button?', a: 'It creates template corrective action documents for all non-compliant items in the file in a single operation — saving the auditor from creating documents one by one. Review and customise each document before sending to the contractor.' },
     ],
     linked: 'Safety Files, Safety Audit, Clients, Audit Log.',
     access: ['admin','sysadmin','manager','senior_tech'],
@@ -2000,172 +2258,46 @@ function renderPortalHome(){
 }
 
 /* ═══════════════════════════════════════════════════════
-   DASHBOARD  (fully dynamic — driven by DASH_WIDGETS prefs)
+   DASHBOARD  (widget-order-aware — iterates getDashWidgetOrder)
 ═══════════════════════════════════════════════════════ */
 function renderDashboard(){
   const container = document.getElementById('dash-main-content');
   if(!container) return;
 
-  // Resolve which widgets are on for this user
-  const showOps     = isWidgetOn('w-ops')        && can('callout.view');
-  const showFin     = isWidgetOn('w-fin')        && (can('invoice.view') || can('finance.income'));
-  const showAlrt    = isWidgetOn('w-alerts');
-  const showComp    = isWidgetOn('w-compliance') && can('safety.view');
-  const showCompare = isWidgetOn('w-compare')    && (can('invoice.view') || can('finance.income'));
+  const prefs = getDashPrefs();
+  const order = getDashWidgetOrder(prefs);
+  const now   = new Date();
 
-  const now = new Date();
-
-  // Compute data values once
-  const open = proxyDB.callouts.filter(c=>c.status==='Open'||c.status==='In Progress').length;
-  const pq   = proxyDB.quotes.filter(q=>q.status==='Draft'||q.status==='Sent'||q.status==='Pending Approval').length;
-  const mtd  = proxyDB.invoices.filter(i=>{const d=new Date(i.date+'T00:00:00');return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();}).reduce((a,i)=>a+i.amount,0);
-  const net  = proxyDB.bank.reduce((a,b)=>a+(b.credit||0)-(b.debit||0),0);
-  const completedMTD  = proxyDB.callouts.filter(c=>{const cd=new Date(c.date+'T00:00:00');return (c.status==='Completed'||c.status==='Invoiced')&&cd.getMonth()===now.getMonth()&&cd.getFullYear()===now.getFullYear();}).length;
-  const outstandingVal= proxyDB.invoices.filter(i=>i.status==='Sent'||i.status==='Overdue').reduce((a,i)=>a+i.amount,0);
-  const ytd           = proxyDB.invoices.filter(i=>{const d=new Date(i.date+'T00:00:00');return i.status==='Paid'&&d.getFullYear()===now.getFullYear();}).reduce((a,i)=>a+i.amount,0);
-  const quotePipeVal  = proxyDB.quotes.filter(q=>q.status==='Sent'||q.status==='Pending Approval').reduce((a,q)=>a+((q.items||[]).reduce((s,it)=>s+((it.qty||0)*(it.unit||0)),0)),0);
-
-  // KPI cards — build only the ones the user has on and can see
-  const kpiCards=[];
-  const kv=(v)=>String(v).length>8?' kval--compact':'';
-  if(showOps){
-    const sOpen=String(open), sPq=String(pq);
-    kpiCards.push(`<div class="kcard k1"><div class="klbl">Open Callouts</div><div class="kval${kv(sOpen)}">${sOpen}</div><div class="ksub">Active on site</div></div>`);
-    if(can('quote.view')) kpiCards.push(`<div class="kcard k3"><div class="klbl">Pending Quotes</div><div class="kval${kv(sPq)}">${sPq}</div><div class="ksub">Awaiting approval</div></div>`);
-  }
-  if(showFin){
-    const fmtMtd=fmt(mtd), fmtNet=fmt(net);
-    if(can('invoice.view')) kpiCards.push(`<div class="kcard k2"><div class="klbl">Invoiced MTD</div><div class="kval${kv(fmtMtd)}">${fmtMtd}</div><div class="ksub">Month to date</div></div>`);
-    if(can('finance.income')) kpiCards.push(`<div class="kcard k4"><div class="klbl">Net Balance</div><div class="kval${kv(fmtNet)}">${fmtNet}</div><div class="ksub">Credits − Debits</div></div>`);
-  }
-
-  // Second KPI row — extended performance metrics
-  const kpiCards2=[];
-  if(showOps){
-    const sCmtd=String(completedMTD);
-    kpiCards2.push(`<div class="kcard k4"><div class="klbl">Completed MTD</div><div class="kval${kv(sCmtd)}">${sCmtd}</div><div class="ksub">Jobs closed this month</div></div>`);
-  }
-  if(showFin&&can('finance.income')){
-    const fmtYtd=fmt(ytd), fmtOut=fmt(outstandingVal);
-    kpiCards2.push(`<div class="kcard k1"><div class="klbl">YTD Revenue</div><div class="kval${kv(fmtYtd)}">${fmtYtd}</div><div class="ksub">Paid invoices this year</div></div>`);
-    kpiCards2.push(`<div class="kcard k2"><div class="klbl">Outstanding</div><div class="kval${kv(fmtOut)}">${fmtOut}</div><div class="ksub">Unpaid invoices total</div></div>`);
-  }
-  if(showFin&&can('quote.view')&&quotePipeVal>0){
-    const fmtQpv=fmt(quotePipeVal);
-    kpiCards2.push(`<div class="kcard k3"><div class="klbl">Quote Pipeline</div><div class="kval${kv(fmtQpv)}">${fmtQpv}</div><div class="ksub">Active quotes value</div></div>`);
-  }
-
-  // Alerts
-  const overdue=proxyDB.invoices.filter(i=>i.status==='Overdue').length;
-  const urgent=proxyDB.callouts.filter(c=>(c.priority==='Urgent'||c.priority==='Emergency')&&(c.status==='Open'||c.status==='In Progress')).length;
-  const pendingQA=proxyDB.quotes.filter(q=>q.approvalStatus==='pending').length;
-  let alertsHtml='';
-  if(showAlrt){
-    if(overdue>0&&can('invoice.view')) alertsHtml+=`<div class="acard danger"><div class="albl">Overdue Invoices</div><div class="acount">${overdue}</div><div class="adesc">Immediate follow-up</div></div>`;
-    if(urgent>0) alertsHtml+=`<div class="acard warn"><div class="albl">Urgent Callouts</div><div class="acount">${urgent}</div><div class="adesc">Priority dispatch</div></div>`;
-    if(pendingQA>0&&can('quote.approve')) alertsHtml+=`<div class="acard info"><div class="albl">Quotes Pending Approval</div><div class="acount">${pendingQA}</div><div class="adesc">Tech-submitted, awaiting review</div></div>`;
-  }
-
-  // Recent callouts
-  const rc=[...proxyDB.callouts].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5);
-  const rcRows=rc.length
-    ?rc.map(c=>`<tr><td class="mono">${esc(c.id)}</td><td class="tc-11">${esc(c.service.substring(0,30))}${c.service.length>30?'…':''}</td><td>${pillH(c.status)}</td></tr>`).join('')
-    :'<tr><td colspan="3" class="tc-empty-sm">No callouts</td></tr>';
-
-  // Revenue chart
+  // Pre-compute shared data once
+  const open           = proxyDB.callouts.filter(c=>c.status==='Open'||c.status==='In Progress').length;
+  const pq             = proxyDB.quotes.filter(q=>q.status==='Draft'||q.status==='Sent'||q.status==='Pending Approval').length;
+  const mtd            = proxyDB.invoices.filter(i=>{const d=new Date(i.date+'T00:00:00');return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();}).reduce((a,i)=>a+i.amount,0);
+  const net            = proxyDB.bank.reduce((a,b)=>a+(b.credit||0)-(b.debit||0),0);
+  const completedMTD   = proxyDB.callouts.filter(c=>{const cd=new Date(c.date+'T00:00:00');return (c.status==='Completed'||c.status==='Invoiced')&&cd.getMonth()===now.getMonth()&&cd.getFullYear()===now.getFullYear();}).length;
+  const outstandingVal = proxyDB.invoices.filter(i=>i.status==='Sent'||i.status==='Overdue').reduce((a,i)=>a+i.amount,0);
+  const ytd            = proxyDB.invoices.filter(i=>{const d=new Date(i.date+'T00:00:00');return i.status==='Paid'&&d.getFullYear()===now.getFullYear();}).reduce((a,i)=>a+i.amount,0);
+  const quotePipeVal   = proxyDB.quotes.filter(q=>q.status==='Sent'||q.status==='Pending Approval').reduce((a,q)=>a+((q.items||[]).reduce((s,it)=>s+((it.qty||0)*(it.unit||0)),0)),0);
+  const overdue        = proxyDB.invoices.filter(i=>i.status==='Overdue').length;
+  const urgent         = proxyDB.callouts.filter(c=>(c.priority==='Urgent'||c.priority==='Emergency')&&(c.status==='Open'||c.status==='In Progress')).length;
+  const pendingQA      = proxyDB.quotes.filter(q=>q.approvalStatus==='pending').length;
   const months=[];
   for(let i=5;i>=0;i--){const dt=new Date(now.getFullYear(),now.getMonth()-i,1);months.push({lbl:dt.toLocaleDateString('en-ZA',{month:'short'}),m:dt.getMonth(),y:dt.getFullYear()});}
-  const revData=months.map(m=>proxyDB.invoices.filter(i=>{const d=new Date(i.date+'T00:00:00');return d.getMonth()===m.m&&d.getFullYear()===m.y;}).reduce((a,i)=>a+i.amount,0));
-  const maxRev=Math.max(...revData,1);
-  const chartBars=revData.map((v,i)=>`<div class="cbar-w"><div class="cval">${v>0?'R'+Math.round(v/1000)+'K':''}</div><div class="cbar" data-h="${Math.max(4,Math.round((v/maxRev)*100))}" title="${fmt(v)}"></div><div class="clbl">${months[i].lbl}</div></div>`).join('');
+  const revData = months.map(m=>proxyDB.invoices.filter(i=>{const d=new Date(i.date+'T00:00:00');return d.getMonth()===m.m&&d.getFullYear()===m.y;}).reduce((a,i)=>a+i.amount,0));
 
-  // Invoice aging bars (for insight panel)
-  const invPaid   =proxyDB.invoices.filter(i=>i.status==='Paid');
-  const invSent   =proxyDB.invoices.filter(i=>i.status==='Sent');
-  const invOverdue=proxyDB.invoices.filter(i=>i.status==='Overdue');
-  const invDraft  =proxyDB.invoices.filter(i=>i.status==='Draft');
-  const invTotal  =Math.max(proxyDB.invoices.length,1);
-  const invAgingBars=[
-    {lbl:'Paid',   cnt:invPaid.length,   val:fmt(invPaid.reduce((a,i)=>a+i.amount,0)),   col:'var(--green)'},
-    {lbl:'Sent',   cnt:invSent.length,   val:fmt(invSent.reduce((a,i)=>a+i.amount,0)),   col:'var(--amber)'},
-    {lbl:'Overdue',cnt:invOverdue.length,val:fmt(invOverdue.reduce((a,i)=>a+i.amount,0)),col:'var(--ember)'},
-    {lbl:'Draft',  cnt:invDraft.length,  val:fmt(invDraft.reduce((a,i)=>a+i.amount,0)),  col:'var(--muted)'},
-  ].map(r=>`<div class="mb-14">
-    <div class="flex-sb mb-5"><span class="mlbl-xs">${r.lbl} (${r.cnt})</span><span class="mlbl-sm">${r.val}</span></div>
-    <div class="prog-bar"><div class="prog-fill" data-w="${Math.round(r.cnt/invTotal*100)}" data-bg="${r.col}"></div></div>
-  </div>`).join('');
+  const d = { now, open, pq, mtd, net, completedMTD, outstandingVal, ytd, quotePipeVal, overdue, urgent, pendingQA, months, revData };
 
-  // Callout activity breakdown bars (for insight panel)
-  const coTotal=Math.max(proxyDB.callouts.length,1);
-  const coActivityBars=[{s:'Open',col:'var(--blue)'},{s:'In Progress',col:'var(--amber)'},{s:'Completed',col:'var(--green)'},{s:'Invoiced',col:'var(--muted)'}].map(({s,col})=>{
-    const cnt=proxyDB.callouts.filter(c=>c.status===s).length;
-    return `<div class="mb-14">
-      <div class="flex-sb mb-5"><span class="mlbl-xs">${s}</span><span class="mlbl-sm">${cnt}</span></div>
-      <div class="prog-bar"><div class="prog-fill" data-w="${Math.round(cnt/coTotal*100)}" data-bg="${col}"></div></div>
-    </div>`;
-  }).join('');
-  const prioBars=[{s:'Emergency',col:'var(--ember)'},{s:'Urgent',col:'var(--amber)'},{s:'Normal',col:'var(--blue)'},{s:'Routine',col:'var(--muted)'}].map(({s,col})=>{
-    const cnt=proxyDB.callouts.filter(c=>c.priority===s).length;
-    return `<div class="mb-14">
-      <div class="flex-sb mb-5"><span class="mlbl-xs">${s}</span><span class="mlbl-sm">${cnt}</span></div>
-      <div class="prog-bar"><div class="prog-fill" data-w="${Math.round(cnt/coTotal*100)}" data-bg="${col}"></div></div>
-    </div>`;
-  }).join('');
+  let html = '';
+  let hasContent = false;
+  for(const wid of order){
+    if(!isWidgetOn(wid, prefs)) continue;
+    const block = _buildDashBlock(wid, d);
+    if(block){ html += block; hasContent = true; }
+  }
 
-  // Build HTML
-  let html='';
-
-  if(kpiCards.length) html+=`<div class="kgrid kgrid--auto">${kpiCards.join('')}</div>`;
-  if(kpiCards2.length) html+=`<div class="kgrid kgrid--auto kgrid-neg-top">${kpiCards2.join('')}</div>`;
-
-  if(showAlrt) html+=`<div class="alert-strip" id="dash-alerts">${alertsHtml}</div>`;
-
-  if(showComp) html+=`<div class="panel mt2 d-none" id="dash-comp-widget">
-    <div class="ph">
-      <div class="ph-title">Compliance Alerts</div>
-      <button class="btn btn-g btn-s" data-action="navPage" data-page="p-safety">View Safety Files</button>
-    </div>
-    <div id="dash-comp-body"></div>
-  </div>`;
-
-  const panelL=showOps?`<div class="panel">
-    <div class="ph"><div class="ph-title">Recent Callouts</div><button class="btn btn-g btn-s" data-action="navPage" data-page="p-callouts">View All</button></div>
-    <div class="tw"><table><thead><tr><th>Job ID</th><th>Service</th><th>Status</th></tr></thead><tbody>${rcRows}</tbody></table></div>
-  </div>`:null;
-  const panelR=(showFin&&can('finance.income'))?`<div class="panel">
-    <div class="ph"><div class="ph-title">Revenue — 6 Months</div></div>
-    <div class="rev-chart-wrap"><div class="chart-bars">${chartBars}</div></div>
-  </div>`:null;
-
-  if(panelL&&panelR)      html+=`<div class="twocol">${panelL}${panelR}</div>`;
-  else if(panelL)         html+=panelL;
-  else if(panelR)         html+=panelR;
-
-  // Insight panels — Invoice Aging + Callout Activity
-  const insightL=(showFin&&can('invoice.view'))?`<div class="panel">
-    <div class="ph"><div class="ph-title">Invoice Aging</div><button class="btn btn-g btn-s" data-action="navPage" data-page="p-invoices">View All</button></div>
-    <div class="pb">${invAgingBars}</div>
-  </div>`:null;
-  const insightR=showOps?`<div class="panel">
-    <div class="ph"><div class="ph-title">Callout Activity</div></div>
-    <div class="pb">
-      <div class="mlbl-xs mlbl-section-top">By Status</div>
-      ${coActivityBars}
-      <div class="mlbl-xs mlbl-section-mid">By Priority</div>
-      ${prioBars}
-    </div>
-  </div>`:null;
-
-  if(insightL&&insightR)  html+=`<div class="twocol">${insightL}${insightR}</div>`;
-  else if(insightL)       html+=insightL;
-  else if(insightR)       html+=insightR;
-
-  if(showCompare) html+=buildPeriodComparison(now, showOps);
-
-  if(!kpiCards.length&&!kpiCards2.length&&!showAlrt&&!showComp&&!panelL&&!panelR&&!insightL&&!insightR&&!showCompare)
+  if(!hasContent)
     html=`<div class="dash-empty-state"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg><p>Your dashboard is empty.<br><button class="btn btn-g btn-s" data-action="showDashEditor">Edit Layout</button> to add widgets.</p></div>`;
 
-  container.innerHTML=html;
+  container.innerHTML = html;
   { let css=''; container.querySelectorAll('.cbar[data-h]').forEach((b,i)=>{ b.dataset.cbi=i; css+=`.cbar[data-cbi="${i}"]{height:${b.dataset.h}px;}`; }); if(css)_injectStyle('cbar-op-css',css); }
   applyProgFills(container);
 
@@ -2173,6 +2305,117 @@ function renderDashboard(){
   const nbCo=document.getElementById('nb-co');if(nbCo)nbCo.textContent=open;
   const nbInv=document.getElementById('nb-inv');if(nbInv)nbInv.textContent=proxyDB.invoices.filter(i=>i.status==='Sent'||i.status==='Overdue').length;
   const nbQte=document.getElementById('nb-qte');if(nbQte)nbQte.textContent=proxyDB.quotes.filter(q=>q.status==='Pending Approval').length;
+}
+
+/* ── Per-widget block builders ─────────────────────── */
+function _buildDashBlock(wid, d){
+  switch(wid){
+    case 'w-ops':        return _dashBlockOps(d);
+    case 'w-fin':        return _dashBlockFin(d);
+    case 'w-alerts':     return _dashBlockAlerts(d);
+    case 'w-compliance': return _dashBlockCompliance();
+    case 'w-compare':    return _dashBlockCompare(d);
+    default: return '';
+  }
+}
+
+function _dashBlockOps(d){
+  if(!can('callout.view')) return '';
+  const {open, pq, completedMTD} = d;
+  const kv = v => String(v).length>8 ? ' kval--compact' : '';
+  const sOpen=String(open), sPq=String(pq), sCmtd=String(completedMTD);
+
+  const kpiCards = [
+    `<div class="kcard k1"><div class="klbl">Open Callouts</div><div class="kval${kv(sOpen)}">${sOpen}</div><div class="ksub">Active on site</div></div>`,
+    can('quote.view') ? `<div class="kcard k3"><div class="klbl">Pending Quotes</div><div class="kval${kv(sPq)}">${sPq}</div><div class="ksub">Awaiting approval</div></div>` : '',
+    `<div class="kcard k4"><div class="klbl">Completed MTD</div><div class="kval${kv(sCmtd)}">${sCmtd}</div><div class="ksub">Jobs closed this month</div></div>`,
+  ].filter(Boolean).join('');
+
+  const rc = [...proxyDB.callouts].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5);
+  const rcRows = rc.length
+    ? rc.map(c=>`<tr><td class="mono">${esc(c.id)}</td><td class="tc-11">${esc(c.service.substring(0,30))}${c.service.length>30?'…':''}</td><td>${pillH(c.status)}</td></tr>`).join('')
+    : '<tr><td colspan="3" class="tc-empty-sm">No callouts</td></tr>';
+
+  const coTotal = Math.max(proxyDB.callouts.length,1);
+  const coActBars = [{s:'Open',col:'var(--blue)'},{s:'In Progress',col:'var(--amber)'},{s:'Completed',col:'var(--green)'},{s:'Invoiced',col:'var(--muted)'}].map(({s,col})=>{
+    const cnt=proxyDB.callouts.filter(c=>c.status===s).length;
+    return `<div class="mb-14"><div class="flex-sb mb-5"><span class="mlbl-xs">${s}</span><span class="mlbl-sm">${cnt}</span></div><div class="prog-bar"><div class="prog-fill" data-w="${Math.round(cnt/coTotal*100)}" data-bg="${col}"></div></div></div>`;
+  }).join('');
+  const prioBars = [{s:'Emergency',col:'var(--ember)'},{s:'Urgent',col:'var(--amber)'},{s:'Normal',col:'var(--blue)'},{s:'Routine',col:'var(--muted)'}].map(({s,col})=>{
+    const cnt=proxyDB.callouts.filter(c=>c.priority===s).length;
+    return `<div class="mb-14"><div class="flex-sb mb-5"><span class="mlbl-xs">${s}</span><span class="mlbl-sm">${cnt}</span></div><div class="prog-bar"><div class="prog-fill" data-w="${Math.round(cnt/coTotal*100)}" data-bg="${col}"></div></div></div>`;
+  }).join('');
+
+  const panelCallouts = `<div class="panel">
+    <div class="ph"><div class="ph-title">Recent Callouts</div><button class="btn btn-g btn-s" data-action="navPage" data-page="p-callouts">View All</button></div>
+    <div class="tw"><table><thead><tr><th>Job ID</th><th>Service</th><th>Status</th></tr></thead><tbody>${rcRows}</tbody></table></div>
+  </div>`;
+  const panelActivity = `<div class="panel">
+    <div class="ph"><div class="ph-title">Callout Activity</div></div>
+    <div class="pb"><div class="mlbl-xs mlbl-section-top">By Status</div>${coActBars}<div class="mlbl-xs mlbl-section-mid">By Priority</div>${prioBars}</div>
+  </div>`;
+
+  return `<div class="kgrid kgrid--auto">${kpiCards}</div><div class="twocol">${panelCallouts}${panelActivity}</div>`;
+}
+
+function _dashBlockFin(d){
+  if(!can('invoice.view')&&!can('finance.income')) return '';
+  const {mtd, net, ytd, outstandingVal, quotePipeVal, months, revData} = d;
+  const kv = v => String(v).length>8 ? ' kval--compact' : '';
+  const fmtMtd=fmt(mtd), fmtNet=fmt(net), fmtYtd=fmt(ytd), fmtOut=fmt(outstandingVal), fmtQpv=fmt(quotePipeVal);
+
+  const kpiCards = [
+    can('invoice.view')    ? `<div class="kcard k2"><div class="klbl">Invoiced MTD</div><div class="kval${kv(fmtMtd)}">${fmtMtd}</div><div class="ksub">Month to date</div></div>` : '',
+    can('finance.income')  ? `<div class="kcard k4"><div class="klbl">Net Balance</div><div class="kval${kv(fmtNet)}">${fmtNet}</div><div class="ksub">Credits − Debits</div></div>` : '',
+    can('finance.income')  ? `<div class="kcard k1"><div class="klbl">YTD Revenue</div><div class="kval${kv(fmtYtd)}">${fmtYtd}</div><div class="ksub">Paid invoices this year</div></div>` : '',
+    can('finance.income')  ? `<div class="kcard k2"><div class="klbl">Outstanding</div><div class="kval${kv(fmtOut)}">${fmtOut}</div><div class="ksub">Unpaid invoices total</div></div>` : '',
+    (can('quote.view')&&quotePipeVal>0) ? `<div class="kcard k3"><div class="klbl">Quote Pipeline</div><div class="kval${kv(fmtQpv)}">${fmtQpv}</div><div class="ksub">Active quotes value</div></div>` : '',
+  ].filter(Boolean).join('');
+  if(!kpiCards) return '';
+
+  const maxRev = Math.max(...revData,1);
+  const chartBars = revData.map((v,i)=>`<div class="cbar-w"><div class="cval">${v>0?'R'+Math.round(v/1000)+'K':''}</div><div class="cbar" data-h="${Math.max(4,Math.round((v/maxRev)*100))}" title="${fmt(v)}"></div><div class="clbl">${months[i].lbl}</div></div>`).join('');
+
+  const invPaid=proxyDB.invoices.filter(i=>i.status==='Paid');
+  const invSent=proxyDB.invoices.filter(i=>i.status==='Sent');
+  const invOverdue=proxyDB.invoices.filter(i=>i.status==='Overdue');
+  const invDraft=proxyDB.invoices.filter(i=>i.status==='Draft');
+  const invTotal=Math.max(proxyDB.invoices.length,1);
+  const agingBars=[
+    {lbl:'Paid',   cnt:invPaid.length,   val:fmt(invPaid.reduce((a,i)=>a+i.amount,0)),   col:'var(--green)'},
+    {lbl:'Sent',   cnt:invSent.length,   val:fmt(invSent.reduce((a,i)=>a+i.amount,0)),   col:'var(--amber)'},
+    {lbl:'Overdue',cnt:invOverdue.length,val:fmt(invOverdue.reduce((a,i)=>a+i.amount,0)),col:'var(--ember)'},
+    {lbl:'Draft',  cnt:invDraft.length,  val:fmt(invDraft.reduce((a,i)=>a+i.amount,0)),  col:'var(--muted)'},
+  ].map(r=>`<div class="mb-14"><div class="flex-sb mb-5"><span class="mlbl-xs">${r.lbl} (${r.cnt})</span><span class="mlbl-sm">${r.val}</span></div><div class="prog-bar"><div class="prog-fill" data-w="${Math.round(r.cnt/invTotal*100)}" data-bg="${r.col}"></div></div></div>`).join('');
+
+  const panelRev  = can('finance.income') ? `<div class="panel"><div class="ph"><div class="ph-title">Revenue — 6 Months</div></div><div class="rev-chart-wrap"><div class="chart-bars">${chartBars}</div></div></div>` : null;
+  const panelAging= can('invoice.view')   ? `<div class="panel"><div class="ph"><div class="ph-title">Invoice Aging</div><button class="btn btn-g btn-s" data-action="navPage" data-page="p-invoices">View All</button></div><div class="pb">${agingBars}</div></div>` : null;
+
+  const panels = [panelRev, panelAging].filter(Boolean);
+  const panelsHtml = panels.length===2 ? `<div class="twocol">${panels.join('')}</div>` : (panels[0]||'');
+  return `<div class="kgrid kgrid--auto">${kpiCards}</div>${panelsHtml}`;
+}
+
+function _dashBlockAlerts(d){
+  const {overdue, urgent, pendingQA} = d;
+  let html='';
+  if(overdue>0&&can('invoice.view'))  html+=`<div class="acard danger"><div class="albl">Overdue Invoices</div><div class="acount">${overdue}</div><div class="adesc">Immediate follow-up</div></div>`;
+  if(urgent>0)                        html+=`<div class="acard warn"><div class="albl">Urgent Callouts</div><div class="acount">${urgent}</div><div class="adesc">Priority dispatch</div></div>`;
+  if(pendingQA>0&&can('quote.approve')) html+=`<div class="acard info"><div class="albl">Quotes Pending Approval</div><div class="acount">${pendingQA}</div><div class="adesc">Tech-submitted, awaiting review</div></div>`;
+  return html ? `<div class="alert-strip" id="dash-alerts">${html}</div>` : '';
+}
+
+function _dashBlockCompliance(){
+  if(!can('safety.view')) return '';
+  return `<div class="panel mt2 d-none" id="dash-comp-widget">
+    <div class="ph"><div class="ph-title">Compliance Alerts</div><button class="btn btn-g btn-s" data-action="navPage" data-page="p-safety">View Safety Files</button></div>
+    <div id="dash-comp-body"></div>
+  </div>`;
+}
+
+function _dashBlockCompare(d){
+  if(!can('invoice.view')&&!can('finance.income')) return '';
+  return buildPeriodComparison(d.now, can('callout.view'));
 }
 
 function buildPeriodComparison(now, showOps) {
@@ -2498,7 +2741,7 @@ function renderSupDashboard() {
 ═══════════════════════════════════════════════════════ */
 function renderCallouts(search='',filter=''){
   let items=[...proxyDB.callouts].sort((a,b)=>b.date.localeCompare(a.date));
-  if(search) items=items.filter(c=>c.id.toLowerCase().includes(search.toLowerCase())||c.service.toLowerCase().includes(search.toLowerCase())||c.location.toLowerCase().includes(search.toLowerCase()));
+  if(search) items=items.filter(c=>c.id.toLowerCase().includes(search.toLowerCase())||c.jobNo.toLowerCase().includes(search.toLowerCase())||c.service.toLowerCase().includes(search.toLowerCase())||c.location.toLowerCase().includes(search.toLowerCase()));
   if(filter) items=items.filter(c=>c.status===filter);
 
   // For junior/senior tech: only show assigned to them
@@ -2527,7 +2770,14 @@ function renderCallouts(search='',filter=''){
     const actions=[];
     if(canStatus) actions.push(`<button class="btn btn-g btn-s" data-action="openStatusModal" data-id="${esc(c.id)}">Update Status</button>`);
     if(canTech&&!c.assignedTo) actions.push(`<button class="btn btn-g btn-s" data-action="openAssignTech" data-id="${esc(c.id)}">Assign Tech</button>`);
-    if(can('capture.new_quote')) actions.push(`<button class="btn btn-g btn-s" data-action="prefillQuoteFromJob" data-id="${esc(c.id)}">Quote</button>`);
+    if(can('capture.new_quote')||can('quote.view')){
+      const linkedQuote=proxyDB.quotes.find(q=>q.calloutRef===c.id);
+      if(linkedQuote){
+        actions.push(`<button class="btn btn-g btn-s" data-action="previewQuote" data-id="${esc(linkedQuote.id)}">Quote</button>`);
+      } else if(can('capture.new_quote')){
+        actions.push(`<button class="btn btn-g btn-s" data-action="prefillQuoteFromJob" data-id="${esc(c.id)}">Quote</button>`);
+      }
+    }
     actions.push(`<button class="btn btn-g btn-s" data-action="openAttachmentsModal" data-entity-type="callout" data-entity-ref="${esc(c.id)}">Files</button>`);
     if(can('callout.confirm_closure')&&c.status==='Completed'&&!c.closureConfirmed&&!c.invoiceGenerated){
       actions.push(`<button class="btn btn-p btn-s" data-action="openConfirmClosureModal" data-id="${esc(c.id)}">Confirm Closure</button>`);
@@ -2535,7 +2785,7 @@ function renderCallouts(search='',filter=''){
     if(canDel) actions.push(`<button class="btn btn-g btn-s" data-action="deleteCallout" data-id="${esc(c.id)}">Del</button>`);
 
     return`<tr>
-      <td class="mono">${esc(c.id)}</td>
+      <td class="mono">${esc(c.jobNo)}${c.jobNo!==c.id?`<div class="mlbl-9 mt-2 text-muted">${esc(c.id)}</div>`:''}</td>
       <td class="tc-12 max-180">${esc(c.service)}<div class="mlbl-9 mt-2">${esc(c.location||'')}</div></td>
       <td class="tc-11">${esc(assignedDisplay)}</td>
       <td>${poCell}</td>
@@ -2632,7 +2882,7 @@ function openConfirmClosureModal(id){
     </div>
     <div class="fgroup mb-12">
       <label class="flbl">Confirmation Notes <span class="text-ember">*</span></label>
-      <textarea class="finput" id="cc-notes" rows="4" placeholder="Describe why the client did not close this callout and what written confirmation was received..."></textarea>
+      <textarea class="finput" id="cc-notes" rows="4" autocomplete="off" placeholder="Describe why the client did not close this callout and what written confirmation was received..."></textarea>
     </div>
     <div class="att-ctx mb-14">
       <div class="fs-11 fw-600 mb-6">Upload Confirmation Document <span class="text-ember">*</span></div>
@@ -2644,18 +2894,21 @@ function openConfirmClosureModal(id){
 }
 
 async function saveConfirmClosure(id){
+  const btn=document.querySelector('[data-action="saveConfirmClosure"]');
+  if(btn){if(btn.disabled)return;btn.disabled=true;}
+
   const notes=document.getElementById('cc-notes')?.value?.trim();
   const fileInput=document.getElementById('cc-doc');
-  if(!notes){toast('Confirmation notes are required','err');return;}
-  if(!fileInput?.files.length){toast('Please upload the confirmation document','err');return;}
+  if(!notes){toast('Confirmation notes are required','err');if(btn)btn.disabled=false;return;}
+  if(!fileInput?.files.length){toast('Please upload the confirmation document','err');if(btn)btn.disabled=false;return;}
 
   // Upload document first
   const up=await apiUpload('callout',id,fileInput);
-  if(!up.success){toast(up.error||'Document upload failed','err');return;}
+  if(!up.success){toast(up.error||'Document upload failed','err');if(btn)btn.disabled=false;return;}
 
   // Then confirm closure
   const r=await api('PUT',`callouts.php?id=${id}`,{action:'confirm_closure',closure_notes:notes});
-  if(!r.success){toast(r.error||'Error confirming closure','err');return;}
+  if(!r.success){toast(r.error||'Error confirming closure','err');if(btn)btn.disabled=false;return;}
 
   await refreshCallouts();
   updateBadges();
@@ -2723,7 +2976,7 @@ function delCo(id){
 ═══════════════════════════════════════════════════════ */
 function renderQuotes(search='',filter=''){
   let items=[...proxyDB.quotes].sort((a,b)=>b.date.localeCompare(a.date));
-  if(search) items=items.filter(q=>q.id.toLowerCase().includes(search.toLowerCase())||q.client.toLowerCase().includes(search.toLowerCase()));
+  if(search) items=items.filter(q=>q.id.toLowerCase().includes(search.toLowerCase())||q.quoteNo.toLowerCase().includes(search.toLowerCase())||q.client.toLowerCase().includes(search.toLowerCase()));
   if(filter) items=items.filter(q=>q.status===filter);
 
   // Senior tech only sees their own
@@ -2750,7 +3003,7 @@ function renderQuotes(search='',filter=''){
     if(canConvert&&q.status!=='Pending Approval') actions.push(`<button class="btn btn-g btn-s" data-action="convertToInvoice" data-id="${esc(q.id)}">Invoice</button>`);
     if(canDel) actions.push(`<button class="btn btn-g btn-s" data-action="deleteQuote" data-id="${esc(q.id)}">Del</button>`);
     return`<tr>
-      <td class="mono">${esc(q.id)}</td>
+      <td class="mono">${esc(q.quoteNo)}${q.quoteNo!==q.id?`<div class="mlbl-9 mt-2 text-muted">${esc(q.id)}</div>`:''}</td>
       <td>${esc(q.client)}</td>
       <td class="amt">${fmt(total)}</td>
       <td class="tc-11">${submitterCell}</td>
@@ -2777,15 +3030,16 @@ function declineQuote(id){
 function previewQuote(id){
   const q=proxyDB.quotes.find(x=>x.id===id);if(!q)return;
   const{sub,vat,total}=qtot(q.items);
-  openModal(`Quote - ${q.id}`,`
+  const co = (typeof COMPANY !== 'undefined') ? COMPANY : {};
+  openModal(`Quote - ${q.quoteNo}`,`
     <div class="doc-preview">
       <div class="doc-logo-row">
-        <div><div class="doc-bname">BLACK<em>FIRE</em></div><div class="doc-btag">Security Solutions</div></div>
-        <div class="doc-contact">+27 68 912 6581<br>info@blackfiresolutions.co.za</div>
+        <img src="./blackfire_logo_transparent.png" class="doc-logo-img" alt="BlackFire Security Solutions">
+        <div class="doc-contact">${esc(co.name||'')}<br>${esc(co.phone||'')}${co.mobile?` / ${esc(co.mobile)}`:''}<br>${esc(co.email||'')}<br>${esc(co.addr||'')}</div>
       </div>
       <div class="doc-type">QUOTATION</div>
       <div class="doc-meta">
-        <div><div class="dml">Quote #</div><div class="dmv font-mono">${esc(q.id)}</div></div>
+        <div><div class="dml">Quote #</div><div class="dmv font-mono">${esc(q.quoteNo)}</div></div>
         <div><div class="dml">Client</div><div class="dmv">${esc(q.client)}</div></div>
         <div><div class="dml">Date</div><div class="dmv">${fmtD(q.date)}</div></div>
         <div><div class="dml">Valid Until</div><div class="dmv">${fmtD(q.validUntil)}</div></div>
@@ -2800,7 +3054,7 @@ function previewQuote(id){
         <div class="doc-tot-row"><span>VAT (15%)</span><span>${fmt(vat)}</span></div>
         <div class="doc-tot-row grand"><span>TOTAL</span><span>${fmt(total)}</span></div>
       </div>
-      <div class="doc-note">Fire, taught to behave.  -  BlackFire Solutions (Pty) Ltd</div>
+      <div class="doc-note">${esc(co.name||'BlackFire Solutions')}${co.reg?` · Reg: ${esc(co.reg)}`:''}${co.vat?` · VAT: ${esc(co.vat)}`:''}</div>
     </div>
     <div id="attach-modal-area" class="inv-att-area"></div>`);
   loadAttachments('quote', id);
@@ -2881,12 +3135,12 @@ function saveQuote(){
 ═══════════════════════════════════════════════════════ */
 function renderInvoices(search='',filter=''){
   let items=[...proxyDB.invoices].sort((a,b)=>b.date.localeCompare(a.date));
-  if(search) items=items.filter(i=>i.id.toLowerCase().includes(search.toLowerCase())||i.client.toLowerCase().includes(search.toLowerCase()));
+  if(search) items=items.filter(i=>i.id.toLowerCase().includes(search.toLowerCase())||i.invoiceNo.toLowerCase().includes(search.toLowerCase())||i.client.toLowerCase().includes(search.toLowerCase()));
   if(filter) items=items.filter(i=>i.status===filter);
   const canMod=can('invoice.create');const canPaid=can('invoice.mark_paid');const canDel=can('invoice.delete');const canSend=can('invoice.send');
   const btn=document.getElementById('btn-newinv');if(btn){ canMod?$show(btn):$hide(btn); }
   document.getElementById('inv-table').innerHTML=items.length?items.map(inv=>`
-    <tr><td class="mono">${esc(inv.id)}</td><td>${esc(inv.client)}</td><td class="amt">${fmt(inv.amount)}</td><td class="tc-11 nowrap">${fmtD(inv.dueDate)}</td><td>${pillH(inv.status)}</td>
+    <tr><td class="mono">${esc(inv.invoiceNo)}${inv.invoiceNo!==inv.id?`<div class="mlbl-9 mt-2 text-muted">${esc(inv.id)}</div>`:''}</td><td>${esc(inv.client)}</td><td class="amt">${fmt(inv.amount)}</td><td class="tc-11 nowrap">${fmtD(inv.dueDate)}</td><td>${pillH(inv.status)}</td>
     <td><div class="bgrp">
       <button class="btn btn-g btn-s" data-action="previewInvoice" data-id="${esc(inv.id)}">View</button>
       <button class="btn btn-g btn-s" data-action="openAttachmentsModal" data-entity-type="invoice" data-entity-ref="${esc(inv.id)}">Files</button>
@@ -2928,15 +3182,16 @@ async function sendInvoiceEmail(id){
 
 function previewInvoice(id){
   const inv=proxyDB.invoices.find(x=>x.id===id);if(!inv)return;
-  openModal(`Invoice - ${inv.id}`,`
+  const co2 = (typeof COMPANY !== 'undefined') ? COMPANY : {};
+  openModal(`Invoice - ${inv.invoiceNo}`,`
     <div class="doc-preview">
       <div class="doc-logo-row">
-        <div><div class="doc-bname">BLACK<em>FIRE</em></div><div class="doc-btag">Security Solutions</div></div>
-        <div class="doc-contact">+27 68 912 6581<br>info@blackfiresolutions.co.za</div>
+        <img src="./blackfire_logo_transparent.png" class="doc-logo-img" alt="BlackFire Security Solutions">
+        <div class="doc-contact">${esc(co2.name||'')}${co2.reg?`<br>Reg: ${esc(co2.reg)}`:''}<br>${esc(co2.phone||'')}${co2.mobile?` / ${esc(co2.mobile)}`:''}<br>${esc(co2.email||'')}</div>
       </div>
       <div class="doc-type">TAX INVOICE</div>
       <div class="doc-meta">
-        <div><div class="dml">Invoice #</div><div class="dmv font-mono">${esc(inv.id)}</div></div>
+        <div><div class="dml">Invoice #</div><div class="dmv font-mono">${esc(inv.invoiceNo)}</div></div>
         <div><div class="dml">Client</div><div class="dmv">${esc(inv.client)}</div></div>
         <div><div class="dml">PO Reference</div><div class="dmv">${esc(inv.po||'N/A')}</div></div>
         <div><div class="dml">Due Date</div><div class="dmv">${fmtD(inv.dueDate)}</div></div>
@@ -2947,7 +3202,7 @@ function previewInvoice(id){
         <div class="doc-tot-row grand"><span>TOTAL DUE</span><span>${fmt(inv.amount)}</span></div>
       </div>
       <div class="mt-12">${pillH(inv.status)}</div>
-      <div class="doc-note">Fire, taught to behave.  -  BlackFire Solutions (Pty) Ltd</div>
+      <div class="doc-note">${esc(co2.name||'BlackFire Solutions')}${co2.reg?` · Reg: ${esc(co2.reg)}`:''}${co2.vat?` · VAT: ${esc(co2.vat)}`:''}</div>
     </div>
     <div id="attach-modal-area" class="inv-att-area"></div>`);
   loadAttachments('invoice', id);
@@ -3115,8 +3370,10 @@ async function renderStatement(){
 }
 
 async function generateStatement(){
+  const btn=document.querySelector('[data-action="generateStatement"]');
+  if(btn){if(btn.disabled)return;btn.disabled=true;}
   const r=await api('POST','statements.php?action=generate');
-  if(!r.success){toast(r.error||'Error generating statement','err');return;}
+  if(!r.success){toast(r.error||'Error generating statement','err');if(btn)btn.disabled=false;return;}
   toast(r.message||'Statement generated','ok');
   renderStatement();
 }
@@ -3179,16 +3436,18 @@ async function openReleaseStatementModal(ref_id){
 }
 
 async function releaseStatement(ref_id){
+  const btn=document.querySelector('[data-action="releaseStatement"]');
+  if(btn){if(btn.disabled)return;btn.disabled=true;}
   const from=document.getElementById('rs-from')?.value;
   const to=document.getElementById('rs-to')?.value;
   const extra=document.getElementById('rs-extra')?.value?.trim();
-  if(!from||!to){toast('From and To addresses are required','err');return;}
+  if(!from||!to){toast('From and To addresses are required','err');if(btn)btn.disabled=false;return;}
 
   const tos=[to];
   if(extra) extra.split(',').forEach(e=>{const t=e.trim();if(t)tos.push(t);});
 
   const r=await api('PUT',`statements.php?id=${ref_id}`,{from_email:from,to_emails:tos});
-  if(!r.success){toast(r.error||'Error releasing statement','err');return;}
+  if(!r.success){toast(r.error||'Error releasing statement','err');if(btn)btn.disabled=false;return;}
   closeModalDirect();
   toast(r.message||'Statement released','ok');
   renderStatement();
@@ -3675,13 +3934,15 @@ function openSignAsModal(id) {
 }
 
 async function submitSignAs() {
+  const btn=document.querySelector('[data-action="submitSignAs"]');
+  if(btn){if(btn.disabled)return;btn.disabled=true;}
   const id          = parseInt(document.getElementById('sa-user-id')?.value) || 0;
   const entity_type = document.getElementById('sa-entity-type')?.value;
   const entity_ref  = document.getElementById('sa-entity-ref')?.value?.trim();
   const reason      = document.getElementById('sa-reason')?.value?.trim();
-  if (!id || !entity_ref) { toast('Document reference is required', 'err'); return; }
+  if (!id || !entity_ref) { toast('Document reference is required', 'err'); if(btn)btn.disabled=false; return; }
   const r = await api('POST', `user_signature.php?user_id=${id}&action=sign_as`, { entity_type, entity_ref, reason });
-  if (!r.success) { toast(r.error || 'Error', 'err'); return; }
+  if (!r.success) { toast(r.error || 'Error', 'err'); if(btn)btn.disabled=false; return; }
   closeModalDirect();
   toast(r.message || 'Signed and audited', 'ok');
 }
@@ -3690,44 +3951,127 @@ async function submitSignAs() {
    DASHBOARD EDITOR
 ═══════════════════════════════════════════════════════ */
 function showDashEditor(){
-  const prefs   = getDashPrefs();
-  const widgets = DASH_WIDGETS.filter(w=>!w.perm||can(w.perm));
-  const rows    = widgets.map(w=>{
-    const on=prefs[w.id]!==false;
-    return `<label class="dash-widget-toggle">
-      <div class="dwt-info">
-        <div class="dwt-label">${esc(w.label)}</div>
-        <div class="dwt-desc">${esc(w.desc)}</div>
+  const prefs  = getDashPrefs();
+  const order  = getDashWidgetOrder(prefs);
+  const roles  = SESSION?.roles?.length ? SESSION.roles : (SESSION?.role ? [SESSION.role] : []);
+  const isAdmin = roles.some(r => r==='admin'||r==='sysadmin');
+
+  const rows = order
+    .map(id => DASH_WIDGETS.find(w=>w.id===id))
+    .filter(Boolean)
+    .filter(w => !w.perm || can(w.perm))
+    .map(w => {
+      const on = isWidgetOn(w.id, prefs);
+      return `<div class="dwt-row" data-wid="${esc(w.id)}" draggable="true">
+        <div class="dwt-drag-handle" title="Drag to reorder"><svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" aria-hidden="true"><circle cx="4.5" cy="3" r="1.2"/><circle cx="4.5" cy="7" r="1.2"/><circle cx="4.5" cy="11" r="1.2"/><circle cx="9.5" cy="3" r="1.2"/><circle cx="9.5" cy="7" r="1.2"/><circle cx="9.5" cy="11" r="1.2"/></svg></div>
+        <div class="dwt-info"><div class="dwt-label">${esc(w.label)}</div><div class="dwt-desc">${esc(w.desc)}</div></div>
+        <div class="dwt-switch"><input type="checkbox" id="dw-${w.id}"${on?' checked':''}><span class="dwt-track"></span></div>
+      </div>`;
+    }).join('');
+
+  const adminSection = isAdmin ? `
+    <div class="dash-editor-admin-section">
+      <span class="dash-editor-admin-label">Admin</span>
+      <div class="dash-editor-admin-btns">
+        <button class="btn btn-g btn-s" data-action="setDashDefaultForAll">Set as Default for All</button>
+        <button class="btn btn-g btn-s dash-editor-reset-btn" data-action="resetDashLayoutForAll">Reset All Users</button>
       </div>
-      <div class="dwt-switch">
-        <input type="checkbox" id="dw-${w.id}"${on?' checked':''}>
-        <span class="dwt-track"></span>
-      </div>
-    </label>`;
-  }).join('');
+    </div>` : '';
 
   openModal('Edit Dashboard Layout',`
-    <p class="dash-editor-hint">Choose which sections appear on your dashboard. Changes apply to your account only and persist across sessions.</p>
-    <div class="dash-editor-list">
+    <p class="dash-editor-hint">Drag to reorder sections. Toggle to show or hide. Changes apply to your account only.</p>
+    <div class="dash-editor-list" id="dash-editor-list">
       ${rows||'<p class="text-muted text-center p-20">No widgets available for your role.</p>'}
     </div>
+    ${adminSection}
     <div class="flex-end gap-10 mt-18">
       <button class="btn btn-g btn-s" data-action="closeModalDirect">Cancel</button>
       <button class="btn btn-p btn-s" data-action="saveDashEditorPrefs">Save Layout</button>
     </div>`);
+
+  _initDashEditorDrag();
+}
+
+function _initDashEditorDrag(){
+  const list = document.getElementById('dash-editor-list');
+  if(!list) return;
+  let dragSrc = null;
+
+  list.querySelectorAll('.dwt-row').forEach(row => {
+    row.addEventListener('dragstart', e => {
+      dragSrc = row;
+      e.dataTransfer.effectAllowed = 'move';
+      setTimeout(() => row.classList.add('dw-dragging'), 0);
+    });
+    row.addEventListener('dragend', () => {
+      row.classList.remove('dw-dragging');
+      list.querySelectorAll('.dwt-row').forEach(r => r.classList.remove('dw-drag-over'));
+      dragSrc = null;
+    });
+    row.addEventListener('dragover', e => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      if(row !== dragSrc){
+        list.querySelectorAll('.dwt-row').forEach(r => r.classList.remove('dw-drag-over'));
+        row.classList.add('dw-drag-over');
+      }
+    });
+    row.addEventListener('drop', e => {
+      e.preventDefault();
+      if(dragSrc && row !== dragSrc){
+        const rows = [...list.querySelectorAll('.dwt-row')];
+        const srcIdx = rows.indexOf(dragSrc);
+        const tgtIdx = rows.indexOf(row);
+        if(srcIdx < tgtIdx) row.after(dragSrc);
+        else row.before(dragSrc);
+      }
+      list.querySelectorAll('.dwt-row').forEach(r => r.classList.remove('dw-drag-over'));
+    });
+  });
 }
 
 function saveDashEditorPrefs(){
-  const prefs=getDashPrefs();
-  DASH_WIDGETS.forEach(w=>{
-    const cb=document.getElementById('dw-'+w.id);
-    if(cb) prefs[w.id]=cb.checked;
-  });
-  saveDashPrefs(prefs);
+  const {order, enabled} = _readDashEditorState();
+  saveDashPrefs({ enabled, order, customized: true });
   closeModalDirect();
   renderDashboard();
   if(isWidgetOn('w-compliance')&&can('safety.view')) safLoadDashCompliance();
   toast('Dashboard layout saved','ok');
+}
+
+function setDashDefaultForAll(){
+  if(!confirm('Set this layout as the default for all users who haven\'t customised their own dashboard?')) return;
+  const {order, enabled} = _readDashEditorState();
+  const layout = {enabled, order};
+  localStorage.setItem('bf_dash_default', JSON.stringify(layout));
+  api('PUT', 'dashboard_prefs.php?action=set_default', layout).then(r => {
+    if(!r.success) toast('Could not save default to server: ' + (r.error||''), 'err');
+  });
+  toast('Default layout saved — applies to users without a personal layout','ok');
+}
+
+async function resetDashLayoutForAll(){
+  if(!confirm('Reset ALL users\' dashboard layouts? Everyone (except you) reverts to the default on their next load.')) return;
+  const r = await api('PUT', 'dashboard_prefs.php?action=reset_all', {});
+  if(!r.success){ toast('Reset failed: ' + (r.error||'unknown error'), 'err'); return; }
+  toast('All user layouts reset to default','ok');
+}
+
+function _readDashEditorState(){
+  const list = document.getElementById('dash-editor-list');
+  const order=[], enabled={};
+  if(list){
+    list.querySelectorAll('.dwt-row[data-wid]').forEach(row=>{
+      const wid = row.dataset.wid;
+      order.push(wid);
+      const cb = row.querySelector('input[type=checkbox]');
+      enabled[wid] = cb ? cb.checked : true;
+    });
+  } else {
+    const prefs = getDashPrefs();
+    getDashWidgetOrder(prefs).forEach(id=>{ order.push(id); enabled[id]=isWidgetOn(id,prefs); });
+  }
+  return {order, enabled};
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -3739,7 +4083,10 @@ function openModal(title,html){
   document.getElementById('modal-overlay').classList.add('show');
 }
 function closeModal(e){ if(e.target===document.getElementById('modal-overlay')) closeModalDirect(); }
-function closeModalDirect(){ document.getElementById('modal-overlay').classList.remove('show'); }
+function closeModalDirect(){
+  document.getElementById('modal-overlay').classList.remove('show');
+  if (_dvBlobUrl) { URL.revokeObjectURL(_dvBlobUrl); _dvBlobUrl = null; }
+}
 
 /* ═══════════════════════════════════════════════════════
    INIT
@@ -3784,7 +4131,7 @@ document.addEventListener('DOMContentLoaded', async ()=>{
     document.documentElement.dataset.state = 'portal';
     { const _rl = SESSION.roles?.length > 1 ? SESSION.roles.map(r=>ROLE_LABELS[r]||r).join(' + ') : (ROLE_LABELS[SESSION.role]||SESSION.role);
       document.getElementById('dash-sub').textContent = `AECI CHEMPARK  -  ${_rl.toUpperCase()} VIEW`; }
-    await refreshAll();
+    await Promise.all([refreshAll(), loadDashPrefsFromAPI()]);
     const _roleMap = { call_logger:'p-new-callout', junior_tech:'p-callouts', senior_tech:'p-callouts', client_support:'p-dashboard', admin_clerk:'p-callouts', safety_officer:'p-safety' };
     const _allRoles = SESSION.roles?.length ? SESSION.roles : [SESSION.role];
     const firstPage = Object.entries(_roleMap).find(([r])=>_allRoles.includes(r))?.[1] || 'p-dashboard';
@@ -3814,6 +4161,8 @@ function updateBadges(){
 
 /* ── Override: saveCallout ───────────────────────────── */
 async function saveCallout(){
+  const btn=document.querySelector('[data-action="saveCallout"]');
+  if(btn){if(btn.disabled)return;btn.disabled=true;}
   const clientId = parseInt(document.getElementById('nc-client')?.value) || 0;
   const service = document.getElementById('nc-service')?.value?.trim();
   const location = document.getElementById('nc-location')?.value?.trim() || '';
@@ -3822,10 +4171,11 @@ async function saveCallout(){
   const assignedTo = document.getElementById('nc-assign')?.value?.trim() || '';
   const notes = document.getElementById('nc-notes')?.value?.trim() || '';
   const calloutTime = document.getElementById('nc-time')?.value || '08:00';
-  const po = document.getElementById('nc-po')?.value?.trim() || '';
+  const po    = document.getElementById('nc-po')?.value?.trim() || '';
+  const jobNo = document.getElementById('nc-job-no')?.value?.trim() || '';
 
-  if (!clientId) { toast('Please select a client', 'err'); return; }
-  if (!service) { toast('Please fill in the service field', 'err'); return; }
+  if (!clientId) { toast('Please select a client', 'err'); if(btn)btn.disabled=false; return; }
+  if (!service) { toast('Please fill in the service field', 'err'); if(btn)btn.disabled=false; return; }
 
   const r = await api('POST', 'callouts.php', {
     client_id: clientId,
@@ -3839,9 +4189,10 @@ async function saveCallout(){
     callout_time: calloutTime,
     notes,
     po,
+    job_no: jobNo,
   });
-  
-  if (!r.success) { toast(r.error || 'Error saving callout', 'err'); return; }
+
+  if (!r.success) { toast(r.error || 'Error saving callout', 'err'); if(btn)btn.disabled=false; return; }
   
   await refreshCallouts();
   updateBadges();
@@ -3919,11 +4270,13 @@ async function deleteQuote(id){
 
 /* ── Override: saveQuote ─────────────────────────────── */
 async function saveQuote(){
+  const btn=document.querySelector('[data-action="saveQuote"]');
+  if(btn){if(btn.disabled)return;btn.disabled=true;}
   const clientId = parseInt(document.getElementById('nq-client')?.value) || 0;
   const validUntil = document.getElementById('nq-valid')?.value;
   const notes = document.getElementById('nq-notes')?.value?.trim() || '';
 
-  if (!clientId) { toast('Please select a client', 'err'); return; }
+  if (!clientId) { toast('Please select a client', 'err'); if(btn)btn.disabled=false; return; }
 
   // Collect line items from the actual row HTML (inputs indexed by position)
   const rows = document.querySelectorAll('#li-body tr');
@@ -3936,11 +4289,12 @@ async function saveQuote(){
     if (desc) items.push({ desc, qty, unit });
   });
 
-  if (!items.length) { toast('Add at least one line item', 'err'); return; }
+  if (!items.length) { toast('Add at least one line item', 'err'); if(btn)btn.disabled=false; return; }
 
   const calloutRef = document.getElementById('nq-callout-ref')?.value || '';
-  const r = await api('POST', 'quotes.php', { client_id: clientId, items, valid_until: validUntil, notes, callout_ref: calloutRef });
-  if (!r.success) { toast(r.error || 'Error saving quote', 'err'); return; }
+  const quoteNo    = document.getElementById('nq-quote-no')?.value?.trim() || '';
+  const r = await api('POST', 'quotes.php', { client_id: clientId, items, valid_until: validUntil, notes, callout_ref: calloutRef, quote_no: quoteNo });
+  if (!r.success) { toast(r.error || 'Error saving quote', 'err'); if(btn)btn.disabled=false; return; }
   
   await refreshQuotes();
   updateBadges();
@@ -3996,6 +4350,8 @@ async function deleteInvoice(id){
 
 /* ── Override: saveInvoice ───────────────────────────── */
 async function saveInvoice(){
+  const btn=document.querySelector('[data-action="saveInvoice"]');
+  if(btn){if(btn.disabled)return;btn.disabled=true;}
   const clientId   = parseInt(document.getElementById('ni-client')?.value) || 0;
   const amount     = parseFloat(document.getElementById('ni-amount')?.value) || 0;
   const dueDate    = document.getElementById('ni-due')?.value;
@@ -4004,11 +4360,12 @@ async function saveInvoice(){
   const quoteRef   = document.getElementById('ni-quote-ref')?.value || '';
   const calloutRef = document.getElementById('ni-callout-ref')?.value || '';
 
-  if (!clientId) { toast('Please select a client', 'err'); return; }
-  if (!amount || !dueDate) { toast('Fill in amount and due date', 'err'); return; }
+  if (!clientId) { toast('Please select a client', 'err'); if(btn)btn.disabled=false; return; }
+  if (!amount || !dueDate) { toast('Fill in amount and due date', 'err'); if(btn)btn.disabled=false; return; }
 
-  const r = await api('POST', 'invoices.php', { client_id: clientId, amount, due_date: dueDate, status, po, quote_ref: quoteRef, callout_ref: calloutRef });
-  if (!r.success) { toast(r.error || 'Error', 'err'); return; }
+  const invoiceNo  = document.getElementById('ni-invoice-no')?.value?.trim() || '';
+  const r = await api('POST', 'invoices.php', { client_id: clientId, amount, due_date: dueDate, status, po, quote_ref: quoteRef, callout_ref: calloutRef, invoice_no: invoiceNo });
+  if (!r.success) { toast(r.error || 'Error', 'err'); if(btn)btn.disabled=false; return; }
   
   await refreshInvoices();
   updateBadges();
@@ -4018,15 +4375,17 @@ async function saveInvoice(){
 
 /* ── Override: logPayment ────────────────────────────── */
 async function logPayment(){
+  const btn=document.querySelector('[data-action="logPayment"]');
+  if(btn){if(btn.disabled)return;btn.disabled=true;}
   const checked = [...document.querySelectorAll('input[name="pay-sel"]:checked')];
-  if (!checked.length) { toast('Select at least one invoice', 'err'); return; }
+  if (!checked.length) { toast('Select at least one invoice', 'err'); if(btn)btn.disabled=false; return; }
   const invoice_refs = checked.map(b => b.value);
   const date   = document.getElementById('pay-date')?.value || localDateStr();
   const amount = parseFloat(document.getElementById('pay-amount')?.value) || 0;
   const notes  = document.getElementById('pay-notes')?.value?.trim() || '';
 
   const r = await api('POST', 'payments.php', { invoice_refs, payment_date: date, amount, notes });
-  if (!r.success) { toast(r.error || 'Error', 'err'); return; }
+  if (!r.success) { toast(r.error || 'Error', 'err'); if(btn)btn.disabled=false; return; }
 
   const payRef = r.payment_ref;
   const fileInput = document.getElementById('pay-remittance');
@@ -4122,39 +4481,39 @@ function renderClients(search = '') {
 }
 
 function openClientModal(id) {
-  const modal = document.getElementById('client-modal');
-  if (!modal) return;
-  document.getElementById('cm-id').value = id || '';
-  document.getElementById('client-modal-title').textContent = id ? 'Edit Client' : 'Add Client';
-  if (id) {
-    const c = (DB.clients || []).find(x => x.id === id);
-    if (c) {
-      document.getElementById('cm-name').value    = c.name || '';
-      document.getElementById('cm-phone').value   = c.phone || '';
-      document.getElementById('cm-vat').value     = c.vat_number || '';
-      document.getElementById('cm-address').value = c.address || '';
-      document.getElementById('cm-notes').value   = c.notes || '';
-      modalContacts = (c.contacts || []).map(ct => ({
-        contact_name: ct.contact_name || '',
-        email:        ct.email || '',
-        phone:        ct.phone || '',
-        title:        ct.title || '',
-        is_primary:   +ct.is_primary || 0,
-      }));
-    }
-  } else {
-    ['cm-name','cm-phone','cm-vat','cm-address','cm-notes']
-      .forEach(f => { const el = document.getElementById(f); if (el) el.value = ''; });
-    modalContacts = [];
-  }
+  const c = id ? (DB.clients || []).find(x => x.id === id) : null;
+  openModal(id ? 'Edit Client' : 'Add Client', `
+    <input type="hidden" id="cm-id" value="${id || ''}">
+    <div class="fgrid">
+      <div class="fgroup ffull"><label class="flbl">Client Name <span class="req">*</span></label><input class="finput" id="cm-name" placeholder="Company or client name" value="${esc(c?.name||'')}"></div>
+      <div class="fgroup"><label class="flbl">Phone (Main)</label><input class="finput" id="cm-phone" placeholder="+27 11 000 0000" value="${esc(c?.phone||'')}"></div>
+      <div class="fgroup"><label class="flbl">VAT Number</label><input class="finput" id="cm-vat" placeholder="4XXXXXXXXX" value="${esc(c?.vat_number||'')}"></div>
+      <div class="fgroup ffull"><label class="flbl">Address</label><textarea class="finput" id="cm-address" rows="2" placeholder="Street, suburb, city, postal code">${esc(c?.address||'')}</textarea></div>
+      <div class="fgroup ffull"><label class="flbl">Notes</label><textarea class="finput" id="cm-notes" rows="3" placeholder="Internal notes, contract details, billing terms...">${esc(c?.notes||'')}</textarea></div>
+    </div>
+    <div class="cm-contacts-section">
+      <div class="cm-contacts-hdr">
+        <span class="flbl">Contacts</span>
+        <button type="button" class="btn btn-g btn-xs" data-action="addClientContact">+ Add Contact</button>
+      </div>
+      <div id="cm-contacts-list"></div>
+    </div>
+    <div class="mt2 flex-end" style="gap:8px">
+      <button class="btn btn-g" data-action="closeModalDirect">Cancel</button>
+      <button class="btn btn-p" data-action="saveClient">Save Client</button>
+    </div>
+  `);
+  modalContacts = c ? (c.contacts || []).map(ct => ({
+    contact_name: ct.contact_name || '',
+    email:        ct.email || '',
+    phone:        ct.phone || '',
+    title:        ct.title || '',
+    is_primary:   +ct.is_primary || 0,
+  })) : [];
   renderModalContacts();
-  $show(modal, 'flex');
 }
 
-function closeClientModal() {
-  const modal = document.getElementById('client-modal');
-  if (modal) $hide(modal);
-}
+function closeClientModal() { closeModalDirect(); }
 
 async function saveClient() {
   const id   = parseInt(document.getElementById('cm-id')?.value) || 0;
@@ -5012,8 +5371,8 @@ async function editSafetyFile(){
 function _safBuildApiBody(file, status){
   const body={
     contractor:        file.contractor,
-    contractor_rep:    file.contractorRep,    contractor_rep_id: file.contractorRepId  || null,
-    appointee162:      file.appointee162,     appointee162_id:   file.appointee162Id   || null,
+    contractor_rep_id: file.contractorRepId  || null,
+    appointee162_id:   file.appointee162Id   || null,
     audit_date:        file.auditDate,
     region:        file.region,        audit_team:     file.auditTeam,
     scope_of_work: file.scopeOfWork,   manpower:       file.manpower,

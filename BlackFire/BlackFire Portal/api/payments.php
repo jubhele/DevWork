@@ -29,9 +29,12 @@ if ($method === 'GET') {
     require_perm('invoice.mark_paid');
     $rows = db_select(
         "SELECT p.id, p.payment_ref, p.invoice_ref, p.client_name, p.amount,
-                p.payment_date, p.notes, p.logged_by, p.created_at,
+                p.payment_date, p.notes,
+                COALESCE(u.username, '') AS logged_by,
+                p.created_at,
                 a.id AS file_id, a.original_name, a.file_size
            FROM bf_payments p
+           LEFT JOIN bf_users u ON u.id = p.logged_by_user_id
            LEFT JOIN bf_attachments a
              ON a.entity_type = 'payment' AND a.entity_ref = p.payment_ref
           ORDER BY p.payment_date DESC, p.id DESC

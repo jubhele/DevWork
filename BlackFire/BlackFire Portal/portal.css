@@ -501,9 +501,7 @@ tr:hover td{background:var(--row-hover)}
 .liinput:focus{border-color:var(--accent)}
 .doc-preview{background:#fff;color:#1a1814;padding:36px;font-family:'Instrument Sans',sans-serif;font-size:13px;border-radius:2px;min-height:560px}
 .doc-logo-row{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px;padding-bottom:18px;border-bottom:3px solid #C0392B}
-.doc-bname{font-family:'Big Shoulders Display',sans-serif;font-size:22px;font-weight:900;color:#0A0E19}
-.doc-bname em{color:#F07820;font-style:normal}
-.doc-btag{font-size:8px;letter-spacing:3px;color:#C0392B;text-transform:uppercase;margin-top:2px}
+.doc-logo-img{height:52px;width:auto;display:block}
 .doc-type{font-family:'Big Shoulders Display',sans-serif;font-size:26px;font-weight:700;color:#0A0E19;margin-bottom:18px}
 .doc-meta{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
 .dml{font-size:8px;letter-spacing:2px;color:#7A7566;text-transform:uppercase;margin-bottom:3px}
@@ -1248,9 +1246,14 @@ textarea.saf-cmt { resize:vertical; min-height:28px; width:100% }
 /* Dashboard editor (rendered inside shared modal body) */
 .dash-editor-hint           { font-size:12px; color:var(--muted); margin:0 0 14px }
 .dash-editor-list           { border:1px solid var(--border); border-radius:2px; overflow:hidden }
-.dash-widget-toggle         { display:flex; justify-content:space-between; align-items:center; padding:14px 16px; gap:16px; cursor:pointer; border-bottom:1px solid var(--border); background:var(--surface) }
-.dash-widget-toggle:last-child { border-bottom:none }
-.dash-widget-toggle:hover   { background:var(--surface2) }
+/* .dwt-row replaces old .dash-widget-toggle — draggable row */
+.dwt-row                    { display:flex; align-items:center; gap:12px; padding:14px 16px; border-bottom:1px solid var(--border); background:var(--surface); cursor:default; transition:background .15s }
+.dwt-row:last-child         { border-bottom:none }
+.dwt-row:hover              { background:var(--surface2) }
+.dwt-row.dw-dragging        { opacity:.35 }
+.dwt-row.dw-drag-over       { box-shadow:0 -2px 0 0 var(--ember) inset; background:var(--surface2) }
+.dwt-drag-handle            { color:var(--muted); cursor:grab; flex-shrink:0; line-height:0; padding:2px 4px; user-select:none }
+.dwt-drag-handle:active     { cursor:grabbing }
 .dwt-info                   { flex:1; min-width:0 }
 .dwt-label                  { font-size:13px; font-weight:600; color:var(--text); margin-bottom:3px }
 .dwt-desc                   { font-size:11px; color:var(--muted); line-height:1.4 }
@@ -1260,6 +1263,11 @@ textarea.saf-cmt { resize:vertical; min-height:28px; width:100% }
 .dwt-switch input:checked + .dwt-track { background:var(--ember) }
 .dwt-track::after           { content:''; position:absolute; top:3px; left:3px; width:16px; height:16px; background:#fff; border-radius:50%; box-shadow:0 1px 3px rgba(0,0,0,.25); transition:transform .2s }
 .dwt-switch input:checked + .dwt-track::after { transform:translateX(18px) }
+/* Admin default-layout row at bottom of editor */
+.dash-editor-admin-section  { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:14px; padding-top:12px; border-top:1px solid var(--border) }
+.dash-editor-admin-label    { font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); flex-shrink:0 }
+.dash-editor-admin-btns     { display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end }
+.dash-editor-reset-btn      { color:var(--ember)!important; border-color:var(--ember)!important }
 
 /* ═══════════════════════════════════════════════════════
    ■ MOBILE — HAMBURGER NAV  +  FULL RESPONSIVE PASS

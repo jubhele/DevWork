@@ -27,6 +27,7 @@ DELETE FROM bf_role_permissions;
 INSERT INTO bf_role_permissions (role, permission) VALUES
   ('sysadmin', 'callout.view'),
   ('sysadmin', 'callout.create'),
+  ('sysadmin', 'callout.update'),
   ('sysadmin', 'callout.update_status'),
   ('sysadmin', 'callout.assign_po'),
   ('sysadmin', 'callout.assign_tech'),
@@ -67,6 +68,7 @@ INSERT INTO bf_role_permissions (role, permission) VALUES
 INSERT INTO bf_role_permissions (role, permission) VALUES
   ('admin', 'callout.view'),
   ('admin', 'callout.create'),
+  ('admin', 'callout.update'),
   ('admin', 'callout.update_status'),
   ('admin', 'callout.assign_po'),
   ('admin', 'callout.assign_tech'),
@@ -107,6 +109,7 @@ INSERT INTO bf_role_permissions (role, permission) VALUES
 INSERT INTO bf_role_permissions (role, permission) VALUES
   ('manager', 'callout.view'),
   ('manager', 'callout.create'),
+  ('manager', 'callout.update'),
   ('manager', 'callout.update_status'),
   ('manager', 'callout.assign_po'),
   ('manager', 'callout.assign_tech'),
@@ -143,6 +146,7 @@ INSERT INTO bf_role_permissions (role, permission) VALUES
 -- ============================================================
 INSERT INTO bf_role_permissions (role, permission) VALUES
   ('admin_clerk', 'callout.view'),
+  ('admin_clerk', 'callout.update'),
   ('admin_clerk', 'callout.update_status'),
   ('admin_clerk', 'callout.assign_po'),
   ('admin_clerk', 'callout.assign_tech'),
@@ -170,6 +174,7 @@ INSERT INTO bf_role_permissions (role, permission) VALUES
 INSERT INTO bf_role_permissions (role, permission) VALUES
   ('call_logger', 'callout.view'),
   ('call_logger', 'callout.create'),
+  ('call_logger', 'callout.update'),
   ('call_logger', 'callout.update_status'),
   ('call_logger', 'capture.new_callout'),
   ('call_logger', 'safety.view');
@@ -179,6 +184,7 @@ INSERT INTO bf_role_permissions (role, permission) VALUES
 -- ============================================================
 INSERT INTO bf_role_permissions (role, permission) VALUES
   ('junior_tech', 'callout.view'),
+  ('junior_tech', 'callout.update'),
   ('junior_tech', 'callout.update_status'),
   ('junior_tech', 'safety.view');
 
@@ -187,6 +193,7 @@ INSERT INTO bf_role_permissions (role, permission) VALUES
 -- ============================================================
 INSERT INTO bf_role_permissions (role, permission) VALUES
   ('senior_tech', 'callout.view'),
+  ('senior_tech', 'callout.update'),
   ('senior_tech', 'callout.update_status'),
   ('senior_tech', 'quote.view'),
   ('senior_tech', 'quote.create'),
@@ -230,6 +237,7 @@ INSERT INTO bf_role_permissions (role, permission) VALUES
 -- Permission              | sysadmin | admin | manager | admin_clerk | call_logger | junior_tech | senior_tech | client_support | viewer | safety_officer
 -- callout.view            |    ✓     |   ✓   |    ✓    |      ✓      |      ✓      |      ✓      |      ✓      |       ✓        |   ✓    |      -
 -- callout.create          |    ✓     |   ✓   |    ✓    |      -      |      ✓      |      -      |      -      |       ✓        |   -    |      -
+-- callout.update          |    ✓     |   ✓   |    ✓    |      ✓      |      ✓      |      ✓      |      ✓      |       -        |   -    |      -
 -- callout.update_status   |    ✓     |   ✓   |    ✓    |      ✓      |      ✓      |      ✓      |      ✓      |       -        |   -    |      -
 -- callout.assign_po       |    ✓     |   ✓   |    ✓    |      ✓      |      -      |      -      |      -      |       -        |   -    |      -
 -- callout.assign_tech     |    ✓     |   ✓   |    ✓    |      ✓      |      -      |      -      |      -      |       -        |   -    |      -

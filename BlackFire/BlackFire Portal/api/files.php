@@ -74,7 +74,7 @@ if ($method === 'GET' && ($action === 'download' || $action === 'view')) {
     if (!$row) { api_headers(); json_err('File not found', 404); }
 
     // IDOR Protection: restrict to uploader or admin/manager.
-    if (!in_array($user['role'], ['admin', 'manager'], true) && $row['uploaded_by'] !== $user['username']) {
+    if (!in_array($user['role'], ['admin', 'manager'], true) && (int)($row['uploaded_by_id'] ?? 0) !== (int)$user['id']) {
         api_headers(); json_err('Permission denied', 403);
     }
 
@@ -94,6 +94,11 @@ if ($method === 'GET' && ($action === 'download' || $action === 'view')) {
     header('Content-Length: ' . filesize($path));
     header('X-Content-Type-Options: nosniff');
     header('Cache-Control: private, no-cache');
+    // Allow same-origin iframe embedding for the inline document viewer
+    if ($action === 'view') {
+        header('X-Frame-Options: SAMEORIGIN');
+        header('Content-Security-Policy: default-src \'self\'');
+    }
     readfile($path);
     exit;
 }
@@ -188,9 +193,9 @@ if ($method === 'POST') {
     }
 
     $att_id = db_insert(
-        "INSERT INTO bf_attachments (entity_type, entity_ref, original_name, stored_name, file_size, mime_type, uploaded_by)
+        "INSERT INTO bf_attachments (entity_type, entity_ref, original_name, stored_name, file_size, mime_type, uploaded_by_id)
          VALUES (?,?,?,?,?,?,?)",
-        [$entity_type, $entity_ref, basename($f['name']), $stored, (int)$f['size'], $mime, $user['username']]
+        [$entity_type, $entity_ref, basename($f['name']), $stored, (int)$f['size'], $mime, (int)$user['id']]
     );
 
     audit($user['username'], 'FILE_UPLOAD',
@@ -217,7 +222,7 @@ if ($method === 'DELETE') {
     $row = db_row("SELECT * FROM bf_attachments WHERE id = ?", [$id]);
     if (!$row) json_err('File not found', 404);
 
-    if (!in_array($user['role'], ['admin', 'manager'], true) && $row['uploaded_by'] !== $user['username']) {
+    if (!in_array($user['role'], ['admin', 'manager'], true) && (int)($row['uploaded_by_id'] ?? 0) !== (int)$user['id']) {
         json_err('Permission denied', 403);
     }
 

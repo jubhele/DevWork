@@ -358,7 +358,7 @@ ob_end_clean();
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Reports — BlackFire Solutions</title>
+<title>Reports — <?= htmlspecialchars($cfg['company_name'] ?? 'BlackFire Solutions') ?></title>
 <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -472,7 +472,7 @@ td.hi{color:var(--text);font-weight:600}
   <div class="rpt-header">
     <div>
       <h1>Safety &amp; Operations Overview</h1>
-      <p>AECI Chempark · Astute Insights / BlackFire Solutions · <?= date('d M Y') ?> · <?= htmlspecialchars($user['username']) ?></p>
+      <p>AECI Chempark · <?= htmlspecialchars($cfg['company_name'] ?? 'BlackFire Solutions') ?> · <?= date('d M Y') ?> · <?= htmlspecialchars($user['username']) ?></p>
     </div>
     <div class="rpt-header-actions">
       <button class="btn-back" onclick="window.location='/'">← Portal</button>

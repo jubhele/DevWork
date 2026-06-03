@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $rec && !$acknowledged && !$decline
     }
 }
 
-$company = htmlspecialchars($cfg['company_name'] ?? 'Astute Insights / BlackFire Solutions');
+$company = htmlspecialchars($cfg['company_name'] ?? 'BlackFire Solutions');
 $name_h  = $rec ? htmlspecialchars($rec['recipient_name']) : '';
 $title_h = $rec ? htmlspecialchars($rec['policy_title'])   : '';
 $ref_h   = $rec ? htmlspecialchars($rec['file_ref'])       : '';

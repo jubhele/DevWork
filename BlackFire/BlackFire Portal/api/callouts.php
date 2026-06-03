@@ -43,14 +43,17 @@ if ($method === 'GET') {
     // Search filter
     if ($q) {
         $like = '%' . like_escape($q) . '%';
-        $where .= ($where ? ' AND' : ' WHERE') . ' (ref_id LIKE ? ESCAPE \'\\\\\' OR client_name LIKE ? ESCAPE \'\\\\\' OR service LIKE ? ESCAPE \'\\\\\' OR location LIKE ? ESCAPE \'\\\\\')';
-        array_push($params, $like, $like, $like, $like);
+        $where .= ($where ? ' AND' : ' WHERE') . ' (ref_id LIKE ? ESCAPE \'\\\\\' OR job_no LIKE ? ESCAPE \'\\\\\' OR client_name LIKE ? ESCAPE \'\\\\\' OR service LIKE ? ESCAPE \'\\\\\' OR location LIKE ? ESCAPE \'\\\\\')';
+        array_push($params, $like, $like, $like, $like, $like);
     }
 
     $total = db_row("SELECT COUNT(*) AS n FROM bf_callouts $where", $params)['n'] ?? 0;
 
     $rows = db_select(
-        "SELECT * FROM bf_callouts $where ORDER BY callout_date DESC, created_at DESC LIMIT {$pg['limit']} OFFSET {$pg['offset']}",
+        "SELECT c.*, COALESCE(u.username,'') AS logged_by
+           FROM bf_callouts c
+           LEFT JOIN bf_users u ON u.id = c.logged_by_user_id
+          $where ORDER BY c.callout_date DESC, c.created_at DESC LIMIT {$pg['limit']} OFFSET {$pg['offset']}",
         $params
     );
 
@@ -91,14 +94,18 @@ if ($method === 'POST') {
         $assigned_to_user_id = $au ? (int)$au['id'] : null;
     }
 
-    $ref = next_ref_id('co');
+    $ref    = next_ref_id('co');
+    $job_no = clean($b['job_no'] ?? '', 50);
+    if (!$job_no) $job_no = $ref;
+
     $id  = db_insert(
         "INSERT INTO bf_callouts
-         (ref_id, client_id, client_name, client_email, service, location, tech, assigned_to, assigned_to_user_id,
+         (ref_id, job_no, client_id, client_name, client_email, service, location, tech, assigned_to, assigned_to_user_id,
           priority, status, approval_status, callout_date, callout_time, notes, logged_by_user_id, po)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
         [
             $ref,
+            $job_no,
             $client_id,
             $client_name,
             $client_email,
@@ -202,7 +209,7 @@ if ($method === 'PUT') {
     // ── Standard field update ────────────────────────────────────────
     $allowed = [
         'client_name', 'service', 'location', 'tech', 'assigned_to',
-        'priority', 'status', 'callout_date', 'callout_time', 'notes', 'po'
+        'priority', 'status', 'callout_date', 'callout_time', 'notes', 'po', 'job_no'
     ];
 
     require_perm('callout.update');

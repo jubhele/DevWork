@@ -71,7 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $rec && !$error && !$signed && !$de
     }
 }
 
-$company = htmlspecialchars($cfg['company_name'] ?? 'Astute Insights / BlackFire Solutions');
+$company = htmlspecialchars($cfg['company_name'] ?? 'BlackFire Solutions');
 $name_h  = $rec ? htmlspecialchars($rec['signer_name'])                  : '';
 $label_h = $rec ? htmlspecialchars($rec['document_label'])               : '';
 $role_h  = $rec && $rec['signer_role'] ? htmlspecialchars($rec['signer_role']) : '';

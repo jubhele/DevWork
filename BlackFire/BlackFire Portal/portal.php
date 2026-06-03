@@ -7,6 +7,8 @@
 $cfg = require __DIR__ . '/config/config.php';
 date_default_timezone_set($cfg['timezone'] ?? 'Africa/Johannesburg');
 $cspNonce = base64_encode(random_bytes(16));
+// Absolute URL for the logo — used in OG/Twitter/JSON-LD meta tags
+$companyLogoUrl = rtrim($cfg['base_url'] ?? '', '/') . '/' . ltrim($cfg['company_logo'] ?? 'blackfire_logo_transparent.png', './');
 ?>
 <!DOCTYPE html>
 <html lang="en" data-theme="light" data-state="public">
@@ -17,34 +19,34 @@ $cspNonce = base64_encode(random_bytes(16));
 <meta name="description" content="BlackFire Solutions — PSIRA registered security company headquartered in Gauteng, operating nationwide. Specialists in next-generation security: drone surveillance, AI-powered CCTV, access control, armed response and integrated security systems across South Africa. 500+ clients. Call +27 68 912 6581.">
 <meta name="keywords" content="security company South Africa, armed response Gauteng, drone security South Africa, drone surveillance Johannesburg, aerial security monitoring, CCTV installation South Africa, AI security systems, smart security Gauteng, access control nationwide, security guards South Africa, PSIRA registered security, integrated security solutions, remote monitoring South Africa, thermal imaging security, perimeter detection, electronic security Gauteng, event security South Africa, industrial security, commercial security Johannesburg, BlackFire Solutions">
 <meta name="robots" content="index, follow">
-<meta name="author" content="BlackFire Solutions (Pty) Ltd">
+<meta name="author" content="<?= htmlspecialchars($cfg['company_legal_name'] ?? $cfg['company_name'] ?? 'BlackFire Solutions') ?>">
 <link rel="canonical" href="https://blackfiresolutions.co.za/">
 <!-- Open Graph -->
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://blackfiresolutions.co.za/">
-<meta property="og:title" content="BlackFire Solutions — Security Engineered to Protect">
+<meta property="og:title" content="<?= htmlspecialchars($cfg['company_name'] ?? 'BlackFire Solutions') ?> — Security Engineered to Protect">
 <meta property="og:description" content="PSIRA registered security company headquartered in Gauteng, operating nationwide. Specialists in drone surveillance, AI-powered CCTV, access control, armed response and integrated security technology across South Africa. 500+ clients. 55+ services.">
-<meta property="og:image" content="https://blackfiresolutions.co.za/blackfire_logo_transparent.png">
+<meta property="og:image" content="<?= htmlspecialchars($companyLogoUrl) ?>">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:site_name" content="BlackFire Solutions">
+<meta property="og:site_name" content="<?= htmlspecialchars($cfg['company_name'] ?? 'BlackFire Solutions') ?>">
 <meta property="og:locale" content="en_ZA">
 <!-- Twitter Card -->
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="BlackFire Solutions — Security Engineered to Protect">
+<meta name="twitter:title" content="<?= htmlspecialchars($cfg['company_name'] ?? 'BlackFire Solutions') ?> — Security Engineered to Protect">
 <meta name="twitter:description" content="PSIRA registered. Drone surveillance, AI CCTV, armed response nationwide. Based in Gauteng, operating across South Africa. Next-gen security technology. +27 68 912 6581">
-<meta name="twitter:image" content="https://blackfiresolutions.co.za/blackfire_logo_transparent.png">
+<meta name="twitter:image" content="<?= htmlspecialchars($companyLogoUrl) ?>">
 <!-- JSON-LD Structured Data -->
 <script type="application/ld+json" nonce="<?= $cspNonce ?>">
 {
   "@context": "https://schema.org",
   "@type": "LocalBusiness",
   "@id": "https://blackfiresolutions.co.za/",
-  "name": "BlackFire Solutions (Pty) Ltd",
-  "alternateName": "BlackFire Solutions",
-  "url": "https://blackfiresolutions.co.za",
-  "logo": "https://blackfiresolutions.co.za/blackfire_logo_transparent.png",
-  "image": "https://blackfiresolutions.co.za/blackfire_logo_transparent.png",
+  "name": <?= json_encode($cfg['company_legal_name'] ?? 'BlackFire Solutions (Pty) Ltd') ?>,
+  "alternateName": <?= json_encode($cfg['company_name'] ?? 'BlackFire Solutions') ?>,
+  "url": <?= json_encode($cfg['base_url'] ?? 'https://blackfiresolutions.co.za') ?>,
+  "logo": "<?= htmlspecialchars($companyLogoUrl) ?>",
+  "image": "<?= htmlspecialchars($companyLogoUrl) ?>",
   "description": "PSIRA registered security company headquartered in Gauteng, providing next-generation security solutions nationwide. Specialising in drone surveillance, AI-powered CCTV, access control, armed response, perimeter detection, thermal imaging and integrated security systems across South Africa.",
   "telephone": "+27689126581",
   "email": "info@blackfiresolutions.co.za",
@@ -96,8 +98,8 @@ $cspNonce = base64_encode(random_bytes(16));
 }
 </script>
 <meta name="csp-nonce" content="<?= htmlspecialchars($cspNonce, ENT_QUOTES) ?>">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' https://fonts.googleapis.com 'nonce-<?= $cspNonce ?>'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; script-src 'self' 'nonce-<?= $cspNonce ?>'; connect-src 'self'; object-src 'none';">
-<title>BlackFire Solutions - Fire, taught to behave.</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' https://fonts.googleapis.com 'nonce-<?= $cspNonce ?>'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; script-src 'self' 'nonce-<?= $cspNonce ?>'; connect-src 'self'; frame-src 'self' blob:; object-src 'none';">
+<title><?= htmlspecialchars($cfg['company_name'] ?? 'BlackFire Solutions') ?> - <?= htmlspecialchars($cfg['company_tagline'] ?? 'Fire, taught to behave.') ?></title>
 <link rel="icon" href="./favicon.ico?v=20260521" sizes="any">
 <link rel="icon" type="image/png" sizes="512x512" href="./favicon-512x512.png?v=20260521">
 <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png?v=20260521">
@@ -115,7 +117,7 @@ $cspNonce = base64_encode(random_bytes(16));
 <!-- Public Nav — always visible across all states -->
 <nav id="pub-nav">
   <div class="pub-brand" data-action="pubNav" data-pub-page="home">
-    <img src="./blackfire_logo_transparent.png" class="bf-logo-dark" height="60"><img src="./blackfire_logo_transparent.png" class="bf-logo-light" height="60">
+    <img src="<?= htmlspecialchars($cfg['company_logo'] ?? './blackfire_logo_transparent.png') ?>" class="bf-logo-dark" height="60"><img src="<?= htmlspecialchars($cfg['company_logo'] ?? './blackfire_logo_transparent.png') ?>" class="bf-logo-light" height="60">
   </div>
   <div class="pub-nav-links">
     <div class="pub-nav-link active" id="pnl-home" data-action="pubNav" data-pub-page="home">Home</div>
@@ -155,7 +157,7 @@ $cspNonce = base64_encode(random_bytes(16));
   <div id="pub-home" class="pub-page active">
     <div class="hero-section">
       <div class="hero-inner">
-        <div class="hero-eyebrow">BlackFire Solutions &middot; South Africa</div>
+        <div class="hero-eyebrow"><?= htmlspecialchars($cfg['company_name'] ?? 'BlackFire Solutions') ?> &middot; South Africa</div>
         <h1 class="hero-title">Security<br><span class="accent">engineered</span><br>to <span class="ember">protect.</span></h1>
         <p class="hero-sub">Integrated security services across Gauteng. Armed response, CCTV, access control, guard deployment - purpose-built for industrial, commercial and residential environments.</p>
         <div class="hero-actions">
@@ -180,7 +182,7 @@ $cspNonce = base64_encode(random_bytes(16));
     <div class="pub-section">
       <div class="section-eyebrow">What We Do</div>
       <h2 class="section-title">Complete Security Solutions</h2>
-      <p class="section-sub">Eight disciplines. One partner. From perimeter detection to executive protection - BlackFire has it covered.</p>
+      <p class="section-sub">Eight disciplines. One partner. From perimeter detection to executive protection - <?= htmlspecialchars($cfg['company_name'] ?? 'BlackFire Solutions') ?> has it covered.</p>
       <div class="cats-grid" id="home-cats"></div>
     </div>
 
@@ -209,7 +211,7 @@ $cspNonce = base64_encode(random_bytes(16));
     <div class="pub-footer">
       <div class="pub-footer-grid">
         <div class="footer-brand-block">
-          <img src="./blackfire_logo_transparent.png" class="bf-logo-dark" height="62"><img src="./blackfire_logo_transparent.png" class="bf-logo-light" height="62">
+          <img src="<?= htmlspecialchars($cfg['company_logo'] ?? './blackfire_logo_transparent.png') ?>" class="bf-logo-dark" height="62"><img src="<?= htmlspecialchars($cfg['company_logo'] ?? './blackfire_logo_transparent.png') ?>" class="bf-logo-light" height="62">
           <div class="footer-tagline">Fire, taught to behave.</div>
           <p class="footer-desc">Professional security services across Gauteng. PSIRA registered. Fully insured. 24/7 armed response, CCTV, access control and integrated security solutions.</p>
         </div>
@@ -231,7 +233,7 @@ $cspNonce = base64_encode(random_bytes(16));
         </div>
       </div>
       <div class="footer-bottom">
-        <div class="footer-copy">(C) 2026 BlackFire Solutions (Pty) Ltd &middot; PSIRA Registered &middot; All Rights Reserved</div>
+        <div class="footer-copy">&copy; <?= date('Y') ?> <?= htmlspecialchars($cfg['company_legal_name'] ?? 'BlackFire Solutions (Pty) Ltd') ?> &middot; PSIRA Registered &middot; All Rights Reserved</div>
         <div class="footer-copy">BLKFR &middot; Thermal Geometry System</div>
       </div>
     </div>
@@ -258,7 +260,7 @@ $cspNonce = base64_encode(random_bytes(16));
     <div class="pub-footer">
       <div class="pub-footer-grid">
         <div class="footer-brand-block">
-          <img src="./blackfire_logo_transparent.png" class="bf-logo-dark" height="62"><img src="./blackfire_logo_transparent.png" class="bf-logo-light" height="62">
+          <img src="<?= htmlspecialchars($cfg['company_logo'] ?? './blackfire_logo_transparent.png') ?>" class="bf-logo-dark" height="62"><img src="<?= htmlspecialchars($cfg['company_logo'] ?? './blackfire_logo_transparent.png') ?>" class="bf-logo-light" height="62">
           <div class="footer-tagline">Fire, taught to behave.</div>
           <p class="footer-desc">Professional security services across Gauteng. PSIRA registered. Fully insured. 24/7 armed response, CCTV, access control and integrated security solutions.</p>
         </div>
@@ -280,7 +282,7 @@ $cspNonce = base64_encode(random_bytes(16));
         </div>
       </div>
       <div class="footer-bottom">
-        <div class="footer-copy">(C) 2026 BlackFire Solutions (Pty) Ltd &middot; PSIRA Registered &middot; All Rights Reserved</div>
+        <div class="footer-copy">&copy; <?= date('Y') ?> <?= htmlspecialchars($cfg['company_legal_name'] ?? 'BlackFire Solutions (Pty) Ltd') ?> &middot; PSIRA Registered &middot; All Rights Reserved</div>
         <div class="footer-copy">BLKFR &middot; Thermal Geometry System</div>
       </div>
     </div>
@@ -331,7 +333,7 @@ $cspNonce = base64_encode(random_bytes(16));
     <div class="pub-footer">
       <div class="pub-footer-grid">
         <div class="footer-brand-block">
-          <img src="./blackfire_logo_transparent.png" class="bf-logo-dark" height="62"><img src="./blackfire_logo_transparent.png" class="bf-logo-light" height="62">
+          <img src="<?= htmlspecialchars($cfg['company_logo'] ?? './blackfire_logo_transparent.png') ?>" class="bf-logo-dark" height="62"><img src="<?= htmlspecialchars($cfg['company_logo'] ?? './blackfire_logo_transparent.png') ?>" class="bf-logo-light" height="62">
           <div class="footer-tagline">Fire, taught to behave.</div>
           <p class="footer-desc">Professional security services across Gauteng. PSIRA registered. Fully insured. 24/7 armed response, CCTV, access control and integrated security solutions.</p>
         </div>
@@ -353,7 +355,7 @@ $cspNonce = base64_encode(random_bytes(16));
         </div>
       </div>
       <div class="footer-bottom">
-        <div class="footer-copy">(C) 2026 BlackFire Solutions (Pty) Ltd &middot; PSIRA Registered &middot; All Rights Reserved</div>
+        <div class="footer-copy">&copy; <?= date('Y') ?> <?= htmlspecialchars($cfg['company_legal_name'] ?? 'BlackFire Solutions (Pty) Ltd') ?> &middot; PSIRA Registered &middot; All Rights Reserved</div>
         <div class="footer-copy">BLKFR &middot; Thermal Geometry System</div>
       </div>
     </div>
@@ -369,7 +371,7 @@ $cspNonce = base64_encode(random_bytes(16));
   <div class="login-card" id="login-panel">
     <div class="login-header">
       <div class="login-mark" data-action="goPublic" title="Back to home">
-        <img src="./blackfire_logo_transparent.png" class="bf-logo-dark" height="74"><img src="./blackfire_logo_transparent.png" class="bf-logo-light" height="74">
+        <img src="<?= htmlspecialchars($cfg['company_logo'] ?? './blackfire_logo_transparent.png') ?>" class="bf-logo-dark" height="74"><img src="<?= htmlspecialchars($cfg['company_logo'] ?? './blackfire_logo_transparent.png') ?>" class="bf-logo-light" height="74">
       </div>
       <div class="login-title">BLACKFIRE SOLUTIONS</div>
       <div class="login-sub">SECURE ACCESS</div>
@@ -400,7 +402,7 @@ $cspNonce = base64_encode(random_bytes(16));
   <div class="login-card" id="forgot-panel">
     <div class="login-header">
       <div class="login-mark" data-action="goPublic" title="Back to home">
-        <img src="./blackfire_logo_transparent.png" class="bf-logo-dark" height="74"><img src="./blackfire_logo_transparent.png" class="bf-logo-light" height="74">
+        <img src="<?= htmlspecialchars($cfg['company_logo'] ?? './blackfire_logo_transparent.png') ?>" class="bf-logo-dark" height="74"><img src="<?= htmlspecialchars($cfg['company_logo'] ?? './blackfire_logo_transparent.png') ?>" class="bf-logo-light" height="74">
       </div>
       <div class="login-title">RESET PASSWORD</div>
       <div class="login-sub">ENTER YOUR USERNAME</div>
@@ -421,7 +423,7 @@ $cspNonce = base64_encode(random_bytes(16));
   <div class="login-card" id="newpass-panel">
     <div class="login-header">
       <div class="login-mark" data-action="goPublic" title="Back to home">
-        <img src="./blackfire_logo_transparent.png" class="bf-logo-dark" height="74"><img src="./blackfire_logo_transparent.png" class="bf-logo-light" height="74">
+        <img src="<?= htmlspecialchars($cfg['company_logo'] ?? './blackfire_logo_transparent.png') ?>" class="bf-logo-dark" height="74"><img src="<?= htmlspecialchars($cfg['company_logo'] ?? './blackfire_logo_transparent.png') ?>" class="bf-logo-light" height="74">
       </div>
       <div class="login-title">NEW PASSWORD</div>
       <div class="login-sub">CHOOSE A NEW PASSWORD</div>
@@ -448,8 +450,8 @@ $cspNonce = base64_encode(random_bytes(16));
 
   <!-- Portal Top Bar — logo + identity -->
   <div id="portal-topbar">
-    <img src="./blackfire_logo_transparent.png" alt="BlackFire Solutions" height="50" class="bf-logo-dark">
-    <img src="./blackfire_logo_transparent.png" alt="BlackFire Solutions" height="50" class="bf-logo-light">
+    <img src="<?= htmlspecialchars($cfg['company_logo'] ?? './blackfire_logo_transparent.png') ?>" alt="<?= htmlspecialchars($cfg['company_name'] ?? 'BlackFire Solutions') ?>" height="50" class="bf-logo-dark">
+    <img src="<?= htmlspecialchars($cfg['company_logo'] ?? './blackfire_logo_transparent.png') ?>" alt="<?= htmlspecialchars($cfg['company_name'] ?? 'BlackFire Solutions') ?>" height="50" class="bf-logo-light">
     <div class="ptb-right">
       <span id="ptb-user"></span>
       <button class="theme-btn" data-action="toggleTheme">
@@ -636,6 +638,7 @@ $cspNonce = base64_encode(random_bytes(16));
           <div class="fgroup"><label class="flbl">Date</label><input type="date" class="finput" id="nc-date"></div>
           <div class="fgroup"><label class="flbl">Time</label><input type="time" class="finput" id="nc-time"></div>
           <div class="fgroup ffull"><label class="flbl">Call Notes</label><textarea class="finput" id="nc-notes" rows="3" placeholder="Caller details, description of incident, any initial info..."></textarea></div>
+          <div class="fgroup"><label class="flbl">Job No. <span class="flbl-hint">— your job sheet reference; leave blank to auto-generate</span></label><input class="finput" id="nc-job-no" placeholder="Auto-generated if blank"></div>
         </div>
         <div class="mt3 flex-end"><button class="btn btn-p" data-action="saveCallout">Log Call →</button></div>
       </div></div>
@@ -654,6 +657,7 @@ $cspNonce = base64_encode(random_bytes(16));
           <div class="fgroup"><label class="flbl">Valid Until</label><input type="date" class="finput" id="nq-valid"></div>
           <div class="fgroup"><label class="flbl">Linked Callout</label><select class="finput" id="nq-callout-ref"><option value="">— None (standalone quote) —</option></select></div>
           <div class="fgroup" id="nq-status-group"><label class="flbl">Status</label><select class="finput" id="nq-status"><option>Draft</option><option>Sent</option></select></div>
+          <div class="fgroup ffull"><label class="flbl">Quote No. <span class="flbl-hint">— number shown on your document (e.g. AI20042026); leave blank to auto-generate</span></label><input class="finput" id="nq-quote-no" placeholder="Auto-generated if blank"></div>
         </div>
         <div class="divider"></div>
         <div class="flbl flbl-mb">Line Items</div>
@@ -676,6 +680,7 @@ $cspNonce = base64_encode(random_bytes(16));
           <div class="fgroup"><label class="flbl">PO Reference</label><input class="finput" id="ni-po" placeholder="PO number if applicable"></div>
           <div class="fgroup"><label class="flbl">Linked Quote</label><select class="finput" id="ni-quote-ref"><option value="">— None —</option></select></div>
           <div class="fgroup"><label class="flbl">Linked Callout</label><select class="finput" id="ni-callout-ref"><option value="">— None —</option></select></div>
+          <div class="fgroup ffull"><label class="flbl">Invoice No. <span class="flbl-hint">— number shown on your document; leave blank to auto-generate</span></label><input class="finput" id="ni-invoice-no" placeholder="Auto-generated if blank"></div>
         </div>
         <div class="mt3 flex-end"><button class="btn btn-p" data-action="saveInvoice">Create Invoice</button></div>
       </div></div>
@@ -720,36 +725,6 @@ $cspNonce = base64_encode(random_bytes(16));
       </div>
     </div>
 
-    <!-- CLIENT ADD/EDIT MODAL -->
-    <div id="client-modal" class="modal">
-      <div class="modal-box modal-box--lg">
-        <div class="modal-hdr">
-          <div class="modal-title" id="client-modal-title">Add Client</div>
-          <button class="modal-close" data-action="closeClientModal">&#x2715;</button>
-        </div>
-        <div class="modal-body">
-          <input type="hidden" id="cm-id">
-          <div class="fgrid">
-            <div class="fgroup ffull"><label class="flbl">Client Name <span class="req">*</span></label><input class="finput" id="cm-name" placeholder="Company or client name"></div>
-            <div class="fgroup"><label class="flbl">Phone (Main)</label><input class="finput" id="cm-phone" placeholder="+27 11 000 0000"></div>
-            <div class="fgroup"><label class="flbl">VAT Number</label><input class="finput" id="cm-vat" placeholder="4XXXXXXXXX"></div>
-            <div class="fgroup ffull"><label class="flbl">Address</label><textarea class="finput" id="cm-address" rows="2" placeholder="Street, suburb, city, postal code"></textarea></div>
-            <div class="fgroup ffull"><label class="flbl">Notes</label><textarea class="finput" id="cm-notes" rows="3" placeholder="Internal notes, contract details, billing terms..."></textarea></div>
-          </div>
-          <div class="cm-contacts-section">
-            <div class="cm-contacts-hdr">
-              <span class="flbl">Contacts</span>
-              <button type="button" class="btn btn-g btn-xs" data-action="addClientContact">+ Add Contact</button>
-            </div>
-            <div id="cm-contacts-list"></div>
-          </div>
-        </div>
-        <div class="modal-footer flex-end">
-          <button class="btn btn-g" data-action="closeClientModal">Cancel</button>
-          <button class="btn btn-p" data-action="saveClient">Save Client</button>
-        </div>
-      </div>
-    </div>
 
     <!-- ═══════════════════════════════════════════════════════
          ■ SAFETY FILES MODULE  (BF-SHE-FRM-010)
@@ -959,4 +934,15 @@ $cspNonce = base64_encode(random_bytes(16));
 <!-- Back to top button -->
 <button id="back-to-top" data-action="scrollToTop" title="Back to top"></button>
 
+<script nonce="<?= $cspNonce ?>">
+const COMPANY = <?= json_encode([
+  'name'    => $cfg['company_legal_name'] ?? $cfg['company_name'],
+  'reg'     => $cfg['company_reg']    ?? '',
+  'vat'     => $cfg['company_vat']    ?? '',
+  'phone'   => $cfg['company_phone']  ?? '',
+  'mobile'  => $cfg['company_mobile'] ?? '',
+  'email'   => $cfg['company_email']  ?? '',
+  'addr'    => $cfg['company_addr']   ?? '',
+], JSON_UNESCAPED_SLASHES) ?>;
+</script>
 <script src="portal.js?v=<?= filemtime(__DIR__.'/portal.js') ?>"></script>

@@ -236,6 +236,36 @@ VALUES
  '2026-04-20','08:00:00','Supply and install emergency panic button at security booth. PO CP1590.',
  @uid_jshange,'CP1590',1,'2026-04-20 07:00:00','2026-04-20 17:00:00');
 
+-- ── 3b. QUOTES for Apr 2026 callouts ─────────────────────────────────────────
+-- Requires migration_doc_numbers.sql to have run first (quote_no column).
+INSERT IGNORE INTO bf_quotes
+  (ref_id, quote_no, client_id, client_name, client_email,
+   status, valid_until, quote_date,
+   submitted_by, submitted_by_user_id, source, approval_status,
+   callout_ref, notes, total_amount,
+   approved_at, approved_by, created_at, updated_at)
+VALUES
+('Q-200426-0001','AI20042026',@aeci_id,'AECI Chempark','yolanda.herbst@aeciworld.com',
+ 'Approved','2026-05-20','2026-04-20',
+ 'j.shange',@uid_jshange,'staff','approved',
+ 'CO-200426-0001',
+ 'Supply and install emergency panic button at security booth. Linked to PO CP1590.',
+ 3500.00,'2026-04-21 09:00:00','Y. Herbst',
+ '2026-04-20 10:00:00','2026-04-21 09:00:00');
+
+INSERT IGNORE INTO bf_quote_items (quote_id, description, qty, unit_price)
+SELECT id, 'Emergency panic button supply (Texecom FP-W)', 1.00, 2800.00
+  FROM bf_quotes WHERE ref_id = 'Q-200426-0001' LIMIT 1;
+INSERT IGNORE INTO bf_quote_items (quote_id, description, qty, unit_price)
+SELECT id, 'Installation, cabling & commissioning',        1.00,  700.00
+  FROM bf_quotes WHERE ref_id = 'Q-200426-0001' LIMIT 1;
+
+-- Link callout FK on new quote
+UPDATE bf_quotes q
+  JOIN bf_callouts c ON c.ref_id = q.callout_ref
+  SET q.callout_id = c.id
+  WHERE q.ref_id = 'Q-200426-0001';
+
 -- ── 4. INVOICES — 41 real invoices from BFS billing statements ─
 -- Paid invoices: status='Paid', paid_date set.
 -- Outstanding invoices: status='Sent', paid_date=NULL.
@@ -381,17 +411,24 @@ VALUES
   22402.00,'2026-04-15','Sent','','CO-010426-0001','CP1592',
   '2026-04-01',NULL,@uid_jshange,'2026-04-01 10:00:00','2026-04-01 10:00:00'),
 ('INV-AI20042026',@aeci_id,'AECI Chempark','yolanda.herbst@aeciworld.com',
-   4025.00,'2026-05-04','Sent','','CO-200426-0001','CP1590',
+   4025.00,'2026-05-04','Sent','Q-200426-0001','CO-200426-0001','CP1590',
   '2026-04-20',NULL,@uid_jshange,'2026-04-20 10:00:00','2026-04-20 10:00:00')
 ON DUPLICATE KEY UPDATE
   amount          = VALUES(amount),
   status          = VALUES(status),
   paid_date       = VALUES(paid_date),
   due_date        = VALUES(due_date),
+  quote_ref       = VALUES(quote_ref),
   callout_ref     = VALUES(callout_ref),
   po              = VALUES(po),
   sent_by_user_id = VALUES(sent_by_user_id),
   updated_at      = VALUES(updated_at);
+
+-- Backfill quote_id FK for INV-AI20042026
+UPDATE bf_invoices i
+  JOIN bf_quotes q ON q.ref_id = i.quote_ref
+  SET i.quote_id = q.id
+  WHERE i.ref_id = 'INV-AI20042026';
 
 -- Backfill callout_id FK — runs for all rows (new inserts AND corrected existing records)
 UPDATE bf_invoices i

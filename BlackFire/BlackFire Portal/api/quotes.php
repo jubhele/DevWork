@@ -42,12 +42,18 @@ if ($method === 'GET') {
 
     if ($q) {
         $like  = '%' . like_escape($q) . '%';
-        $where = 'WHERE (ref_id LIKE ? ESCAPE \'\\\\\' OR client_name LIKE ? ESCAPE \'\\\\\' OR status LIKE ? ESCAPE \'\\\\\')';
-        $params = [$like, $like, $like];
+        $where = 'WHERE (ref_id LIKE ? ESCAPE \'\\\\\' OR quote_no LIKE ? ESCAPE \'\\\\\' OR client_name LIKE ? ESCAPE \'\\\\\' OR status LIKE ? ESCAPE \'\\\\\')';
+        $params = [$like, $like, $like, $like];
     }
 
     $total = db_row("SELECT COUNT(*) AS n FROM bf_quotes $where", $params)['n'] ?? 0;
-    $rows  = db_select("SELECT * FROM bf_quotes $where ORDER BY quote_date DESC LIMIT {$pg['limit']} OFFSET {$pg['offset']}", $params);
+    $rows  = db_select(
+        "SELECT q.*, COALESCE(u.username,'') AS submitted_by
+           FROM bf_quotes q
+           LEFT JOIN bf_users u ON u.id = q.submitted_by_user_id
+          $where ORDER BY q.quote_date DESC LIMIT {$pg['limit']} OFFSET {$pg['offset']}",
+        $params
+    );
     $rows  = attach_items($rows);
     json_ok(['data' => $rows, 'total' => (int)$total]);
 }
@@ -99,26 +105,28 @@ if ($method === 'POST') {
         $callout_id_fk = $co ? (int)$co['id'] : null;
     }
 
-    $ref = next_ref_id('q');
+    $ref      = next_ref_id('q');
+    $quote_no = clean($b['quote_no'] ?? '', 50);
+    if (!$quote_no) $quote_no = $ref;
 
     try {
         db_begin();
 
         $id = db_insert(
             "INSERT INTO bf_quotes
-             (ref_id, client_id, client_name, client_email, status, valid_until, quote_date,
-              submitted_by, submitted_by_user_id, source, approval_status, notes, total_amount,
+             (ref_id, quote_no, client_id, client_name, client_email, status, valid_until, quote_date,
+              submitted_by_user_id, source, approval_status, notes, total_amount,
               callout_ref, callout_id)
              VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             [
                 $ref,
+                $quote_no,
                 $client_id,
                 $client_name,
                 $client_email,
                 $status,
                 valid_date($b['valid_until'] ?? null) ? $b['valid_until'] : null,
                 date('Y-m-d'),
-                $usr['username'],
                 (int)$usr['id'],
                 clean($b['source'] ?? 'staff'),
                 $approval_status,
@@ -171,7 +179,7 @@ if ($method === 'PUT') {
 
     // General status update
     require_perm('quote.update');
-    $allowed = ['status', 'valid_until', 'notes'];
+    $allowed = ['status', 'valid_until', 'notes', 'quote_no'];
     $sets   = [];
     $params = [];
     foreach ($allowed as $f) {

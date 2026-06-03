@@ -26,14 +26,16 @@ if ($method === 'GET') {
     $ref = clean($_GET['entity_ref'] ?? '', 50);
     if (!$ref) json_err('entity_ref required');
     $rows = db_select(
-        "SELECT id, entity_type, entity_ref, section_key, item_no, upload_purpose,
-                allowed_mime_types, max_files, files_uploaded,
-                uploader_name, uploader_email, uploader_company,
-                status, expires_at, first_used_at, completed_at,
-                notify_email, created_by, created_at
-           FROM bf_external_upload_tokens
-          WHERE entity_ref = ?
-          ORDER BY created_at DESC",
+        "SELECT t.id, t.entity_type, t.entity_ref, t.section_key, t.item_no, t.upload_purpose,
+                t.allowed_mime_types, t.max_files, t.files_uploaded,
+                t.uploader_name, t.uploader_email, t.uploader_company,
+                t.status, t.expires_at, t.first_used_at, t.completed_at,
+                t.notify_email, t.created_at,
+                COALESCE(u.username,'') AS created_by
+           FROM bf_external_upload_tokens t
+           LEFT JOIN bf_users u ON u.id = t.created_by_id
+          WHERE t.entity_ref = ?
+          ORDER BY t.created_at DESC",
         [$ref]
     );
     json_ok(['data' => $rows]);
@@ -64,12 +66,12 @@ if ($method === 'POST') {
         "INSERT INTO bf_external_upload_tokens
            (token, entity_type, entity_ref, section_key, item_no,
             upload_purpose, allowed_mime_types, max_files,
-            uploader_email, notify_email, status, expires_at, created_by)
+            uploader_email, notify_email, status, expires_at, created_by_id)
          VALUES (?,?,?,?,?,?,?,?,?,?,'Active',?,?)",
         [$token, $entity_type, $entity_ref, $section_key, $item_no ?: null,
          $purpose, $mimes, $max_files,
          $uploader_email ?: null, $notify_email ?: null,
-         $expires_at . ' 23:59:00', $user['username']]
+         $expires_at . ' 23:59:00', (int)$user['id']]
     );
 
     $sent = false;

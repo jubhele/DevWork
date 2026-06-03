@@ -171,6 +171,20 @@ function build_sections(string $ref_id): array {
 }
 
 
+/** Fetch a single safety file row enriched with user names via FK JOINs */
+function sf_fetch(string $ref_id): ?array {
+    return db_row(
+        "SELECT f.*,
+                COALESCE(rep.name,'')  AS contractor_rep_name,
+                COALESCE(appt.name,'') AS appointee162_name
+           FROM bf_safety_files f
+           LEFT JOIN bf_users rep  ON rep.id  = f.contractor_rep_id
+           LEFT JOIN bf_users appt ON appt.id = f.appointee162_id
+          WHERE f.ref_id = ?",
+        [$ref_id]
+    );
+}
+
 /* ── GET list ──────────────────────────────────────── */
 if ($method === 'GET' && !$ref_id) {
     $pg = get_pagination();
@@ -194,10 +208,14 @@ if ($method === 'GET' && !$ref_id) {
     $total = db_row("SELECT COUNT(*) AS n FROM bf_safety_files f WHERE $where", $params)['n'] ?? 0;
     $rows  = db_select(
         "SELECT f.*,
+                COALESCE(rep.name,'')  AS contractor_rep_name,
+                COALESCE(appt.name,'') AS appointee162_name,
                 SUM(CASE WHEN i.result = 'To Standard'     THEN 1 ELSE 0 END) AS to_std_count,
                 SUM(CASE WHEN i.result = 'Not to Standard' THEN 1 ELSE 0 END) AS not_std_count,
                 SUM(CASE WHEN i.result = 'N/A'             THEN 1 ELSE 0 END) AS na_count
            FROM bf_safety_files f
+           LEFT JOIN bf_users rep  ON rep.id  = f.contractor_rep_id
+           LEFT JOIN bf_users appt ON appt.id = f.appointee162_id
            LEFT JOIN bf_safety_items i ON i.file_ref = f.ref_id
           WHERE $where
           GROUP BY f.id
@@ -211,7 +229,8 @@ if ($method === 'GET' && !$ref_id) {
 
 /* ── GET single (full, with items) ─────────────────── */
 if ($method === 'GET' && $ref_id) {
-    $file = db_row("SELECT * FROM bf_safety_files WHERE ref_id = ? AND is_active = 1", [$ref_id]);
+    $file = sf_fetch($ref_id);
+    if ($file && !$file['is_active']) $file = null;
     if (!$file) json_err('Safety file not found', 404);
 
     $file['sections'] = build_sections($ref_id);
@@ -231,17 +250,15 @@ if ($method === 'POST') {
 
     db_insert(
         "INSERT INTO bf_safety_files
-         (ref_id, contractor, contractor_rep, contractor_rep_id,
-          appointee162, appointee162_id, audit_date, region,
+         (ref_id, contractor, contractor_rep_id,
+          appointee162_id, audit_date, region,
           audit_team, scope_of_work, manpower, supervisors, she_reps, first_aiders,
-          auditor_name, sign_off_date, status, created_by, created_by_id, updated_by_id)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+          auditor_name, sign_off_date, status, created_by_id, updated_by_id)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
         [
             $ref,
             clean($b['contractor']),
-            clean($b['contractor_rep']  ?? ''),
             $rep_id,
-            clean($b['appointee162']    ?? ''),
             $appt_id,
             ($b['audit_date'] && valid_date($b['audit_date'])) ? $b['audit_date'] : null,
             clean($b['region']          ?? ''),
@@ -254,7 +271,6 @@ if ($method === 'POST') {
             clean($b['auditor_name']    ?? ''),
             ($b['sign_off_date'] && valid_date($b['sign_off_date'])) ? $b['sign_off_date'] : null,
             clean($b['status'] ?? 'Draft'),
-            $user['username'],
             $user['id'],
             $user['id'],
         ]
@@ -272,7 +288,7 @@ if ($method === 'POST') {
 
     audit($user['username'], 'CREATE', "Safety file $ref created for " . clean($b['contractor']));
 
-    $file = db_row("SELECT * FROM bf_safety_files WHERE ref_id = ?", [$ref]);
+    $file = sf_fetch($ref);
     $file['sections'] = build_sections($ref);
     json_ok(['data' => $file], "Safety file $ref created");
 }
@@ -281,7 +297,7 @@ if ($method === 'POST') {
 if ($method === 'PUT') {
     require_perm('safety.update');
     if (!$ref_id) json_err('Missing id');
-    $file = db_row("SELECT * FROM bf_safety_files WHERE ref_id = ?", [$ref_id]);
+    $file = sf_fetch($ref_id);
     if (!$file) json_err('Safety file not found', 404);
 
     $b      = get_body();
@@ -302,12 +318,12 @@ if ($method === 'PUT') {
         db_exec(
             "UPDATE bf_safety_files
              SET policy_email_sent = 1, policy_email_date = CURDATE(), policy_email_to = ?,
-                 updated_by = ?, updated_by_id = ?
+                 updated_by_id = ?
              WHERE ref_id = ?",
-            [$to, $user['username'], $user['id'], $ref_id]
+            [$to, $user['id'], $ref_id]
         );
         audit($user['username'], 'POLICY_EMAIL', "Policy acknowledgment email sent for $ref_id to $to");
-        $row = db_row("SELECT * FROM bf_safety_files WHERE ref_id = ?", [$ref_id]);
+        $row = sf_fetch($ref_id);
         json_ok(['data' => $row], "Policy email sent to $to");
     }
 
@@ -378,24 +394,24 @@ if ($method === 'PUT') {
             json_err('Only Submitted or In Progress files can be approved');
         }
         db_exec(
-            "UPDATE bf_safety_files SET status = 'Approved', updated_by = ?, updated_by_id = ? WHERE ref_id = ?",
-            [$user['username'], $user['id'], $ref_id]
+            "UPDATE bf_safety_files SET status = 'Approved', updated_by_id = ? WHERE ref_id = ?",
+            [$user['id'], $ref_id]
         );
         audit($user['username'], 'APPROVE', "Safety file $ref_id approved");
-        $row = db_row("SELECT * FROM bf_safety_files WHERE ref_id = ?", [$ref_id]);
+        $row = sf_fetch($ref_id);
         json_ok(['data' => $row], "Safety file $ref_id approved");
     }
 
     /* ── standard update ────────────────────────── */
     require_perm('safety.update');
     $header_fields = [
-        'contractor', 'contractor_rep', 'appointee162', 'audit_date', 'region',
+        'contractor', 'audit_date', 'region',
         'audit_team', 'scope_of_work', 'manpower', 'supervisors', 'she_reps',
         'first_aiders', 'auditor_name', 'sign_off_date', 'status',
     ];
 
-    $sets   = ['updated_by = ?', 'updated_by_id = ?'];
-    $params = [$user['username'], $user['id']];
+    $sets   = ['updated_by_id = ?'];
+    $params = [$user['id']];
 
     $fk_fields = ['contractor_rep_id', 'appointee162_id'];
     foreach ($fk_fields as $fk) {
@@ -432,7 +448,7 @@ if ($method === 'PUT') {
 
     audit($user['username'], 'UPDATE', "Safety file $ref_id updated");
 
-    $row = db_row("SELECT * FROM bf_safety_files WHERE ref_id = ?", [$ref_id]);
+    $row = sf_fetch($ref_id);
     $row['sections'] = build_sections($ref_id);
     json_ok(['data' => $row], "Safety file $ref_id updated");
 }
@@ -445,8 +461,8 @@ if ($method === 'DELETE') {
         json_err('Safety file not found', 404);
 
     db_exec(
-        "UPDATE bf_safety_files SET is_active = 0, updated_by = ? WHERE ref_id = ?",
-        [$user['username'], $ref_id]
+        "UPDATE bf_safety_files SET is_active = 0, updated_by_id = ? WHERE ref_id = ?",
+        [(int)$user['id'], $ref_id]
     );
     audit($user['username'], 'DEACTIVATE', "Safety file $ref_id deactivated (soft delete)");
     json_ok([], "Safety file $ref_id deactivated");

@@ -126,13 +126,13 @@ if ($action === 'reset_request' && $method === 'POST') {
             [$row['id'], hash('sha256', $token), $expires]
         );
         $resetLink = ($cfg['base_url'] ?? '') . '?reset_token=' . urlencode($token);
-        $subject = 'BlackFire Portal — Password Reset';
+        $subject = ($cfg['company_name'] ?? 'Portal') . ' — Password Reset';
         $body  = "Hi {$row['name']},\r\n\r\n";
         $body .= "A password reset was requested for your account.\r\n\r\n";
         $body .= "Click the link below to reset your password (valid for 1 hour):\r\n";
         $body .= "$resetLink\r\n\r\n";
         $body .= "If you did not request this, please ignore this email.\r\n\r\n";
-        $body .= "— BlackFire Solutions\r\nFire, taught to behave.";
+        $body .= "— " . ($cfg['company_name'] ?? 'BlackFire Solutions') . "\r\n" . ($cfg['company_tagline'] ?? '');
         try {
             smtp_send($row['email'], $subject, $body);
         } catch (RuntimeException $e) {

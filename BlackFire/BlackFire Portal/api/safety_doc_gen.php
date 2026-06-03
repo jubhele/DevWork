@@ -1103,6 +1103,9 @@ $total_ext = count($ext_items);
 ob_end_clean();
 header('Content-Type: text/html; charset=UTF-8');
 header('Content-Disposition: inline; filename="Remediation_Pack_' . $ref_id . '.html"');
+// Override the blanket api_headers() CSP/XFO — this page is interactive HTML, not a JSON API endpoint
+header('X-Frame-Options: SAMEORIGIN');
+header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'");
 ?>
 <!DOCTYPE html>
 <html lang="en">
