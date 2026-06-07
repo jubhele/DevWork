@@ -24,8 +24,20 @@ Active model: Sonnet 4.6  Status: correct
 - portal.css — added .dwt-row, .dwt-drag-handle, .dw-dragging, .dw-drag-over, .dash-editor-admin-section
 
 ## Blockers / Next Steps
-- Run `install/migration_dashboard_layout.sql` on production DB before deploying (adds bf_users.dashboard_layout + creates bf_settings table).
+- Run `install/migration_dashboard_layout.sql` on production DB before deploying.
 - Browser test: login, save layout, logout, login from a different browser — layout should follow.
+
+## Resumed 2026-06-03
+
+### Additional Work Done
+- `api/dashboard_prefs.php` — new endpoint: GET (user layout + admin default), PUT (save personal), PUT `?action=set_default` (admin default), PUT `?action=reset_all` (null all non-self layouts)
+- `install/migration_dashboard_layout.sql` — updated `bf_settings` table to include `host_company_id INT DEFAULT 1` as primary key prefix for Phase 1 multi-tenancy readiness
+- `portal.js` — added `_dashPrefsCache`, `loadDashPrefsFromAPI()`, updated `saveDashPrefs()` to fire-and-forget API PUT, wired `loadDashPrefsFromAPI` into both login paths (interactive + session-restore) in parallel with `refreshAll()`, cleared cache on logout; `resetDashLayoutForAll` made async and API-driven; `setDashDefaultForAll` calls API alongside localStorage
+
+### Decisions
+- `bf_settings` keyed by `(host_company_id, setting_key)` not just `setting_key` — zero extra cost now, avoids a table migration later when multi-tenant is activated
+- `reset_all` preserves the triggering admin's own layout (`WHERE id != :me`) — admin who triggers the reset doesn't lose their own prefs
+- `loadDashPrefsFromAPI` auto-migrates localStorage prefs to DB on first login post-deploy (detects `customized:true` in localStorage, saves to DB, transparent to user)
 
 ## Learnings
 - Refactoring renderDashboard into per-widget block builders (_dashBlockOps, _dashBlockFin, etc.) is the right pattern for any future widget additions — each widget is self-contained and the render loop is trivial
@@ -36,3 +48,6 @@ _Session ended: 2026-06-02 08:42:16 (Claude Code / claude-sonnet-4-6)_
 _Session ended: 2026-06-02 08:42:37 (Claude Code / claude-sonnet-4-6)_
 _Session ended: 2026-06-02 08:56:37 (Claude Code / claude-sonnet-4-6)_
 _Session ended: 2026-06-02 09:05:09 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-06-03 07:19:36 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-06-03 07:19:39 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-06-03 07:19:47 (Claude Code / claude-sonnet-4-6)_
