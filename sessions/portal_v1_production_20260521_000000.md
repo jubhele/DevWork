@@ -35,3 +35,6 @@ Active model: claude-sonnet-4-6  Status: over-powered (but appropriate for produ
 - Background watermark needed explicit 280px width to prevent it stretching full viewport
 - Adding `background:var(--bg)` to `.pub-section` prevents grid lines from bleeding through section backgrounds
 _Session ended: 2026-05-21 02:00:51 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-06-08 18:48:37 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-06-08 18:49:24 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-06-08 18:52:54 (Claude Code / claude-sonnet-4-6)_
