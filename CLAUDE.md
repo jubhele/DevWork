@@ -82,8 +82,23 @@ c:\DevWork\
 │   └── rules/
 │       └── constitution.mdc    ← Mirror for Cursor
 ├── .gitignore
+├── .env                        ← Secrets (NOT in repo — in .gitignore)
+├── .env.example                ← Template with all keys, empty values (IN repo)
 ├── sessions/                   ← Session logs (all providers)
 ├── chatsessions/               ← Legacy Copilot transcript archive
+├── agents/                     ← Multi-agent workforce definitions
+│   ├── sibali_system_prompt.md       ← Sibali (Accountant) — cost governance
+│   ├── mlawuli_system_prompt.md      ← Mlawuli (Controller) — supervisor
+│   ├── umdwebi_system_prompt.md      ← Umdwebi (Artist) — design & brand
+│   ├── mvavanyi_system_prompt.md     ← Mvavanyi (Tester) — QA & testing
+│   ├── umlindi_system_prompt.md      ← Umlindi (Guardian) — governance & compliance
+│   └── sebenza_agents.md             ← All 7 Sebenza agent definitions
+├── design/                     ← Umdwebi's domain — brand tokens, design exports
+│   ├── blackfire/
+│   │   ├── brand_tokens.md         ← BlackFire color, typography, logo specs
+│   │   └── exports/                ← Claude.ai, Canva, Figma exports
+│   ├── umlilo/                     ← Umlilo portal brand
+│   └── imports/                    ← Cross-project design imports
 ├── .claude/
 │   └── skills/gstack/          ← gstack multi-agent toolkit
 ├── BlackFire/                  ← BlackFire / AECI project
@@ -217,13 +232,74 @@ Never create loose files at the repo root (except CLAUDE.md, AGENTS.md, .gitigno
 
 ---
 
+## 7d. New Environment Setup — Installs
+
+When setting up this workspace on a new machine, install the following.
+
+### VS Code Extensions
+
+Open the workspace — VS Code will prompt *"Install recommended extensions?"* → click **Install All**.
+Or run the one-liner:
+
+```bash
+code --install-extension anthropic.claude-code --install-extension openai.chatgpt --install-extension ms-vscode.powershell --install-extension ms-python.python --install-extension ms-python.vscode-pylance --install-extension ms-python.debugpy --install-extension ms-python.vscode-python-envs --install-extension formulahendry.vscode-mysql --install-extension ms-mssql.mssql --install-extension ms-mssql.data-workspace-vscode --install-extension ms-mssql.sql-database-projects-vscode --install-extension ms-mssql.sql-bindings-vscode --install-extension ms-dotnettools.vscode-dotnet-runtime --install-extension tomoki1207.pdf
+```
+
+The full list with descriptions is in `.vscode/extensions.json` and the architecture doc §4.1a.
+
+### Runtime Tooling
+
+| Tool | Version | Used by |
+|------|---------|--------|
+| Node.js LTS + pnpm | latest LTS | Umlilo portal (Next.js/Expo) |
+| PHP | 8.x | BlackFire Portal (PHP/MySQL) |
+| Python | 3.10+ | Agent scripts (proposal_grader.py, token_tracker.py) |
+| PowerShell | **5.1 only** | Usiba document generation (COM automation requires 5.1) |
+| Git | latest | All version control |
+
+After installing: copy `.env.example` → `.env` and fill in real values (see §8).
+
+---
+
 ## 8. Sensitive Data Policy
 
-Files containing credentials, passwords, or API keys must be listed in `.gitignore`.
-Known sensitive paths in this workspace:
+**Nothing is ever hardcoded. All secrets, API keys, passwords, and environment-specific values live in `.env` only.**
+
+### 8.1 The Two-File Rule
+
+| File | In repo? | Purpose |
+|------|---------|---------|
+| `.env` | **NO** — in `.gitignore` | Real values for the active environment |
+| `.env.example` | **YES** — committed | Template: all keys with empty values |
+
+Copy `.env.example` → `.env` on first setup. Never commit `.env`.
+
+### 8.2 Reading Environment Variables
+
+- **PHP:** `getenv('KEY')` or `$_ENV['KEY']`
+- **Python:** `os.getenv('KEY')` after `load_dotenv()`
+- **Node.js/Next.js:** `process.env.KEY` after `dotenv.config()`
+- **PowerShell:** parse `.env` manually — see `agents/sebenza_agents.md` (Usiba patterns)
+
+### 8.3 Known Sensitive Paths (never commit)
+
+- `.env` — root workspace secrets
 - `chatsessions/*.jsonl` — may contain plain-text passwords
 - `BlackFire/BlackFire Portal/install/blackfire_aeci_seed.sql`
-- Any `*.env` or `config.local.*` files
+- `BlackFire/BlackFire Portal/.env`
+- Any `*.env`, `config.local.*`, `*.env.local` files
+
+### 8.4 Hardcoded Credential Detection
+
+Umlindi runs this check pre-deploy. Any agent can run it on demand:
+
+```bash
+grep -rn --include="*.php" --include="*.js" --include="*.ts" --include="*.py" \
+  -E "(password|api_key|secret|token)\s*=\s*['\"][^'\"]{8,}" . \
+  --exclude-dir=node_modules
+```
+
+Any hit is a CRITICAL governance violation. Move the value to `.env` immediately.
 
 ---
 
@@ -252,7 +328,10 @@ All providers follow the same constitution. Divergence is a bug.
 
 ---
 
-## 11. Cost / Token Management Agent (MANDATORY)
+## 11. Sibali — Cost / Token Management Agent (MANDATORY)
+
+**Zulu name:** Sibali *(The Accountant/Calculator)*
+**System prompt:** `agents/sibali_system_prompt.md`
 
 Every session **must** assess whether the current model is the right one for the task.
 This is not optional — running an over-powered model on trivial work wastes budget;
@@ -325,3 +404,119 @@ Why: <what happened — good or bad>
 ```
 
 The `## Learnings` section in the session log must record whether scores were updated or confirmed unchanged.
+
+---
+
+## 12. Multi-Agent Workforce
+
+This workspace runs a named, role-separated agent workforce. All agent system prompts live in `agents/`.
+
+### 12.1 Full Agent Roster
+
+**Governance tier** (always active):
+
+| Zulu Name | English Meaning | Role | System Prompt |
+|-----------|-----------------|------|---------------|
+| **Sibali** | The Accountant/Calculator | Cost governance & session log indexing | `agents/sibali_system_prompt.md` |
+| **Mlawuli** | The Controller/Administrator | Supervisor — routes tasks, manages lifecycle | `agents/mlawuli_system_prompt.md` |
+
+**Sebenza agents** *(from ukusebenza: to work)* — specialized executors:
+
+| Zulu Name | English Meaning | Role | Hard Cap |
+|-----------|-----------------|------|----------|
+| **Nkanyezi** | Star — illumination, new ideas | Content & proposals | 3 |
+| **Usiba** | Feather / Pen | Document generation | 2 |
+| **Mhloli** | Explorer / Inspector | Research, competitive intel, threat modelling | 5 |
+| **Umakhi** | The Builder | Code & portal development | 3 |
+| **Umdwebi** | The Artist / Draughtsperson | Brand identity, UI/UX design | 2 |
+| **Mvavanyi** | The Evaluator / Tester | QA, testing, regression | 3 |
+| **Umlindi** | The Guardian / Watchman | Governance, compliance, policy enforcement | 2 |
+
+Full definitions: `agents/sebenza_agents.md`
+Individual system prompts: `agents/{name}_system_prompt.md`
+
+### 12.2 Routing Logic
+
+When Claude Code is acting as the sole active agent, it fulfils Mlawuli's role internally.
+When multiple AI providers are active simultaneously, Mlawuli is the designated supervisor:
+
+| Task domain | Sebenza agent |
+|-------------|--------------|
+| Content / narrative / proposals | Nkanyezi |
+| Document generation / scripting | Usiba |
+| Research / competitive intel / threat modelling | Mhloli |
+| Code / portal / database / API | Umakhi |
+| Brand / design / UI / UX | Umdwebi |
+| QA / testing / regression / functional verification | Mvavanyi |
+| Policy compliance / governance / security posture | Umlindi |
+
+All payloads pass through Sibali (cost clearance) before reaching any Sebenza agent.
+Umlindi audits Umakhi's changes pre-deploy. Mvavanyi tests Umakhi's output before release.
+
+### 12.3 Claude Code as Mlawuli
+
+When operating as the primary agent (default mode), Claude Code:
+1. Classifies the incoming task and maps it to the correct Sebenza domain (§12.2 routing table).
+2. Routes the conceptual payload through Sibali's tier logic (§11.1) before proceeding.
+3. Executes the task under the Sebenza agent's constraints (see `agents/sebenza_agents.md`).
+4. Logs the session with the JSON metadata block (§13.2) if the task involved inter-agent coordination.
+
+---
+
+## 13. JSON Communication Protocol
+
+When multiple agents are active, all inter-agent messages use strict JSON. No conversational text.
+
+### 13.1 Hard Cap Rule
+
+Each Sebenza agent has a maximum iteration budget before it must escalate to Mlawuli:
+
+| Sebenza Agent | Max iterations |
+|---------------|---------------|
+| Nkanyezi | 3 |
+| Usiba | 2 |
+| Mhloli | 5 |
+| Umakhi | 3 |
+| Umdwebi | 2 |
+| Mvavanyi | 3 |
+| Umlindi | 2 |
+
+If an agent loop exceeds its cap, Mlawuli terminates the loop and logs `LOOP_TERMINATED`.
+
+### 13.2 Session JSON Metadata Block
+
+Append this block to any session log that involved multi-agent coordination or Sibali routing:
+
+```json
+{
+  "session_id": "<YYYYMMDD_HHmmss>",
+  "agent": "<Nkanyezi | Usiba | Mhloli | Umakhi | Umdwebi | Mvavanyi | Umlindi>",
+  "model_endpoint": "<claude-sonnet-4-6 | gpt-4o | etc>",
+  "token_metrics": {
+    "tokens_in": 0,
+    "tokens_out": 0,
+    "iteration_count": 0
+  },
+  "outcome": {
+    "status": "SUCCESS | TRUNCATED | BUDGET_EXCEEDED | LOOP_TERMINATED",
+    "cost_category": "TIER_1_LOW | TIER_2_MED | TIER_3_HIGH"
+  },
+  "optimization": {
+    "action_taken": "<Summarised context | Trimmed payload | Enforced hard cap | None>"
+  }
+}
+```
+
+### 13.3 Fault Tolerance
+
+If a worker agent crashes, times out, or returns a corrupted payload:
+- Mlawuli automatically restarts the agent and retries up to **3 times**.
+- After 3 failed attempts, Mlawuli flags a system error and halts the task.
+- Each retry is logged with `retry_count` incremented in the JSON metadata block.
+
+### 13.4 Memory Compression Trigger
+
+When a worker agent's context window reaches **70% capacity**:
+- Sibali triggers a summarisation routine: drop stale facts, merge duplicates.
+- The compressed context is returned as the new payload before the agent continues.
+- Log `action_taken: "Summarised context"` in the JSON metadata block.

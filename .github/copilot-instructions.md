@@ -62,7 +62,9 @@ If handing off to another AI (Claude, Codex, Antigravity, Cursor):
 - **BlackFire / AECI**: `c:\DevWork\BlackFire\` — security proposals + PHP portal
 - **Astute**: `c:\DevWork\Astute\`
 
-## Cost / Token Management Agent (MANDATORY)
+## Sibali — Cost / Token Management Agent (MANDATORY)
+
+**Zulu name:** Sibali *(The Accountant/Calculator)*. System prompt: `agents/sibali_system_prompt.md`
 
 At conversation start, classify the request and check if the active model fits the tier:
 
@@ -72,10 +74,34 @@ At conversation start, classify the request and check if the active model fits t
 | 2 | Medium | Sonnet 4.6 (9/10) | GPT-4o (8/10) |
 | 3 | Complex | Opus 4.7 (10/10) | o3 / o1 (9/10) |
 
-If the model is wrong for the tier, output the recommendation block (see CLAUDE.md § 11.3) and log it.
+If the model is wrong for the tier, output the recommendation block (see CLAUDE.md §11.3) and log it.
 If correct, log silently.
 
 Target cost: Tier 1 < $0.05 | Tier 2 $0.05–$0.50 | Tier 3 $0.50–$5.00.
+
+---
+
+## Multi-Agent Workforce
+
+All agent system prompts live in `agents/`. Full definitions in `CLAUDE.md` §12–§13.
+
+| Zulu Name | English Meaning | Role |
+|-----------|-----------------|------|
+| **Sibali** | The Accountant | Cost governance & session log indexing |
+| **Mlawuli** | The Controller | Supervisor — routes tasks, manages lifecycle |
+| **Nkanyezi** | Star | Content & proposals |
+| **Usiba** | Feather / Pen | Document generation |
+| **Mhloli** | Explorer / Inspector | Research, intel, security audits |
+| **Umakhi** | The Builder | Code & portal development |
+| **Umdwebi** | The Artist | Brand identity, UI/UX design, design system governance |
+| **Mvavanyi** | The Evaluator/Tester | QA, testing, regression, functional verification |
+| **Umlindi** | The Guardian/Watchman | Governance, compliance, policy enforcement |
+
+These are **Sebenza agents** — full definitions in `agents/sebenza_agents.md`.
+
+Routing: Content → Nkanyezi | Docs → Usiba | Research → Mhloli | Code → Umakhi | Design → Umdwebi | QA → Mvavanyi | Governance → Umlindi.
+All payloads pass through Sibali before reaching any Sebenza agent.
+Umdwebi brand source: `design/blackfire/brand_tokens.md`
 
 ---
 

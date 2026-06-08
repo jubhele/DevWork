@@ -1,5 +1,18 @@
 {
     "recommendations": [
-        "github.copilot"
+        "anthropic.claude-code",
+        "openai.chatgpt",
+        "ms-vscode.powershell",
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-python.debugpy",
+        "ms-python.vscode-python-envs",
+        "formulahendry.vscode-mysql",
+        "ms-mssql.mssql",
+        "ms-mssql.data-workspace-vscode",
+        "ms-mssql.sql-database-projects-vscode",
+        "ms-mssql.sql-bindings-vscode",
+        "ms-dotnettools.vscode-dotnet-runtime",
+        "tomoki1207.pdf"
     ]
 }

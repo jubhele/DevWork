@@ -2,6 +2,7 @@
 BlackFire/BlackFire Portal/uploads/
 
 # Sensitive data — never commit
+.env
 chatsessions/*.jsonl
 sessions/system_chatsessions/*.jsonl
 BlackFire/BlackFire Portal/install/blackfire_aeci_seed.sql
