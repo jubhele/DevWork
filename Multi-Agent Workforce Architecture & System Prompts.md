@@ -656,30 +656,34 @@ Follow this sequence to deploy the workforce in a new environment.
 
 ### 4.1a Installs — Tooling & VS Code Extensions
 
-Run these once when setting up a new machine or environment.
+**Workspace model:** `c:\DevWork` is the single root workspace. Each subfolder (`BlackFire\`, `Astute\`, `umlilo-portal\`, etc.) is a project within it. All tooling is installed at the machine or workspace level — never scoped to a single project subfolder.
 
-#### VS Code Extensions
+Run these once when setting up a new machine.
 
-When you open this workspace in VS Code, it will prompt:
-> *"Do you want to install the recommended extensions for this repository?"*
+---
 
-Click **Install All**. Or install manually:
+#### VS Code Extensions — Global Install
 
-```bash
-# Install all recommended extensions in one command
-code --install-extension anthropic.claude-code \
-     --install-extension openai.chatgpt \
-     --install-extension ms-vscode.powershell \
-     --install-extension ms-python.python \
-     --install-extension ms-python.vscode-pylance \
-     --install-extension ms-python.debugpy \
-     --install-extension ms-python.vscode-python-envs \
-     --install-extension formulahendry.vscode-mysql \
-     --install-extension ms-mssql.mssql \
-     --install-extension ms-mssql.data-workspace-vscode \
-     --install-extension ms-mssql.sql-database-projects-vscode \
-     --install-extension ms-mssql.sql-bindings-vscode \
-     --install-extension ms-dotnettools.vscode-dotnet-runtime \
+Extensions are installed at the VS Code **user level** (global), so they are available across every project in the workspace. The `c:\DevWork\.vscode\extensions.json` file lists them so VS Code will prompt to install when the workspace is first opened.
+
+Install prompt: open `c:\DevWork` in VS Code → *"Do you want to install the recommended extensions?"* → **Install All**.
+
+Or install manually (each `code --install-extension` call installs globally):
+
+```powershell
+code --install-extension anthropic.claude-code `
+     --install-extension openai.chatgpt `
+     --install-extension ms-vscode.powershell `
+     --install-extension ms-python.python `
+     --install-extension ms-python.vscode-pylance `
+     --install-extension ms-python.debugpy `
+     --install-extension ms-python.vscode-python-envs `
+     --install-extension formulahendry.vscode-mysql `
+     --install-extension ms-mssql.mssql `
+     --install-extension ms-mssql.data-workspace-vscode `
+     --install-extension ms-mssql.sql-database-projects-vscode `
+     --install-extension ms-mssql.sql-bindings-vscode `
+     --install-extension ms-dotnettools.vscode-dotnet-runtime `
      --install-extension tomoki1207.pdf
 ```
 
@@ -702,57 +706,81 @@ code --install-extension anthropic.claude-code \
 | `ms-dotnettools.vscode-dotnet-runtime` | .NET Runtime | Dependency for SQL extensions |
 | `tomoki1207.pdf` | PDF Preview | In-editor PDF viewer (brand guides, docs) |
 
-The extension list is kept in `.vscode/extensions.json` — VS Code reads it automatically.
+The full list is in `c:\DevWork\.vscode\extensions.json` — VS Code reads it automatically on workspace open.
 
-#### Runtime Tooling
+---
 
-Install these runtimes before running the projects in this workspace:
+#### Runtime Tooling — Machine-Level Installs
 
-**Node.js + pnpm** (Umlilo portal — Next.js / Expo)
-```bash
-# Install Node.js LTS from https://nodejs.org/
-# Then install pnpm
+All runtimes are installed at the **system or user PATH level** so every project can invoke them from any terminal. No project-scoped installs.
+
+**Node.js LTS + pnpm** — required by Umlilo portal (Next.js / Expo)
+```powershell
+# 1. Install Node.js LTS: https://nodejs.org/  (adds node + npm to system PATH)
+# 2. Install pnpm globally:
 npm install -g pnpm
+# Verify:
+node --version
+pnpm --version
 ```
 
-**PHP 8.x** (BlackFire portal)
-```bash
-# Windows — download from https://windows.php.net/download/
-# Recommended: add PHP to PATH and set php.ini
+**PHP 8.x** — required by BlackFire portal
+```powershell
+# 1. Download from https://windows.php.net/download/ (Non-Thread Safe, x64 zip)
+# 2. Extract to C:\php
+# 3. Add C:\php to system PATH (System Properties → Environment Variables → Path)
+# 4. Copy php.ini-development → php.ini, enable extensions needed (mysqli, pdo_mysql)
 # Verify:
 php --version
 ```
 
-**Python 3.10+** (Agent scripts — proposal_grader.py, token_tracker.py)
-```bash
-# Windows — download from https://www.python.org/downloads/
-# Then install dependencies:
-pip install anthropic python-dotenv
+**Python 3.10+** — required by agent scripts (proposal_grader.py, token_tracker.py, etc.)
+
+Install Python at the **user level** (not inside a project folder). A single shared virtual environment lives at `c:\DevWork\.venv` and is used by all projects in this workspace.
+
+```powershell
+# 1. Install Python 3.10+ from https://python.org/downloads/
+#    Check "Add Python to PATH" during install.
+
+# 2. Create the workspace-level virtual environment (run once):
+python -m venv C:\DevWork\.venv
+
+# 3. Activate it (run in any terminal session that needs Python):
+C:\DevWork\.venv\Scripts\Activate.ps1
+
+# 4. Install shared packages (run once after creating the venv):
+pip install anthropic python-dotenv requests
+
 # Verify:
 python --version
+python -c "import anthropic; print('anthropic OK')"
 ```
 
-**PowerShell 5.1** (Document generation — Usiba scripts)
+> **VS Code integration:** set `python.defaultInterpreterPath` in `c:\DevWork\.vscode\settings.json` to `C:\\DevWork\\.venv\\Scripts\\python.exe` so all projects in the workspace pick up the shared interpreter automatically.
+
+**PowerShell 5.1** — required by Usiba document generation (COM automation)
 ```powershell
-# Already included in Windows 10/11.
-# Verify version:
+# Already included in Windows 10/11. No install needed.
+# Verify — must show 5.x (not 7.x):
 $PSVersionTable.PSVersion
-# Must be 5.x (not 7.x — COM automation requires 5.1)
 ```
 
 **Git**
-```bash
-# Download from https://git-scm.com/
+```powershell
+# Download from https://git-scm.com/ — adds git to system PATH
 git --version
 ```
 
+---
+
 #### After Installing
 
-1. Clone the repo and open in VS Code — it will prompt to install recommended extensions.
-2. Copy `.env.example` → `.env` and fill in real values (see §4.3).
-3. Verify the MySQL extension can connect to your database.
-4. Open a Python terminal and confirm `import anthropic` works.
-5. Open a PowerShell terminal and run `$PSVersionTable.PSVersion` — must show `5.x`.
+1. Open `c:\DevWork` in VS Code (not a subfolder) — VS Code will prompt to install recommended extensions.
+2. Activate the workspace Python environment: `C:\DevWork\.venv\Scripts\Activate.ps1`
+3. Copy `.env.example` → `.env` and fill in real values (see §4.3).
+4. Verify the MySQL extension can connect to your database.
+5. Confirm `import anthropic` works from the activated venv.
+6. Run `$PSVersionTable.PSVersion` in a PowerShell terminal — must show `5.x`.
 
 ### 4.2 File System Layout
 

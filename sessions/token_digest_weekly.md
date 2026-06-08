@@ -147,3 +147,12 @@ Model usage:
   gpt-5                            1 session(s)
   gpt-5 mini                       1 session(s)
   gpt-5 (active)                   1 session(s)
+
+## Learnings
+âš  /learn was not run before this session ended.
+Action required at next session start: review this log and run /learn (Claude Code)
+or manually update memory/ files (all other providers) before new work begins.
+
+_Session ended: 2026-06-08 16:45:53 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-06-08 16:52:58 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-06-08 16:56:17 (Claude Code / claude-sonnet-4-6)_

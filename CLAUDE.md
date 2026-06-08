@@ -234,28 +234,54 @@ Never create loose files at the repo root (except CLAUDE.md, AGENTS.md, .gitigno
 
 ## 7d. New Environment Setup — Installs
 
-When setting up this workspace on a new machine, install the following.
+**Workspace model:** `c:\DevWork` is the global workspace root. Each subfolder is a project. All tooling is installed at the machine or workspace level — never scoped to a single project subfolder.
 
-### VS Code Extensions
+### VS Code Extensions — Global Install
 
-Open the workspace — VS Code will prompt *"Install recommended extensions?"* → click **Install All**.
-Or run the one-liner:
+Open `c:\DevWork` in VS Code (not a subfolder) — it will prompt *"Install recommended extensions?"* → click **Install All**.
+Extensions are installed at VS Code user level (global), available across all projects.
 
-```bash
-code --install-extension anthropic.claude-code --install-extension openai.chatgpt --install-extension ms-vscode.powershell --install-extension ms-python.python --install-extension ms-python.vscode-pylance --install-extension ms-python.debugpy --install-extension ms-python.vscode-python-envs --install-extension formulahendry.vscode-mysql --install-extension ms-mssql.mssql --install-extension ms-mssql.data-workspace-vscode --install-extension ms-mssql.sql-database-projects-vscode --install-extension ms-mssql.sql-bindings-vscode --install-extension ms-dotnettools.vscode-dotnet-runtime --install-extension tomoki1207.pdf
+Or install manually:
+
+```powershell
+code --install-extension anthropic.claude-code `
+     --install-extension openai.chatgpt `
+     --install-extension ms-vscode.powershell `
+     --install-extension ms-python.python `
+     --install-extension ms-python.vscode-pylance `
+     --install-extension ms-python.debugpy `
+     --install-extension ms-python.vscode-python-envs `
+     --install-extension formulahendry.vscode-mysql `
+     --install-extension ms-mssql.mssql `
+     --install-extension ms-mssql.data-workspace-vscode `
+     --install-extension ms-mssql.sql-database-projects-vscode `
+     --install-extension ms-mssql.sql-bindings-vscode `
+     --install-extension ms-dotnettools.vscode-dotnet-runtime `
+     --install-extension tomoki1207.pdf
 ```
 
-The full list with descriptions is in `.vscode/extensions.json` and the architecture doc §4.1a.
+Full list with descriptions: `.vscode/extensions.json` and architecture doc §4.1a.
 
-### Runtime Tooling
+### Runtime Tooling — Machine-Level
 
-| Tool | Version | Used by |
-|------|---------|--------|
-| Node.js LTS + pnpm | latest LTS | Umlilo portal (Next.js/Expo) |
-| PHP | 8.x | BlackFire Portal (PHP/MySQL) |
-| Python | 3.10+ | Agent scripts (proposal_grader.py, token_tracker.py) |
-| PowerShell | **5.1 only** | Usiba document generation (COM automation requires 5.1) |
-| Git | latest | All version control |
+All runtimes on system PATH. No project-scoped installs.
+
+| Tool | Version | Scope | Used by |
+|------|---------|-------|--------|
+| Node.js LTS + pnpm | latest LTS | System PATH | Umlilo portal (Next.js/Expo) |
+| PHP | 8.x | System PATH (`C:\php`) | BlackFire Portal (PHP/MySQL) |
+| Python | 3.10+ | System PATH + workspace venv at `c:\DevWork\.venv` | All agent scripts |
+| PowerShell | **5.1 only** | Built into Windows | Usiba document generation (COM automation) |
+| Git | latest | System PATH | All version control |
+
+**Python workspace venv** — create once, shared by all projects:
+```powershell
+python -m venv C:\DevWork\.venv
+C:\DevWork\.venv\Scripts\Activate.ps1
+pip install anthropic python-dotenv requests
+```
+
+VS Code picks up the shared interpreter automatically via `.vscode/settings.json` (`python.defaultInterpreterPath`).
 
 After installing: copy `.env.example` → `.env` and fill in real values (see §8).
 
