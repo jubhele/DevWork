@@ -177,6 +177,53 @@ if ($method === 'PUT') {
         json_ok([], "Quote $ref_id $new_status");
     }
 
+    // Convert approved quote to a draft invoice
+    if ($action === 'convert') {
+        require_perm('invoice.create');
+
+        $quote = db_row("SELECT * FROM bf_quotes WHERE ref_id = ?", [$ref_id]);
+        if (!$quote) json_err('Quote not found', 404);
+        if ($quote['status'] !== 'Approved') json_err('Only Approved quotes can be converted to invoices', 422);
+
+        $existing = db_row("SELECT ref_id FROM bf_invoices WHERE quote_ref = ? LIMIT 1", [$ref_id]);
+        if ($existing) json_err('Quote already converted — see Invoice ' . $existing['ref_id'], 409);
+
+        $due_date = (isset($b['due_date']) && valid_date($b['due_date'])) ? $b['due_date'] : date('Y-m-d', strtotime('+30 days'));
+        $po       = clean($b['po'] ?? '', 100);
+        $inv_ref  = next_ref_id('inv');
+
+        try {
+            db_begin();
+            db_insert(
+                "INSERT INTO bf_invoices
+                 (ref_id, invoice_no, client_id, client_name, client_email, amount, due_date, status,
+                  quote_ref, quote_id, callout_ref, callout_id, po, invoice_date, sent_by_user_id)
+                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                [
+                    $inv_ref, $inv_ref,
+                    $quote['client_id'],
+                    $quote['client_name'],
+                    $quote['client_email'],
+                    $quote['total_amount'],
+                    $due_date,
+                    'Draft',
+                    $ref_id, (int)$quote['id'],
+                    $quote['callout_ref'] ?? '', $quote['callout_id'] ? (int)$quote['callout_id'] : null,
+                    $po, date('Y-m-d'), (int)$usr['id'],
+                ]
+            );
+            db_exec("UPDATE bf_quotes SET status = 'Converted' WHERE ref_id = ?", [$ref_id]);
+            db_commit();
+        } catch (Exception $e) {
+            db_rollback();
+            json_err('Conversion failed: ' . $e->getMessage(), 500);
+        }
+
+        audit($usr['username'], 'CONVERT', "Quote $ref_id converted to Invoice $inv_ref");
+        $inv = db_row("SELECT * FROM bf_invoices WHERE ref_id = ?", [$inv_ref]);
+        json_ok(['data' => $inv], "Quote $ref_id converted to Invoice $inv_ref");
+    }
+
     // General status update
     require_perm('quote.update');
     $allowed = ['status', 'valid_until', 'notes', 'quote_no'];

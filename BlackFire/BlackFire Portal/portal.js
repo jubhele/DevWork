@@ -160,7 +160,7 @@ document.addEventListener('click', function(e) {
     case 'doLogout':             doLogout(); break;
     // Contact / enquiry
     case 'submitContact':        submitContact(); break;
-    case 'submitEnquiry':        toast('Enquiry submitted — we\'ll be in touch.', 'ok'); break;
+    case 'submitEnquiry':        submitEnquiry(); break;
     // Modals
     case 'openTxModal':          openTxModal(); break;
     case 'closeModalDirect':     closeModalDirect(); break;
@@ -174,6 +174,7 @@ document.addEventListener('click', function(e) {
     case 'openAssignTech':       openAssignTech(el.dataset.id); break;
     case 'saveTechAssign':       saveTechAssign(el.dataset.id); break;
     case 'prefillQuoteFromJob':  prefillQuoteFromJob(el.dataset.id); break;
+    case 'openInvoiceFromCallout': openInvoiceFromCallout(el.dataset.id); break;
     case 'openConfirmClosureModal': openConfirmClosureModal(el.dataset.id); break;
     case 'saveConfirmClosure':   saveConfirmClosure(el.dataset.id); break;
     case 'deleteCallout':        deleteCallout(el.dataset.id); break;
@@ -415,7 +416,7 @@ async function uploadAttachment(entityType, entityRef) {
 }
 
 async function deleteAttachment(id, entityType, entityRef) {
-  if (!confirm('Remove this file?')) return;
+  if (!await confirmDialog('Remove this attachment?\n\nThis action cannot be undone.', { title: 'Remove File', confirmLabel: 'Remove' })) return;
   const r = await api('DELETE', `files.php?id=${id}`);
   if (!r.success) { toast(r.error || 'Delete failed', 'err'); return; }
   toast('File removed', 'ok');
@@ -597,31 +598,45 @@ function populateLinkedDropdowns() {
     if (cur) techEl.value = cur;
   }
 
-  // Quote linked callout select (open/in-progress callouts only)
+  // Quote linked callout select (open/in-progress callouts that don't already have an approved quote)
   const nqCalloutEl = document.getElementById('nq-callout-ref');
   if (nqCalloutEl) {
-    const openCos = proxyDB.callouts.filter(c => ['Open','In Progress'].includes(c.status));
+    const openCos = proxyDB.callouts.filter(c =>
+      ['Open','In Progress'].includes(c.status) &&
+      !proxyDB.quotes.some(q => q.calloutRef === c.id && q.status === 'Approved')
+    );
     const coOpts  = openCos.map(c => `<option value="${esc(c.id)}">${esc(c.id)} — ${esc(c.service)} (${esc(c.client)})</option>`).join('');
     const cur = nqCalloutEl.value;
     nqCalloutEl.innerHTML = '<option value="">— None (standalone quote) —</option>' + coOpts;
     if (cur) nqCalloutEl.value = cur;
   }
 
-  // Invoice linked quote select (all non-cancelled quotes)
+  // Invoice linked quote select:
+  // - Always include the quote linked to the selected callout (any status)
+  // - Plus all Approved quotes for the selected client
   const niQuoteEl = document.getElementById('ni-quote-ref');
   if (niQuoteEl) {
-    const quotes = proxyDB.quotes.filter(q => q.status !== 'Cancelled');
-    const qOpts  = quotes.map(q => `<option value="${esc(q.id)}">${esc(q.quoteNo)} — ${esc(q.client)} (${esc(q.status)})</option>`).join('');
+    const niClientId  = parseInt(document.getElementById('ni-client')?.value) || 0;
+    const niCalloutId = document.getElementById('ni-callout-ref')?.value || '';
+    const quotes = proxyDB.quotes.filter(q => {
+      if (niCalloutId && q.calloutRef === niCalloutId) return true;
+      return q.status === 'Approved' && (!niClientId || q.clientId === niClientId);
+    });
+    const qOpts = quotes.map(q => {
+      const note = q.status !== 'Approved' ? ` (${esc(q.status)})` : '';
+      return `<option value="${esc(q.id)}">${esc(q.quoteNo)} — ${esc(q.client)}${note}</option>`;
+    }).join('');
     const cur = niQuoteEl.value;
     niQuoteEl.innerHTML = '<option value="">— None —</option>' + qOpts;
     if (cur) niQuoteEl.value = cur;
   }
 
-  // Invoice linked callout select (completed callouts without invoice, or all active)
+  // Invoice linked callout select (Completed callouts only, filtered by selected client)
   const niCalloutEl = document.getElementById('ni-callout-ref');
   if (niCalloutEl) {
-    const callouts = proxyDB.callouts.filter(c => c.status !== 'Invoiced');
-    const coOpts2  = callouts.map(c => `<option value="${esc(c.id)}">${esc(c.id)} — ${esc(c.service)} (${esc(c.status)})</option>`).join('');
+    const niClientId = parseInt(document.getElementById('ni-client')?.value) || 0;
+    const callouts = proxyDB.callouts.filter(c => c.status === 'Completed' && (!niClientId || c.clientId === niClientId));
+    const coOpts2  = callouts.map(c => `<option value="${esc(c.id)}">${esc(c.id)} — ${esc(c.service)}</option>`).join('');
     const cur = niCalloutEl.value;
     niCalloutEl.innerHTML = '<option value="">— None —</option>' + coOpts2;
     if (cur) niCalloutEl.value = cur;
@@ -865,7 +880,7 @@ async function doLogin(){
     document.getElementById('dash-sub').textContent = `AECI CHEMPARK  -  ${_rl.toUpperCase()} VIEW`; }
 
   // Load all data from API (including dashboard layout)
-  toast('Loading data…', 'ok');
+  toast('Loading data…', 'info');
   _dashPrefsCache = null; // clear any previous user's cache before re-loading
   await Promise.all([refreshAll(), loadDashPrefsFromAPI()]);
 
@@ -1237,6 +1252,30 @@ const PAGE_INFO = {
       { q: 'How do service types affect billing?', a: 'Service type is used to categorise callouts and quote line items. Finance uses these categories for revenue reporting.' },
     ],
     linked: 'Callouts, Quotes.',
+    access: ['admin','sysadmin','manager','admin_clerk','senior_tech','call_logger','viewer','client_support','junior_tech'],
+  },
+  'p-contact': {
+    title: 'Enquiries',
+    sub: 'Contact & quote requests',
+    purpose: 'Submit a service enquiry or request a quote from within the portal. Use this page to raise a formal enquiry on behalf of a client or for your own site. The form captures your contact details and service requirement so the BlackFire team can follow up.',
+    steps: [
+      'Fill in your full name, company, phone number, and email address.',
+      'Select the service type from the dropdown — choose the closest match to what is required.',
+      'Write a brief message describing the requirement, site details, and any urgency.',
+      'Click Submit Enquiry. The form is cleared and a confirmation is shown.',
+      'A BlackFire team member will follow up within one business day.',
+    ],
+    tips: [
+      'The more detail you include in the message field, the faster the team can prepare a tailored response.',
+      'For urgent security incidents, use the Emergency Line (+27 68 912 6581) directly — do not submit a form.',
+      'If you are requesting a quote for an existing client, include the client name in the message field.',
+    ],
+    faqs: [
+      { q: 'How quickly will I get a response?', a: 'The target response time is one business day. For urgent matters, call the emergency line directly.' },
+      { q: 'Can I submit multiple service types in one enquiry?', a: 'Yes — select "Multiple Services" from the dropdown and describe all requirements in the message field.' },
+      { q: 'Is this form only for new clients?', a: 'No — existing clients and internal staff can use it to raise formal enquiries or quote requests that need to go through the standard review process.' },
+    ],
+    linked: 'Clients, Quotes.',
     access: ['admin','sysadmin','manager','admin_clerk','senior_tech','call_logger','viewer','client_support','junior_tech'],
   },
   'p-dashboard': {
@@ -1728,7 +1767,7 @@ const PAGE_INFO = {
     faqs: [
       { q: 'What if I don\'t know which technician to assign?', a: 'Leave the Technician field blank and save. You can assign from the Call Log once a technician is confirmed — the callout is created and timestamped regardless.' },
       { q: 'Is there a limit to how many callouts I can log?', a: 'No limit. Log every callout — the history builds your service record, supports billing, and is required for any future SLA or contract review.' },
-      { q: 'What happens after I save?', a: 'The callout appears immediately in the Call Log with status Open. Assigned users receive a notification. You can return to the Call Log at any time to update status, assign a technician, or add a PO number.' },
+      { q: 'What happens after I save?', a: 'The callout appears immediately in the Call Log with status Open. No automatic notification is sent — contact the assigned technician directly. You can return to the Call Log at any time to update status, assign a technician, or add a PO number.' },
       { q: 'Can I edit a callout I just saved?', a: 'Yes — go to the Call Log, find your callout, expand the row, and edit any field. Changes are logged in the audit trail.' },
     ],
     linked: 'Call Log, Clients.',
@@ -2222,6 +2261,25 @@ function submitContact(){
   if(!n){alert('Please fill in your name');return;}
   $show(document.getElementById('cf-success'), 'block');
   ['cf-name','cf-company','cf-phone','cf-email','cf-location','cf-message'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+}
+
+async function submitEnquiry() {
+  const name    = document.getElementById('pcf-name')?.value.trim() || '';
+  const company = document.getElementById('pcf-co')?.value.trim()   || '';
+  const phone   = document.getElementById('pcf-ph')?.value.trim()   || '';
+  const email   = document.getElementById('pcf-em')?.value.trim()   || '';
+  const service = document.getElementById('pcf-svc')?.value         || '';
+  const message = document.getElementById('pcf-msg')?.value.trim()  || '';
+  if (!name)  { toast('Name is required', 'err');  return; }
+  if (!email) { toast('Email is required', 'err'); return; }
+  const btn = document.querySelector('[data-action="submitEnquiry"]');
+  if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
+  const r = await api('POST', 'enquiries.php', { name, company, phone, email, service, message });
+  if (btn) { btn.disabled = false; btn.textContent = 'Submit Enquiry'; }
+  if (!r.success) { toast(r.error || 'Failed to submit enquiry', 'err'); return; }
+  toast('Enquiry submitted — we\'ll be in touch.', 'ok');
+  ['pcf-name','pcf-co','pcf-ph','pcf-em','pcf-msg'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+  const svc = document.getElementById('pcf-svc'); if (svc) svc.selectedIndex = 0;
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -2830,17 +2888,22 @@ function renderCallouts(search='',filter=''){
     const actions=[];
     if(canStatus) actions.push(`<button class="btn btn-g btn-s" data-action="openStatusModal" data-id="${esc(c.id)}">Update Status</button>`);
     if(canTech&&!c.assignedTo) actions.push(`<button class="btn btn-g btn-s" data-action="openAssignTech" data-id="${esc(c.id)}">Assign Tech</button>`);
-    if(can('capture.new_quote')||can('quote.view')){
-      const linkedQuote=proxyDB.quotes.find(q=>q.calloutRef===c.id);
+    const linkedQuote=proxyDB.quotes.find(q=>q.calloutRef===c.id);
+    const hasApprovedQuote=linkedQuote?.status==='Approved';
+    if(!hasApprovedQuote&&(can('capture.new_quote')||can('quote.view'))){
       if(linkedQuote){
-        actions.push(`<button class="btn btn-g btn-s" data-action="previewQuote" data-id="${esc(linkedQuote.id)}">Quote</button>`);
-      } else if(can('capture.new_quote')){
+        const qLbl = linkedQuote.status==='Pending Approval' ? 'Quote (Pending)' : `Quote (${linkedQuote.status})`;
+        actions.push(`<button class="btn btn-g btn-s" data-action="previewQuote" data-id="${esc(linkedQuote.id)}">${qLbl}</button>`);
+      } else if(can('capture.new_quote')&&!c.invoiceGenerated){
         actions.push(`<button class="btn btn-g btn-s" data-action="prefillQuoteFromJob" data-id="${esc(c.id)}">Quote</button>`);
       }
     }
     actions.push(`<button class="btn btn-g btn-s" data-action="openAttachmentsModal" data-entity-type="callout" data-entity-ref="${esc(c.id)}">Files</button>`);
     if(can('callout.confirm_closure')&&c.status==='Completed'&&!c.closureConfirmed&&!c.invoiceGenerated){
       actions.push(`<button class="btn btn-p btn-s" data-action="openConfirmClosureModal" data-id="${esc(c.id)}">Confirm Closure</button>`);
+    }
+    if(can('capture.new_invoice')&&c.status==='Completed'&&!c.invoiceGenerated){
+      actions.push(`<button class="btn ${hasApprovedQuote?'btn-p':'btn-g'} btn-s" data-action="openInvoiceFromCallout" data-id="${esc(c.id)}">Invoice</button>`);
     }
     if(canDel) actions.push(`<button class="btn btn-g btn-s" data-action="deleteCallout" data-id="${esc(c.id)}">Del</button>`);
 
@@ -2980,6 +3043,7 @@ async function saveConfirmClosure(id){
 
 function prefillQuoteFromJob(id){
   const c=proxyDB.callouts.find(x=>x.id===id);if(!c)return;
+  if(proxyDB.quotes.some(q=>q.calloutRef===id&&q.status==='Approved'))return;
   showPortalPage('p-new-quote',null);
   setTimeout(()=>{
     const el=document.getElementById('nq-callout-ref');if(el)el.value=id;
@@ -3025,8 +3089,8 @@ function saveCallout(){
   showPortalPage('p-callouts',null);
 }
 
-function delCo(id){
-  if(!confirm(`Delete ${id}?`))return;
+async function delCo(id){
+  if(!await confirmDialog(`Delete callout ${id}?\n\nThis action cannot be undone.`, { title: 'Delete Callout', confirmLabel: 'Delete' }))return;
   proxyDB.callouts=proxyDB.callouts.filter(c=>c.id!==id);
   save();renderCallouts();renderDashboard();toast('Callout deleted');audit('DELETE',`${id}`);
 }
@@ -3060,7 +3124,7 @@ function renderQuotes(search='',filter=''){
       actions.push(`<button class="btn btn-s bg-grn" data-action="approveQuote" data-id="${esc(q.id)}">Approve</button>`);
       actions.push(`<button class="btn btn-s bg-emb" data-action="rejectQuote" data-id="${esc(q.id)}">Decline</button>`);
     }
-    if(canConvert&&q.status!=='Pending Approval') actions.push(`<button class="btn btn-g btn-s" data-action="convertToInvoice" data-id="${esc(q.id)}">Invoice</button>`);
+    if(canConvert&&q.status==='Approved') actions.push(`<button class="btn btn-g btn-s" data-action="convertToInvoice" data-id="${esc(q.id)}">Invoice</button>`);
     if(canDel) actions.push(`<button class="btn btn-g btn-s" data-action="deleteQuote" data-id="${esc(q.id)}">Del</button>`);
     return`<tr>
       <td class="mono">${esc(q.quoteNo)}${q.quoteNo!==q.id?`<div class="mlbl-9 mt-2 text-muted">${esc(q.id)}</div>`:''}</td>
@@ -3129,18 +3193,18 @@ function convertQtoInv(id){
   save();showPortalPage('p-invoices',null);toast(`Invoice ${invId} created from ${id}`,'ok');audit('CREATE',`Invoice ${invId} from ${id}`);
 }
 
-function delQuote(id){
-  if(!confirm(`Delete ${id}?`))return;
+async function delQuote(id){
+  if(!await confirmDialog(`Delete quote ${id}?\n\nThis action cannot be undone.`, { title: 'Delete Quote', confirmLabel: 'Delete' }))return;
   proxyDB.quotes=proxyDB.quotes.filter(q=>q.id!==id);save();renderQuotes();toast('Quote deleted');audit('DELETE',id);
 }
 
 function initNewQuote(){
-  const isSeniorTech=SESSION?.role==='senior_tech';
-  document.getElementById('nq-page-title').textContent=isSeniorTech?'Submit Quote for Approval':'New Quote';
-  document.getElementById('nq-page-sub').textContent=isSeniorTech?'SENIOR TECH  -  PENDING MANAGER REVIEW':'BUILD PROPOSAL';
-  isSeniorTech?$show(document.getElementById('nq-pending-notice'),'block'):$hide(document.getElementById('nq-pending-notice'));
-  isSeniorTech?$hide(document.getElementById('nq-status-group')):$show(document.getElementById('nq-status-group'));
-  document.getElementById('nq-submit-btn').textContent=isSeniorTech?'Submit for Approval →':'Save Quote';
+  const needsApproval = !can('quote.approve');
+  document.getElementById('nq-page-title').textContent=needsApproval?'Submit Quote for Approval':'New Quote';
+  document.getElementById('nq-page-sub').textContent=needsApproval?'PENDING MANAGER REVIEW  -  SUBMIT WHEN READY':'BUILD PROPOSAL';
+  needsApproval?$show(document.getElementById('nq-pending-notice'),'block'):$hide(document.getElementById('nq-pending-notice'));
+  needsApproval?$hide(document.getElementById('nq-status-group')):$show(document.getElementById('nq-status-group'));
+  document.getElementById('nq-submit-btn').textContent=needsApproval?'Submit for Approval →':'Save Quote';
   const due=new Date();due.setDate(due.getDate()+30);
   document.getElementById('nq-valid').value=localDateStr(due);
   document.getElementById('li-body').innerHTML='';
@@ -3274,16 +3338,85 @@ function markPaid(id){
   proxyDB.bank.unshift({date:localDateStr(),desc:`Payment received - ${inv.client}`,cat:'Invoice Payment',ref:inv.id,credit:inv.amount,debit:0});
   save();renderInvoices();renderDashboard();toast(`${id} marked paid`,'ok');audit('MARK_PAID',`${id}`);
 }
-function delInvoice(id){
-  if(!confirm(`Delete ${id}?`))return;
+async function delInvoice(id){
+  if(!await confirmDialog(`Delete invoice ${id}?\n\nThis action cannot be undone.`, { title: 'Delete Invoice', confirmLabel: 'Delete' }))return;
   proxyDB.invoices=proxyDB.invoices.filter(i=>i.id!==id);
   save();renderInvoices();renderDashboard();toast('Invoice deleted');audit('DELETE',id);
 }
 
-function initNewInvoice(){
-  const due=new Date();due.setDate(due.getDate()+30);
-  document.getElementById('ni-due').value=localDateStr(due);
-  populateLinkedDropdowns();
+let _invoiceContext = null;
+let _invoiceListenerAC = null;
+
+function initNewInvoice() {
+  if (_invoiceListenerAC) _invoiceListenerAC.abort();
+  _invoiceListenerAC = new AbortController();
+  const sig = { signal: _invoiceListenerAC.signal };
+
+  const due = new Date(); due.setDate(due.getDate() + 30);
+  document.getElementById('ni-due').value = localDateStr(due);
+
+  const ctx = _invoiceContext;
+  _invoiceContext = null;
+  if (ctx?.calloutId) _applyInvoiceCalloutCtx(ctx.calloutId);
+  else if (ctx?.quoteId) _applyInvoiceQuoteCtx(ctx.quoteId);
+  else populateLinkedDropdowns();
+
+  document.getElementById('ni-client')?.addEventListener('change', () => {
+    populateLinkedDropdowns();
+  }, sig);
+
+  document.getElementById('ni-callout-ref')?.addEventListener('change', function () {
+    const coId = this.value;
+    if (!coId) { populateLinkedDropdowns(); return; }
+    const co = proxyDB.callouts.find(x => x.id === coId); if (!co) return;
+    if (co.clientId && !parseInt(document.getElementById('ni-client')?.value)) {
+      document.getElementById('ni-client').value = co.clientId;
+    }
+    populateLinkedDropdowns(); // always refresh so this callout's linked quote appears
+    const linkedQ = proxyDB.quotes.find(q => q.calloutRef === coId);
+    if (linkedQ) document.getElementById('ni-quote-ref').value = linkedQ.id;
+  }, sig);
+
+  document.getElementById('ni-quote-ref')?.addEventListener('change', function () {
+    const qId = this.value; if (!qId) return;
+    const q = proxyDB.quotes.find(x => x.id === qId); if (!q) return;
+    if (q.clientId && !parseInt(document.getElementById('ni-client')?.value)) {
+      document.getElementById('ni-client').value = q.clientId;
+      populateLinkedDropdowns();
+    }
+    if (q.calloutRef) {
+      const linkedCo = proxyDB.callouts.find(c => c.id === q.calloutRef && c.status === 'Completed');
+      if (linkedCo) document.getElementById('ni-callout-ref').value = linkedCo.id;
+    }
+    const total = q.items.reduce((a, i) => a + (i.qty * i.unit), 0) * 1.15;
+    if (total) document.getElementById('ni-amount').value = (Math.round(total * 100) / 100).toFixed(2);
+  }, sig);
+}
+
+function _applyInvoiceCalloutCtx(calloutId) {
+  const co = proxyDB.callouts.find(x => x.id === calloutId); if (!co) return;
+  if (co.clientId) document.getElementById('ni-client').value = co.clientId;
+  document.getElementById('ni-callout-ref').value = calloutId;
+  populateLinkedDropdowns(); // rebuild after callout is set so linked quote is included
+  const linkedQ = proxyDB.quotes.find(q => q.calloutRef === calloutId);
+  if (linkedQ) {
+    document.getElementById('ni-quote-ref').value = linkedQ.id;
+    const total = linkedQ.items.reduce((a, i) => a + (i.qty * i.unit), 0) * 1.15;
+    if (total) document.getElementById('ni-amount').value = (Math.round(total * 100) / 100).toFixed(2);
+  }
+}
+
+function _applyInvoiceQuoteCtx(quoteId) {
+  const q = proxyDB.quotes.find(x => x.id === quoteId); if (!q) return;
+  if (q.clientId) document.getElementById('ni-client').value = q.clientId;
+  if (q.calloutRef) {
+    const linkedCo = proxyDB.callouts.find(c => c.id === q.calloutRef && c.status === 'Completed');
+    if (linkedCo) document.getElementById('ni-callout-ref').value = linkedCo.id;
+  }
+  populateLinkedDropdowns(); // rebuild after client + callout are set
+  document.getElementById('ni-quote-ref').value = quoteId;
+  const total = q.items.reduce((a, i) => a + (i.qty * i.unit), 0) * 1.15;
+  if (total) document.getElementById('ni-amount').value = (Math.round(total * 100) / 100).toFixed(2);
 }
 function saveInvoice(){
   const client=document.getElementById('ni-client').value.trim();
@@ -3894,7 +4027,7 @@ async function toggleUserActive(id, active) {
   if (!can('user.update')) return;
   const u = (DB.users || []).find(x => x.id === id);
   const label = active ? 'enable' : 'disable';
-  if (!confirm(`${active?'Enable':'Disable'} user ${u?.username || id}?`)) return;
+  if (!await confirmDialog(`${active?'Enable':'Disable'} user ${u?.username || id}?`, { title: active?'Enable User':'Disable User', confirmLabel: active?'Enable':'Disable', danger: !active })) return;
   const r = await api('PUT', `users.php?id=${id}`, { active: active ? 1 : 0 });
   if (!r.success) { toast(r.error || 'Error', 'err'); return; }
   await refreshUsers();
@@ -3956,7 +4089,7 @@ async function saveUserSignature() {
 }
 
 async function removeUserSignature(id) {
-  if (!confirm('Remove this user\'s signature?')) return;
+  if (!await confirmDialog('Remove this user\'s signature?\n\nThis action cannot be undone.', { title: 'Remove Signature', confirmLabel: 'Remove' })) return;
   const r = await api('DELETE', `user_signature.php?user_id=${id}`);
   if (!r.success) { toast(r.error || 'Error removing signature', 'err'); return; }
   const wrap = document.getElementById('eu-sig-current');
@@ -4099,8 +4232,8 @@ function saveDashEditorPrefs(){
   toast('Dashboard layout saved','ok');
 }
 
-function setDashDefaultForAll(){
-  if(!confirm('Set this layout as the default for all users who haven\'t customised their own dashboard?')) return;
+async function setDashDefaultForAll(){
+  if(!await confirmDialog('Set this layout as the default for all users who haven\'t customised their own dashboard?', { title: 'Set Default Layout', confirmLabel: 'Set Default', danger: false })) return;
   const {order, enabled} = _readDashEditorState();
   const layout = {enabled, order};
   localStorage.setItem('bf_dash_default', JSON.stringify(layout));
@@ -4111,7 +4244,7 @@ function setDashDefaultForAll(){
 }
 
 async function resetDashLayoutForAll(){
-  if(!confirm('Reset ALL users\' dashboard layouts? Everyone (except you) reverts to the default on their next load.')) return;
+  if(!await confirmDialog('Reset ALL users\' dashboard layouts?\n\nEveryone (except you) reverts to the default on their next load.', { title: 'Reset All Layouts', confirmLabel: 'Reset All' })) return;
   const r = await api('PUT', 'dashboard_prefs.php?action=reset_all', {});
   if(!r.success){ toast('Reset failed: ' + (r.error||'unknown error'), 'err'); return; }
   toast('All user layouts reset to default','ok');
@@ -4132,6 +4265,30 @@ function _readDashEditorState(){
     getDashWidgetOrder(prefs).forEach(id=>{ order.push(id); enabled[id]=isWidgetOn(id,prefs); });
   }
   return {order, enabled};
+}
+
+/* ═══════════════════════════════════════════════════════
+   CONFIRM DIALOG
+═══════════════════════════════════════════════════════ */
+function confirmDialog(msg, opts = {}) {
+  return new Promise(resolve => {
+    const overlay  = document.getElementById('confirm-overlay');
+    const ttlEl    = document.getElementById('confirm-ttl');
+    const bdyEl    = document.getElementById('confirm-bdy');
+    const okBtn    = document.getElementById('confirm-ok');
+    const cancelBtn = document.getElementById('confirm-cancel');
+    if (ttlEl) ttlEl.textContent = opts.title || 'Confirm';
+    if (bdyEl) bdyEl.textContent = msg;
+    if (okBtn) {
+      okBtn.textContent = opts.confirmLabel || 'Confirm';
+      okBtn.className   = 'btn ' + (opts.danger === false ? 'btn-p' : 'btn-d');
+    }
+    const done = v => { overlay.classList.remove('show'); resolve(v); };
+    okBtn.onclick     = () => done(true);
+    cancelBtn.onclick = () => done(false);
+    overlay.onclick   = e => { if (e.target === overlay) done(false); };
+    overlay.classList.add('show');
+  });
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -4257,19 +4414,19 @@ async function saveCallout(){
   await refreshCallouts();
   updateBadges();
   showPortalPage('p-callouts', null);
-  toast(`Callout ${r.data?.ref_id || ''} logged`, 'ok');
+  toast(`Callout ${r.data?.ref_id || ''} logged — expand the row to assign a technician and PO`, 'ok');
   audit('CREATE', r.data?.ref_id || 'Callout created');
 }
 
 /* ── Override: deleteCallout ─────────────────────────── */
 async function deleteCallout(id){
-  if (!confirm(`Delete ${id}?`)) return;
+  if (!await confirmDialog(`Delete callout ${id}?\n\nThis action cannot be undone.`, { title: 'Delete Callout', confirmLabel: 'Delete' })) return;
   const r = await api('DELETE', `callouts.php?id=${id}`);
   if (!r.success) { toast(r.error || 'Error', 'err'); return; }
   await refreshCallouts();
   updateBadges();
   renderCallouts('');
-  toast(`${id} deleted`);
+  toast(`${id} deleted`, 'info');
   closeModalDirect();
 }
 
@@ -4281,7 +4438,7 @@ async function updateCalloutStatus(id, status){
   updateBadges();
   renderCallouts('');
   closeModalDirect();
-  toast(`Status updated to ${status}`);
+  toast(`Status updated to ${status}`, 'ok');
 }
 
 /* ── Override: assignPO ──────────────────────────────── */
@@ -4293,7 +4450,7 @@ async function assignPO(id){
   await refreshCallouts();
   renderCallouts('');
   closeModalDirect();
-  toast(`PO ${po} assigned to ${id}`);
+  toast(`PO ${po} assigned to ${id}`, 'ok');
 }
 
 /* ── Override: approveQuote / rejectQuote ────────────── */
@@ -4313,19 +4470,19 @@ async function rejectQuote(id){
   updateBadges();
   renderQuotes('');
   closeModalDirect();
-  toast(`Quote ${id} rejected`);
+  toast(`Quote ${id} declined — requester will see the updated status`, 'info');
 }
 
 /* ── Override: deleteQuote ───────────────────────────── */
 async function deleteQuote(id){
-  if (!confirm(`Delete ${id}?`)) return;
+  if (!await confirmDialog(`Delete quote ${id}?\n\nThis action cannot be undone.`, { title: 'Delete Quote', confirmLabel: 'Delete' })) return;
   const r = await api('DELETE', `quotes.php?id=${id}`);
   if (!r.success) { toast(r.error || 'Error', 'err'); return; }
   await refreshQuotes();
   updateBadges();
   renderQuotes('');
   closeModalDirect();
-  toast(`${id} deleted`);
+  toast(`${id} deleted`, 'info');
 }
 
 /* ── Override: saveQuote ─────────────────────────────── */
@@ -4359,30 +4516,23 @@ async function saveQuote(){
   await refreshQuotes();
   updateBadges();
   showPortalPage('p-quotes', null);
-  toast(`Quote ${r.data?.ref_id || ''} created`, 'ok');
+  const _qRef = r.data?.ref_id || '';
+  const _qMsg = can('quote.approve')
+    ? `Quote ${_qRef} saved — set status to Sent when ready to share with the client`
+    : `Quote ${_qRef} submitted for approval — a manager will review before it is issued`;
+  toast(_qMsg, 'ok');
 }
 
 /* ── Override: convertToInvoice ──────────────────────── */
-async function convertToInvoice(id){
-  const q = proxyDB.quotes.find(x=>x.id===id);
-  if (!q) return;
-  const total = q.items.reduce((a,i)=>a+(i.qty*i.unit),0) * 1.15;
-  const due = new Date(); due.setDate(due.getDate()+30);
-  const payload = {
-    amount: Math.round(total*100)/100,
-    due_date: localDateStr(due),
-    status: 'Draft',
-    quote_ref: id,
-  };
-  if (q.clientId) payload.client_id = q.clientId;
-  else payload.client_name = q.client;
-  const r = await api('POST', 'invoices.php', payload);
-  if (!r.success) { toast(r.error || 'Error', 'err'); return; }
-  await Promise.all([refreshInvoices(), refreshQuotes()]);
-  updateBadges();
-  showPortalPage('p-invoices', null);
-  toast(`Invoice ${r.data?.ref_id || ''} created from ${id}`, 'ok');
+function convertToInvoice(id) {
+  _invoiceContext = { quoteId: id };
   closeModalDirect();
+  showPortalPage('p-new-invoice', null);
+}
+
+function openInvoiceFromCallout(calloutId) {
+  _invoiceContext = { calloutId };
+  showPortalPage('p-new-invoice', null);
 }
 
 /* ── Override: markPaid ──────────────────────────────── */
@@ -4398,14 +4548,14 @@ async function markPaid(id){
 
 /* ── Override: deleteInvoice ─────────────────────────── */
 async function deleteInvoice(id){
-  if (!confirm(`Delete ${id}?`)) return;
+  if (!await confirmDialog(`Delete invoice ${id}?\n\nThis action cannot be undone.`, { title: 'Delete Invoice', confirmLabel: 'Delete' })) return;
   const r = await api('DELETE', `invoices.php?id=${id}`);
   if (!r.success) { toast(r.error || 'Error', 'err'); return; }
   await refreshInvoices();
   updateBadges();
   renderInvoices('');
   closeModalDirect();
-  toast(`${id} deleted`);
+  toast(`${id} deleted`, 'info');
 }
 
 /* ── Override: saveInvoice ───────────────────────────── */
@@ -4430,7 +4580,7 @@ async function saveInvoice(){
   await refreshInvoices();
   updateBadges();
   showPortalPage('p-invoices', null);
-  toast(`Invoice ${r.data?.ref_id || ''} created`, 'ok');
+  toast(`Invoice ${r.data?.ref_id || ''} created — use the Send button to email it to the client`, 'ok');
 }
 
 /* ── Override: logPayment ────────────────────────────── */
@@ -4462,9 +4612,9 @@ async function logPayment(){
 
   await Promise.all([refreshInvoices(), refreshTransactions()]);
   updateBadges();
-  renderPayList();
   const n = invoice_refs.length;
-  toast(`Payment ${payRef} logged for ${n} invoice${n > 1 ? 's' : ''}`, 'ok');
+  showPortalPage('p-invoices', null);
+  toast(`Payment ${payRef} logged for ${n} invoice${n > 1 ? 's' : ''} — invoices updated below`, 'ok');
 }
 
 /* ── Override: addTransaction ────────────────────────── */
@@ -4603,7 +4753,7 @@ async function saveClient() {
 }
 
 async function deactivateClient(id) {
-  if (!confirm('Deactivate this client? They will be removed from dropdowns.')) return;
+  if (!await confirmDialog('Deactivate this client?\n\nThey will be removed from dropdowns. All historical records are preserved.', { title: 'Deactivate Client', confirmLabel: 'Deactivate' })) return;
   const r = await api('DELETE', `clients.php?id=${id}`);
   if (!r.success) { toast(r.error || 'Error', 'err'); return; }
   await refreshClients();
@@ -6247,18 +6397,18 @@ document.getElementById('filterSection').onchange=applyFilters;
 document.getElementById('filterStatus').onchange=applyFilters;
 document.getElementById('search').oninput=applyFilters;
 
-function resetAll(){
-  if(!confirm('Reset all statuses and notes?')) return;
+async function resetAll(){
+  if(!await confirmDialog('Reset all statuses and notes?\n\nThis clears all progress on this action plan.', { title: 'Reset Action Plan', confirmLabel: 'Reset' })) return;
   state={}; saveState(state); render(); renderSubmission(); toast('Reset.');
 }
 
-function submitFile(){
+async function submitFile(){
   let done=0,applicable=0;
   SECTIONS.forEach(s=>s.items.forEach(i=>{ const st=getStatus(i.id); if(st!=='na') applicable++; if(st==='done') done++; }));
   const pct=parseFloat(document.getElementById('ringPct').textContent);
   const tag=document.getElementById('ringTag').textContent;
   const lbl=state._submission?'Re-submit':'Submit';
-  if(!confirm(lbl+' this action plan at '+pct.toFixed(1)+'% ('+tag+')?\\n\\nThis records the current score and date for AST.')) return;
+  if(!await confirmDialog(lbl+' this action plan at '+pct.toFixed(1)+'% ('+tag+')?\n\nThis records the current score and date for AST.', { title: lbl+' Action Plan', confirmLabel: lbl, danger: false })) return;
   state._submission={at:new Date().toISOString(),score:pct,tag,done,applicable};
   saveState(state); renderSubmission(); updateScore();
   toast('Submitted at '+pct.toFixed(1)+'%');
@@ -6470,7 +6620,7 @@ async function approveSafetyFile(){
   if(!id){toast('No file open','err');return;}
   const file=proxyDB.safetyFiles.find(f=>f.id===id);
   if(!file){toast('File not found','err');return;}
-  if(!confirm(`Approve safety file ${id} for ${file.contractor||'this contractor'}?\n\nThis will change the status to Approved.`)) return;
+  if(!await confirmDialog(`Approve safety file ${id} for ${file.contractor||'this contractor'}?\n\nThis will change the status to Approved.`, { title: 'Approve Safety File', confirmLabel: 'Approve', danger: false })) return;
   const r=await api('PUT','safety.php?id='+id,{action:'approve'});
   if(!r.success){toast(r.error||'Approval failed','err');return;}
   const raw=DB.safetyFiles.find(f=>(f.ref_id||f.id)===id);
@@ -6503,7 +6653,7 @@ async function deactivateSafetyFile(){
   const id=document.getElementById('saf-detail-content')?.dataset?.fileId;
   const file=id?proxyDB.safetyFiles.find(f=>f.id===id):null;
   if(!file){toast('No file open','err');return;}
-  if(!confirm('Deactivate safety file '+id+' for '+esc(file.contractor||'this contractor')+'?\n\nThe record will be hidden from the list but retained for audit purposes.\nContact an administrator to restore it if needed.')) return;
+  if(!await confirmDialog('Deactivate safety file '+id+' for '+esc(file.contractor||'this contractor')+'?\n\nThe record will be hidden from the list but retained for audit purposes. Contact an administrator to restore it if needed.', { title: 'Deactivate Safety File', confirmLabel: 'Deactivate' })) return;
   const r=await api('DELETE','safety.php?id='+encodeURIComponent(id),{});
   if(!r.success){toast(r.error||'Failed to deactivate','err');return;}
   const idx=DB.safetyFiles.findIndex(f=>(f.ref_id||f.id)===id);
@@ -6612,7 +6762,7 @@ async function safDetailUpload(input){
 }
 
 async function safDeleteAttachment(attId, fileId){
-  if(!confirm('Remove this document from the safety file?')) return;
+  if(!await confirmDialog('Remove this document from the safety file?\n\nThis action cannot be undone.', { title: 'Remove Document', confirmLabel: 'Remove' })) return;
   const r=await api('DELETE','files.php?id='+attId);
   if(!r.success){toast(r.error||'Delete failed','err');return;}
   toast('Document removed','ok');
@@ -6972,7 +7122,7 @@ async function safConfirmLinkUser(fileId) {
 }
 
 async function safUnlinkUser(userId, fileId, name) {
-  if (!confirm(`Unlink ${name} from this safety file? Their personnel record will be marked inactive.`)) return;
+  if (!await confirmDialog(`Unlink ${name} from this safety file?\n\nTheir personnel record will be marked inactive.`, { title: 'Unlink Personnel', confirmLabel: 'Unlink' })) return;
   const r = await api('DELETE', `safety_personnel.php?action=unlink_user&file_ref=${encodeURIComponent(fileId)}&user_id=${userId}`, {});
   if (!r.success) { toast(r.error || 'Failed to unlink', 'err'); return; }
   toast(name + ' unlinked', 'info');
@@ -7220,7 +7370,7 @@ async function safUploadComplianceDoc(recId, fileId, input){
 }
 
 async function safReplaceComplianceDoc(recId, fileId, attId){
-  if(!confirm('Remove the existing document and attach a new one?')) return;
+  if(!await confirmDialog('Remove the existing document and attach a new one?\n\nThe current file will be permanently deleted.', { title: 'Replace Document', confirmLabel: 'Replace' })) return;
   const del=await api('DELETE','files.php?id='+attId);
   if(!del.success){toast(del.error||'Delete failed','err');return;}
   // Open file picker to immediately upload the replacement
@@ -7232,7 +7382,7 @@ async function safReplaceComplianceDoc(recId, fileId, attId){
 }
 
 async function safDeleteCompliance(id,fileId){
-  if(!confirm('Delete this compliance record?')) return;
+  if(!await confirmDialog('Delete this compliance record?\n\nThis action cannot be undone.', { title: 'Delete Record', confirmLabel: 'Delete' })) return;
   const r=await api('DELETE','safety_compliance.php?id='+id);
   if(!r.success){toast(r.error||'Failed','err');return;}
   toast('Record deleted');
@@ -7360,7 +7510,7 @@ async function safSavePolicyAck(fileId){
 }
 
 async function safManualAck(id,fileId){
-  if(!confirm('Mark this policy as acknowledged (in-person sign-off)?\n\nThis records the acknowledgment with the current date and time.')) return;
+  if(!await confirmDialog('Mark this policy as acknowledged (in-person sign-off)?\n\nThis records the acknowledgment with the current date and time.', { title: 'Manual Acknowledgment', confirmLabel: 'Confirm Acknowledgment', danger: false })) return;
   const r=await api('PUT','safety_policy.php?id='+id,{action:'manual_ack'});
   if(!r.success){toast(r.error||'Failed','err');return;}
   toast('Acknowledgment recorded','ok');
@@ -7377,7 +7527,7 @@ async function safResendPolicyAck(id,fileId){
 }
 
 async function safDeletePolicyAck(id,fileId){
-  if(!confirm('Remove this policy acknowledgment record?')) return;
+  if(!await confirmDialog('Remove this policy acknowledgment record?\n\nThis action cannot be undone.', { title: 'Remove Acknowledgment', confirmLabel: 'Remove' })) return;
   const r=await api('DELETE','safety_policy.php?id='+id);
   if(!r.success){toast(r.error||'Failed','err');return;}
   toast('Record removed');

@@ -12,6 +12,20 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NonInteractive -ExecutionPolicy Bypass -File \"c:\\DevWork\\.claude\\scripts\\session-log-reminder.ps1\"",
+            "shell": "powershell",
+            "timeout": 10,
+            "statusMessage": "Checking session log..."
+          }
+        ]
+      }
     ]
   }
 }

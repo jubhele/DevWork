@@ -256,9 +256,9 @@ function _generate_statement(string $triggered_by): array {
     }
 
     db_insert(
-        "INSERT INTO bf_statements (ref_id, scheduled_for, status, invoice_refs, total_outstanding)
-         VALUES (?,?,?,?,?)",
-        [$ref, $sched, 'pending_approval', $refs_csv, $total]
+        "INSERT INTO bf_statements (ref_id, scheduled_for, status, invoice_refs, total_outstanding, from_email, to_emails)
+         VALUES (?,?,?,?,?,?,?)",
+        [$ref, $sched, 'pending_approval', $refs_csv, $total, '', '']
     );
 
     audit($triggered_by, 'STATEMENT_GENERATED',

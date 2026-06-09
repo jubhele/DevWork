@@ -1103,6 +1103,43 @@ Append to the Markdown log:
 }
 ```
 
+### 6.3 Automated Session Log Compliance Hooks (Claude Code)
+
+Two PowerShell hooks enforce session log discipline automatically, without relying on the agent to remember.
+
+#### Stop Hook — `session-log-update.ps1`
+
+Fires after **every response** (Claude Code `Stop` event). Checks:
+
+| Check | Fail action |
+|-------|-------------|
+| `## Learnings` section exists and has content | Injects `⚠ Session Log Incomplete` warning block into the log |
+| `## Decisions` section has content | Same |
+| `## Work Done` section has content | Same |
+| No log file created today | Creates a minimal stub log with the `⚠` notice |
+
+Always appends `_Session ended: YYYY-MM-DD HH:mm:ss_` regardless of check results.
+
+#### PostToolUse Hook — `session-log-reminder.ps1`
+
+Fires after every **Edit** or **Write** tool call — i.e., at the exact moment a file is changed.
+Checks whether `## Work Done` has real content. If empty, outputs a reminder line to the tool result stream so the agent sees it immediately.
+
+This is the point-of-change enforcement: the agent is reminded to update the log *when the work happens*, not only at session end.
+
+#### Hook Registration (`c:\DevWork\.claude\settings.json`)
+
+```json
+{
+  "hooks": {
+    "Stop": [{ "hooks": [{ "type": "command", "command": "powershell.exe ... session-log-update.ps1", "timeout": 15 }] }],
+    "PostToolUse": [{ "matcher": "Edit|Write", "hooks": [{ "type": "command", "command": "powershell.exe ... session-log-reminder.ps1", "timeout": 10 }] }]
+  }
+}
+```
+
+Scripts live in `c:\DevWork\.claude\scripts\`. Both are idempotent — running them multiple times against the same log is safe.
+
 ---
 
 ## 7. Memory System
@@ -1404,6 +1441,10 @@ log_debug('API_HANDOFF', ['endpoint' => '/api/notify', 'payload_size' => strlen(
 - `DEBUG_MODE=true` in `.env.example` is a POLICY_BLOCK (Umlindi enforcement).
 - Log files are session-scoped and gitignored.
 
+**Pattern 22 — Session Log Mid-Session Drift**
+Problem: The agent creates a session log at session start with Goal filled in, then makes several file changes across multiple turns. The Work Done and Decisions sections never get updated. The Stop hook fires at the end, finds them empty, and appends a warning — but the session is already over.
+Fix: Register a `PostToolUse` hook scoped to `Edit|Write` events. The hook checks if `## Work Done` has content immediately after each file change. If empty, it outputs a reminder to the agent's tool result stream at the point of change — not at session end. Combine with the Stop hook (which checks all three mandatory sections) for two-layer enforcement. See §6.3 for implementation.
+
 ---
 
 ## 12. Documentation & Knowledge Base
@@ -1445,6 +1486,9 @@ Use this checklist when deploying the workforce in a new environment.
 - [ ] `sessions/` folder created with a `_template.md`
 - [ ] `memory/MEMORY.md` index created
 - [ ] `temp/` folder created and gitignored
+- [ ] `.claude/scripts/session-log-update.ps1` deployed (Stop hook — checks Learnings + Decisions + Work Done)
+- [ ] `.claude/scripts/session-log-reminder.ps1` deployed (PostToolUse hook — point-of-change reminder)
+- [ ] `.claude/settings.json` registers both hooks (Stop + PostToolUse `Edit|Write` matcher) — see §6.3
 
 ### Documentation Repository
 - [ ] `docs/guide.md` created with initial operator instructions

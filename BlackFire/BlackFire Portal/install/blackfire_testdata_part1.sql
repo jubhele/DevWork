@@ -58,5 +58,14 @@ SELECT id, 'admin'          FROM bf_users WHERE username = 'sibu'
 UNION ALL
 SELECT id, 'safety_officer' FROM bf_users WHERE username = 'sibu';
 
+-- ── 1c. ENSURE TEST PASSWORDS ARE ALWAYS CORRECT ────────────────
+-- INSERT IGNORE above skips rows that already exist (e.g. sibu seeded
+-- by an earlier migration with a different hash). This UPDATE always
+-- resets passwords to the shared dev test value so re-runs are safe.
+-- Hash = bcrypt(BlackFire@2026!, cost=12)
+UPDATE bf_users
+SET password_hash = '$2y$12$hw21i39xr1aS0SDiiLwhfuF.uAJjwX2z/8FwQJxhucctMY8Q5lApe'
+WHERE username IN ('j.shange','penny.nzimande','z.myeza','sibu');
+
 SET FOREIGN_KEY_CHECKS = 1;
 -- End Part 1

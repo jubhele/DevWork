@@ -520,7 +520,7 @@ $companyLogoUrl = rtrim($cfg['base_url'] ?? '', '/') . '/' . ltrim($cfg['company
             <div class="fgroup"><label class="flbl">Phone</label><input class="finput" id="pcf-ph" placeholder="+27"></div>
             <div class="fgroup"><label class="flbl">Email</label><input class="finput" id="pcf-em" placeholder="email@company.co.za"></div>
             <div class="fgroup ffull"><label class="flbl">Service</label><select class="finput" id="pcf-svc"><option>Armed Response</option><option>CCTV</option><option>Access Control</option><option>Guard Services</option><option>Risk Assessment</option><option>Other</option></select></div>
-            <div class="fgroup ffull"><label class="flbl">Message</label><textarea class="finput" rows="3" placeholder="Requirements..."></textarea></div>
+            <div class="fgroup ffull"><label class="flbl">Message</label><textarea class="finput" id="pcf-msg" rows="3" placeholder="Requirements..."></textarea></div>
           </div>
           <div class="mt2"><button class="btn btn-p btn-full" data-action="submitEnquiry">Submit Enquiry</button></div>
         </div>
@@ -622,9 +622,10 @@ $companyLogoUrl = rtrim($cfg['base_url'] ?? '', '/') . '/' . ltrim($cfg['company
     <div id="p-new-callout" class="ppage">
       <div class="ptitle">Log Call</div><div class="psub">CREATE JOB TICKET</div>
       <div class="panel"><div class="pb">
+        <div class="req-legend"><span class="req">*</span> Required field</div>
         <div class="fgrid">
-          <div class="fgroup"><label class="flbl">Client</label><select class="finput" id="nc-client"><option value="">— Select Client —</option></select></div>
-          <div class="fgroup"><label class="flbl">Service / Fault Type</label><input class="finput" id="nc-service" placeholder="e.g. Armed Response, Alarm Fault"></div>
+          <div class="fgroup"><label class="flbl">Client <span class="req">*</span></label><select class="finput" id="nc-client"><option value="">— Select Client —</option></select></div>
+          <div class="fgroup"><label class="flbl">Service / Fault Type <span class="req">*</span></label><input class="finput" id="nc-service" placeholder="e.g. Armed Response, Alarm Fault"></div>
           <div class="fgroup"><label class="flbl">Site / Location</label><input class="finput" id="nc-location" placeholder="e.g. Gate 2, Sector C"></div>
           <div class="fgroup"><label class="flbl">Priority</label><select class="finput" id="nc-priority"><option>Normal</option><option>Urgent</option><option>Emergency</option></select></div>
           <div class="fgroup"><label class="flbl">Assign Technician</label>
@@ -653,8 +654,8 @@ $companyLogoUrl = rtrim($cfg['base_url'] ?? '', '/') . '/' . ltrim($cfg['company
       </div>
       <div class="panel"><div class="pb">
         <div class="fgrid">
-          <div class="fgroup"><label class="flbl">Client</label><select class="finput" id="nq-client"><option value="">— Select Client —</option></select></div>
-          <div class="fgroup"><label class="flbl">Valid Until</label><input type="date" class="finput" id="nq-valid"></div>
+          <div class="fgroup"><label class="flbl">Client <span class="req">*</span></label><select class="finput" id="nq-client"><option value="">— Select Client —</option></select></div>
+          <div class="fgroup"><label class="flbl">Valid Until <span class="req">*</span></label><input type="date" class="finput" id="nq-valid"></div>
           <div class="fgroup"><label class="flbl">Linked Callout</label><select class="finput" id="nq-callout-ref"><option value="">— None (standalone quote) —</option></select></div>
           <div class="fgroup" id="nq-status-group"><label class="flbl">Status</label><select class="finput" id="nq-status"><option>Draft</option><option>Sent</option></select></div>
           <div class="fgroup ffull"><label class="flbl">Quote No. <span class="flbl-hint">— number shown on your document (e.g. AI20042026); leave blank to auto-generate</span></label><input class="finput" id="nq-quote-no" placeholder="Auto-generated if blank"></div>
@@ -672,10 +673,11 @@ $companyLogoUrl = rtrim($cfg['base_url'] ?? '', '/') . '/' . ltrim($cfg['company
     <div id="p-new-invoice" class="ppage">
       <div class="ptitle">New Invoice</div><div class="psub">CREATE TAX INVOICE</div>
       <div class="panel"><div class="pb">
+        <div class="req-legend"><span class="req">*</span> Required field</div>
         <div class="fgrid">
-          <div class="fgroup"><label class="flbl">Client</label><select class="finput" id="ni-client"><option value="">— Select Client —</option></select></div>
-          <div class="fgroup"><label class="flbl">Amount (incl. VAT)</label><input type="number" class="finput" id="ni-amount" placeholder="0.00"></div>
-          <div class="fgroup"><label class="flbl">Due Date</label><input type="date" class="finput" id="ni-due"></div>
+          <div class="fgroup"><label class="flbl">Client <span class="req">*</span></label><select class="finput" id="ni-client"><option value="">— Select Client —</option></select></div>
+          <div class="fgroup"><label class="flbl">Amount (incl. VAT) <span class="req">*</span></label><input type="number" class="finput" id="ni-amount" placeholder="0.00"></div>
+          <div class="fgroup"><label class="flbl">Due Date <span class="req">*</span></label><input type="date" class="finput" id="ni-due"></div>
           <div class="fgroup"><label class="flbl">Status</label><select class="finput" id="ni-status"><option>Draft</option><option>Sent</option></select></div>
           <div class="fgroup"><label class="flbl">PO Reference</label><input class="finput" id="ni-po" placeholder="PO number if applicable"></div>
           <div class="fgroup"><label class="flbl">Linked Quote</label><select class="finput" id="ni-quote-ref"><option value="">— None —</option></select></div>
@@ -841,7 +843,7 @@ $companyLogoUrl = rtrim($cfg['base_url'] ?? '', '/') . '/' . ltrim($cfg['company
           <button class="btn btn-g btn-s" data-action="editSafetyFile">Edit</button>
           <button class="btn btn-g btn-s" data-action="safGenerateTracker" title="Generate contractor action-plan tracker as a downloadable HTML file">&#8659; Tracker</button>
           <button class="btn btn-s saf-approve-btn btn-approve-action" id="saf-approve-btn" data-action="approveSafetyFile">&#10003; Approve</button>
-          <button class="btn btn-s btn-deactivate-action" id="saf-deactivate-btn" data-action="deactivateSafetyFile" title="Deactivate this safety file — record is retained for audit">&#128465; Deactivate</button>
+          <button class="btn btn-s btn-deactivate-action" id="saf-deactivate-btn" data-action="deactivateSafetyFile" title="Deactivate this safety file — record is retained for audit"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle;margin-right:4px"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>Deactivate</button>
           <button class="btn btn-p btn-s" data-action="safDownloadPack" title="Download full safety file report as standalone HTML">&#8595; Download Pack</button>
         </div>
       </div>
@@ -925,6 +927,18 @@ $companyLogoUrl = rtrim($cfg['base_url'] ?? '', '/') . '/' . ltrim($cfg['company
 <!-- MODAL -->
 <div id="modal-overlay" data-action="closeModalBackdrop">
   <div class="modal"><div class="mhdr"><div class="mttl" id="modal-ttl"></div><button class="mclose" data-action="closeModalDirect">✕</button></div><div class="mbdy" id="modal-bdy"></div></div>
+</div>
+
+<!-- CONFIRM DIALOG -->
+<div id="confirm-overlay">
+  <div class="confirm-dialog">
+    <div class="confirm-hdr"><div class="confirm-ttl" id="confirm-ttl">Confirm</div></div>
+    <div class="confirm-bdy" id="confirm-bdy"></div>
+    <div class="confirm-actions">
+      <button class="btn btn-g" id="confirm-cancel">Cancel</button>
+      <button class="btn btn-d" id="confirm-ok">Confirm</button>
+    </div>
+  </div>
 </div>
 
 <!-- TOAST -->
