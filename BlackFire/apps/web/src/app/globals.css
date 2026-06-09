@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+/* ── Umlilo design tokens ──────────────────────────────────────────────────── */
+@theme {
+  /* Dark palette */
+  --color-coal:         #0A0E19;
+  --color-navy:         #141B26;
+  --color-charcoal:     #1E2530;
+  --color-steel-dark:   #2B3340;
+  --color-ash:          #7A8699;
+
+  /* Fire palette */
+  --color-ember-red:    #C0392B;
+  --color-fire-orange:  #E05A1A;
+  --color-ember-amber:  #F07820;
+  --color-flame-gold:   #F5A623;
+
+  /* Light palette */
+  --color-bone-paper:   #F5F1EA;
+  --color-ink-text:     #1A1814;
+
+  /* Status */
+  --color-success:      #27AE60;
+  --color-warning:      #F39C12;
+  --color-danger:       #E74C3C;
+  --color-info:         #2980B9;
+
+  /* Compliance bands */
+  --color-compliance-red:    #C0392B;
+  --color-compliance-orange: #E05A1A;
+  --color-compliance-yellow: #F5A623;
+  --color-compliance-green:  #27AE60;
+
+  /* Typography */
+  --font-display: 'Big Shoulders Display', sans-serif;
+  --font-body:    'Instrument Sans', sans-serif;
+  --font-mono:    'IBM Plex Mono', monospace;
+  --font-serif:   'Instrument Serif', serif;
+}
+
+/* ── Base ──────────────────────────────────────────────────────────────────── */
+:root {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--color-coal);
+  color: var(--color-bone-paper);
+  font-family: var(--font-body);
+}

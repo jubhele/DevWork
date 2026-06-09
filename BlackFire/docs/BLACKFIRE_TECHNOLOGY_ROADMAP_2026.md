@@ -1,4 +1,4 @@
-# BlackFire Solutions — Technology Roadmap 2026
+﻿# BlackFire Solutions — Technology Roadmap 2026
 **Classification:** Internal Strategic Document
 **Author:** Jubhele Shange + Claude (Anthropic)
 **Date:** 2026-05-25
@@ -48,7 +48,7 @@ Permissions stored in `bf_role_permissions` table (~35 granular permissions acro
 
 ### Dev-in-Progress
 - `refactored_portal/` — partial refactor in repo, not deployed
-- STREAM4 spec — defines three new portals: Secure Command, Internal Ops/Izilo Mission Control, Portal Hub
+- STREAM4 spec — defines three new portals: Secure Command, Internal Ops/UMLILO Mission Control, Portal Hub
 - STREAM4 already specifies React 18 + TypeScript + Tailwind + shadcn/ui
 
 ---
@@ -76,7 +76,7 @@ blackfire/
   packages/
     types/          ← TypeScript interfaces (shared by web + mobile)
     api-client/     ← Typed fetch wrappers (shared by web + mobile)
-    ui-tokens/      ← IZILO design tokens (Tailwind for web, StyleSheet for mobile)
+    ui-tokens/      ← UMLILO design tokens (Tailwind for web, StyleSheet for mobile)
 ```
 
 ### TypeScript Types (derived from PHP/MySQL schema)
@@ -132,7 +132,7 @@ export interface User {
 // ... quotes, clients, transactions, payments, audit events
 ```
 
-### Tailwind IZILO Token Config
+### Tailwind UMLILO Token Config
 
 ```ts
 // tailwind.config.ts
@@ -229,7 +229,7 @@ app/
       layout.tsx
       incidents/page.tsx
       vault/page.tsx
-    ops/                    ← Internal Ops / Izilo Mission Control (STREAM4)
+    ops/                    ← Internal Ops / UMLILO Mission Control (STREAM4)
       schedule/page.tsx
       tasks/page.tsx
     hub/page.tsx            ← Portal Hub (STREAM4)
@@ -244,7 +244,7 @@ Keep `portal.php` live throughout. Migrate one section at a time. Sign off each 
 | Phase | Duration | Deliverable |
 |---|---|---|
 | 0 — Hosting + scaffold | Week 1 | Vercel project, env vars, monorepo |
-| 1 — Types + IZILO tokens | Weeks 1–2 | Full TypeScript interfaces, Tailwind config |
+| 1 — Types + UMLILO tokens | Weeks 1–2 | Full TypeScript interfaces, Tailwind config |
 | 2 — API client | Week 2 | Typed wrappers for all 18 PHP endpoints |
 | 3 — Auth bridge | Weeks 2–3 | Login + session working against PHP auth |
 | 4 — Portal pages | Weeks 3–8 | One page per 2–3 days, sign-off per section |
@@ -537,7 +537,7 @@ bf_callouts aggregated by time window, type, location, priority
 
 | Stream | Period | Deliverable |
 |---|---|---|
-| Next.js scaffold + types | Weeks 1–2 | Monorepo, IZILO tokens, TypeScript interfaces |
+| Next.js scaffold + types | Weeks 1–2 | Monorepo, UMLILO tokens, TypeScript interfaces |
 | API client + auth bridge | Weeks 2–3 | Next.js calls PHP API, login works |
 | Portal pages migration | Weeks 3–8 | Section-by-section, sign-off before cutover |
 | Bearer token auth (PHP) | Week 1 | Mobile unblocked |
@@ -572,7 +572,7 @@ bf_callouts aggregated by time window, type, location, priority
 |---|---|
 | Portal internal name | Umlilo Portal |
 | Brand editorial imprint | BLKFR |
-| Internal spec codes | IZILO-[domain]-[seq] |
+| Internal spec codes | UMLILO-[domain]-[seq] |
 | Never use | BFS (explicitly rejected) |
 | Session log naming | `[topic]_YYYYMMDD_HHmmss.md` |
 | Portal HTML versions | `BlackFire_Portal_AECI_v[N].html` |

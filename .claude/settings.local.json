@@ -125,7 +125,32 @@
       "PowerShell($ts = Get-Date -Format 'yyyyMMdd_HHmmss'; Copy-Item \"C:\\\\DevWork\\\\temp\\\\restore_db_local.ps1\" \"C:\\\\DevWork\\\\temp\\\\restore_db_local_backup_$ts.ps1\"; Write-Host \"Backed up to restore_db_local_backup_$ts.ps1\")",
       "PowerShell($null = [System.Management.Automation.Language.Parser]::ParseFile\\('C:\\\\DevWork\\\\temp\\\\restore_db_local.ps1', [ref]$null, [ref]$errors\\); if \\($errors.Count -eq 0\\) { Write-Host \"Parse OK - no errors\" } else { $errors | ForEach-Object { Write-Host \"ERROR line $\\($_.Extent.StartLineNumber\\): $\\($_.Message\\)\" } })",
       "Bash(git pull *)",
-      "Bash(git commit -m 'chore: auto-approve git pull in settings.local.json *)"
+      "Bash(git commit -m 'chore: auto-approve git pull in settings.local.json *)",
+      "PowerShell(node --version)",
+      "PowerShell(npm --version)",
+      "PowerShell(pnpm --version 2>$null)",
+      "PowerShell(npx --version)",
+      "PowerShell(npm install -g pnpm)",
+      "PowerShell(pnpm --version)",
+      "PowerShell(New-Item -ItemType Directory -Force \"c:\\\\DevWork\\\\BlackFire\\\\apps\")",
+      "PowerShell(New-Item -ItemType Directory -Force \"c:\\\\DevWork\\\\BlackFire\\\\apps\\\\web\")",
+      "PowerShell(New-Item -ItemType Directory -Force \"c:\\\\DevWork\\\\BlackFire\\\\apps\\\\mobile\")",
+      "PowerShell(New-Item -ItemType Directory -Force \"c:\\\\DevWork\\\\BlackFire\\\\packages\\\\types\")",
+      "PowerShell(New-Item -ItemType Directory -Force \"c:\\\\DevWork\\\\BlackFire\\\\packages\\\\api-client\")",
+      "PowerShell(New-Item -ItemType Directory -Force \"c:\\\\DevWork\\\\BlackFire\\\\packages\\\\ui-tokens\")",
+      "PowerShell(winget install --id GitHub.cli --silent 2>&1)",
+      "PowerShell($env:PATH = [System.Environment]::GetEnvironmentVariable\\(\"PATH\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"PATH\",\"User\"\\); cd \"c:\\\\DevWork\\\\umlilo-portal\"; gh auth status 2>&1)",
+      "PowerShell($env:PATH = [System.Environment]::GetEnvironmentVariable\\(\"PATH\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"PATH\",\"User\"\\); gh auth login --web --git-protocol https 2>&1)",
+      "PowerShell(Copy-Item \"c:\\\\DevWork\\\\sessions\\\\nextjs_monorepo_scaffold_20260530_042245.md\" \"G:\\\\My Drive\\\\JS\\\\Agentic AI\\\\sessions\\\\nextjs_monorepo_scaffold_20260530_042245.md.tbl.bk\" -Force)",
+      "Bash(npm install *)",
+      "Bash(vercel whoami *)",
+      "Bash(vercel project *)",
+      "Bash(vercel link *)",
+      "Bash(git commit *)",
+      "Bash(pnpm install *)",
+      "Bash(git mv *)",
+      "PowerShell(Start-Process -FilePath \"msiexec.exe\" -ArgumentList \"/i `\"c:\\\\DevWork\\\\temp\\\\chromeremotedesktophost.msi`\" /quiet /norestart\" -Wait -PassThru)",
+      "PowerShell(New-Item -ItemType Directory -Force \"C:\\\\DevWork\\\\BlackFire\\\\scripts\")"
     ]
   }
 }
