@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 220">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1A2030"/>
+      <stop offset="100%" stop-color="#0A0E19"/>
+    </linearGradient>
+    <radialGradient id="fpGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#E05A1A" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#E05A1A" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="400" height="220" fill="url(#bg)"/>
+  <!-- Grid -->
+  <g stroke="#E05A1A" stroke-width="0.5" opacity="0.07">
+    <line x1="0" y1="55" x2="400" y2="55"/><line x1="0" y1="110" x2="400" y2="110"/>
+    <line x1="0" y1="165" x2="400" y2="165"/>
+    <line x1="100" y1="0" x2="100" y2="220"/><line x1="200" y1="0" x2="200" y2="220"/><line x1="300" y1="0" x2="300" y2="220"/>
+  </g>
+  <!-- Fingerprint glow -->
+  <ellipse cx="145" cy="110" rx="70" ry="70" fill="url(#fpGlow)"/>
+  <!-- Fingerprint lines (stylised) -->
+  <g fill="none" stroke="#E05A1A" stroke-width="1.8" stroke-linecap="round" opacity="0.85">
+    <path d="M145,58 C118,58 96,78 96,103 C96,128 118,148 145,148 C172,148 194,128 194,103 C194,78 172,58 145,58"/>
+    <path d="M145,68 C123,68 106,84 106,103 C106,122 123,138 145,138 C167,138 184,122 184,103 C184,84 167,68 145,68"/>
+    <path d="M145,78 C128,78 116,89 116,103 C116,117 128,128 145,128 C162,128 174,117 174,103 C174,89 162,78 145,78"/>
+    <path d="M145,88 C133,88 126,95 126,103 C126,111 133,118 145,118 C157,118 164,111 164,103 C164,95 157,88 145,88"/>
+    <path d="M135,100 C135,94 139,91 145,91 C151,91 155,94 155,100"/>
+    <!-- Vertical ridge -->
+    <path d="M145,91 L145,75"/>
+    <path d="M130,106 C129,119 136,132 145,138"/>
+    <path d="M160,106 C161,119 154,132 145,138"/>
+  </g>
+  <!-- Scan line over fingerprint -->
+  <rect x="96" y="100" width="98" height="3" rx="1.5" fill="#E05A1A" opacity="0.6"/>
+  <!-- Scan line glow -->
+  <rect x="96" y="99" width="98" height="5" rx="2.5" fill="#E05A1A" opacity="0.2"/>
+  <!-- Access reader panel (right side) -->
+  <rect x="250" y="60" width="90" height="140" rx="8" fill="#141B26" stroke="#2B3340" stroke-width="1.5"/>
+  <!-- Reader screen -->
+  <rect x="260" y="72" width="70" height="48" rx="4" fill="#0A0E19" stroke="#E05A1A" stroke-width="1"/>
+  <!-- Screen content - padlock unlocked -->
+  <rect x="284" y="80" width="22" height="16" rx="3" fill="none" stroke="#E05A1A" stroke-width="2"/>
+  <path d="M 284,85 Q 284,72 295,72 Q 306,72 306,80" fill="none" stroke="#E05A1A" stroke-width="2"/>
+  <circle cx="295" cy="91" r="3" fill="#E05A1A"/>
+  <!-- GRANTED text -->
+  <rect x="262" y="95" width="66" height="16" rx="2" fill="#1E6B40" opacity="0.9"/>
+  <text x="295" y="107" font-family="monospace" font-size="9" fill="#4ade80" text-anchor="middle" font-weight="bold">GRANTED</text>
+  <!-- Keypad dots -->
+  <g fill="#2B3340">
+    <circle cx="272" cy="135" r="5"/><circle cx="287" cy="135" r="5"/><circle cx="302" cy="135" r="5"/>
+    <circle cx="272" cy="150" r="5"/><circle cx="287" cy="150" r="5"/><circle cx="302" cy="150" r="5"/>
+    <circle cx="272" cy="165" r="5"/><circle cx="287" cy="165" r="5"/><circle cx="302" cy="165" r="5"/>
+    <circle cx="287" cy="180" r="5" fill="#E05A1A"/>
+  </g>
+  <!-- Card reader slot -->
+  <rect x="262" y="118" width="66" height="10" rx="2" fill="#0A0E19" stroke="#2B3340" stroke-width="1"/>
+  <!-- Connection lines fingerprint → panel -->
+  <g stroke="#E05A1A" stroke-width="1" opacity="0.3" stroke-dasharray="4,4">
+    <line x1="194" y1="103" x2="250" y2="103"/>
+  </g>
+  <circle cx="194" cy="103" r="3" fill="#E05A1A" opacity="0.5"/>
+  <circle cx="250" cy="103" r="3" fill="#E05A1A" opacity="0.5"/>
+</svg>

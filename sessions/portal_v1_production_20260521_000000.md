@@ -77,3 +77,4 @@ Active model: claude-sonnet-4-6  Status: correct
 - `bf_decrypt()` has a local-dev plaintext fallback activated by removing `BF_APP_KEY` from env — this was designed for exactly this scenario.
 - RBAC table should be re-seeded from `rbac_full_migration.sql` whenever a local DB is restored from a partial dump — missing permission rows produce silent 403s that look like RBAC bugs.
 _Session ended: 2026-06-09 03:02:00 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-06-09 03:04:57 (Claude Code / claude-sonnet-4-6)_
