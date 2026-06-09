@@ -150,7 +150,7 @@ document.addEventListener('click', function(e) {
     case 'refreshPage':          refreshCurrentPage(el); break;
     case 'scrollToTop':          scrollToTop(); break;
     case 'filterSvc':            filterSvc(el, el.dataset.cat, el.dataset.ctx); break;
-    case 'pubNavCat':            pubNav('services'); break;
+    case 'pubNavCat':            pubNavCat(el); break;
     // Auth forms
     case 'doLogin':              doLogin(); break;
     case 'showForgotPassword':   showForgotPassword(); break;
@@ -2101,6 +2101,58 @@ function goPublicFullscreen(){
 function goPublic(){ document.documentElement.dataset.state='public'; }
 
 /* Services / Home utils */
+const SVC_IMAGES={
+  'Armed Response 24/7':           './images/services/armed-response-247.jpg',
+  'Panic Button Monitoring':        './images/services/panic-button-monitoring.jpg',
+  'Perimeter Patrol':               './images/services/perimeter-patrol.jpg',
+  'Alarm Response':                 './images/services/alarm-response.jpg',
+  'Rapid Reaction Unit':            './images/services/rapid-reaction-unit.jpg',
+  'High-Risk Escort':               './images/services/high-risk-escort.jpg',
+  'Armed Standby Guard':            './images/services/armed-standby-guard.jpg',
+  'CCTV Installation':              './images/services/cctv-installation.jpg',
+  'Camera System Maintenance':      './images/services/camera-system-maintenance.jpg',
+  'Remote Video Monitoring':        './images/services/remote-video-monitoring.jpg',
+  'Control Room Services':          './images/services/control-room-services.jpg',
+  'Thermal Imaging':                './images/services/thermal-imaging.jpg',
+  'License Plate Recognition':      './images/services/license-plate-recognition.jpg',
+  'Drone Surveillance':             './images/services/drone-surveillance.jpg',
+  'Analogue-to-IP Upgrades':        './images/services/analogue-to-ip-upgrades.jpg',
+  'Biometric Access Control':       './images/services/biometric-access-control.jpg',
+  'Turnstile Installation':         './images/services/turnstile-installation.jpg',
+  'Electric Gates & Booms':         './images/services/electric-gates-booms.jpg',
+  'Visitor Management System':      './images/services/visitor-management-system.jpg',
+  'Card & FOB Systems':             './images/services/card-fob-systems.jpg',
+  'Intercom & Video Entry':         './images/services/intercom-video-entry.jpg',
+  'Industrial Guard Deployment':    './images/services/industrial-guard-deployment.jpg',
+  'Retail Floor Security':          './images/services/retail-floor-security.jpg',
+  'Concierge Security Officers':    './images/services/concierge-security-officers.jpg',
+  'Cash-in-Transit Escort':         './images/services/cash-in-transit-escort.jpg',
+  'Parking Marshal Services':       './images/services/parking-marshal-services.jpg',
+  'Site Security Manager':          './images/services/site-security-manager.jpg',
+  'Construction Site Security':     './images/services/construction-site-security.jpg',
+  'Estate & Complex Guarding':      './images/services/estate-complex-guarding.jpg',
+  'Alarm System Installation':      './images/services/alarm-system-installation.jpg',
+  'Alarm Monitoring':               './images/services/alarm-monitoring.jpg',
+  'Electric Fence Installation':    './images/services/electric-fence-installation.jpg',
+  'Intruder Detection Systems':     './images/services/intruder-detection-systems.jpg',
+  'Smoke & Gas Detection':          './images/services/smoke-gas-detection.jpg',
+  'Fire Alarm Integration':         './images/services/fire-alarm-integration.jpg',
+  'Corporate Investigations':       './images/services/corporate-investigations.jpg',
+  'Insurance Fraud Investigation':  './images/services/insurance-fraud-investigation.jpg',
+  'Background Screening':           './images/services/background-screening.jpg',
+  'Asset Tracing':                  './images/services/asset-tracing.jpg',
+  'Witness Protection':             './images/services/witness-protection.jpg',
+  'Security Risk Assessment':       './images/services/security-risk-assessment.jpg',
+  'Business Continuity Planning':   './images/services/business-continuity-planning.jpg',
+  'Threat & Vulnerability Analysis':'./images/services/threat-vulnerability-analysis.jpg',
+  'Security Audit':                 './images/services/security-audit.jpg',
+  'Emergency Response Planning':    './images/services/emergency-response-planning.jpg',
+  'Festival & Concert Security':    './images/services/festival-concert-security.jpg',
+  'Corporate Event Security':       './images/services/corporate-event-security.jpg',
+  'VIP & Executive Protection':     './images/services/vip-executive-protection.jpg',
+  'Crowd Management':               './images/services/crowd-management.jpg',
+  'Sports Event Security':          './images/services/sports-event-security.jpg',
+};
 const CATEGORIES=[
   {name:'Armed Response',icon:'&#x1F6A8;',count:7},{name:'CCTV & Surveillance',icon:'&#x1F4F7;',count:8},
   {name:'Access Control',icon:'&#x1F510;',count:6},{name:'Guard Services',icon:'&#x1F46E;',count:8},
@@ -2133,7 +2185,15 @@ const SERVICES=[
   {name:'VIP & Executive Protection',cat:'Event Security'},{name:'Crowd Management',cat:'Event Security'},{name:'Sports Event Security',cat:'Event Security'},
 ];
 function buildHomeCats(){
-  document.getElementById('home-cats').innerHTML=CATEGORIES.map(c=>`<div class="cat-card" data-action="pubNavCat"><span class="cat-icon">${c.icon}</span><div class="cat-name">${esc(c.name)}</div><div class="cat-count">${c.count} SERVICES</div></div>`).join('');
+  document.getElementById('home-cats').innerHTML=CATEGORIES.map(c=>`<div class="cat-card" data-action="pubNavCat" data-cat="${esc(c.name)}"><span class="cat-icon">${c.icon}</span><div class="cat-name">${esc(c.name)}</div><div class="cat-count">${c.count} SERVICES</div></div>`).join('');
+}
+function pubNavCat(el){
+  const cat=el.dataset.cat;
+  pubNav('services');
+  if(cat && window._svcF && window._svcF.pub){
+    const chip=document.querySelector(`#svc-filters .filter-chip[data-cat="${cat}"]`);
+    if(chip) filterSvc(chip,cat,'pub');
+  }
 }
 function buildTicker(){
   const items=SERVICES.slice(0,20).map(s=>`<div class="live-item"><span class="live-dot"></span>${esc(s.name)}</div>`).join('');
@@ -2145,7 +2205,7 @@ function buildSvcGrid(ctx){
   let active='all';
   const render=()=>{
     const items=active==='all'?SERVICES:SERVICES.filter(s=>s.cat===active);
-    document.getElementById(gridId).innerHTML=items.map(s=>`<div class="svc-card"><div class="svc-cat-dot"></div><div><div class="svc-name">${esc(s.name)}</div><div class="svc-cat">${esc(s.cat)}</div></div></div>`).join('');
+    document.getElementById(gridId).innerHTML=items.map(s=>`<div class="svc-card"><div class="svc-img-wrap"><img src="${SVC_IMAGES[s.name]||''}" alt="${esc(s.name)}" class="svc-img" loading="lazy"><div class="svc-img-scrim"></div></div><div class="svc-card-body"><div class="svc-cat-dot"></div><div><div class="svc-name">${esc(s.name)}</div><div class="svc-cat">${esc(s.cat)}</div></div></div></div>`).join('');
   };
   const chips=['All',...CATEGORIES.map(c=>c.name)];
   document.getElementById(filterId).innerHTML=chips.map(c=>`<div class="filter-chip ${c==='All'?'active':''}" data-action="filterSvc" data-cat="${esc(c)}" data-ctx="${ctx}">${esc(c)}</div>`).join('');

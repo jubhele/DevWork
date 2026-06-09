@@ -2,29 +2,26 @@
 -- Each table keeps its immutable system ref_id for internal FK linking.
 -- The new *_no column is the user-visible number printed on physical documents.
 -- Defaults to ref_id value so existing records are unchanged visually.
--- Safe to run multiple times (ADD COLUMN IF NOT EXISTS).
+-- Safe to run multiple times (MySQL-compatible conditional via PREPARE/EXECUTE).
 
 SET NAMES utf8mb4;
 
 -- ── bf_quotes: quote_no ───────────────────────────────────────────────────────
-ALTER TABLE bf_quotes
-  ADD COLUMN IF NOT EXISTS quote_no VARCHAR(50) NULL
-    COMMENT 'User-visible quote number; defaults to ref_id. Editable to match external doc (e.g. AI20042026).';
-
+SET @e = (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='bf_quotes' AND COLUMN_NAME='quote_no');
+SET @s = IF(@e=0, 'ALTER TABLE bf_quotes ADD COLUMN quote_no VARCHAR(50) NULL COMMENT ''User-visible quote number; defaults to ref_id.''', 'SELECT 1');
+PREPARE _s FROM @s; EXECUTE _s; DEALLOCATE PREPARE _s;
 UPDATE bf_quotes SET quote_no = ref_id WHERE quote_no IS NULL OR quote_no = '';
 
 -- ── bf_invoices: invoice_no ───────────────────────────────────────────────────
-ALTER TABLE bf_invoices
-  ADD COLUMN IF NOT EXISTS invoice_no VARCHAR(50) NULL
-    COMMENT 'User-visible invoice number; defaults to ref_id.';
-
+SET @e = (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='bf_invoices' AND COLUMN_NAME='invoice_no');
+SET @s = IF(@e=0, 'ALTER TABLE bf_invoices ADD COLUMN invoice_no VARCHAR(50) NULL COMMENT ''User-visible invoice number; defaults to ref_id.''', 'SELECT 1');
+PREPARE _s FROM @s; EXECUTE _s; DEALLOCATE PREPARE _s;
 UPDATE bf_invoices SET invoice_no = ref_id WHERE invoice_no IS NULL OR invoice_no = '';
 
 -- ── bf_callouts: job_no ───────────────────────────────────────────────────────
-ALTER TABLE bf_callouts
-  ADD COLUMN IF NOT EXISTS job_no VARCHAR(50) NULL
-    COMMENT 'User-visible job/work-order number; defaults to ref_id.';
-
+SET @e = (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='bf_callouts' AND COLUMN_NAME='job_no');
+SET @s = IF(@e=0, 'ALTER TABLE bf_callouts ADD COLUMN job_no VARCHAR(50) NULL COMMENT ''User-visible job/work-order number; defaults to ref_id.''', 'SELECT 1');
+PREPARE _s FROM @s; EXECUTE _s; DEALLOCATE PREPARE _s;
 UPDATE bf_callouts SET job_no = ref_id WHERE job_no IS NULL OR job_no = '';
 
 -- ── Data fix: missing quote for CO-200426-0001 (CP1590 panic button) ──────────

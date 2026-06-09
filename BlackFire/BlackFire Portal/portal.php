@@ -15,6 +15,8 @@ $companyLogoUrl = rtrim($cfg['base_url'] ?? '', '/') . '/' . ltrim($cfg['company
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="csp-nonce" content="<?= htmlspecialchars($cspNonce, ENT_QUOTES) ?>">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' https://fonts.googleapis.com 'nonce-<?= $cspNonce ?>'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; script-src 'self' 'nonce-<?= $cspNonce ?>'; connect-src 'self'; frame-src 'self' blob:; object-src 'none';">
 <!-- Primary SEO -->
 <meta name="description" content="BlackFire Solutions — PSIRA registered security company headquartered in Gauteng, operating nationwide. Specialists in next-generation security: drone surveillance, AI-powered CCTV, access control, armed response and integrated security systems across South Africa. 500+ clients. Call +27 68 912 6581.">
 <meta name="keywords" content="security company South Africa, armed response Gauteng, drone security South Africa, drone surveillance Johannesburg, aerial security monitoring, CCTV installation South Africa, AI security systems, smart security Gauteng, access control nationwide, security guards South Africa, PSIRA registered security, integrated security solutions, remote monitoring South Africa, thermal imaging security, perimeter detection, electronic security Gauteng, event security South Africa, industrial security, commercial security Johannesburg, BlackFire Solutions">
@@ -97,8 +99,6 @@ $companyLogoUrl = rtrim($cfg['base_url'] ?? '', '/') . '/' . ltrim($cfg['company
   }
 }
 </script>
-<meta name="csp-nonce" content="<?= htmlspecialchars($cspNonce, ENT_QUOTES) ?>">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' https://fonts.googleapis.com 'nonce-<?= $cspNonce ?>'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; script-src 'self' 'nonce-<?= $cspNonce ?>'; connect-src 'self'; frame-src 'self' blob:; object-src 'none';">
 <title><?= htmlspecialchars($cfg['company_name'] ?? 'BlackFire Solutions') ?> - <?= htmlspecialchars($cfg['company_tagline'] ?? 'Fire, taught to behave.') ?></title>
 <link rel="icon" href="./favicon.ico?v=20260521" sizes="any">
 <link rel="icon" type="image/png" sizes="512x512" href="./favicon-512x512.png?v=20260521">

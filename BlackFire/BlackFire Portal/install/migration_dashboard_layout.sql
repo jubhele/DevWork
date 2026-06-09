@@ -13,11 +13,20 @@
 
 SET NAMES utf8mb4;
 
--- 1. Per-user layout column
-ALTER TABLE `bf_users`
-  ADD COLUMN IF NOT EXISTS `dashboard_layout` JSON NULL DEFAULT NULL
-    COMMENT 'Dashboard widget prefs: {enabled:{}, order:[], customized:bool, savedAt:ms}'
-  AFTER `active`;
+-- 1. Per-user layout column (MySQL-compatible conditional add)
+SET @col_exists = (
+  SELECT COUNT(*) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME   = 'bf_users'
+    AND COLUMN_NAME  = 'dashboard_layout'
+);
+SET @ddl = IF(@col_exists = 0,
+  'ALTER TABLE bf_users ADD COLUMN dashboard_layout JSON NULL DEFAULT NULL AFTER active',
+  'SELECT 1 -- column already exists'
+);
+PREPARE _stmt FROM @ddl;
+EXECUTE _stmt;
+DEALLOCATE PREPARE _stmt;
 
 -- 2. Global settings store (tenant-aware from day one)
 CREATE TABLE IF NOT EXISTS `bf_settings` (
