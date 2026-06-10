@@ -54,11 +54,19 @@ Merge `umlilo` to `master`, then tag the production-ready result.
 - Deleted remote branches `origin/Emzumbe` and `origin/ndlunkulu`.
 - Fetched/pruned after branch deletion and verified BlackFire now exposes only `master` locally and remotely.
 - Verified no existing BlackFire `v2` tag exists locally or remotely.
+- Created and pushed BlackFire tag `v2`; it dereferences to `4458e24e8d9e641626a6e008f8074808fec65b72`.
+- Follow-up cleanup request: remove the standalone `umlilo-portal` repo everywhere.
+- Verified the standalone GitHub repo `jubhele/umlilo-portal` still exists and is private.
+- Attempted `gh repo delete jubhele/umlilo-portal --yes`; GitHub returned HTTP 403 because the active `gh` token lacks `delete_repo`.
+- Attempted `gh auth refresh -h github.com -s delete_repo`; the auth refresh timed out waiting for interactive/browser authorization.
+- Removed the local backup of the former nested Git metadata at `c:\DevWork\_backups\umlilo-portal.git_backup_20260610_052441`.
+- Removed scratch file `c:\DevWork\temp\umlilo-portal-tracked-paths.txt`.
+- Verified `c:\DevWork\umlilo-portal\.git`, the `.git` backup, and the scratch file no longer exist.
 
 ## Blockers / Next Steps
 
-- No blockers remain.
-- Final release step: create and push the BlackFire `v2` tag on the commit containing this session-log update.
+- Blocker: deleting the external GitHub repo `jubhele/umlilo-portal` requires the GitHub CLI token to be refreshed with `delete_repo` scope.
+- Next step: authorize with `gh auth refresh -h github.com -s delete_repo`, then rerun `gh repo delete jubhele/umlilo-portal --yes`.
 
 ## Learnings
 
