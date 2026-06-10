@@ -1,0 +1,19 @@
+Backup manifest for apps/web/public
+Timestamp: 2026-06-09_120000
+
+Files present in original public/ at backup time:
+- blackfire_logo_transparent.png
+- file.svg
+- globe.svg
+- next.svg
+- vercel.svg
+- window.svg
+
+Planned actions after backup:
+- Add portal.css (from BlackFire Portal)
+- Add portal.js (from BlackFire Portal)
+- Add robots.txt and sitemap.xml
+
+Notes:
+- Existing public images were not copied as binaries into this manifest backup; the folder structure was preserved.
+- layout.tsx was backed up at apps/web/src/app/_backups/layout_backup_20260609_120000.tsx

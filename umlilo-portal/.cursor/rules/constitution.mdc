@@ -1,0 +1,22 @@
+---
+description: Umlilo Portal constitution mirror for editor-native and compatible AI coding agents
+alwaysApply: true
+---
+
+# Umlilo Portal Constitution Mirror
+
+Follow `AGENTS.md` as the canonical repo constitution and `docs/multi-agent-workforce-architecture.md` as the full architecture/reference.
+
+Required behavior:
+- Start or update `sessions/<chat-name>_YYYYMMDD_HHmmss.md` for substantive work.
+- Read memory from `memory/MEMORY.md` and workspace memory when available.
+- Apply Sibali cost-tier classification, Mlawuli routing, and the relevant Sebenza worker constraints.
+- Keep provider entrypoints synchronized across `CLAUDE.md`, `AGENTS.md`, `.github/copilot-instructions.md`, and `.cursor/rules/constitution.mdc`.
+- Never commit secrets: `.env`, `.env.*`, `*.env`, `config.local.*`, or sensitive customer data.
+- Obey nested `AGENTS.md` files for `apps/web` and `apps/mobile`.
+
+Code principles:
+- No speculative features beyond the task.
+- No explanatory comments except non-obvious WHY comments.
+- Validate only at system boundaries.
+- PowerShell 5.1: no `&&`, `||`, or ternary syntax.
