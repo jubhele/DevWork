@@ -48,10 +48,17 @@ Merge `umlilo` to `master`, then tag the production-ready result.
   - `pnpm --filter web test:agent` passed in `c:\DevWork\umlilo-portal`.
   - `pnpm --filter web lint` passed with one warning in `apps/web/src/app/layout.tsx` about custom fonts.
   - `pnpm run build:web` passed in `c:\DevWork\umlilo-portal`.
+- Committed the BlackFire consolidation as `83c73fd feat: consolidate umlilo portal into BlackFire repo`.
+- Pushed BlackFire `master` to `origin/master`.
+- Deleted local branch `Emzumbe`.
+- Deleted remote branches `origin/Emzumbe` and `origin/ndlunkulu`.
+- Fetched/pruned after branch deletion and verified BlackFire now exposes only `master` locally and remotely.
+- Verified no existing BlackFire `v2` tag exists locally or remotely.
 
 ## Blockers / Next Steps
 
-- Pending: commit and push the BlackFire consolidation, delete non-master local/remote branches, and create/push the BlackFire `v2` tag.
+- No blockers remain.
+- Final release step: create and push the BlackFire `v2` tag on the commit containing this session-log update.
 
 ## Learnings
 
