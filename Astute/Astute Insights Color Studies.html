@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500&family=IBM+Plex+Mono&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --aurum:#C2A04A;--champ:#E2CD93;--antique:#927524;
+    --bone:#DDE4EC;--ash:#93A4B8;--garnet:#A24650;
+    --mid:#0A1626;--harbor:#0F2138;--div:#244360;
+  }
+  body{background:var(--mid);margin:0;padding:40px;font-family:'IBM Plex Mono',monospace;}
+  h1{color:var(--bone);font-family:'Jost';font-weight:300;font-size:22px;letter-spacing:.12em;margin:0 0 4px;}
+  .sub{color:#93A4B8;font-size:11px;letter-spacing:.2em;text-transform:uppercase;margin-bottom:34px;}
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--div);border:1px solid var(--div);}
+  .cell{background:var(--harbor);padding:54px 52px 48px;display:flex;flex-direction:column;gap:26px;min-height:200px;}
+  .cell.paper{background:#F4F0E6;}
+  .tag{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#93A4B8;}
+  .cell.paper .tag{color:#7C715A;}
+  .lock{display:inline-block;}
+  .row{display:inline-flex;align-items:flex-end;line-height:1;}
+  .word{font-family:'Jost',sans-serif;font-weight:300;letter-spacing:.04em;}
+  .chev{margin-right:4px;margin-bottom:-3px;}
+  /* INSIGHTS tracked to span word width */
+  .desc{font-family:'IBM Plex Mono',monospace;font-size:12px;margin-top:14px;display:flex;justify-content:space-between;}
+  svg{display:block;}
+</style></head><body>
+<h1>Astute Insights · Wordmark Colour Studies</h1>
+<div class="sub">Insights set below · mark / word / descriptor treatments</div>
+
+<div class="grid" id="grid"></div>
+
+<script>
+// chevron-A svg, stroke colour parametrised
+function chev(c){return `<svg viewBox="24 18 72 76" width="44" height="53" class="chev"><path d="M30,86 L60,24 L90,86" fill="none" stroke="${c}" stroke-width="3.4"/><circle cx="60" cy="62" r="4.6" fill="${c}"/></svg>`;}
+function lock(mark, word, desc, wordStyle=''){
+  return `<div class="lock">
+    <div class="row" style="font-size:62px">${chev(mark)}<span class="word" style="color:${word};${wordStyle}">stute</span></div>
+    <div class="desc" style="color:${desc}"><span>I</span><span>N</span><span>S</span><span>I</span><span>G</span><span>H</span><span>T</span><span>S</span></div>
+  </div>`;
+}
+const A='#C2A04A',C='#E2CD93',Q='#927524',B='#DDE4EC',S='#93A4B8',G='#A24650';
+const items=[
+  ['01 · All aurum (baseline)', lock(A,A,A)],
+  ['02 · Gold mark · ivory word · gold tag', lock(A,B,A)],
+  ['03 · Ivory mark + word · gold tag', lock(B,B,A)],
+  ['04 · Gold mark · champagne word · ash tag', lock(A,C,S)],
+  ['05 · Gold mark · ivory word · champagne tag', lock(A,B,C)],
+  ['06 · Garnet mark · ivory word · garnet tag', lock(G,B,G)],
+  ['07 · Gold-leaf gradient word', lock(A,'transparent',A,'background:linear-gradient(100deg,#E2CD93,#C2A04A 55%,#927524);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;')],
+  ['08 · Champagne mark + word · antique tag', lock(C,C,Q)],
+  ['09 · Monochrome ivory', lock(B,B,S)],
+  ['10 · Gold mark · ivory word · ash tag', lock(A,B,S)],
+];
+document.getElementById('grid').innerHTML = items.map(([t,l])=>
+  `<div class="cell"><span class="tag">${t}</span>${l}</div>`
+).join('');
+
+// add a paper cell + an "intelligence" hairline cell
+const extra = `
+<div class="cell paper">
+  <span class="tag">11 · On paper — gold mark · ink word · antique tag</span>
+  <div class="lock">
+    <div class="row" style="font-size:62px">${chev('#C2A04A')}<span class="word" style="color:#1A2433">stute</span></div>
+    <div class="desc" style="color:#927524"><span>I</span><span>N</span><span>S</span><span>I</span><span>G</span><span>H</span><span>T</span><span>S</span></div>
+  </div>
+</div>
+<div class="cell">
+  <span class="tag">12 · Alt descriptor — “Data / Intelligence” hairline</span>
+  <div class="row" style="font-size:62px">${chev('#C2A04A')}<span class="word" style="color:#C2A04A">stute</span>
+    <span style="display:inline-flex;align-items:center;margin-left:18px;margin-bottom:11px;align-self:flex-end;gap:13px">
+      <span style="width:1px;height:36px;background:#244360;display:inline-block"></span>
+      <span style="font-family:'IBM Plex Mono';font-size:11px;letter-spacing:.32em;line-height:1.6;color:#C2A04A">DATA<br>INTELLIGENCE</span>
+    </span>
+  </div>
+</div>`;
+document.getElementById('grid').insertAdjacentHTML('beforeend', extra);
+</script>
+</body></html>

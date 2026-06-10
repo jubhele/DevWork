@@ -232,42 +232,51 @@ INSERT INTO bf_role_permissions (role, permission) VALUES
   ('safety_officer', 'safety.update');
 
 -- ============================================================
+-- ROLE: inspector  (Quality/Compliance — read-only access to operations)
+-- ============================================================
+INSERT INTO bf_role_permissions (role, permission) VALUES
+  ('inspector', 'callout.view'),
+  ('inspector', 'quote.view'),
+  ('inspector', 'invoice.view'),
+  ('inspector', 'safety.view');
+
+-- ============================================================
 -- Summary: Role capability matrix
 -- ============================================================
--- Permission              | sysadmin | admin | manager | admin_clerk | call_logger | junior_tech | senior_tech | client_support | viewer | safety_officer
--- callout.view            |    ✓     |   ✓   |    ✓    |      ✓      |      ✓      |      ✓      |      ✓      |       ✓        |   ✓    |      -
--- callout.create          |    ✓     |   ✓   |    ✓    |      -      |      ✓      |      -      |      -      |       ✓        |   -    |      -
--- callout.update          |    ✓     |   ✓   |    ✓    |      ✓      |      ✓      |      ✓      |      ✓      |       -        |   -    |      -
--- callout.update_status   |    ✓     |   ✓   |    ✓    |      ✓      |      ✓      |      ✓      |      ✓      |       -        |   -    |      -
--- callout.assign_po       |    ✓     |   ✓   |    ✓    |      ✓      |      -      |      -      |      -      |       -        |   -    |      -
--- callout.assign_tech     |    ✓     |   ✓   |    ✓    |      ✓      |      -      |      -      |      -      |       -        |   -    |      -
--- callout.delete          |    ✓     |   ✓   |    ✓    |      -      |      -      |      -      |      -      |       -        |   -    |      -
--- callout.confirm_closure |    ✓     |   ✓   |    ✓    |      -      |      -      |      -      |      -      |       -        |   -    |      -
--- quote.view              |    ✓     |   ✓   |    ✓    |      ✓      |      -      |      -      |      ✓      |       ✓        |   ✓    |      -
--- quote.create            |    ✓     |   ✓   |    ✓    |      -      |      -      |      -      |      ✓      |       -        |   -    |      -
--- quote.approve           |    ✓     |   ✓   |    ✓    |      -      |      -      |      -      |      -      |       -        |   -    |      -
--- quote.convert           |    ✓     |   ✓   |    ✓    |      ✓      |      -      |      -      |      -      |       -        |   -    |      -
--- quote.delete            |    ✓     |   ✓   |    ✓    |      -      |      -      |      -      |      -      |       -        |   -    |      -
--- invoice.view            |    ✓     |   ✓   |    ✓    |      ✓      |      -      |      -      |      -      |       ✓        |   ✓    |      -
--- invoice.create          |    ✓     |   ✓   |    ✓    |      ✓      |      -      |      -      |      -      |       -        |   -    |      -
--- invoice.mark_paid       |    ✓     |   ✓   |    ✓    |      ✓      |      -      |      -      |      -      |       -        |   -    |      -
--- invoice.delete          |    ✓     |   ✓   |    ✓    |      -      |      -      |      -      |      -      |       -        |   -    |      -
--- invoice.send            |    ✓     |   ✓   |    ✓    |      ✓      |      -      |      -      |      -      |       -        |   -    |      -
--- finance.transactions    |    ✓     |   ✓   |    ✓    |      ✓      |      -      |      -      |      -      |       -        |   -    |      -
--- finance.statement       |    ✓     |   ✓   |    ✓    |      ✓      |      -      |      -      |      -      |       ✓        |   ✓    |      -
--- finance.income          |    ✓     |   ✓   |    ✓    |      ✓      |      -      |      -      |      -      |       -        |   -    |      -
--- finance.stmt.release    |    ✓     |   ✓   |    ✓    |      ✓      |      -      |      -      |      -      |       -        |   -    |      -
--- finance.stmt.generate   |    ✓     |   ✓   |    -    |      -      |      -      |      -      |      -      |       -        |   -    |      -
--- capture.new_callout     |    ✓     |   ✓   |    ✓    |      -      |      ✓      |      -      |      -      |       ✓        |   -    |      -
--- capture.new_quote       |    ✓     |   ✓   |    ✓    |      -      |      -      |      -      |      ✓      |       -        |   -    |      -
--- capture.new_invoice     |    ✓     |   ✓   |    ✓    |      ✓      |      -      |      -      |      -      |       -        |   -    |      -
--- capture.log_payment     |    ✓     |   ✓   |    ✓    |      ✓      |      -      |      -      |      -      |       -        |   -    |      -
--- security.audit          |    ✓     |   ✓   |    -    |      -      |      -      |      -      |      -      |       -        |   -    |      -
--- security.users          |    ✓     |   ✓   |    ✓    |      ✓      |      -      |      -      |      -      |       -        |   -    |      -
--- user.create             |    ✓     |   ✓   |    ✓    |      ✓      |      -      |      -      |      -      |       -        |   -    |      -
--- user.update             |    ✓     |   ✓   |    -    |      -      |      -      |      -      |      -      |       -        |   -    |      -
--- safety.view             |    ✓     |   ✓   |    ✓    |      ✓      |      ✓      |      ✓      |      ✓      |       ✓        |   ✓    |      ✓
--- safety.create           |    ✓     |   ✓   |    ✓    |      ✓      |      -      |      -      |      ✓      |       -        |   -    |      ✓
--- safety.update           |    ✓     |   ✓   |    ✓    |      ✓      |      -      |      -      |      ✓      |       -        |   -    |      ✓
--- safety.delete           |    ✓     |   ✓   |    ✓    |      -      |      -      |      -      |      -      |       -        |   -    |      -
--- safety.approve          |    ✓     |   ✓   |    ✓    |      -      |      -      |      -      |      -      |       -        |   -    |      -
+-- Permission              | sysadmin | admin | manager | admin_clerk | call_logger | junior_tech | senior_tech | client_support | viewer | safety_officer | inspector
+-- callout.view            |    ✓     |   ✓   |    ✓    |      ✓      |      ✓      |      ✓      |      ✓      |       ✓        |   ✓    |      -       |     ✓
+-- callout.create          |    ✓     |   ✓   |    ✓    |      -      |      ✓      |      -      |      -      |       ✓        |   -    |      -       |     -
+-- callout.update          |    ✓     |   ✓   |    ✓    |      ✓      |      ✓      |      ✓      |      ✓      |       -        |   -    |      -       |     -
+-- callout.update_status   |    ✓     |   ✓   |    ✓    |      ✓      |      ✓      |      ✓      |      ✓      |       -        |   -    |      -       |     -
+-- callout.assign_po       |    ✓     |   ✓   |    ✓    |      ✓      |      -      |      -      |      -      |       -        |   -    |      -       |     -
+-- callout.assign_tech     |    ✓     |   ✓   |    ✓    |      ✓      |      -      |      -      |      -      |       -        |   -    |      -       |     -
+-- callout.delete          |    ✓     |   ✓   |    ✓    |      -      |      -      |      -      |      -      |       -        |   -    |      -       |     -
+-- callout.confirm_closure |    ✓     |   ✓   |    ✓    |      -      |      -      |      -      |      -      |       -        |   -    |      -       |     -
+-- quote.view              |    ✓     |   ✓   |    ✓    |      ✓      |      -      |      -      |      ✓      |       ✓        |   ✓    |      -       |     ✓
+-- quote.create            |    ✓     |   ✓   |    ✓    |      -      |      -      |      -      |      ✓      |       -        |   -    |      -       |     -
+-- quote.approve           |    ✓     |   ✓   |    ✓    |      -      |      -      |      -      |      -      |       -        |   -    |      -       |     -
+-- quote.convert           |    ✓     |   ✓   |    ✓    |      ✓      |      -      |      -      |      -      |       -        |   -    |      -       |     -
+-- quote.delete            |    ✓     |   ✓   |    ✓    |      -      |      -      |      -      |      -      |       -        |   -    |      -       |     -
+-- invoice.view            |    ✓     |   ✓   |    ✓    |      ✓      |      -      |      -      |      -      |       ✓        |   ✓    |      -       |     ✓
+-- invoice.create          |    ✓     |   ✓   |    ✓    |      ✓      |      -      |      -      |      -      |       -        |   -    |      -       |     -
+-- invoice.mark_paid       |    ✓     |   ✓   |    ✓    |      ✓      |      -      |      -      |      -      |       -        |   -    |      -       |     -
+-- invoice.delete          |    ✓     |   ✓   |    ✓    |      -      |      -      |      -      |      -      |       -        |   -    |      -       |     -
+-- invoice.send            |    ✓     |   ✓   |    ✓    |      ✓      |      -      |      -      |      -      |       -        |   -    |      -       |     -
+-- finance.transactions    |    ✓     |   ✓   |    ✓    |      ✓      |      -      |      -      |      -      |       -        |   -    |      -       |     -
+-- finance.statement       |    ✓     |   ✓   |    ✓    |      ✓      |      -      |      -      |      -      |       ✓        |   ✓    |      -       |     -
+-- finance.income          |    ✓     |   ✓   |    ✓    |      ✓      |      -      |      -      |      -      |       -        |   -    |      -       |     -
+-- finance.stmt.release    |    ✓     |   ✓   |    ✓    |      ✓      |      -      |      -      |      -      |       -        |   -    |      -       |     -
+-- finance.stmt.generate   |    ✓     |   ✓   |    -    |      -      |      -      |      -      |      -      |       -        |   -    |      -       |     -
+-- capture.new_callout     |    ✓     |   ✓   |    ✓    |      -      |      ✓      |      -      |      -      |       ✓        |   -    |      -       |     -
+-- capture.new_quote       |    ✓     |   ✓   |    ✓    |      -      |      -      |      -      |      ✓      |       -        |   -    |      -       |     -
+-- capture.new_invoice     |    ✓     |   ✓   |    ✓    |      ✓      |      -      |      -      |      -      |       -        |   -    |      -       |     -
+-- capture.log_payment     |    ✓     |   ✓   |    ✓    |      ✓      |      -      |      -      |      -      |       -        |   -    |      -       |     -
+-- security.audit          |    ✓     |   ✓   |    -    |      -      |      -      |      -      |      -      |       -        |   -    |      -       |     -
+-- security.users          |    ✓     |   ✓   |    ✓    |      ✓      |      -      |      -      |      -      |       -        |   -    |      -       |     -
+-- user.create             |    ✓     |   ✓   |    ✓    |      ✓      |      -      |      -      |      -      |       -        |   -    |      -       |     -
+-- user.update             |    ✓     |   ✓   |    -    |      -      |      -      |      -      |      -      |       -        |   -    |      -       |     -
+-- safety.view             |    ✓     |   ✓   |    ✓    |      ✓      |      ✓      |      ✓      |      ✓      |       ✓        |   ✓    |      ✓       |     ✓
+-- safety.create           |    ✓     |   ✓   |    ✓    |      ✓      |      -      |      -      |      ✓      |       -        |   -    |      ✓       |     -
+-- safety.update           |    ✓     |   ✓   |    ✓    |      ✓      |      -      |      -      |      ✓      |       -        |   -    |      ✓       |     -
+-- safety.delete           |    ✓     |   ✓   |    ✓    |      -      |      -      |      -      |      -      |       -        |   -    |      -       |     -
+-- safety.approve          |    ✓     |   ✓   |    ✓    |      -      |      -      |      -      |      -      |       -        |   -    |      -       |     -

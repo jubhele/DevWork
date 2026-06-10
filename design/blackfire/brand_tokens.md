@@ -21,15 +21,15 @@ Full brand identity PDFs: `BlackFire/BlackFire-Brand-Pack/BlackFire_Brand_Identi
 | `--color-muted` | `#7A8699` | Placeholder, disabled text |
 | `--color-secondary` | `#A8B2BE` | Secondary text |
 | `--color-primary` | `#E0E4EA` | Primary text |
-| `--color-grid-line` | `rgba(224,90,26,0.08)` | Background grid overlay |
-| `--shadow-strong` | `0 20px 60px rgba(0,0,0,0.6)` | Elevated cards |
+| `--color-grid-line` | `rgba(245,166,35,.025)` | Background grid overlay (from portal.css, uses gold) |
+| `--shadow-strong` | `0 20px 60px rgba(0,0,0,0.6)` | Elevated cards (from strategic plan) |
 
 ### Light Theme
 | Token | Value | Role |
 |-------|-------|------|
 | `--color-ground` | `#F5F1EA` | Page background |
-| `--color-surface` | `#EDE8DE` | Card / panel background |
-| `--color-surface-alt` | `#E4DED2` | Elevated surface |
+| `--color-surface` | `#FFFFFF` | Card / panel background |
+| `--color-surface-alt` | `#EDE8DE` | Elevated surface |
 | `--color-divider` | `#C8C1B3` | Borders, separators |
 | `--color-ember` | `#A82A1E` | Danger / error |
 | `--color-fire` | `#C94A10` | **Primary accent** |
@@ -38,8 +38,8 @@ Full brand identity PDFs: `BlackFire/BlackFire-Brand-Pack/BlackFire_Brand_Identi
 | `--color-muted` | `#7A7566` | Placeholder, disabled text |
 | `--color-secondary` | `#4A4638` | Secondary text |
 | `--color-primary` | `#1A1814` | Primary text |
-| `--color-grid-line` | `rgba(168,42,30,0.08)` | Background grid overlay |
-| `--shadow-strong` | `0 20px 60px rgba(26,24,20,0.12)` | Elevated cards |
+| `--color-grid-line` | `rgba(201,74,16,.035)` | Background grid overlay (from portal.css, uses fire) |
+| `--shadow-strong` | `0 20px 60px rgba(26,24,20,0.12)` | Elevated cards (from strategic plan) |
 
 ---
 
@@ -47,17 +47,17 @@ Full brand identity PDFs: `BlackFire/BlackFire-Brand-Pack/BlackFire_Brand_Identi
 
 | Role | Font | Weight | Size | Letter-spacing | Line-height |
 |------|------|--------|------|----------------|-------------|
-| Hero title | Big Shoulders | 900 | `clamp(80px, 14vw, 180px)` | — | 0.85 |
-| Section title | Big Shoulders | 900 | `clamp(48px, 7vw, 96px)` | — | 0.9 |
-| Wordmark | Big Shoulders | 900 | 17px | 0.04em | — |
-| Body | Instrument Sans | 400 | base | — | 1.6 |
-| Body bold | Instrument Sans | 700 | base | — | 1.6 |
+| Hero title | Big Shoulders Display | 900 | `clamp(80px, 14vw, 180px)` | — | 0.85 |
+| Section title | Big Shoulders Display | 900 | `clamp(48px, 7vw, 96px)` | — | 0.9 |
+| Wordmark | Big Shoulders Display | 900 | 17px | 0.04em | — |
+| Body | Instrument Sans | 400 | base (14px) | — | 1.6 |
+| Body bold | Instrument Sans | 700 | base (14px) | — | 1.6 |
 | Accent / quote | Instrument Serif | italic | — | — | — |
 | UI label / mono | IBM Plex Mono | 400 | 11px | 0.18em (UPPERCASE) | — |
 | Sub-wordmark | IBM Plex Mono | 400 | 8.5px | 0.3em (UPPERCASE) | — |
 | Code | IBM Plex Mono | 400/700 | — | — | — |
 
-**Google Fonts import:**
+**Google Fonts import (from strategic plan):**
 ```
 Big Shoulders Display:wght@400;700;900
 Instrument Sans:ital,wght@0,400;0,700;1,400
@@ -79,7 +79,7 @@ IBM Plex Mono:wght@400;700
 | `blackfire_icon_transparent.png` | App icons, overlays |
 | `blackfire_icon_transparent_2x.png` | Retina/HiDPI |
 
-All assets live in: `BlackFire/BlackFire-Brand-Pack/` and `BlackFire/blackfire-logo-pack/`
+All assets live in: `BlackFire/BlackFire-Brand-Pack/` and `BlackFire/blackfire-logo-pack/` (from strategic plan)
 
 ### Logo Size Guidelines
 
@@ -97,12 +97,12 @@ All assets live in: `BlackFire/BlackFire-Brand-Pack/` and `BlackFire/blackfire-l
 
 ## Layout System
 
-- Max content width: **1180px**
-- Section padding: **100px 40px** (desktop) → responsive via clamp/media query
-- Background grid: 60×60px, `--color-grid-line` at 8% opacity
-- Navigation: sticky, `backdrop-filter: blur(14px)`
-- Hero grid: `1fr 300px`, gap 48px
-- Shadow: use `--shadow-strong` for elevated cards
+- Max content width: **1180px** (from strategic plan)
+- Section padding: **100px 40px** (desktop) → responsive via clamp/media query (from strategic plan, `pub-section` in portal.css)
+- Background grid: 60×60px, `--color-grid-line` at 8% opacity (from portal.css, strategic plan mentions 60x60px)
+- Navigation: sticky, `backdrop-filter: blur(14px)` (from strategic plan)
+- Hero grid: `1fr 300px`, gap 48px (from strategic plan)
+- Shadow: use `--shadow-strong` for elevated cards (from strategic plan)
 
 ---
 

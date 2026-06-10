@@ -656,7 +656,7 @@ Follow this sequence to deploy the workforce in a new environment.
 
 ### 4.1a Installs — Tooling & VS Code Extensions
 
-**Workspace model:** `c:\DevWork` is the single root workspace. Each subfolder (`BlackFire\`, `Astute\`, `umlilo-portal\`, etc.) is a project within it. All tooling is installed at the machine or workspace level — never scoped to a single project subfolder.
+**Workspace model:** `{workspace}` is the root workspace. Each project may live in a subfolder or standalone repository beneath it. Install shared tooling at the machine or workspace level unless a project explicitly requires repo-local tooling.
 
 Run these once when setting up a new machine.
 
@@ -664,9 +664,9 @@ Run these once when setting up a new machine.
 
 #### VS Code Extensions — Global Install
 
-Extensions are installed at the VS Code **user level** (global), so they are available across every project in the workspace. The `c:\DevWork\.vscode\extensions.json` file lists them so VS Code will prompt to install when the workspace is first opened.
+Extensions are installed at the VS Code **user level** (global), so they are available across every project in the workspace. The `{workspace}/.vscode/extensions.json` file lists them so VS Code will prompt to install when the workspace is first opened.
 
-Install prompt: open `c:\DevWork` in VS Code → *"Do you want to install the recommended extensions?"* → **Install All**.
+Install prompt: open `{workspace}` in VS Code → *"Do you want to install the recommended extensions?"* → **Install All**.
 
 Or install manually (each `code --install-extension` call installs globally):
 
@@ -706,7 +706,7 @@ code --install-extension anthropic.claude-code `
 | `ms-dotnettools.vscode-dotnet-runtime` | .NET Runtime | Dependency for SQL extensions |
 | `tomoki1207.pdf` | PDF Preview | In-editor PDF viewer (brand guides, docs) |
 
-The full list is in `c:\DevWork\.vscode\extensions.json` — VS Code reads it automatically on workspace open.
+The full list is in `{workspace}/.vscode/extensions.json` — VS Code reads it automatically on workspace open.
 
 ---
 
@@ -714,7 +714,7 @@ The full list is in `c:\DevWork\.vscode\extensions.json` — VS Code reads it au
 
 All runtimes are installed at the **system or user PATH level** so every project can invoke them from any terminal. No project-scoped installs.
 
-**Node.js LTS + pnpm** — required by Umlilo portal (Next.js / Expo)
+**Node.js LTS + pnpm** — required by JavaScript, TypeScript, Next.js, Expo, and other Node-based projects
 ```powershell
 # 1. Install Node.js LTS: https://nodejs.org/  (adds node + npm to system PATH)
 # 2. Install pnpm globally:
@@ -736,17 +736,17 @@ php --version
 
 **Python 3.10+** — required by agent scripts (proposal_grader.py, token_tracker.py, etc.)
 
-Install Python at the **user level** (not inside a project folder). A single shared virtual environment lives at `c:\DevWork\.venv` and is used by all projects in this workspace.
+Install Python at the **user level** (not inside a project folder). A single shared virtual environment lives at `{workspace}/.venv` and is used by all projects in this workspace.
 
 ```powershell
 # 1. Install Python 3.10+ from https://python.org/downloads/
 #    Check "Add Python to PATH" during install.
 
 # 2. Create the workspace-level virtual environment (run once):
-python -m venv C:\DevWork\.venv
+python -m venv {workspace}\.venv
 
 # 3. Activate it (run in any terminal session that needs Python):
-C:\DevWork\.venv\Scripts\Activate.ps1
+{workspace}\.venv\Scripts\Activate.ps1
 
 # 4. Install shared packages (run once after creating the venv):
 pip install anthropic python-dotenv requests
@@ -756,7 +756,7 @@ python --version
 python -c "import anthropic; print('anthropic OK')"
 ```
 
-> **VS Code integration:** set `python.defaultInterpreterPath` in `c:\DevWork\.vscode\settings.json` to `C:\\DevWork\\.venv\\Scripts\\python.exe` so all projects in the workspace pick up the shared interpreter automatically.
+> **VS Code integration:** set `python.defaultInterpreterPath` in `{workspace}/.vscode/settings.json` to `{workspace}\\.venv\\Scripts\\python.exe` so all projects in the workspace pick up the shared interpreter automatically.
 
 **PowerShell 5.1** — required by Usiba document generation (COM automation)
 ```powershell
@@ -775,7 +775,7 @@ git --version
 
 #### After Installing
 
-1. Open `c:\DevWork` in VS Code (not a subfolder) — VS Code will prompt to install recommended extensions.
+1. Open `{workspace}` in VS Code (not a subfolder) — VS Code will prompt to install recommended extensions.
 2. Activate the workspace Python environment: `C:\DevWork\.venv\Scripts\Activate.ps1`
 3. Copy `.env.example` → `.env` and fill in real values (see §4.3).
 4. Verify the MySQL extension can connect to your database.
@@ -792,11 +792,17 @@ Create this structure in the new workspace:
 ├── AGENTS.md          ← Mirror for OpenAI Codex / Google Antigravity
 ├── .github/
 │   └── copilot-instructions.md  ← Mirror for GitHub Copilot
+├── .cursor/
+│   └── rules/
+│       └── constitution.mdc     ← Mirror for Cursor
+├── .vscode/
+│   └── extensions.json          ← Recommended provider/tooling extensions
 ├── agents/
 │   ├── sibali_system_prompt.md
 │   ├── mlawuli_system_prompt.md
 │   └── sebenza_agents.md        ← Single file containing all 8 Sebenza system prompts
 ├── docs/              ← Documentation & Knowledge Base (maintained by Mbhali)
+│   ├── multi-agent-workforce-architecture.md  ← Local copy of this guide for portable repos
 │   ├── guide.md                 ← Operator and user guide
 │   ├── sttm.md                  ← System Technical Test Manual
 │   └── system_architecture.md  ← High-level architecture and flow diagrams
@@ -811,6 +817,23 @@ Create this structure in the new workspace:
 ├── .env.example       ← Template with all keys, empty values (IN repo)
 └── temp/              ← Scratch files, never committed
 ```
+
+#### Portable Repository Rule
+
+If a project is a standalone repository inside a larger workspace, do **not** rely only on the parent workspace constitution. The repository must carry its own portable constitution layer so any provider opening the repo directly receives the same rules.
+
+Minimum repo-local constitution package:
+- `AGENTS.md` — provider-neutral canonical rules for agents that read repository agent instructions.
+- `CLAUDE.md` — platform-specific mirror; it may import `AGENTS.md` if the platform supports includes.
+- `.github/copilot-instructions.md` — platform-specific mirror for hosted code-completion assistants.
+- `.cursor/rules/constitution.mdc` — platform-specific mirror for editor-native agents; set it to always apply when supported.
+- `agents/` — local copies of Sibali, Mlawuli, and Sebenza prompt definitions.
+- `docs/multi-agent-workforce-architecture.md` — local copy of this guide.
+- `memory/MEMORY.md` and `sessions/_template.md` — local memory/session scaffolding.
+- `.env.example` — empty values only.
+- `.gitignore` — secret/scratch exclusions from §4.3.
+
+Parent workspace rules may still apply, but repo-local files are the portability boundary.
 
 ### 4.3 Environment Variables & Secrets (.env)
 
@@ -1061,7 +1084,7 @@ Every session must produce a Markdown log. Multi-agent sessions also append a JS
 ```markdown
 # Session: {topic}
 Date: YYYY-MM-DD
-Provider: {Claude Code | GitHub Copilot | OpenAI Codex | Other}
+Provider: {active provider / tool name}
 Model: {model name}
 
 ## Goal
@@ -1107,6 +1130,16 @@ Append to the Markdown log:
 
 Two PowerShell hooks enforce session log discipline automatically, without relying on the agent to remember.
 
+These hook registrations are **Claude Code-specific** because Claude Code reads `{workspace}/.claude/settings.json` and supports `Stop` / `PostToolUse` lifecycle hooks. Do not assume other providers read `.claude/` files.
+
+For other providers, implement the same control objective through the provider's native mechanism if one exists, or through a repo-level fallback:
+- Provider-native lifecycle hooks or rule files when supported.
+- Wrapper scripts that start sessions, run the agent, and validate the session log on exit.
+- Pre-commit, CI, or task-runner checks that fail when required session sections are missing.
+- Manual checklist enforcement through the provider mirror file when no automation is available.
+
+Required outcome for every provider: session logs must be created at start, updated after substantive work, and checked before handoff or completion.
+
 #### Stop Hook — `session-log-update.ps1`
 
 Fires after **every response** (Claude Code `Stop` event). Checks:
@@ -1127,7 +1160,7 @@ Checks whether `## Work Done` has real content. If empty, outputs a reminder lin
 
 This is the point-of-change enforcement: the agent is reminded to update the log *when the work happens*, not only at session end.
 
-#### Hook Registration (`c:\DevWork\.claude\settings.json`)
+#### Hook Registration (`{workspace}/.claude/settings.json`)
 
 ```json
 {
@@ -1138,7 +1171,7 @@ This is the point-of-change enforcement: the agent is reminded to update the log
 }
 ```
 
-Scripts live in `c:\DevWork\.claude\scripts\`. Both are idempotent — running them multiple times against the same log is safe.
+Scripts live in `{workspace}/.claude/scripts/`. Both are idempotent — running them multiple times against the same log is safe.
 
 ---
 
@@ -1232,7 +1265,9 @@ This workforce runs identically across all major AI providers.
 | OpenAI Codex CLI | `AGENTS.md` |
 | Google Antigravity | `AGENTS.md` |
 | Cursor | `.cursor/rules/constitution.mdc` |
-| Kiro / Factory / Others | `AGENTS.md` (fallback) |
+| Kiro | `.kiro/steering/*.md` (4 steering files) |
+| Factory Droid | `.factory/config.yaml` + `AGENTS.md` |
+| Others | `AGENTS.md` (fallback) |
 
 ### 9.2 Cross-Provider Handoff Protocol
 
@@ -1242,7 +1277,46 @@ When switching providers mid-session:
 3. The receiving provider reads the session log before continuing.
 4. The JSON metadata block in the session log ensures no cost data is lost.
 
-### 9.3 Middleware Router (for full multi-provider automation)
+### 9.3 Provider Mirror Synchronisation
+
+Any change to the constitution, workforce routing, safety policy, session logging, memory rules, cost tiers, provider list, or secret policy must be mirrored in every provider entry file in the same session.
+
+Synchronisation order:
+1. Update the canonical constitution for the environment (`AGENTS.md` for provider-neutral repos, or the workspace's chosen source of truth).
+2. Update `CLAUDE.md`, `.github/copilot-instructions.md`, `.cursor/rules/constitution.mdc`, and any other provider mirrors.
+3. Confirm nested `AGENTS.md` files supplement rather than contradict the root constitution.
+4. Copy or update agent prompt files in `agents/` when the workforce roster or system prompts change.
+5. Update `docs/multi-agent-workforce-architecture.md` if the project keeps a local architecture copy.
+6. Log the mirror update in `sessions/` and update memory.
+
+Mirror audit checklist:
+- Every provider file points to the same canonical constitution.
+- Provider-specific files do not omit mandatory governance rules.
+- Nested provider rules are scoped to their subtree and do not weaken parent rules.
+- `.gitignore` covers `.env`, `.env.*`, `*.env`, `config.local.*`, `chatsessions/*.jsonl`, and `temp/`.
+- `.env.example` contains keys with empty values only.
+
+### 9.4 Workspace Inspection Before Upstream Updates
+
+When a user receives an updated version of this architecture or when this guide is copied into a project repository, run a workspace inspection before declaring the update complete.
+
+Inspection procedure:
+1. Identify the workspace root and any nested standalone repos.
+2. Locate provider files: `CLAUDE.md`, `AGENTS.md`, `.github/copilot-instructions.md`, `.cursor/rules/constitution.mdc`, and nested `AGENTS.md`.
+3. Locate local workforce files: `agents/`, `docs/multi-agent-workforce-architecture.md`, `sessions/`, `memory/`, `.env.example`, and `.gitignore`.
+4. Compare the active workspace constitution with this guide.
+5. Classify differences:
+   - **Required update** — the local workspace is missing a mandatory governance, provider, safety, logging, memory, cost, or secret rule.
+   - **Local override** — the workspace has project-specific instructions that are stricter or more precise than this guide.
+   - **Candidate upstream improvement** — the workspace solved a generic problem not covered by this guide.
+   - **Do not upstream** — the difference is project-specific, secret, customer-specific, or speculative.
+6. Apply required local updates to the target workspace/repo.
+7. If a difference is a candidate upstream improvement, update this architecture guide generically so future users receive the improvement.
+8. Re-copy the updated guide into the target repo if it keeps a local copy.
+9. Re-run the mirror audit from §9.3.
+10. Log the inspection result and memory updates.
+
+### 9.5 Middleware Router (for full multi-provider automation)
 
 A lightweight script (Python/Node.js/PHP) can route tasks to the correct provider:
 - Read the `domain` field from the task JSON
@@ -1482,15 +1556,23 @@ Use this checklist when deploying the workforce in a new environment.
 ### Foundation
 - [ ] Workspace folder structure created (§4.2)
 - [ ] `CLAUDE.md` / `AGENTS.md` / provider mirrors written and committed
+- [ ] `.github/copilot-instructions.md` written and committed for providers that read it
+- [ ] `.cursor/rules/constitution.mdc` written and committed for providers that read it
+- [ ] `.kiro/steering/*.md` (4 steering files) written and committed for Kiro
+- [ ] `.factory/config.yaml` written and committed for Factory Droid
+- [ ] `.vscode/extensions.json` written with recommended provider/tooling extensions
+- [ ] Standalone repos include their own portable constitution package (§4.2 Portable Repository Rule)
 - [ ] `.gitignore` includes: `*.env`, `config.local.*`, sensitive seed files, `temp/`
 - [ ] `sessions/` folder created with a `_template.md`
 - [ ] `memory/MEMORY.md` index created
 - [ ] `temp/` folder created and gitignored
-- [ ] `.claude/scripts/session-log-update.ps1` deployed (Stop hook — checks Learnings + Decisions + Work Done)
-- [ ] `.claude/scripts/session-log-reminder.ps1` deployed (PostToolUse hook — point-of-change reminder)
-- [ ] `.claude/settings.json` registers both hooks (Stop + PostToolUse `Edit|Write` matcher) — see §6.3
+- [ ] Claude Code environments: `.claude/scripts/session-log-update.ps1` deployed (Stop hook — checks Learnings + Decisions + Work Done)
+- [ ] Claude Code environments: `.claude/scripts/session-log-reminder.ps1` deployed (PostToolUse hook — point-of-change reminder)
+- [ ] Claude Code environments: `.claude/settings.json` registers both hooks (Stop + PostToolUse `Edit|Write` matcher) — see §6.3
+- [ ] Non-Claude providers: native hook, wrapper script, CI/pre-commit check, or manual provider-mirror checklist enforces the same session-log outcome
 
 ### Documentation Repository
+- [ ] `docs/multi-agent-workforce-architecture.md` copied from the current architecture guide when the repo must be portable
 - [ ] `docs/guide.md` created with initial operator instructions
 - [ ] `docs/sttm.md` initialized with baseline testing matrices
 - [ ] `docs/system_architecture.md` generated with initial Mermaid.js diagrams
@@ -1511,6 +1593,14 @@ Use this checklist when deploying the workforce in a new environment.
 - [ ] `memory/project_{name}.md` written for each active project
 - [ ] `memory/feedback_{topic}.md` written for any known codebase pitfalls
 - [ ] `memory/reference_{name}.md` written for key external resources (dashboards, ticket trackers)
+
+### Provider Mirror Audit
+- [ ] Every provider file points to the same canonical constitution
+- [ ] Provider mirrors include session logging, memory, Sibali, workforce routing, secret policy, and reflection rules
+- [ ] Nested `AGENTS.md` files supplement rather than contradict parent rules
+- [ ] Provider mirrors updated in the same session as any constitution change
+- [ ] Workspace inspection completed after copying this guide into a user repo (§9.4)
+- [ ] Candidate generic improvements found during inspection are upstreamed into this guide
 
 ### Cost Management
 - [ ] Tier classification rules understood (§8.1)
@@ -1537,5 +1627,5 @@ Use this checklist when deploying the workforce in a new environment.
 
 ---
 
-*This document is the authoritative implementation guide for the BlackFire Solutions Multi-Agent Workforce.
+*This document is the authoritative implementation guide for the Multi-Agent Workforce.
 Update it when new patterns are discovered, new agents are added, or protocols change.*

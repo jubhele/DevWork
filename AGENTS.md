@@ -1,7 +1,14 @@
-# DevWork Workspace Constitution (OpenAI Codex / Google Antigravity / Agents)
+# DevWork Workspace Constitution (OpenAI Codex / Google Antigravity / Kiro / Factory / Agents)
 
-This file mirrors CLAUDE.md for OpenAI Codex CLI, Google Antigravity, and other agents that read AGENTS.md.
+This file mirrors CLAUDE.md for OpenAI Codex CLI, Google Antigravity (Jules), Kiro, Factory Droid, and other agents that read AGENTS.md.
 The authoritative source is `CLAUDE.md` — when in doubt, defer to it.
+
+**Provider config files:**
+- Kiro: `.kiro/steering/` (4 steering markdown files)
+- Factory: `.factory/config.yaml`
+- Cursor: `.cursor/rules/constitution.mdc`
+- GitHub Copilot: `.github/copilot-instructions.md`
+- Claude Code: `CLAUDE.md`
 
 ---
 
@@ -42,6 +49,15 @@ Think → Plan → Build → Review → Test → Ship → Reflect
 1. Commit in-progress work with `WIP:` prefix.
 2. Update session log with current state and blockers.
 3. Next provider reads session log before continuing.
+
+## Constitution Propagation
+
+When the constitution or multi-agent architecture is copied into a repo or updated for a user:
+1. Inspect the target workspace/repo for `CLAUDE.md`, `AGENTS.md`, `.github/copilot-instructions.md`, `.cursor/rules/constitution.mdc`, nested `AGENTS.md`, `agents/`, `docs/`, `sessions/`, `memory/`, `.env.example`, and `.gitignore`.
+2. Apply missing mandatory rules locally.
+3. Preserve stricter project-specific overrides.
+4. If the inspection reveals a generic improvement, update the architecture guide so future repos receive it.
+5. Re-copy the updated guide into the target repo and rerun the mirror audit.
 
 ---
 

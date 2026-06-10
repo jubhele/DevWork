@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Astute Insights — Icon</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20120%20120'%3E%3Csvg%20x='30'%20y='23'%20width='60'%20height='62'%20viewBox='24%2018%2072%2076'%3E%3Cline%20x1='52.8'%20y1='38.88'%20x2='38.4'%20y2='68.64'%20stroke='%23C2A04A'%20stroke-width='4'%20stroke-linecap='round'/%3E%3Cline%20x1='67.2'%20y1='38.88'%20x2='90'%20y2='86'%20stroke='%23C2A04A'%20stroke-width='4'%20stroke-linecap='round'/%3E%3Ccircle%20cx='60'%20cy='62'%20r='5'%20fill='%23C2A04A'/%3E%3C/svg%3E%3C/svg%3E">
+<style>
+  :root{
+    --midnight:#0A1626; --harbor:#0F2138; --divider:#244360;
+    --aurum:#C2A04A; --bone:#DDE4EC; --ash:#93A4B8; --alabaster:#F4F0E6; --graphite:#7C715A;
+    --display:"Cormorant Garamond",serif; --mono:"IBM Plex Mono",monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--midnight);color:var(--bone);font-family:var(--mono);}
+  .head{padding:46px 56px 30px;border-bottom:1px solid var(--divider);}
+  .mono{font-family:var(--mono);font-size:11px;letter-spacing:.34em;text-transform:uppercase;}
+  .gold{color:var(--aurum);} .ash{color:var(--ash);}
+  h1{font-family:var(--display);font-size:52px;font-weight:600;margin:14px 0 8px;letter-spacing:-.01em;}
+  .sub{font-family:var(--mono);font-size:12px;color:var(--ash);max-width:62ch;line-height:1.7;}
+
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);}
+  .cell{border-right:1px solid var(--divider);border-bottom:1px solid var(--divider);
+        min-height:300px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;padding:48px 36px;}
+  .cell.paper{background:var(--alabaster);}
+  .cell.seal{background:#070F1B;}
+  .tag{align-self:flex-start;}
+  .cell.paper .tag{color:var(--graphite);}
+  .cap{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ash);}
+  .cell.paper .cap{color:var(--graphite);}
+  svg{display:block;overflow:visible;}
+
+  .scale-row{display:flex;align-items:flex-end;gap:30px;}
+  .tab{display:flex;align-items:center;gap:10px;background:var(--harbor);border:1px solid var(--divider);
+       border-radius:9px 9px 0 0;padding:11px 15px;min-width:220px;}
+  .tab span{font-size:11px;color:var(--bone);}
+  .tab .x{margin-left:auto;color:var(--ash);}
+</style>
+</head>
+<body>
+
+<!-- the canonical mark, drawn once, recoloured by currentColor -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="mark" viewBox="0 0 120 120">
+    <svg x="30" y="23" width="60" height="62" viewBox="24 18 72 76">
+      <line x1="52.8" y1="38.88" x2="38.4" y2="68.64" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"/>
+      <line x1="67.2" y1="38.88" x2="90" y2="86" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"/>
+      <circle cx="60" cy="62" r="4.6" fill="currentColor"/>
+    </svg>
+  </symbol>
+  <symbol id="mark-solid" viewBox="0 0 120 120">
+    <svg x="30" y="23" width="60" height="62" viewBox="24 18 72 76">
+      <line x1="52.8" y1="38.88" x2="38.4" y2="68.64" stroke="#C2A04A" stroke-width="3.4" stroke-linecap="round"/>
+      <line x1="67.2" y1="38.88" x2="90" y2="86" stroke="#C2A04A" stroke-width="3.4" stroke-linecap="round"/>
+      <circle cx="60" cy="62" r="4.6" fill="#C2A04A"/>
+    </svg>
+  </symbol>
+</svg>
+
+<div class="head">
+  <p class="mono gold">Astute Insights · Symbol · Final</p>
+  <h1>The Icon</h1>
+  <p class="sub">The peak alone — open at the crown, anchored to the right, the counter held by a single point. The standalone mark for avatars, app tiles and favicons, holding from 120px down to 16px.</p>
+</div>
+
+<div class="grid">
+  <div class="cell">
+    <span class="mono gold tag">· Primary — on midnight</span>
+    <svg viewBox="0 0 120 120" width="150" height="150" style="color:var(--aurum)"><use href="#mark"/></svg>
+    <span class="cap">Line · Aurum on Midnight</span>
+  </div>
+
+  <div class="cell paper">
+    <span class="mono gold tag">· On alabaster</span>
+    <svg viewBox="0 0 120 120" width="150" height="150" style="color:#9A7C2C"><use href="#mark"/></svg>
+    <span class="cap">Line · Antique gold on paper</span>
+  </div>
+
+  <div class="cell seal">
+    <span class="mono gold tag">· On a dark field</span>
+    <svg viewBox="0 0 120 120" width="150" height="150"><use href="#mark-solid"/></svg>
+    <span class="cap">Gold peak on near-black</span>
+  </div>
+</div>
+
+<div class="grid" style="grid-template-columns:1fr 1fr;">
+  <div class="cell">
+    <span class="mono gold tag">· Scale — 64 · 32 · 16 px</span>
+    <div class="scale-row" style="color:var(--aurum)">
+      <svg viewBox="0 0 120 120" width="64" height="64"><use href="#mark"/></svg>
+      <svg viewBox="0 0 120 120" width="32" height="32"><use href="#mark"/></svg>
+      <svg viewBox="0 0 120 120" width="16" height="16"><use href="#mark"/></svg>
+    </div>
+    <span class="cap">Holds to favicon size</span>
+  </div>
+
+  <div class="cell">
+    <span class="mono gold tag">· In a browser tab</span>
+    <div class="tab">
+      <svg viewBox="0 0 120 120" width="16" height="16" style="color:var(--aurum)"><use href="#mark"/></svg>
+      <span>Astute Insights</span>
+      <span class="x">&times;</span>
+    </div>
+    <span class="cap">The live favicon on this page</span>
+  </div>
+</div>
+
+</body>
+</html>

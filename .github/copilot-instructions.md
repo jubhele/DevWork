@@ -41,10 +41,21 @@ Think → Plan → Build → Review → Test → Ship → Reflect
 
 ## Cross-Provider Handoff
 
-If handing off to another AI (Claude, Codex, Antigravity, Cursor):
+If handing off to another AI (Claude, Codex, Antigravity, Cursor, Kiro, Factory Droid):
 1. Commit in-progress work with `WIP:` prefix.
 2. Update session log with current state and exact next steps.
 3. The next AI reads the session log before starting.
+
+---
+
+## Constitution Propagation
+
+When the constitution or multi-agent architecture is copied into a repo or updated for a user:
+1. Inspect the target workspace/repo for `CLAUDE.md`, `AGENTS.md`, `.github/copilot-instructions.md`, `.cursor/rules/constitution.mdc`, nested `AGENTS.md`, `agents/`, `docs/`, `sessions/`, `memory/`, `.env.example`, and `.gitignore`.
+2. Apply missing mandatory rules locally.
+3. Preserve stricter project-specific overrides.
+4. If the inspection reveals a generic improvement, update the architecture guide so future repos receive it.
+5. Re-copy the updated guide into the target repo and rerun the mirror audit.
 
 ---
 

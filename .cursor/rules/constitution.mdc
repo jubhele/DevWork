@@ -31,11 +31,20 @@ Think → Plan → Build → Review → Test → Ship → Reflect
 
 ## Cross-Provider Handoff
 
-Providers: Claude Code, GitHub Copilot, OpenAI Codex, Google Antigravity, Cursor, Kiro.
+Providers: Claude Code, GitHub Copilot, OpenAI Codex, Google Antigravity, Cursor, Kiro, Factory Droid.
 
 1. Commit WIP with `WIP:` prefix.
 2. Update session log.
 3. Next provider reads session log before continuing.
+
+## Constitution Propagation
+
+When the constitution or multi-agent architecture is copied into a repo or updated for a user:
+1. Inspect the target workspace/repo for `CLAUDE.md`, `AGENTS.md`, `.github/copilot-instructions.md`, `.cursor/rules/constitution.mdc`, nested `AGENTS.md`, `agents/`, `docs/`, `sessions/`, `memory/`, `.env.example`, and `.gitignore`.
+2. Apply missing mandatory rules locally.
+3. Preserve stricter project-specific overrides.
+4. If the inspection reveals a generic improvement, update the architecture guide so future repos receive it.
+5. Re-copy the updated guide into the target repo and rerun the mirror audit.
 
 ## Code Principles
 

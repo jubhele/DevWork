@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Astute Insights — Brand System · Vol.01</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Instrument+Serif:ital@0;1&family=Jost:wght@300;400;500&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="brand.css">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20120%20120'%3E%3Csvg%20x='30'%20y='23'%20width='60'%20height='62'%20viewBox='24%2018%2072%2076'%3E%3Cline%20x1='52.8'%20y1='38.88'%20x2='38.4'%20y2='68.64'%20stroke='%23C2A04A'%20stroke-width='4'%20stroke-linecap='round'/%3E%3Cline%20x1='67.2'%20y1='38.88'%20x2='90'%20y2='86'%20stroke='%23C2A04A'%20stroke-width='4'%20stroke-linecap='round'/%3E%3Ccircle%20cx='60'%20cy='62'%20r='5'%20fill='%23C2A04A'/%3E%3C/svg%3E%3C/svg%3E">
+</head>
+<body>
+<template id="__bundler_thumbnail" data-bg-color="#0A1626">
+  <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+    <g stroke="#C2A04A" stroke-width="16" stroke-linecap="round" fill="none">
+      <line x1="566" y1="318" x2="492" y2="470"/>
+      <line x1="638" y1="318" x2="730" y2="512"/>
+    </g>
+    <circle cx="600" cy="416" r="20" fill="#C2A04A"/>
+  </svg>
+</template>
+
+<!-- ===== SVG SYMBOL DEFS ===== -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="lens" viewBox="0 0 120 120" fill="none">
+    <circle cx="60" cy="60" r="56" stroke="#C2A04A" stroke-width="1" opacity="0.34"/>
+    <path d="M60,4 v8 M60,108 v8 M4,60 h8 M108,60 h8" stroke="#C2A04A" stroke-width="1" opacity="0.5"/>
+    <svg x="30" y="23" width="60" height="62" viewBox="24 18 72 76">
+      <line x1="52.8" y1="38.88" x2="38.4" y2="68.64" stroke="#C2A04A" stroke-width="3.4" stroke-linecap="round"/>
+      <line x1="67.2" y1="38.88" x2="90" y2="86" stroke="#C2A04A" stroke-width="3.4" stroke-linecap="round"/>
+      <circle cx="60" cy="62" r="4.6" fill="#C2A04A"/>
+    </svg>
+  </symbol>
+  <symbol id="lens-mini" viewBox="0 0 120 120" fill="none">
+    <svg x="30" y="23" width="60" height="62" viewBox="24 18 72 76">
+      <line x1="52.8" y1="38.88" x2="38.4" y2="68.64" stroke="#C2A04A" stroke-width="3.4" stroke-linecap="round"/>
+      <line x1="67.2" y1="38.88" x2="90" y2="86" stroke="#C2A04A" stroke-width="3.4" stroke-linecap="round"/>
+      <circle cx="60" cy="62" r="4.6" fill="#C2A04A"/>
+    </svg>
+  </symbol>
+  <symbol id="mark-solid" viewBox="0 0 120 120" fill="none">
+    <svg x="30" y="23" width="60" height="62" viewBox="24 18 72 76">
+      <line x1="52.8" y1="38.88" x2="38.4" y2="68.64" stroke="#C2A04A" stroke-width="3.4" stroke-linecap="round"/>
+      <line x1="67.2" y1="38.88" x2="90" y2="86" stroke="#C2A04A" stroke-width="3.4" stroke-linecap="round"/>
+      <circle cx="60" cy="62" r="4.6" fill="#C2A04A"/>
+    </svg>
+  </symbol>
+  <symbol id="chev" viewBox="24 18 72 76">
+    <path d="M30,86 L60,24 L90,86" fill="none" stroke="currentColor" stroke-width="3.4"/>
+    <circle cx="60" cy="62" r="4.6" fill="currentColor"/>
+  </symbol>
+  <symbol id="favicon-tile" viewBox="0 0 120 120">
+    <svg x="30" y="23" width="60" height="62" viewBox="24 18 72 76">
+      <line x1="52.8" y1="38.88" x2="38.4" y2="68.64" stroke="#C2A04A" stroke-width="3.4" stroke-linecap="round"/>
+      <line x1="67.2" y1="38.88" x2="90" y2="86" stroke="#C2A04A" stroke-width="3.4" stroke-linecap="round"/>
+      <circle cx="60" cy="62" r="4.6" fill="#C2A04A"/>
+    </svg>
+  </symbol>
+</svg>
+
+<!-- ===== TOP INDEX BAR ===== -->
+<header class="topbar">
+  <a class="topbar__brand" href="#cover" style="text-decoration:none;color:inherit">
+    <span style="display:inline-flex;align-items:flex-end;line-height:1;color:var(--aurum)">
+      <svg viewBox="24 18 72 76" width="17" height="21" style="margin-right:3px;margin-bottom:-1px;color:var(--aurum)"><use href="#chev"/></svg>
+      <span style="font-family:'Jost',sans-serif;font-weight:300;font-size:22px;letter-spacing:.03em;color:var(--aurum)">stute</span>
+      <span style="font-family:'Jost',sans-serif;font-weight:300;font-size:22px;letter-spacing:.16em;color:var(--bone);margin-left:13px">Insights</span>
+    </span>
+  </a>
+  <nav class="mono-sm">
+    <a href="#mark">Mark</a>
+    <a href="#color">Color</a>
+    <a href="#type">Type</a>
+    <a href="#voice">Voice</a>
+    <a href="#pattern">Pattern</a>
+    <a href="#colophon">Colophon</a>
+  </nav>
+</header>
+
+<!-- ===== COVER ===== -->
+<section class="cover" id="cover">
+  <div class="cover__grid"></div>
+  <div class="cover__top">
+    <div class="cover__words">
+      <span>OBSERVE</span>
+      <span>DISCERN</span>
+      <span>ILLUMINATE</span>
+    </div>
+    <div class="cover__seal">
+      <svg viewBox="0 0 120 120"><use href="#lens"/></svg>
+      <div class="mono-sm ash">FIG. 001 · PRIMARY MARK<br>SPEC · AI-M-001 · REV. A</div>
+    </div>
+  </div>
+
+  <div class="cover__mid">
+    <div class="wrap" style="margin:0;max-width:none;padding-left:56px">
+      <p class="mono eyebrow">Volume 01 · The Official Brand System</p>
+      <h1 class="cover__title">Brand<span class="row2">Standards</span></h1>
+      <p class="lede" style="margin-top:40px">A standards manual for the discipline of insight — the art of seeing what others overlook, and showing them what we see.</p>
+    </div>
+  </div>
+
+  <div class="cover__bot">
+    <dl class="cover__meta mono-sm">
+      <div><dt>ISSUED</dt><dd>MMXXVI · Issue A</dd></div>
+      <div><dt>CLASSIFICATION</dt><dd>Internal · Controlled</dd></div>
+      <div><dt>SPECIMEN</dt><dd>AI · Vol I · 001–006</dd></div>
+      <div><dt>DISCIPLINE</dt><dd>Data Intelligence &amp; Bespoke Solutions</dd></div>
+    </dl>
+  </div>
+</section>
+
+<!-- ===== PLATE 01 · THE MARK ===== -->
+<section class="plate" id="mark">
+  <div class="wrap">
+    <div class="plate__head">
+      <div class="plate__index">
+        <span class="plate__no">01</span>
+        <div>
+          <p class="mono gold" style="margin:0 0 4px">Section A · The Logotype</p>
+          <p class="mono-sm plate__spec" style="margin:0">Spec · AI-M-001 · Construction &amp; Usage</p>
+        </div>
+      </div>
+      <span class="mono-sm plate__spec">Plate 01 / 06</span>
+    </div>
+
+    <p class="mono eyebrow">The Logotype</p>
+    <h2 class="title">The<br><em>Logotype</em></h2>
+    <p class="lede" style="margin-top:36px">The wordmark is the system. An ascending peak stands in place of the “A” — a focal point held at its heart — carrying “Astute” in Jost, with “Insights” beneath and the “Data Intelligence” signature alongside.</p>
+
+    <!-- HERO -->
+    <div class="mark-stage" style="aspect-ratio:auto;padding:100px 56px;margin-top:64px">
+      <div class="logo-lk">
+        <div class="logo-lk__l">
+          <div class="logo-lk__w" style="font-size:84px">
+            <svg viewBox="24 18 72 76" width="58" height="70" style="color:var(--aurum)"><use href="#chev"/></svg>
+            <span class="wm" style="color:var(--aurum)">stute</span>
+          </div>
+          <div class="logo-lk__d" style="font-size:15px;color:var(--aurum)"><span>I</span><span>N</span><span>S</span><span>I</span><span>G</span><span>H</span><span>T</span><span>S</span></div>
+        </div>
+        <div class="logo-lk__r">
+          <div class="logo-lk__v" style="background:var(--divider)"></div>
+          <div class="logo-lk__t" style="font-size:13px;color:var(--aurum)">DATA<br>INTELLIGENCE</div>
+        </div>
+      </div>
+    </div>
+    <p class="mono-sm ash" style="margin-top:14px">Primary logotype · the full signature · gold on midnight</p>
+
+    <!-- ANATOMY -->
+    <h3 class="swgroup-title mono gold">Anatomy</h3>
+    <div class="grid cols-2" style="gap:1px;background:var(--divider);border:1px solid var(--divider)">
+      <div class="mark-stage" style="aspect-ratio:auto;padding:70px 56px">
+        <div class="logo-lk">
+          <div class="logo-lk__l">
+            <div class="logo-lk__w" style="font-size:60px">
+              <svg viewBox="24 18 72 76" width="42" height="50" style="color:var(--aurum)"><use href="#chev"/></svg>
+              <span class="wm" style="color:var(--aurum)">stute</span>
+            </div>
+            <div class="logo-lk__d" style="font-size:12px;color:var(--aurum)"><span>I</span><span>N</span><span>S</span><span>I</span><span>G</span><span>H</span><span>T</span><span>S</span></div>
+          </div>
+          <div class="logo-lk__r">
+            <div class="logo-lk__v" style="background:var(--divider)"></div>
+            <div class="logo-lk__t" style="font-size:11px;color:var(--aurum)">DATA<br>INTELLIGENCE</div>
+          </div>
+        </div>
+      </div>
+      <div class="mark-stage" style="aspect-ratio:auto;padding:48px 52px;align-items:stretch">
+        <ul style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:22px;width:100%">
+          <li style="display:flex;gap:16px;align-items:flex-start"><span class="anat-num">1</span><span><span class="mono-sm gold">The Peak·A</span><br><span style="color:var(--ash)">The chevron rises in place of the capital A, its focal point at the heart.</span></span></li>
+          <li style="display:flex;gap:16px;align-items:flex-start"><span class="anat-num">2</span><span><span class="mono-sm gold">Wordmark</span><br><span style="color:var(--ash)">“stute” set in Jost Light; with the peak it reads “Astute”.</span></span></li>
+          <li style="display:flex;gap:16px;align-items:flex-start"><span class="anat-num">3</span><span><span class="mono-sm gold">Descriptor</span><br><span style="color:var(--ash)">“Insights” in mono, tracked to the wordmark’s exact width.</span></span></li>
+          <li style="display:flex;gap:16px;align-items:flex-start"><span class="anat-num">4</span><span><span class="mono-sm gold">Signature</span><br><span style="color:var(--ash)">“Data Intelligence” on a vertical hairline, spanning both lines.</span></span></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- COLOUR & REVERSAL -->
+    <h3 class="swgroup-title mono gold">Colour &amp; Reversal</h3>
+    <div class="grid cols-2" style="gap:1px;background:var(--divider);border:1px solid var(--divider)">
+      <!-- gold -->
+      <div class="mark-stage" style="aspect-ratio:auto;padding:50px 44px 26px;flex-direction:column;gap:30px">
+        <div class="logo-lk">
+          <div class="logo-lk__l"><div class="logo-lk__w" style="font-size:48px"><svg viewBox="24 18 72 76" width="33" height="40" style="color:var(--aurum)"><use href="#chev"/></svg><span class="wm" style="color:var(--aurum)">stute</span></div><div class="logo-lk__d" style="font-size:10px;color:var(--aurum)"><span>I</span><span>N</span><span>S</span><span>I</span><span>G</span><span>H</span><span>T</span><span>S</span></div></div>
+          <div class="logo-lk__r"><div class="logo-lk__v" style="background:var(--divider)"></div><div class="logo-lk__t" style="font-size:9.5px;color:var(--aurum)">DATA<br>INTELLIGENCE</div></div>
+        </div>
+        <span class="mono-sm ash">Gold · primary on screen</span>
+      </div>
+      <!-- gold mark / ivory word -->
+      <div class="mark-stage" style="aspect-ratio:auto;padding:50px 44px 26px;flex-direction:column;gap:30px">
+        <div class="logo-lk">
+          <div class="logo-lk__l"><div class="logo-lk__w" style="font-size:48px"><svg viewBox="24 18 72 76" width="33" height="40" style="color:var(--aurum)"><use href="#chev"/></svg><span class="wm" style="color:var(--bone)">stute</span></div><div class="logo-lk__d" style="font-size:10px;color:var(--aurum)"><span>I</span><span>N</span><span>S</span><span>I</span><span>G</span><span>H</span><span>T</span><span>S</span></div></div>
+          <div class="logo-lk__r"><div class="logo-lk__v" style="background:var(--divider)"></div><div class="logo-lk__t" style="font-size:9.5px;color:var(--aurum)">DATA<br>INTELLIGENCE</div></div>
+        </div>
+        <span class="mono-sm ash">Gold mark · ivory word</span>
+      </div>
+      <!-- champagne -->
+      <div class="mark-stage" style="aspect-ratio:auto;padding:50px 44px 26px;flex-direction:column;gap:30px">
+        <div class="logo-lk">
+          <div class="logo-lk__l"><div class="logo-lk__w" style="font-size:48px"><svg viewBox="24 18 72 76" width="33" height="40" style="color:var(--champagne)"><use href="#chev"/></svg><span class="wm" style="color:var(--champagne)">stute</span></div><div class="logo-lk__d" style="font-size:10px;color:var(--aurum)"><span>I</span><span>N</span><span>S</span><span>I</span><span>G</span><span>H</span><span>T</span><span>S</span></div></div>
+          <div class="logo-lk__r"><div class="logo-lk__v" style="background:var(--divider)"></div><div class="logo-lk__t" style="font-size:9.5px;color:var(--aurum)">DATA<br>INTELLIGENCE</div></div>
+        </div>
+        <span class="mono-sm ash">Champagne · warm alternate</span>
+      </div>
+      <!-- on paper (all Jost) -->
+      <div class="mark-stage mark-stage--paper" style="aspect-ratio:auto;padding:50px 44px 26px;flex-direction:column;gap:30px">
+        <div class="logo-lk">
+          <div class="logo-lk__l"><div class="logo-lk__w" style="font-size:48px"><svg viewBox="24 18 72 76" width="33" height="40" style="color:var(--aurum)"><use href="#chev"/></svg><span class="wm" style="color:var(--ink)">stute</span></div><div class="logo-lk__d" style="font-family:'Jost',sans-serif;font-weight:300;letter-spacing:.34em;text-transform:uppercase;font-size:11px;color:var(--antique);display:block">Insights</div></div>
+          <div class="logo-lk__r"><div class="logo-lk__v" style="background:var(--parchment)"></div><div class="logo-lk__t" style="font-family:'Jost',sans-serif;font-weight:300;letter-spacing:.12em;text-transform:uppercase;font-size:10px;color:var(--antique)">DATA<br>INTELLIGENCE</div></div>
+        </div>
+        <span class="mono-sm" style="color:var(--graphite)">On paper · descriptor in Jost</span>
+      </div>
+      <!-- white on black -->
+      <div class="mark-stage" style="aspect-ratio:auto;padding:50px 44px 26px;flex-direction:column;gap:30px;background:#000">
+        <div class="logo-lk">
+          <div class="logo-lk__l"><div class="logo-lk__w" style="font-size:48px"><svg viewBox="24 18 72 76" width="33" height="40" style="color:#fff"><use href="#chev"/></svg><span class="wm" style="color:#fff">stute</span></div><div class="logo-lk__d" style="font-size:10px;color:#fff"><span>I</span><span>N</span><span>S</span><span>I</span><span>G</span><span>H</span><span>T</span><span>S</span></div></div>
+          <div class="logo-lk__r"><div class="logo-lk__v" style="background:#454545"></div><div class="logo-lk__t" style="font-size:9.5px;color:#fff">DATA<br>INTELLIGENCE</div></div>
+        </div>
+        <span class="mono-sm" style="color:#8A8A8A">Mono · white on black</span>
+      </div>
+      <!-- black on white -->
+      <div class="mark-stage" style="aspect-ratio:auto;padding:50px 44px 26px;flex-direction:column;gap:30px;background:#fff">
+        <div class="logo-lk">
+          <div class="logo-lk__l"><div class="logo-lk__w" style="font-size:48px"><svg viewBox="24 18 72 76" width="33" height="40" style="color:#000"><use href="#chev"/></svg><span class="wm" style="color:#000">stute</span></div><div class="logo-lk__d" style="font-size:10px;color:#000"><span>I</span><span>N</span><span>S</span><span>I</span><span>G</span><span>H</span><span>T</span><span>S</span></div></div>
+          <div class="logo-lk__r"><div class="logo-lk__v" style="background:#ccc"></div><div class="logo-lk__t" style="font-size:9.5px;color:#000">DATA<br>INTELLIGENCE</div></div>
+        </div>
+        <span class="mono-sm" style="color:#8A8A8A">Mono · black on white</span>
+      </div>
+    </div>
+
+    <!-- THE SYMBOL -->
+    <h3 class="swgroup-title mono gold">The Symbol</h3>
+    <p class="lede" style="font-size:21px;max-width:46ch;margin:0 0 32px">Where the wordmark won’t fit — avatars, app tiles, favicons — the peak stands alone.</p>
+    <div class="grid cols-3" style="gap:1px;background:var(--divider);border:1px solid var(--divider)">
+      <div class="mark-stage">
+        <div class="constr">
+          <svg viewBox="0 0 120 120" fill="none">
+            <line x1="60" y1="0" x2="60" y2="120" stroke="#244360" stroke-width="1" opacity="0.7"/>
+            <line x1="0" y1="60" x2="120" y2="60" stroke="#244360" stroke-width="1" opacity="0.7"/>
+            <circle cx="60" cy="60" r="46" stroke="#244360" stroke-width="1" opacity="0.7"/>
+            <use href="#lens"/>
+          </svg>
+        </div>
+      </div>
+      <div class="mark-stage">
+        <div style="position:relative;padding:34px;outline:1px dashed var(--divider)">
+          <svg viewBox="0 0 120 120" width="140" height="140" fill="none" style="display:block"><use href="#lens-mini"/></svg>
+          <span class="mono-sm gold" style="position:absolute;top:8px;left:50%;transform:translateX(-50%)">1×</span>
+        </div>
+      </div>
+      <div class="mark-stage" style="background:var(--garnet)"><svg viewBox="0 0 120 120" width="150" height="150"><use href="#mark-solid"/></svg></div>
+    </div>
+    <div class="grid cols-3 mono-sm ash" style="margin-top:14px">
+      <span>A · Construction — the peak on axis.</span>
+      <span>B · Clear space — 1× the peak width.</span>
+      <span>C · Reversed — the peak on a brand field.</span>
+    </div>
+
+    <!-- FAVICON & APP ICON -->
+    <h3 class="swgroup-title mono gold">Favicon &amp; App Icon</h3>
+    <p class="lede" style="font-size:21px;max-width:50ch;margin:0 0 32px">At the smallest sizes the peak stands alone — no frame, no background, no fill. It carries the brand in a browser tab, a bookmark, or an app springboard, and is wired live into this very page.</p>
+    <div class="grid cols-4" style="gap:1px;background:var(--divider);border:1px solid var(--divider)">
+      <div class="mark-stage" style="aspect-ratio:auto;padding:44px;flex-direction:column;gap:20px">
+        <svg viewBox="0 0 64 64" width="92" height="92"><use href="#favicon-tile"/></svg>
+        <span class="mono-sm ash">On midnight · primary</span>
+      </div>
+      <div class="mark-stage mark-stage--paper" style="aspect-ratio:auto;padding:44px;flex-direction:column;gap:20px">
+        <svg viewBox="0 0 64 64" width="92" height="92"><use href="#favicon-tile"/></svg>
+        <span class="mono-sm" style="color:var(--graphite)">On alabaster</span>
+      </div>
+      <div class="mark-stage" style="aspect-ratio:auto;padding:44px;flex-direction:column;gap:20px">
+        <svg viewBox="0 0 120 120" width="92" height="92"><use href="#mark-solid"/></svg>
+        <span class="mono-sm ash">Reversed · on a field</span>
+      </div>
+      <div class="mark-stage" style="aspect-ratio:auto;padding:44px;flex-direction:column;gap:22px">
+        <div style="display:flex;align-items:flex-end;gap:16px">
+          <svg viewBox="0 0 64 64" width="48" height="48"><use href="#favicon-tile"/></svg>
+          <svg viewBox="0 0 64 64" width="32" height="32"><use href="#favicon-tile"/></svg>
+          <svg viewBox="0 0 64 64" width="16" height="16"><use href="#favicon-tile"/></svg>
+        </div>
+        <span class="mono-sm ash">48 · 32 · 16 px</span>
+      </div>
+    </div>
+    <!-- browser tab mock -->
+    <div style="display:flex;align-items:flex-end;gap:0;margin-top:32px">
+      <div style="display:flex;align-items:center;gap:10px;background:var(--slate);border:1px solid var(--divider);border-bottom:none;border-radius:9px 9px 0 0;padding:12px 16px;min-width:230px">
+        <svg viewBox="0 0 64 64" width="16" height="16"><use href="#favicon-tile"/></svg>
+        <span class="mono-sm" style="color:var(--bone)">Astute Insights</span>
+        <span style="margin-left:auto;color:var(--ash)">&times;</span>
+      </div>
+    </div>
+    <div style="height:1px;background:var(--divider)"></div>
+    <p class="mono-sm ash" style="margin-top:12px">Browser tab · the live favicon on this page</p>
+
+    <!-- scale -->
+    <h3 class="swgroup-title mono gold">Scale &amp; Minimum</h3>
+    <div class="scale-row">
+      <figure><svg viewBox="0 0 120 120" width="84" height="84" fill="none"><use href="#lens-mini"/></svg><figcaption class="mono-sm ash">Standard</figcaption></figure>
+      <figure><svg viewBox="0 0 120 120" width="56" height="56" fill="none"><use href="#lens-mini"/></svg><figcaption class="mono-sm ash">Reduced</figcaption></figure>
+      <figure><svg viewBox="0 0 120 120" width="40" height="40" fill="none"><use href="#lens-mini"/></svg><figcaption class="mono-sm ash">Table · 32px</figcaption></figure>
+      <figure><svg viewBox="0 0 120 120" width="24" height="24" fill="none"><use href="#lens-mini"/></svg><figcaption class="mono-sm ash">Minimum · 20px</figcaption></figure>
+    </div>
+
+    <!-- MISUSE -->
+    <h3 class="swgroup-title mono gold">Misuse</h3>
+    <div class="grid cols-4" style="gap:1px;background:var(--divider);border:1px solid var(--divider)">
+      <div class="mark-stage" style="aspect-ratio:auto;padding:40px 28px;flex-direction:column;gap:18px">
+        <div class="logo-lk__w" style="font-size:40px"><svg viewBox="0 0 120 120" width="34" height="34" fill="none" style="margin-right:2px;margin-bottom:-3px"><use href="#lens-mini"/></svg><span class="wm" style="color:var(--aurum)">stute</span></div>
+        <span class="mono-sm" style="color:var(--garnet-lt)">✗ Don’t frame the wordmark’s A</span>
+      </div>
+      <div class="mark-stage" style="aspect-ratio:auto;padding:40px 28px;flex-direction:column;gap:18px">
+        <div class="logo-lk__w" style="font-size:40px"><svg viewBox="24 18 72 76" width="28" height="33" style="color:#5BA0D0"><use href="#chev"/></svg><span class="wm" style="color:#5BA0D0">stute</span></div>
+        <span class="mono-sm" style="color:var(--garnet-lt)">✗ Don’t recolour off-palette</span>
+      </div>
+      <div class="mark-stage" style="aspect-ratio:auto;padding:40px 28px;flex-direction:column;gap:18px">
+        <div class="logo-lk__w" style="font-size:40px;transform:scaleX(1.5)"><svg viewBox="24 18 72 76" width="28" height="33" style="color:var(--aurum)"><use href="#chev"/></svg><span class="wm" style="color:var(--aurum)">stute</span></div>
+        <span class="mono-sm" style="color:var(--garnet-lt)">✗ Don’t stretch or distort</span>
+      </div>
+      <div class="mark-stage" style="aspect-ratio:auto;padding:40px 28px;flex-direction:column;gap:18px">
+        <div class="logo-lk__w" style="font-size:40px"><svg viewBox="24 18 72 76" width="28" height="33" style="color:var(--aurum)"><use href="#chev"/></svg><span style="font-family:Georgia,serif;font-style:italic;font-size:40px;color:var(--aurum)">stute</span></div>
+        <span class="mono-sm" style="color:var(--garnet-lt)">✗ Don’t re-set in another face</span>
+      </div>
+    </div>
+  </div>
+</section>
+  </div>
+</section>
+
+<!-- ===== PLATE 02 · COLOR ===== -->
+<section class="plate plate--paper" id="color">
+  <div class="wrap">
+    <div class="plate__head">
+      <div class="plate__index">
+        <span class="plate__no">02</span>
+        <div>
+          <p class="mono gold" style="margin:0 0 4px">Section B · Chromatic System</p>
+          <p class="mono-sm plate__spec" style="margin:0">Spec · AI-C-001 · The Refined Palette</p>
+        </div>
+      </div>
+      <span class="mono-sm plate__spec">Plate 02 / 06</span>
+    </div>
+
+    <p class="mono eyebrow">The Spectrum</p>
+    <h2 class="title">Color<br><em>System</em></h2>
+    <p class="lede" style="margin-top:36px">A single arc from depth to light: midnight ground, a seal of garnet, and aurum gold resolving to champagne — data warming into insight.</p>
+
+    <div style="margin-top:72px">
+      <div class="spectrum"></div>
+      <div class="spectrum-labels mono-sm" style="color:var(--graphite)">
+        <span>Raw Data</span><span>Signal</span><span>Clarity</span><span>Insight</span>
+      </div>
+    </div>
+
+    <!-- ground -->
+    <h3 class="swgroup-title mono gold">A · The Ground — Midnight</h3>
+    <div class="grid cols-4" style="gap:1px;background:var(--parchment);border:1px solid var(--parchment)">
+      <div class="swatch"><div class="swatch__chip" style="background:#0A1626"><span class="swatch__role mono-sm" style="color:#93A4B8">GROUND</span></div><div class="swatch__body"><p class="swatch__name">Midnight</p><p class="swatch__hex mono-sm">#0A1626 · N·01</p></div></div>
+      <div class="swatch"><div class="swatch__chip" style="background:#0F2138"><span class="swatch__role mono-sm" style="color:#93A4B8">SURFACE</span></div><div class="swatch__body"><p class="swatch__name">Harbor</p><p class="swatch__hex mono-sm">#0F2138 · N·02</p></div></div>
+      <div class="swatch"><div class="swatch__chip" style="background:#16304C"><span class="swatch__role mono-sm" style="color:#93A4B8">PANEL</span></div><div class="swatch__body"><p class="swatch__name">Slate</p><p class="swatch__hex mono-sm">#16304C · N·03</p></div></div>
+      <div class="swatch"><div class="swatch__chip" style="background:#244360"><span class="swatch__role mono-sm" style="color:#93A4B8">DIVIDER</span></div><div class="swatch__body"><p class="swatch__name">Steel</p><p class="swatch__hex mono-sm">#244360 · N·04</p></div></div>
+    </div>
+
+    <!-- metal + seal -->
+    <h3 class="swgroup-title mono gold">B · The Metal &amp; Seal — Aurum · Garnet</h3>
+    <div class="grid cols-4" style="gap:1px;background:var(--parchment);border:1px solid var(--parchment)">
+      <div class="swatch"><div class="swatch__chip" style="background:#C2A04A"><span class="swatch__role mono-sm" style="color:#3a2f10">PRIMARY</span></div><div class="swatch__body"><p class="swatch__name">Aurum</p><p class="swatch__hex mono-sm">#C2A04A · M·01</p></div></div>
+      <div class="swatch"><div class="swatch__chip" style="background:#E2CD93"><span class="swatch__role mono-sm" style="color:#5a4d1f">HIGHLIGHT</span></div><div class="swatch__body"><p class="swatch__name">Champagne</p><p class="swatch__hex mono-sm">#E2CD93 · M·02</p></div></div>
+      <div class="swatch"><div class="swatch__chip" style="background:#927524"><span class="swatch__role mono-sm" style="color:#f0e3c0">DEEP</span></div><div class="swatch__body"><p class="swatch__name">Antique</p><p class="swatch__hex mono-sm">#927524 · M·03</p></div></div>
+      <div class="swatch"><div class="swatch__chip" style="background:#7E2E36"><span class="swatch__role mono-sm" style="color:#e8c9cc">SEAL</span></div><div class="swatch__body"><p class="swatch__name">Garnet</p><p class="swatch__hex mono-sm">#7E2E36 · S·01</p></div></div>
+    </div>
+
+    <!-- paper -->
+    <h3 class="swgroup-title mono gold">C · The Paper — Alabaster</h3>
+    <div class="grid cols-4" style="gap:1px;background:var(--parchment);border:1px solid var(--parchment)">
+      <div class="swatch"><div class="swatch__chip" style="background:#F4F0E6;box-shadow:inset 0 0 0 1px #DCD3BF"><span class="swatch__role mono-sm" style="color:#44505F">PAPER</span></div><div class="swatch__body"><p class="swatch__name">Alabaster</p><p class="swatch__hex mono-sm">#F4F0E6 · P·01</p></div></div>
+      <div class="swatch"><div class="swatch__chip" style="background:#E9E2D2"><span class="swatch__role mono-sm" style="color:#44505F">ALT</span></div><div class="swatch__body"><p class="swatch__name">Pearl</p><p class="swatch__hex mono-sm">#E9E2D2 · P·02</p></div></div>
+      <div class="swatch"><div class="swatch__chip" style="background:#44505F"><span class="swatch__role mono-sm" style="color:#E9E2D2">SECONDARY</span></div><div class="swatch__body"><p class="swatch__name">Graphite</p><p class="swatch__hex mono-sm">#44505F · T·01</p></div></div>
+      <div class="swatch"><div class="swatch__chip" style="background:#0A1626"><span class="swatch__role mono-sm" style="color:#DDE4EC">TEXT</span></div><div class="swatch__body"><p class="swatch__name">Ink</p><p class="swatch__hex mono-sm">#0A1626 · T·02</p></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== PLATE 03 · TYPE ===== -->
+<section class="plate" id="type">
+  <div class="wrap">
+    <div class="plate__head">
+      <div class="plate__index">
+        <span class="plate__no">03</span>
+        <div>
+          <p class="mono gold" style="margin:0 0 4px">Section C · Typography</p>
+          <p class="mono-sm plate__spec" style="margin:0">Spec · AI-T-001 · Three-Voice Hierarchy</p>
+        </div>
+      </div>
+      <span class="mono-sm plate__spec">Plate 03 / 06</span>
+    </div>
+
+    <p class="mono eyebrow">Three Voices</p>
+    <h2 class="title">Type<br><em>System</em></h2>
+
+    <div style="margin-top:64px">
+      <!-- Display -->
+      <div class="type-spec">
+        <div class="type-spec__meta">
+          <span class="mono-sm gold">I · Display</span>
+          <p class="vname">Cormorant Garamond</p>
+          <p class="mono-sm ash">Use 48–200pt · Semibold &amp; Italic</p>
+        </div>
+        <div>
+          <p class="type-big">Astute<span style="font-style:italic;color:var(--aurum)"> by design</span></p>
+          <p class="glyphset" style="margin-top:24px">Aa Bb Cc · 1234567890</p>
+        </div>
+      </div>
+      <!-- Body -->
+      <div class="type-spec">
+        <div class="type-spec__meta">
+          <span class="mono-sm gold">II · Body</span>
+          <p class="vname">Instrument Sans</p>
+          <p class="mono-sm ash">Regular 400 · Semibold 600</p>
+        </div>
+        <div>
+          <p class="type-body-spec">Astute Insights reads the signal inside the noise — the pattern others walk past. We engineer bespoke systems across the entire development cycle, so understanding arrives early enough to matter.</p>
+          <p class="mono-sm ash" style="margin-top:20px">REGULAR · 400 &nbsp;&nbsp;|&nbsp;&nbsp; SEMIBOLD · 600</p>
+        </div>
+      </div>
+      <!-- Clinical -->
+      <div class="type-spec">
+        <div class="type-spec__meta">
+          <span class="mono-sm gold">III · Clinical</span>
+          <p class="vname">IBM Plex Mono</p>
+          <p class="mono-sm ash">Specs · data · annotation</p>
+        </div>
+        <div>
+          <p class="type-mono-spec">SPEC · AI-T-001 · REV. A<br>CONFIDENCE&nbsp;±&nbsp;0.25&nbsp;σ<br>CALIBRATED · 2026.05.29<br>SIGNAL · 99.4% RESOLVED</p>
+        </div>
+      </div>
+      <!-- Whisper -->
+      <div class="type-spec">
+        <div class="type-spec__meta">
+          <span class="mono-sm gold">IV · Whisper</span>
+          <p class="vname">Instrument Serif</p>
+          <p class="mono-sm ash">Pull quotes · captions</p>
+        </div>
+        <div>
+          <p style="font-family:var(--whisper);font-style:italic;font-size:34px;line-height:1.25;margin:0;max-width:24ch">“Insight is not more data. It is the moment the data makes sense.”</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== PLATE 04 · VOICE ===== -->
+<section class="plate plate--paper" id="voice">
+  <div class="wrap">
+    <div class="plate__head">
+      <div class="plate__index">
+        <span class="plate__no">04</span>
+        <div>
+          <p class="mono gold" style="margin:0 0 4px">Section D · Voice</p>
+          <p class="mono-sm plate__spec" style="margin:0">Spec · AI-V-001 · The Four Temperaments</p>
+        </div>
+      </div>
+      <span class="mono-sm plate__spec">Plate 04 / 06</span>
+    </div>
+
+    <p class="mono eyebrow">How We Speak</p>
+    <h2 class="title">Voice<br><em>&amp; Tone</em></h2>
+    <p class="lede" style="margin-top:36px">Four temperaments, held in balance. We are sharp without being cold, certain without being loud.</p>
+
+    <div class="grid cols-4" style="margin-top:72px;gap:1px;background:var(--parchment);border:1px solid var(--parchment)">
+      <div class="temper" style="background:var(--alabaster)"><span class="mono-sm num">· 01</span><h3>Perceptive</h3><p>We see the pattern others miss.</p></div>
+      <div class="temper" style="background:var(--alabaster)"><span class="mono-sm num">· 02</span><h3>Precise</h3><p>Every figure earns its place.</p></div>
+      <div class="temper" style="background:var(--alabaster)"><span class="mono-sm num">· 03</span><h3>Clear</h3><p>Meaning before ornament.</p></div>
+      <div class="temper" style="background:var(--alabaster)"><span class="mono-sm num">· 04</span><h3>Trusted</h3><p>Evidence, never volume.</p></div>
+    </div>
+
+    <div class="grid cols-2" style="margin-top:64px;gap:48px">
+      <div>
+        <p class="mono gold" style="margin-bottom:18px">We Say</p>
+        <hr class="rule">
+        <p style="font-family:var(--display);font-size:26px;line-height:1.4;margin:20px 0 0">“Here is what the data shows — and what we'd do about it.”</p>
+      </div>
+      <div>
+        <p class="mono" style="color:var(--garnet);margin-bottom:18px">We Avoid</p>
+        <hr class="rule">
+        <p style="font-family:var(--display);font-size:26px;line-height:1.4;margin:20px 0 0;color:var(--graphite)">“Leverage synergistic, AI-powered, next-gen big-data solutions.”</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== PLATE 05 · PATTERN ===== -->
+<section class="plate" id="pattern">
+  <div class="wrap">
+    <div class="plate__head">
+      <div class="plate__index">
+        <span class="plate__no">05</span>
+        <div>
+          <p class="mono gold" style="margin:0 0 4px">Section E · Visual Language</p>
+          <p class="mono-sm plate__spec" style="margin:0">Spec · AI-P-001 · Texture Library</p>
+        </div>
+      </div>
+      <span class="mono-sm plate__spec">Plate 05 / 06</span>
+    </div>
+
+    <p class="mono eyebrow">Four-Part System</p>
+    <h2 class="title">Pattern<br><em>Library</em></h2>
+    <p class="lede" style="margin-top:36px">Marks of measurement. Each texture is built from the grid — never decorative, always derived from the act of resolving data.</p>
+
+    <div class="grid cols-2" style="margin-top:72px;gap:1px;background:var(--divider);border:1px solid var(--divider)">
+      <!-- calibration grid -->
+      <div class="pat pat-grid">
+        <span class="pat__no mono-sm">P·01</span>
+        <span class="pat__cap mono-sm ash">Calibration Grid</span>
+      </div>
+      <!-- signal lines -->
+      <div class="pat pat-signal">
+        <span class="pat__no mono-sm">P·02</span>
+        <span class="pat__cap mono-sm ash">Signal Field</span>
+      </div>
+      <!-- refraction -->
+      <div class="pat" style="background:var(--harbor)">
+        <svg viewBox="0 0 300 200" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%" fill="none">
+          <path d="M0,100 L120,100" stroke="#244360" stroke-width="1"/>
+          <path d="M120,100 L300,40" stroke="#E2CD93" stroke-width="1.2"/>
+          <path d="M120,100 L300,80" stroke="#C2A04A" stroke-width="1.2"/>
+          <path d="M120,100 L300,120" stroke="#927524" stroke-width="1.2"/>
+          <path d="M120,100 L300,160" stroke="#7E2E36" stroke-width="1.2"/>
+          <path d="M120,55 L120,145" stroke="#93A4B8" stroke-width="1" opacity="0.5"/>
+          <circle cx="120" cy="100" r="3" fill="#C2A04A"/>
+        </svg>
+        <span class="pat__no mono-sm">P·03</span>
+        <span class="pat__cap mono-sm ash">Refraction</span>
+      </div>
+      <!-- aperture array -->
+      <div class="pat" style="background:var(--harbor);display:flex;align-items:center;justify-content:space-around;gap:6px;padding:0 30px">
+        <svg viewBox="0 0 120 120" width="46" height="46" fill="none" style="opacity:.35"><use href="#lens-mini"/></svg>
+        <svg viewBox="0 0 120 120" width="46" height="46" fill="none" style="opacity:.6"><use href="#lens-mini"/></svg>
+        <svg viewBox="0 0 120 120" width="46" height="46" fill="none"><use href="#lens-mini"/></svg>
+        <svg viewBox="0 0 120 120" width="46" height="46" fill="none" style="opacity:.6"><use href="#lens-mini"/></svg>
+        <svg viewBox="0 0 120 120" width="46" height="46" fill="none" style="opacity:.35"><use href="#lens-mini"/></svg>
+        <span class="pat__no mono-sm">P·04</span>
+        <span class="pat__cap mono-sm ash">Aperture Array</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== COLOPHON ===== -->
+<section class="plate" id="colophon" style="background:var(--harbor)">
+  <div class="wrap">
+    <div class="plate__head">
+      <div class="plate__index">
+        <span class="plate__no">06</span>
+        <div>
+          <p class="mono gold" style="margin:0 0 4px">Colophon</p>
+          <p class="mono-sm plate__spec" style="margin:0">AI · Vol I · End</p>
+        </div>
+      </div>
+      <span class="mono-sm plate__spec">Plate 06 / 06</span>
+    </div>
+
+    <svg viewBox="0 0 120 120" width="64" height="64" fill="none" style="margin-bottom:40px"><use href="#lens"/></svg>
+    <p class="doctrine">Insight, made<br>deliberate.</p>
+    <p class="mono ash" style="margin-top:28px">— The Astute Insights Doctrine</p>
+
+    <hr class="rule-gold" style="margin:80px 0 0">
+    <dl class="colo-grid mono-sm">
+      <div>
+        <dt>SET IN</dt>
+        <dd>Cormorant Garamond · Display</dd>
+        <dd>Instrument Sans · Body</dd>
+        <dd>IBM Plex Mono · Clinical</dd>
+        <dd>Instrument Serif · Whisper</dd>
+      </div>
+      <div>
+        <dt>ISSUED</dt>
+        <dd>Volume 01 · Issue A</dd>
+        <dd>MMXXVI · First Edition</dd>
+      </div>
+      <div>
+        <dt>SPEC REGISTER</dt>
+        <dd>AI-M-001 · The Mark</dd>
+        <dd>AI-C-001 · Color</dd>
+        <dd>AI-T-001 · Typography</dd>
+        <dd>AI-V-001 · Voice</dd>
+        <dd>AI-P-001 · Pattern</dd>
+      </div>
+      <div>
+        <dt>PLATE INDEX</dt>
+        <dd>01 · The Mark</dd>
+        <dd>02 · Color System</dd>
+        <dd>03 · Typography</dd>
+        <dd>04 · Voice &amp; Tone</dd>
+        <dd>05 · Pattern Library</dd>
+        <dd>06 · Colophon</dd>
+      </div>
+    </dl>
+    <p class="mono-sm ash" style="margin-top:64px;text-align:center">Astute Insights · Brand Identity · Vol.01 · End</p>
+  </div>
+</section>
+
+</body>
+</html>

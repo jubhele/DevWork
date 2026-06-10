@@ -1,0 +1,53 @@
+# Factory Droid Configuration
+# DevWork Workspace — https://factory.ai
+# Full workspace constitution: AGENTS.md (authoritative for all non-Claude providers)
+
+workspace:
+  name: DevWork
+  constitution: AGENTS.md          # Droid reads AGENTS.md for all workspace rules
+  session_logs: sessions/
+  memory: C:/Users/Jughele Shange/.claude/projects/c--DevWork/memory/MEMORY.md
+
+projects:
+  - name: blackfire-portal
+    path: BlackFire/BlackFire Portal
+    language: php
+    description: Security company client portal (PHP/MySQL)
+  - name: umlilo-portal
+    path: umlilo-portal
+    language: typescript
+    description: Next.js + Expo monorepo (multi-tenant SaaS)
+  - name: blackfire-docs
+    path: BlackFire/Clients/AECI
+    language: powershell
+    description: Proposal document generation via COM automation
+
+droids:
+  # Droid agents for autonomous GitHub issue resolution
+  - role: code
+    agent: Umakhi         # The Builder — matches workspace multi-agent roster
+    max_iterations: 3     # matches CLAUDE.md §13.1 hard cap
+    branches:
+      base: master
+      prefix: droid/
+  - role: review
+    agent: Mvavanyi       # The Tester — QA and regression
+    max_iterations: 3
+
+rules:
+  # Mirrors CLAUDE.md mandatory rules
+  - backup_before_change: true        # timestamped backup in _backups/ before any edit
+  - no_hardcoded_secrets: true        # all secrets via .env
+  - no_speculative_abstractions: true # only build what the task requires
+  - never_commit:
+      - .env
+      - "*.env"
+      - chatsessions/
+      - "BlackFire/BlackFire Portal/install/blackfire_aeci_seed.sql"
+  - session_log_required: true        # write sessions/<topic>_YYYYMMDD_HHmmss.md
+
+cost_governance:
+  tier_1_max_usd: 0.05
+  tier_2_max_usd: 0.50
+  tier_3_max_usd: 5.00
+  alert_at_pct: 80      # flag when 80% of tier budget used

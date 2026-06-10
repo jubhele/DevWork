@@ -1,7 +1,7 @@
 # DevWork Workspace Constitution
 
 > This constitution governs all AI agents operating in this workspace regardless of provider
-> (Claude Code, GitHub Copilot, OpenAI Codex, Cursor, Google Antigravity, Kiro, etc.).
+> (Claude Code, GitHub Copilot, OpenAI Codex, Cursor, Google Antigravity, Kiro, Factory Droid, etc.).
 > Provider-specific instructions never override this document.
 
 ---
@@ -92,7 +92,7 @@ c:\DevWork\
 │   ├── umdwebi_system_prompt.md      ← Umdwebi (Artist) — design & brand
 │   ├── mvavanyi_system_prompt.md     ← Mvavanyi (Tester) — QA & testing
 │   ├── umlindi_system_prompt.md      ← Umlindi (Guardian) — governance & compliance
-│   └── sebenza_agents.md             ← All 7 Sebenza agent definitions
+│   └── sebenza_agents.md             ← All 8 Sebenza agent definitions
 ├── design/                     ← Umdwebi's domain — brand tokens, design exports
 │   ├── blackfire/
 │   │   ├── brand_tokens.md         ← BlackFire color, typography, logo specs
@@ -160,6 +160,15 @@ When switching providers mid-session:
 2. Update the session log with current state and next steps.
 3. The receiving provider must read the session log before continuing.
 4. Reference the `[gstack-context]` commit body format for structured handoffs.
+
+### 6.1 Constitution Propagation
+
+When the constitution or multi-agent architecture is copied into a repo or updated for a user:
+1. Inspect the target workspace/repo for `CLAUDE.md`, `AGENTS.md`, `.github/copilot-instructions.md`, `.cursor/rules/constitution.mdc`, nested `AGENTS.md`, `agents/`, `docs/`, `sessions/`, `memory/`, `.env.example`, and `.gitignore`.
+2. Apply missing mandatory rules locally.
+3. Preserve stricter project-specific overrides.
+4. If the inspection reveals a generic improvement, update the architecture guide so future repos receive it.
+5. Re-copy the updated guide into the target repo and rerun the mirror audit.
 
 ---
 
@@ -346,9 +355,11 @@ This workspace is configured for use with:
 - **Claude Code** (primary) — reads `CLAUDE.md`
 - **GitHub Copilot** — reads `.github/copilot-instructions.md`
 - **OpenAI Codex CLI** — reads `AGENTS.md`
-- **Google Antigravity** — reads `AGENTS.md`
+- **Google Antigravity (Jules)** — reads `AGENTS.md`
 - **Cursor** — reads `.cursor/rules/constitution.mdc`
-- **Kiro / Factory Droid / Others** — read `AGENTS.md` as fallback
+- **Kiro** — reads `.kiro/steering/*.md` (4 steering files)
+- **Factory Droid** — reads `.factory/config.yaml` + `AGENTS.md`
+- **Others** — read `AGENTS.md` as fallback
 
 All providers follow the same constitution. Divergence is a bug.
 
