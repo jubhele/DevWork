@@ -1,10 +1,18 @@
 'use client'
 
-import { useState, FormEvent } from 'react'
+import { Suspense, useState, type FormEvent, type ReactNode } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { auth } from '@blackfire/api-client'
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={<LoginShell />}>
+      <LoginForm />
+    </Suspense>
+  )
+}
+
+function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const next = searchParams.get('next') ?? '/dashboard'
@@ -33,16 +41,8 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-coal flex items-center justify-center px-4">
-      <div className="w-full max-w-sm">
-        {/* Logo */}
-        <div className="mb-8 text-center">
-          <span className="font-display text-3xl tracking-widest text-flame-gold uppercase">
-            BlackFire
-          </span>
-          <p className="text-ash text-sm mt-1 font-body">Umlilo Portal</p>
-        </div>
-
+    <LoginShell
+      form={
         <form onSubmit={handleSubmit} className="bg-navy border border-steel-dark rounded-lg p-6 space-y-4">
           <div>
             <label className="block text-xs text-ash mb-1 uppercase tracking-wider">Username</label>
@@ -80,12 +80,29 @@ export default function LoginPage() {
             className="w-full bg-fire-orange hover:bg-ember-amber disabled:opacity-50 disabled:cursor-not-allowed
                        text-coal font-display tracking-wider uppercase text-sm py-2.5 rounded transition-colors"
           >
-            {loading ? 'Signing in…' : 'Sign in'}
+            {loading ? 'Signing in...' : 'Sign in'}
           </button>
         </form>
+      }
+    />
+  )
+}
+
+function LoginShell({ form }: { form?: ReactNode }) {
+  return (
+    <div className="min-h-screen bg-coal flex items-center justify-center px-4">
+      <div className="w-full max-w-sm">
+        <div className="mb-8 text-center">
+          <span className="font-display text-3xl tracking-widest text-flame-gold uppercase">
+            BlackFire
+          </span>
+          <p className="text-ash text-sm mt-1 font-body">Umlilo Portal</p>
+        </div>
+
+        {form ?? <div className="h-64 bg-navy border border-steel-dark rounded-lg" />}
 
         <p className="text-center text-xs text-ash mt-6">
-          BlackFire Solutions · Umlilo Portal
+          BlackFire Solutions - Umlilo Portal
         </p>
       </div>
     </div>
