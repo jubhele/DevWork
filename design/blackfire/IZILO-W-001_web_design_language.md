@@ -76,11 +76,13 @@ cream #E4DED2 · graphite #C8C1B3 dividers · ink #1A1814 text.
 Instrument Sans (body/UI) · IBM Plex Mono (data: stats, step counters, eyebrows,
 badges, PSIRA reg) · Instrument Serif (testimonial pull-quotes ONLY).
 
-**Section register rule (the structural thesis):** dark sections carry force
-(hero, services, stats, how-it-works, CTA, footer); light sections carry
-evidence (wizard, about, testimonials, FAQ). The page alternates registers.
-*"The light system is the dark system's evidence"* — now a layout law, not just
-a brand-book line.
+**Section register rule (the structural thesis — Rev D, set by Jubhele):**
+the page OPENS in the light register and alternates strictly: Hero (L) →
+Wizard (D, white card glowing on coal) → About (L) → Services (D) → Stats (L) →
+Testimonials (D, serif on coal) → FAQ (L) → How-it-works (D) → CTA (photograph)
+→ Footer (D). Calm first; fire when it counts. The Ignition preloader still
+opens on coal and resolves into the calm paper hero — fire, taught to behave.
+*"The light system is the dark system's evidence"* — the evidence now leads.
 
 ## 5. Motion budget
 

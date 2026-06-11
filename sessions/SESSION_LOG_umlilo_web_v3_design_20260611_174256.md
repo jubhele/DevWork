@@ -69,3 +69,16 @@ entirely. The file is correct: in any real browser (Chrome) the photography load
    Once run, the reference gets rebuilt with repo-local/embedded images (in-app preview then
    shows real photography), and production never hotlinks a third-party CDN — which AGENT_BRIEF_01
    already mandates. §7a snapshot taken pre-change.
+
+---
+
+## Revision D — 2026-06-11 (Jubhele: open light, alternate — "calmer, peaceful energy")
+
+Register order inverted per Jubhele's direction. New canonical sequence (IZILO-W-001 §4 updated):
+Hero LIGHT (paper gradient, ink display type, light embers, white proof chip) → Wizard DARK
+(white card glowing on coal) → About LIGHT → Services DARK → Stats LIGHT (white stat cards,
+gold-l values) → Testimonials DARK (Instrument Serif in bone on coal, amber attribution) →
+FAQ LIGHT → How-it-works DARK → CTA photograph → Footer DARK. Strict L/D alternation; calm
+first, fire when it counts. Nav made light-aware (paper solid state, ink links, paper mobile
+drawer); Ignition preloader still opens on coal and resolves into the calm paper hero. §7a
+snapshot taken. Invariants hold: 0 console.log, 0 inline handlers, fallback system intact.
