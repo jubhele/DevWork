@@ -62,6 +62,19 @@ button{font-family:var(--f-body);cursor:pointer}
 .sec-light .scene-frame{border-color:var(--graphite);box-shadow:0 18px 50px -30px rgba(26,24,20,.4)}
 .brief-chip{position:absolute;right:10px;bottom:10px;font-family:var(--f-mono);font-size:9.5px;letter-spacing:.18em;color:var(--ash);background:rgba(10,14,25,.72);border:1px solid var(--steel-dk);padding:4px 9px;border-radius:2px;pointer-events:none}
 
+/* ── REAL PHOTOGRAPHY (Unsplash License — free commercial use; credits in
+     footer comment + AGENT_BRIEF_05). Coal grade overlay keeps every photo
+     inside the brand atmosphere. ── */
+.scene-frame img{position:relative;z-index:0;width:100%;height:100%;object-fit:cover;display:block}
+.scene-frame::after{content:'';position:absolute;inset:0;z-index:1;background:linear-gradient(to top,rgba(10,14,25,.5),rgba(10,14,25,.06) 48%);pointer-events:none}
+.cta-frame.scene-frame::after{display:none} /* CTA has its own heavier overlay */
+.brief-chip{z-index:2}
+.svc-img{position:relative;margin:-26px -22px 16px;aspect-ratio:16/10;overflow:hidden;border-bottom:1px solid var(--steel-dk)}
+.svc-img img{width:100%;height:100%;object-fit:cover;display:block;filter:saturate(.92)}
+.svc-img::after{content:'';position:absolute;inset:0;background:linear-gradient(to top,rgba(10,14,25,.55),rgba(10,14,25,0) 55%)}
+.svc-img .svc-glyph{position:absolute;left:14px;bottom:12px;z-index:2}
+@media (prefers-reduced-motion: no-preference){.svc-card img{transition:transform .5s}.svc-card:hover .svc-img img{transform:scale(1.05)}}
+
 /* ── IGNITION PRELOADER ── */
 #ignition{position:fixed;inset:0;background:var(--coal);z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;transition:opacity .4s,visibility .4s}
 #ignition.done{opacity:0;visibility:hidden}
@@ -176,7 +189,7 @@ section{position:relative;padding:96px 0}
 
 /* ── SERVICES ── */
 .svc-grid{margin-top:48px;display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
-.svc-card{background:var(--navy);border:1px solid var(--steel-dk);border-radius:3px;padding:26px 22px;position:relative;overflow:hidden;min-height:190px;display:flex;flex-direction:column;gap:12px}
+.svc-card{background:var(--navy);border:1px solid var(--steel-dk);border-radius:3px;padding:26px 22px;position:relative;overflow:hidden;display:flex;flex-direction:column;gap:12px}
 .svc-card::after{content:'';position:absolute;left:0;bottom:0;height:3px;width:100%;background:linear-gradient(90deg,var(--ember),var(--fire),var(--amber));transform:scaleX(0);transform-origin:left}
 @media (prefers-reduced-motion: no-preference){.svc-card::after{transition:transform .28s}}
 .svc-card:hover::after{transform:scaleX(1)}
@@ -340,52 +353,7 @@ footer{background:var(--coal);padding:80px 0 0;border-top:1px solid var(--steel-
       </div>
     </div>
     <div class="scene-frame hero-frame rv">
-      <svg viewBox="0 0 400 500" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Drone overwatch above an industrial perimeter at dusk">
-        <defs>
-          <linearGradient id="s1sky" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="#0A0E19"/><stop offset=".55" stop-color="#101725"/>
-            <stop offset=".82" stop-color="#1E2530"/><stop offset="1" stop-color="#2B2018"/>
-          </linearGradient>
-          <radialGradient id="s1glow" cx=".28" cy=".78" r=".55">
-            <stop offset="0" stop-color="#E05A1A" stop-opacity=".34"/><stop offset="1" stop-color="#E05A1A" stop-opacity="0"/>
-          </radialGradient>
-          <linearGradient id="s1beam" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="#F5A623" stop-opacity=".34"/><stop offset="1" stop-color="#F5A623" stop-opacity="0"/>
-          </linearGradient>
-        </defs>
-        <rect width="400" height="500" fill="url(#s1sky)"/>
-        <rect width="400" height="500" fill="url(#s1glow)"/>
-        <g fill="#F5A623"><circle cx="46" cy="62" r="1.1" opacity=".55"/><circle cx="118" cy="34" r=".9" opacity=".4"/><circle cx="206" cy="74" r="1" opacity=".5"/><circle cx="268" cy="40" r=".8" opacity=".35"/><circle cx="338" cy="88" r="1.1" opacity=".5"/><circle cx="372" cy="30" r=".8" opacity=".4"/><circle cx="160" cy="118" r=".9" opacity=".3"/></g>
-        <!-- plant silhouette -->
-        <g fill="#070B14">
-          <rect x="0" y="356" width="400" height="84"/>
-          <rect x="22" y="300" width="14" height="60"/><rect x="58" y="318" width="10" height="42"/>
-          <rect x="84" y="276" width="18" height="84"/>
-          <path d="M120 360v-38a22 22 0 0 1 44 0v38z"/><path d="M178 360v-30a18 18 0 0 1 36 0v30z"/>
-          <rect x="232" y="308" width="46" height="52"/><rect x="240" y="288" width="8" height="22"/>
-          <rect x="300" y="262" width="12" height="98"/><rect x="334" y="296" width="26" height="64"/>
-          <rect x="368" y="324" width="32" height="36"/>
-        </g>
-        <circle cx="90" cy="272" r="2.2" fill="#C0392B"/><circle cx="306" cy="258" r="2.2" fill="#F5A623"/>
-        <g fill="#F5A623" opacity=".8"><rect x="246" y="318" width="4" height="3"/><rect x="256" y="318" width="4" height="3"/><rect x="340" y="306" width="4" height="3"/><rect x="350" y="306" width="4" height="3"/></g>
-        <!-- scan beam + drone -->
-        <polygon points="284,118 246,392 330,392" fill="url(#s1beam)"/>
-        <g>
-          <line x1="254" y1="106" x2="314" y2="106" stroke="#A8B2BE" stroke-width="2.4"/>
-          <ellipse cx="252" cy="106" rx="13" ry="3.4" fill="none" stroke="#7A8699" stroke-width="1.6"/>
-          <ellipse cx="316" cy="106" rx="13" ry="3.4" fill="none" stroke="#7A8699" stroke-width="1.6"/>
-          <path d="M284 102 L296 118 L272 118 Z" fill="#E05A1A"/>
-          <circle cx="284" cy="98" r="2" fill="#F5A623"/>
-        </g>
-        <!-- fence -->
-        <g stroke="#2B3340" stroke-width="2.6"><line x1="0" y1="398" x2="400" y2="398"/><line x1="0" y1="430" x2="400" y2="430"/></g>
-        <g stroke="#222B38" stroke-width="2"><line x1="16" y1="392" x2="16" y2="436"/><line x1="72" y1="392" x2="72" y2="436"/><line x1="128" y1="392" x2="128" y2="436"/><line x1="184" y1="392" x2="184" y2="436"/><line x1="240" y1="392" x2="240" y2="436"/><line x1="296" y1="392" x2="296" y2="436"/><line x1="352" y1="392" x2="352" y2="436"/></g>
-        <rect y="436" width="400" height="64" fill="#0A0E19"/>
-        <g fill="none" stroke="#F5A623" stroke-width="1.3" opacity=".75">
-          <path d="M48 456 62 470 48 484 34 470Z"/><path d="M124 456 138 470 124 484 110 470Z"/><path d="M200 456 214 470 200 484 186 470Z"/><path d="M276 456 290 470 276 484 262 470Z"/><path d="M352 456 366 470 352 484 338 470Z"/>
-        </g>
-        <g fill="#C0392B"><path d="M48 463 55 470 48 477 41 470Z"/><path d="M200 463 207 470 200 477 193 470Z"/><path d="M352 463 359 470 352 477 345 470Z"/></g>
-      </svg>
+      <img src="https://images.unsplash.com/photo-1670689334799-cdc6777db8cc?auto=format&fit=crop&w=1100&h=1375&q=80" alt="Industrial plant fully lit at night — the environment BlackFire protects" loading="lazy">
       <span class="brief-chip">IMG-BRIEF-01</span>
     </div>
   </div>
@@ -495,51 +463,7 @@ footer{background:var(--coal);padding:80px 0 0;border-top:1px solid var(--steel-
   <div class="wrap about-grid">
     <div style="position:relative" class="rv">
       <div class="scene-frame about-frame">
-        <svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Manned access gate at a chemical plant in late golden light">
-          <defs>
-            <linearGradient id="s2sky" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0" stop-color="#10131F"/><stop offset=".6" stop-color="#27211C"/><stop offset="1" stop-color="#7A4A14"/>
-            </linearGradient>
-            <radialGradient id="s2sun" cx=".74" cy=".74" r=".4">
-              <stop offset="0" stop-color="#F5A623" stop-opacity=".6"/><stop offset="1" stop-color="#F5A623" stop-opacity="0"/>
-            </radialGradient>
-            <linearGradient id="s2cone" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0" stop-color="#F5A623" stop-opacity=".3"/><stop offset="1" stop-color="#F5A623" stop-opacity="0"/>
-            </linearGradient>
-          </defs>
-          <rect width="400" height="300" fill="url(#s2sky)"/>
-          <rect width="400" height="300" fill="url(#s2sun)"/>
-          <circle cx="296" cy="222" r="17" fill="#F5A623" opacity=".9"/>
-          <!-- plant behind -->
-          <g fill="#0D1119">
-            <rect x="236" y="160" width="40" height="80"/><rect x="284" y="138" width="10" height="102"/>
-            <path d="M306 240v-44a20 20 0 0 1 40 0v44z"/><rect x="356" y="172" width="30" height="68"/>
-            <rect x="246" y="142" width="7" height="20"/>
-          </g>
-          <circle cx="289" cy="134" r="2" fill="#C0392B"/>
-          <g stroke="#0D1119" stroke-width="3" fill="none"><path d="M236 196h-46"/><path d="M236 212h-30"/></g>
-          <!-- light mast + cone -->
-          <line x1="208" y1="92" x2="208" y2="240" stroke="#0A0E19" stroke-width="4"/>
-          <rect x="198" y="86" width="20" height="7" fill="#0A0E19"/><circle cx="208" cy="96" r="3" fill="#F5A623"/>
-          <polygon points="208,96 158,240 258,240" fill="url(#s2cone)"/>
-          <!-- guard house, lit -->
-          <g>
-            <rect x="36" y="170" width="84" height="70" fill="#0A0E19"/>
-            <rect x="30" y="160" width="96" height="12" fill="#070B14"/>
-            <rect x="50" y="184" width="30" height="24" fill="#F5A623" opacity=".92"/>
-            <rect x="88" y="184" width="20" height="56" fill="#070B14"/>
-            <line x1="65" y1="184" x2="65" y2="208" stroke="#7A4A14" stroke-width="2"/>
-          </g>
-          <!-- boom gate, raised to greet -->
-          <circle cx="132" cy="232" r="6" fill="#0A0E19"/>
-          <g transform="rotate(-24 132 232)">
-            <rect x="132" y="228" width="120" height="8" fill="#E0E4EA"/>
-            <rect x="152" y="228" width="20" height="8" fill="#C0392B"/><rect x="192" y="228" width="20" height="8" fill="#C0392B"/><rect x="232" y="228" width="20" height="8" fill="#C0392B"/>
-          </g>
-          <!-- road + ground -->
-          <rect y="240" width="400" height="60" fill="#0A0E19"/>
-          <g stroke="#F5A623" stroke-width="2" opacity=".5"><line x1="20" y1="268" x2="52" y2="268"/><line x1="84" y1="268" x2="116" y2="268"/><line x1="148" y1="268" x2="180" y2="268"/><line x1="212" y1="268" x2="244" y2="268"/><line x1="276" y1="268" x2="308" y2="268"/><line x1="340" y1="268" x2="372" y2="268"/></g>
-        </svg>
+      <img src="https://images.unsplash.com/photo-1772743227731-e16af7c8d85a?auto=format&fit=crop&w=1100&h=825&q=80" alt="Officer in hi-vis on a rooftop patrol walk, back to camera" loading="lazy">
         <span class="brief-chip">IMG-BRIEF-02</span>
       </div>
       <div class="float-badge" style="right:-14px;bottom:26px"><div class="v">10+</div><div class="k">Years protecting</div></div>
@@ -569,14 +493,14 @@ footer{background:var(--coal);padding:80px 0 0;border-top:1px solid var(--steel-
       <p class="sec-sub">Fifty-five services across eight specialist disciplines — designed to interlock, not to be sold piecemeal.</p>
     </div>
     <div class="svc-grid">
-      <div class="svc-card rv"><span class="svc-glyph g-up"></span><h3>Armed Response</h3><p>24/7 tactical units on standby. Average response under four minutes in covered zones.</p></div>
-      <div class="svc-card rv"><span class="svc-glyph g-down"></span><h3>Drone Surveillance</h3><p>Aerial patrol, thermal imaging and incident overwatch for large perimeters and events.</p></div>
-      <div class="svc-card rv"><span class="svc-glyph g-diamond"></span><h3>CCTV &amp; AI Monitoring</h3><p>AI-assisted camera networks monitored live from our control room — not after the fact.</p></div>
-      <div class="svc-card rv"><span class="svc-glyph g-up"></span><h3>Access Control</h3><p>Biometric, vehicle and visitor management systems for sites that take entry seriously.</p></div>
-      <div class="svc-card rv"><span class="svc-glyph g-down"></span><h3>Guard Deployment</h3><p>Vetted, trained officers — armed and unarmed — deployed to industrial, commercial and residential posts.</p></div>
-      <div class="svc-card rv"><span class="svc-glyph g-diamond"></span><h3>Electronic Security</h3><p>Alarms, panic systems, monitoring and analogue-to-IP upgrades, installed and maintained.</p></div>
-      <div class="svc-card rv"><span class="svc-glyph g-up"></span><h3>Perimeter Detection</h3><p>Electric fencing, beams and thermal lines that find the breach before it becomes an entry.</p></div>
-      <div class="svc-card rv"><span class="svc-glyph g-down"></span><h3>Risk &amp; Compliance</h3><p>Site assessments, safety files and audit-ready documentation — managed in the Umlilo Portal.</p></div>
+      <div class="svc-card rv"><div class="svc-img"><img src="https://images.unsplash.com/photo-1485230405346-71acb9518d9c?auto=format&fit=crop&w=800&h=500&q=80" alt="Security officer standing post in low light" loading="lazy"><span class="svc-glyph g-up"></span></div><h3>Armed Response</h3><p>24/7 tactical units on standby. Average response under four minutes in covered zones.</p></div>
+      <div class="svc-card rv"><div class="svc-img"><img src="https://images.unsplash.com/photo-1569228593208-6314ad85a2ba?auto=format&fit=crop&w=800&h=500&q=80" alt="Drone silhouetted against a sunset sky" loading="lazy"><span class="svc-glyph g-down"></span></div><h3>Drone Surveillance</h3><p>Aerial patrol, thermal imaging and incident overwatch for large perimeters and events.</p></div>
+      <div class="svc-card rv"><div class="svc-img"><img src="https://images.unsplash.com/photo-1496368077930-c1e31b4e5b44?auto=format&fit=crop&w=800&h=500&q=80" alt="Two bullet surveillance cameras mounted on a wall" loading="lazy"><span class="svc-glyph g-diamond"></span></div><h3>CCTV &amp; AI Monitoring</h3><p>AI-assisted camera networks monitored live from our control room — not after the fact.</p></div>
+      <div class="svc-card rv"><div class="svc-img"><img src="https://images.unsplash.com/photo-1618482914248-29272d021005?auto=format&fit=crop&w=800&h=500&q=80" alt="Black access hardware mounted at an entry point" loading="lazy"><span class="svc-glyph g-up"></span></div><h3>Access Control</h3><p>Biometric, vehicle and visitor management systems for sites that take entry seriously.</p></div>
+      <div class="svc-card rv"><div class="svc-img"><img src="https://images.unsplash.com/photo-1581568736305-49a04e012c13?auto=format&fit=crop&w=800&h=500&q=80" alt="Uniformed officer walking a patrol route" loading="lazy"><span class="svc-glyph g-down"></span></div><h3>Guard Deployment</h3><p>Vetted, trained officers — armed and unarmed — deployed to industrial, commercial and residential posts.</p></div>
+      <div class="svc-card rv"><div class="svc-img"><img src="https://images.unsplash.com/photo-1670689334024-ad61dd564fe2?auto=format&fit=crop&w=800&h=500&q=80" alt="Lit electronic systems and pipework at night" loading="lazy"><span class="svc-glyph g-diamond"></span></div><h3>Electronic Security</h3><p>Alarms, panic systems, monitoring and analogue-to-IP upgrades, installed and maintained.</p></div>
+      <div class="svc-card rv"><div class="svc-img"><img src="https://images.unsplash.com/photo-1687274427456-ccf06e264df2?auto=format&fit=crop&w=800&h=500&q=80" alt="Barbed-wire perimeter fence line" loading="lazy"><span class="svc-glyph g-up"></span></div><h3>Perimeter Detection</h3><p>Electric fencing, beams and thermal lines that find the breach before it becomes an entry.</p></div>
+      <div class="svc-card rv"><div class="svc-img"><img src="https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?auto=format&fit=crop&w=800&h=500&q=80" alt="Hand completing a written inspection checklist" loading="lazy"><span class="svc-glyph g-down"></span></div><h3>Risk &amp; Compliance</h3><p>Site assessments, safety files and audit-ready documentation — managed in the Umlilo Portal.</p></div>
     </div>
     <div class="svc-more rv"><a href="#assess">VIEW ALL 55 SERVICES →</a></div>
   </div>
@@ -621,49 +545,7 @@ footer{background:var(--coal);padding:80px 0 0;border-top:1px solid var(--steel-
     <div class="faq-grid">
       <div class="rv">
         <div class="scene-frame faq-frame">
-          <svg viewBox="0 0 300 400" preserveAspectRatio="xMidYMid slice" role="img" aria-label="BlackFire control room at night, wall of monitors casting amber light">
-            <defs>
-              <linearGradient id="s3room" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0" stop-color="#0A0E19"/><stop offset="1" stop-color="#141B26"/>
-              </linearGradient>
-              <radialGradient id="s3glow" cx=".5" cy=".42" r=".62">
-                <stop offset="0" stop-color="#F07820" stop-opacity=".2"/><stop offset="1" stop-color="#F07820" stop-opacity="0"/>
-              </radialGradient>
-              <linearGradient id="s3live" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0" stop-color="#3A2414"/><stop offset="1" stop-color="#6E3A10"/>
-              </linearGradient>
-            </defs>
-            <rect width="300" height="400" fill="url(#s3room)"/>
-            <rect width="300" height="400" fill="url(#s3glow)"/>
-            <!-- monitor wall -->
-            <g stroke="#2B3340" stroke-width="1.6">
-              <rect x="26"  y="46"  width="74" height="50" rx="2" fill="#10151F"/>
-              <rect x="113" y="46"  width="74" height="50" rx="2" fill="url(#s3live)"/>
-              <rect x="200" y="46"  width="74" height="50" rx="2" fill="#10151F"/>
-              <rect x="26"  y="108" width="74" height="50" rx="2" fill="#10151F"/>
-              <rect x="113" y="108" width="74" height="50" rx="2" fill="#0E1722"/>
-              <rect x="200" y="108" width="74" height="50" rx="2" fill="url(#s3live)"/>
-              <rect x="26"  y="170" width="74" height="50" rx="2" fill="#0E1722"/>
-              <rect x="113" y="170" width="74" height="50" rx="2" fill="#10151F"/>
-              <rect x="200" y="170" width="74" height="50" rx="2" fill="#10151F"/>
-            </g>
-            <path d="M150 60 L160 84 L140 84 Z" fill="#C0392B"/>
-            <polyline points="206,148 222,138 234,144 248,128 262,134" fill="none" stroke="#F5A623" stroke-width="2"/>
-            <g fill="#7A8699" opacity=".6"><rect x="32" y="178" width="40" height="3"/><rect x="32" y="186" width="56" height="3"/><rect x="32" y="194" width="30" height="3"/></g>
-            <circle cx="94" cy="52" r="2" fill="#1A7A40"/><circle cx="268" cy="52" r="2" fill="#1A7A40"/><circle cx="94" cy="176" r="2" fill="#C0392B"/>
-            <!-- operator silhouette, back to us -->
-            <g fill="#05080F">
-              <circle cx="150" cy="266" r="17"/>
-              <path d="M116 340v-34a34 26 0 0 1 68 0v34z"/>
-            </g>
-            <path d="M118 296a32 24 0 0 1 64 0" fill="none" stroke="#F07820" stroke-width="1.6" opacity=".5"/>
-            <!-- desk + console -->
-            <rect y="338" width="300" height="10" fill="#1E2530"/>
-            <rect y="348" width="300" height="52" fill="#0A0E19"/>
-            <g fill="#F5A623"><circle cx="58" cy="362" r="2"/><circle cx="76" cy="362" r="2"/><circle cx="94" cy="362" r="2" opacity=".5"/></g>
-            <g fill="#C0392B"><circle cx="226" cy="362" r="2"/><circle cx="244" cy="362" r="2" opacity=".5"/></g>
-            <rect x="124" y="356" width="52" height="12" rx="2" fill="#141B26" stroke="#2B3340"/>
-          </svg>
+      <img src="https://images.unsplash.com/photo-1557597774-9d273605dfa9?auto=format&fit=crop&w=900&h=1200&q=80" alt="Wall of surveillance cameras in low light" loading="lazy">
           <span class="brief-chip">IMG-BRIEF-03</span>
         </div>
         <div class="faq-call">
@@ -702,53 +584,7 @@ footer{background:var(--coal);padding:80px 0 0;border-top:1px solid var(--steel-
 <!-- CTA BANNER -->
 <section class="cta-banner">
   <div class="scene-frame cta-frame">
-    <svg viewBox="0 0 1050 400" preserveAspectRatio="xMidYMid slice" role="img" aria-label="BlackFire response vehicle at an industrial gate at dusk">
-      <defs>
-        <linearGradient id="s4sky" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stop-color="#0A0E19"/><stop offset=".62" stop-color="#121A28"/><stop offset="1" stop-color="#241D16"/>
-        </linearGradient>
-        <radialGradient id="s4glow" cx=".78" cy=".7" r=".5">
-          <stop offset="0" stop-color="#E05A1A" stop-opacity=".3"/><stop offset="1" stop-color="#E05A1A" stop-opacity="0"/>
-        </radialGradient>
-        <linearGradient id="s4head" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stop-color="#F5A623" stop-opacity=".4"/><stop offset="1" stop-color="#F5A623" stop-opacity="0"/>
-        </linearGradient>
-      </defs>
-      <rect width="1050" height="400" fill="url(#s4sky)"/>
-      <rect width="1050" height="400" fill="url(#s4glow)"/>
-      <g fill="#F5A623"><circle cx="160" cy="60" r="1.2" opacity=".5"/><circle cx="320" cy="40" r="1" opacity=".4"/><circle cx="520" cy="76" r="1.1" opacity=".45"/><circle cx="80" cy="120" r=".9" opacity=".3"/></g>
-      <!-- plant skyline right -->
-      <g fill="#070B14">
-        <rect x="640" y="232" width="410" height="78"/>
-        <rect x="660" y="170" width="16" height="70"/><rect x="700" y="194" width="12" height="46"/>
-        <path d="M740 240v-40a24 24 0 0 1 48 0v40z"/><path d="M800 240v-32a19 19 0 0 1 38 0v32z"/>
-        <rect x="856" y="186" width="52" height="54"/><rect x="864" y="166" width="9" height="24"/>
-        <rect x="930" y="142" width="13" height="98"/><rect x="962" y="178" width="30" height="62"/><rect x="1004" y="206" width="40" height="34"/>
-      </g>
-      <circle cx="666" cy="166" r="2.4" fill="#C0392B"/><circle cx="936" cy="138" r="2.4" fill="#F5A623"/>
-      <g fill="#F5A623" opacity=".8"><rect x="872" y="196" width="5" height="4"/><rect x="884" y="196" width="5" height="4"/><rect x="968" y="188" width="5" height="4"/></g>
-      <!-- gate + fence -->
-      <g stroke="#202938" stroke-width="3"><line x1="560" y1="252" x2="1050" y2="252"/><line x1="560" y1="282" x2="1050" y2="282"/></g>
-      <g stroke="#1B2330" stroke-width="2.4"><line x1="588" y1="246" x2="588" y2="290"/><line x1="652" y1="246" x2="652" y2="290"/><line x1="716" y1="246" x2="716" y2="290"/><line x1="780" y1="246" x2="780" y2="290"/><line x1="844" y1="246" x2="844" y2="290"/><line x1="908" y1="246" x2="908" y2="290"/><line x1="972" y1="246" x2="972" y2="290"/><line x1="1036" y1="246" x2="1036" y2="290"/></g>
-      <line x1="560" y1="150" x2="560" y2="310" stroke="#0A0E19" stroke-width="5"/><circle cx="560" cy="152" r="4" fill="#F5A623"/>
-      <!-- response vehicle -->
-      <g>
-        <polygon points="700,310 1010,310 1010,360 700,360" fill="url(#s4head)" opacity=".5" transform="translate(-330,-26)"/>
-        <path d="M716 308 h28 l16 -26 h70 l14 26 h34 a8 8 0 0 1 8 8 v18 h-186 v-18 a8 8 0 0 1 8 -8z" fill="#05080F"/>
-        <path d="M764 308 l12 -20 h28 v20z" fill="#10151F"/>
-        <rect x="788" y="276" width="38" height="7" rx="2" fill="#0A0E19"/>
-        <rect x="792" y="277" width="10" height="5" fill="#C0392B"/><rect x="814" y="277" width="10" height="5" fill="#F5A623"/>
-        <circle cx="792" cy="279" r="7" fill="#C0392B" opacity=".26"/><circle cx="818" cy="279" r="7" fill="#F5A623" opacity=".26"/>
-        <circle cx="748" cy="336" r="13" fill="#05080F" stroke="#2B3340" stroke-width="3"/>
-        <circle cx="864" cy="336" r="13" fill="#05080F" stroke="#2B3340" stroke-width="3"/>
-        <rect x="712" y="318" width="6" height="5" fill="#F5A623"/>
-        <rect x="890" y="318" width="6" height="5" fill="#C0392B" opacity=".9"/>
-      </g>
-      <rect y="346" width="1050" height="54" fill="#0A0E19"/>
-      <g fill="none" stroke="#F5A623" stroke-width="1.2" opacity=".4">
-        <path d="M620 368 632 380 620 392 608 380Z"/><path d="M760 368 772 380 760 392 748 380Z"/><path d="M900 368 912 380 900 392 888 380Z"/><path d="M1040 368 1052 380 1040 392 1028 380Z"/>
-      </g>
-    </svg>
+      <img src="https://images.unsplash.com/photo-1642285709726-f9eb035b034b?auto=format&fit=crop&w=2100&h=800&q=80" alt="Wide industrial plant glowing under the night sky" loading="lazy">
     <span class="brief-chip">IMG-BRIEF-04</span>
   </div>
   <div class="cta-overlay">
@@ -952,5 +788,13 @@ footer{background:var(--coal);padding:80px 0 0;border-top:1px solid var(--steel-
   document.getElementById('yr').textContent=new Date().getFullYear();
 })();
 </script>
+<!--
+  PHOTOGRAPHY — Unsplash License (free commercial use, no attribution required;
+  credited with thanks). Interim until the branded BlackFire shoot (AGENT_BRIEF_05):
+  Hero & Electronic Security — mos design · About — Etienne Girardet · FAQ — Lianhao Qu
+  CTA — Chris LeBoutillier · Armed Response — Collin Armstrong · Drone — Bruno Kelzer
+  CCTV — Scott Webb · Access Control — Milan Malkomes · Guard Deployment — Obi
+  Perimeter — Jamie Taylor · Risk & Compliance — Glenn Carstens-Peters
+-->
 </body>
 </html>

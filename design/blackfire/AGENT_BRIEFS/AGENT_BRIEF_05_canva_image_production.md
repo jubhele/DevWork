@@ -17,3 +17,14 @@
 
 ## Exit gate
 All frames replaced on a staging copy of the reference HTML; side-by-side review approved by Jubhele BEFORE production graft (AGENT_BRIEF_01 step 4+ consumes these).
+
+## REV B addendum — interim photography is LIVE (2026-06-11)
+The reference now ships 12 real photographs under the Unsplash License (free commercial
+use). These are placement-final: the branded BlackFire shoot replaces each URL 1:1 at the
+same crop. Manifest (images.unsplash.com/photo-…):
+1670689334799-cdc6777db8cc Hero · 1772743227731-e16af7c8d85a About · 1557597774-9d273605dfa9 FAQ ·
+1642285709726-f9eb035b034b CTA · 1485230405346-71acb9518d9c Armed Response · 1569228593208-6314ad85a2ba Drone ·
+1496368077930-c1e31b4e5b44 CCTV · 1618482914248-29272d021005 Access · 1581568736305-49a04e012c13 Guard ·
+1670689334024-ad61dd564fe2 Electronic · 1687274427456-ccf06e264df2 Perimeter · 1484480974693-6ca0a78fb36b Compliance.
+PRODUCTION NOTE (AGENT_BRIEF_01): download these at full params, convert to WEBP q82, self-host
+under images/v3/ — do NOT hotlink Unsplash from blackfiresolutions.co.za.

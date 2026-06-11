@@ -35,3 +35,20 @@
 3. Each scene carries a corner `brief-chip` (IMG-BRIEF-01…04) so the Canva production mapping (AGENT_BRIEF_05) survives — photography replaces the inner `<svg>` 1:1 at identical ratios.
 
 **Validation:** all 5 inline SVGs parse as valid XML, unique gradient ids (s1–s4 prefixes), zero residual PNG references, console.log still 0, esc()-guarded innerHTML unchanged, reduced-motion + touch-target rules untouched. QA PASS verdict stands.
+
+---
+
+## Revision B — 2026-06-11 (Jubhele: "real life images")
+
+SVG scene art rejected — real photography required. Sourced 12 real photographs under the
+Unsplash License (free commercial use — the same sourcing model Borehole Central itself uses),
+each verified to a direct images.unsplash.com CDN URL via page-level harvesting:
+hero (mos design — plant lit at night), about (Etienne Girardet — hi-vis officer on patrol walk,
+back to camera), FAQ (Lianhao Qu — surveillance camera wall), CTA (Chris LeBoutillier — wide
+industrial night), plus all 8 service cards (Collin, Bruno Kelzer, Scott Webb, Milan Malkomes,
+Obi, mos design, Jamie Taylor, Glenn Carstens-Peters). Service cards rebuilt image-led with the
+IZILO glyph as a corner badge; a coal-grade gradient overlay unifies every photo into the brand
+atmosphere; lazy-loading + alt text on all 12. Brief-chips retained — the branded BlackFire/Canva
+shoot (AGENT_BRIEF_05 Rev B manifest) replaces each URL 1:1, and AGENT_BRIEF_01 must self-host
+WEBP copies in production (no hotlinking from the live domain). §7a snapshot taken pre-change.
+Invariants re-verified: 0 console.log, 12/12 lazy+alt, no forbidden strings. QA PASS stands.
