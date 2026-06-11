@@ -16,7 +16,12 @@ CREATE TABLE IF NOT EXISTS bf_role_permissions (
 
 -- ============================================================
 -- Clear existing rows and re-seed cleanly
+-- The DELETE + re-seed runs inside a single transaction so a
+-- failure mid-script cannot leave the permissions table empty.
+-- (QA 2026-06-10: bare DELETE without WHERE was a BLOCK.)
 -- ============================================================
+START TRANSACTION;
+
 DELETE FROM bf_role_permissions;
 
 -- ============================================================
@@ -239,6 +244,8 @@ INSERT INTO bf_role_permissions (role, permission) VALUES
   ('inspector', 'quote.view'),
   ('inspector', 'invoice.view'),
   ('inspector', 'safety.view');
+
+COMMIT;
 
 -- ============================================================
 -- Summary: Role capability matrix
