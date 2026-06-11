@@ -3579,7 +3579,7 @@ async function downloadStatement(ref_id){
 <style>body{font-family:Arial,sans-serif;margin:40px;color:#1a1814}h1{font-size:22px;margin-bottom:4px}p{font-size:12px;color:#666;margin:2px 0}table{width:100%;border-collapse:collapse;margin-top:20px;font-size:13px}th{background:#f5f1ea;padding:9px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:1px;border-bottom:2px solid #c8c1b3}td{padding:9px 12px;border-bottom:1px solid #e4ded2}.total{font-weight:700;font-size:15px;text-align:right;padding-top:12px}@media print{button{display:none}}</style>
 </head><body>
 <h1>Account Statement — ${esc(s.ref_id)}</h1>
-<p>Released: ${esc(s.released_at?.slice(0,10)||'')} by ${esc(s.released_by||'')}</p>
+<p>Released: ${esc(s.released_at?.slice(0,10)||'—')} by ${esc(s.released_by||'—')}</p>
 <p>To: ${esc(s.to_emails||'')} | From: ${esc(s.from_email||'')}</p>
 <table><thead><tr><th>Invoice #</th><th>Client</th><th>Invoice Date</th><th>Due Date</th><th>Status</th><th style="text-align:right">Amount</th></tr></thead>
 <tbody>${rows}</tbody></table>
@@ -5994,6 +5994,13 @@ async function safGenerateTracker(id) {
     origApplicable,
   });
 
+  const genIssues = _validateTrackerHTML(html);
+  if (genIssues.length) {
+    console.error('Tracker generation failed validation:', genIssues);
+    toast('Tracker could not be generated — ' + genIssues[0], 'err');
+    return;
+  }
+
   const blob   = new Blob([html], { type: 'text/html;charset=utf-8' });
   const blobUrl = URL.createObjectURL(blob);
   const fname   = id + '_Action_Tracker.html';
@@ -6397,18 +6404,18 @@ document.getElementById('filterSection').onchange=applyFilters;
 document.getElementById('filterStatus').onchange=applyFilters;
 document.getElementById('search').oninput=applyFilters;
 
-async function resetAll(){
-  if(!await confirmDialog('Reset all statuses and notes?\n\nThis clears all progress on this action plan.', { title: 'Reset Action Plan', confirmLabel: 'Reset' })) return;
+function resetAll(){
+  if(!confirm('Reset all statuses and notes?\\n\\nThis clears all progress on this action plan.')) return;
   state={}; saveState(state); render(); renderSubmission(); toast('Reset.');
 }
 
-async function submitFile(){
+function submitFile(){
   let done=0,applicable=0;
   SECTIONS.forEach(s=>s.items.forEach(i=>{ const st=getStatus(i.id); if(st!=='na') applicable++; if(st==='done') done++; }));
   const pct=parseFloat(document.getElementById('ringPct').textContent);
   const tag=document.getElementById('ringTag').textContent;
   const lbl=state._submission?'Re-submit':'Submit';
-  if(!await confirmDialog(lbl+' this action plan at '+pct.toFixed(1)+'% ('+tag+')?\n\nThis records the current score and date for AST.', { title: lbl+' Action Plan', confirmLabel: lbl, danger: false })) return;
+  if(!confirm(lbl+' this action plan at '+pct.toFixed(1)+'% ('+tag+')?\\n\\nThis records the current score and date for AST.')) return;
   state._submission={at:new Date().toISOString(),score:pct,tag,done,applicable};
   saveState(state); renderSubmission(); updateScore();
   toast('Submitted at '+pct.toFixed(1)+'%');
@@ -6437,6 +6444,46 @@ renderSubmission();
 </script>
 </body>
 </html>`;
+}
+
+function _validateTrackerHTML(html) {
+  const issues = [];
+  const m = html.match(/<script>([\s\S]*?)<\/script>/);
+  if (!m) { issues.push('No <script> block found in generated output'); return issues; }
+  const script = m[1];
+
+  // Syntax check — catches literal newlines inside string literals and any other parse error
+  try { new Function(script); } catch (e) { issues.push('Syntax error: ' + e.message); }
+
+  // Portal-only functions must not leak into the standalone file
+  ['confirmDialog'].forEach(fn => {
+    const called  = new RegExp('\\b' + fn + '\\s*\\(').test(script);
+    const defined = new RegExp('function\\s+' + fn + '\\s*\\(').test(script);
+    if (called && !defined) issues.push("'" + fn + "' is called but not defined in the standalone file");
+  });
+
+  // Required functions
+  ['render','resetAll','submitFile','updateScore','applyFilters','renderSubmission'].forEach(fn => {
+    if (!new RegExp('function\\s+' + fn + '\\s*\\(').test(script))
+      issues.push('Missing function: ' + fn);
+  });
+
+  // Required constants
+  ['SECTIONS','TOTAL_APPLICABLE','ORIG_PASS','ORIG_APPLICABLE','BASELINE','KEY'].forEach(c => {
+    if (!script.includes('const ' + c + ' ')) issues.push('Missing constant: ' + c);
+  });
+
+  // SECTIONS must have at least one item
+  try {
+    const secMatch = script.match(/const SECTIONS = (\[[\s\S]*?\]);/);
+    if (secMatch) {
+      const secs = JSON.parse(secMatch[1]);
+      const total = secs.reduce((n, s) => n + (s.items ? s.items.length : 0), 0);
+      if (total === 0) issues.push('SECTIONS contains no items');
+    }
+  } catch { issues.push('SECTIONS is not valid JSON'); }
+
+  return issues;
 }
 
 function safPrintReport(){
@@ -6552,6 +6599,7 @@ td.muted{color:var(--muted)}
 .ap-status{font-weight:600;font-size:10px;text-transform:uppercase}
 .ap-open{color:var(--red)}.ap-in-progress{color:var(--amber)}.ap-resolved{color:var(--grn)}
 .saf-band-A{color:var(--grn)}.saf-band-B{color:#2d6a4f}.saf-band-C{color:var(--amber)}.saf-band-D{color:#b45309}.saf-band-E{color:var(--red)}
+.saf-green{color:#22c55e}.saf-yellow{color:#eab308}.saf-orange{color:#f97316}.saf-red{color:#ef4444}.saf-unscored{color:#64748b}
 @media print{body{padding:8px}h1{font-size:15px}.cover{page-break-inside:avoid}.sec-block{page-break-inside:avoid}}
 </style>
 </head>

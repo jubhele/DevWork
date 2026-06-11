@@ -81,6 +81,9 @@ public_html/
 **Do NOT upload:**
 - `.env` files
 - `_archive/` folder
+- `_backups/` folder
+- `dev-only/` folder — testing scripts, seed data, scratch files; never served
+- `qa/` folder — QA validation scripts; developer tooling only, never served
 - `encrypt_secrets.php` / `gen.php` — delete after use
 - `bhekani_bo.php` — dev tool only, skip for production
 
