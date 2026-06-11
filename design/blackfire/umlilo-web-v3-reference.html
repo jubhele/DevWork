@@ -69,6 +69,14 @@ button{font-family:var(--f-body);cursor:pointer}
 .scene-frame::after{content:'';position:absolute;inset:0;z-index:1;background:linear-gradient(to top,rgba(10,14,25,.5),rgba(10,14,25,.06) 48%);pointer-events:none}
 .cta-frame.scene-frame::after{display:none} /* CTA has its own heavier overlay */
 .brief-chip{z-index:2}
+/* Branded fallback when a photo cannot load (offline / sandboxed preview).
+   JS adds .img-blocked to the frame; the photo hides, the frame stays deliberate. */
+.scene-frame.img-blocked img,.svc-img.img-blocked img{display:none}
+.img-fallback{display:none}
+.img-blocked .img-fallback{display:flex;position:absolute;inset:0;z-index:1;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:24px;background:linear-gradient(155deg,var(--navy),var(--charcoal))}
+.img-fallback .ftri{width:30px;height:26px;clip-path:polygon(50% 0,100% 100%,0 100%);background:linear-gradient(to top,var(--ember),var(--fire))}
+.img-fallback .fsub{font-family:var(--f-body);font-size:13.5px;color:var(--steel);max-width:300px;line-height:1.55}
+.img-fallback .fnote{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.16em;color:var(--ash);text-transform:uppercase}
 .svc-img{position:relative;margin:-26px -22px 16px;aspect-ratio:16/10;overflow:hidden;border-bottom:1px solid var(--steel-dk)}
 .svc-img img{width:100%;height:100%;object-fit:cover;display:block;filter:saturate(.92)}
 .svc-img::after{content:'';position:absolute;inset:0;background:linear-gradient(to top,rgba(10,14,25,.55),rgba(10,14,25,0) 55%)}
@@ -784,6 +792,23 @@ footer{background:var(--coal);padding:80px 0 0;border-top:1px solid var(--steel-
     b.addEventListener('click',function(){setT(i);});dots.appendChild(b);});
   setT(0);
   if(!reduce){setInterval(function(){setT((ti+1)%T.length);},7000);}
+
+  /* Photo fallback: sandboxed previews and offline states block network
+     images — show a branded frame instead of a broken icon. */
+  document.querySelectorAll('.scene-frame img, .svc-img img').forEach(function(img){
+    function blocked(){
+      var f=img.closest('.scene-frame')||img.closest('.svc-img');
+      if(!f||f.classList.contains('img-blocked'))return;
+      f.classList.add('img-blocked');
+      var d=document.createElement('div');d.className='img-fallback';
+      var t=document.createElement('span');t.className='ftri';
+      var a=document.createElement('div');a.className='fsub';a.textContent=img.alt;
+      var n=document.createElement('div');n.className='fnote';n.textContent='Photo loads in browser · blocked in this preview';
+      d.appendChild(t);d.appendChild(a);d.appendChild(n);f.appendChild(d);
+    }
+    img.addEventListener('error',blocked);
+    if(img.complete&&img.naturalWidth===0)blocked();
+  });
 
   document.getElementById('yr').textContent=new Date().getFullYear();
 })();

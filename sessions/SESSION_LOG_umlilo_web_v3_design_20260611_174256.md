@@ -52,3 +52,20 @@ atmosphere; lazy-loading + alt text on all 12. Brief-chips retained — the bran
 shoot (AGENT_BRIEF_05 Rev B manifest) replaces each URL 1:1, and AGENT_BRIEF_01 must self-host
 WEBP copies in production (no hotlinking from the live domain). §7a snapshot taken pre-change.
 Invariants re-verified: 0 console.log, 12/12 lazy+alt, no forbidden strings. QA PASS stands.
+
+---
+
+## Revision C — 2026-06-11 (in-app preview shows no photos)
+
+**Diagnosis from Jubhele's screenshot:** the embedded logo renders but all 12 photos show as
+broken — the Claude in-app preview sandboxes the page and blocks external network images
+entirely. The file is correct: in any real browser (Chrome) the photography loads. Two fixes:
+1. **Resilient fallback (shipped):** image error listeners (no inline handlers) swap any
+   blocked/offline photo for a branded frame — Ignition mark, the subject line, and a mono note
+   "Photo loads in browser · blocked in this preview". No more broken-icon states anywhere,
+   which also hardens production for slow connections.
+2. **Permanent fix (ready to run):** `scripts/fetch_v3_images.sh` — server-side one-shot that
+   downloads all 12 photos as production-resolution WEBP into `images/v3/`, commits and pushes.
+   Once run, the reference gets rebuilt with repo-local/embedded images (in-app preview then
+   shows real photography), and production never hotlinks a third-party CDN — which AGENT_BRIEF_01
+   already mandates. §7a snapshot taken pre-change.
