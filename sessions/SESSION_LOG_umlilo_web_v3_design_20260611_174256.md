@@ -22,3 +22,16 @@
 ## Next
 1. Jubhele opens the reference HTML → approve / correct the look.
 2. On approval: dispatch AGENT_BRIEF_02 then 01 (endpoint before wizard wiring), then 03; 05 runs in parallel in Canva; 04 stays blocked on Bearer auth.
+
+---
+
+## Revision A — 2026-06-11 (same session, Jubhele review feedback)
+
+**Feedback:** logo not rendering in the standalone review copy; page reads too text-led — needs elegant imagery now, not at Canva delivery. Direction approved.
+
+**Changes (umlilo-web-v3-reference.html only; §7a snapshot taken to `_backups/`):**
+1. **Logo fixed** — root cause: relative PNG path breaks outside the repo. Lockup re-encoded to 16.5 KB WebP and embedded as a single base64 data-URI behind a `.bf-logo` class (nav + footer, `role="img"` + aria-label). Production grafts still use the PNG asset per AGENT_BRIEF_01; the embed is reference-file self-containment only.
+2. **Spec-frames → scene-frames** — all four photography placeholders replaced with original inline SVG scene art in the locked palette: 01 drone overwatch with amber scan beam over a plant-silhouette perimeter at dusk, isishunka diamond ground band; 02 manned gate at golden hour — lit guard house, raised boom, light-mast cone (presence without drawn faces); 03 control room — monitor wall with Ignition-triangle and yield-line feeds, operator silhouette from behind, amber screen glow; 04 wide dusk gate with geometric response vehicle (ember/gold light bar, headlight throw), left 40% kept compositionally quiet for the headline.
+3. Each scene carries a corner `brief-chip` (IMG-BRIEF-01…04) so the Canva production mapping (AGENT_BRIEF_05) survives — photography replaces the inner `<svg>` 1:1 at identical ratios.
+
+**Validation:** all 5 inline SVGs parse as valid XML, unique gradient ids (s1–s4 prefixes), zero residual PNG references, console.log still 0, esc()-guarded innerHTML unchanged, reduced-motion + touch-target rules untouched. QA PASS verdict stands.
