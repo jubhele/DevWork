@@ -12,7 +12,18 @@ if (existsSync(rootEnvPath)) {
 }
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+      },
+      {
+        protocol: "https",
+        hostname: "blackfiresolutions.co.za",
+      },
+    ],
+  },
 };
 
 export default nextConfig;

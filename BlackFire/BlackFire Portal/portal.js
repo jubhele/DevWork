@@ -178,6 +178,7 @@ document.addEventListener('click', function(e) {
     case 'openConfirmClosureModal': openConfirmClosureModal(el.dataset.id); break;
     case 'saveConfirmClosure':   saveConfirmClosure(el.dataset.id); break;
     case 'deleteCallout':        deleteCallout(el.dataset.id); break;
+    case 'openRecordChain':      openRecordChain(el.dataset.id); break;
     // Operations — quotes
     case 'addLine':              addLine(); break;
     case 'removeLine':           el.closest('tr').remove(); recalcQ(); break;
@@ -199,6 +200,7 @@ document.addEventListener('click', function(e) {
     case 'saveTx':               saveTx(); break;
     case 'downloadStatement':    downloadStatement(el.dataset.id); break;
     case 'openReleaseStatementModal': openReleaseStatementModal(el.dataset.id); break;
+    case 'openResendStatementModal':  openResendStatementModal(el.dataset.id); break;
     case 'releaseStatement':     releaseStatement(el.dataset.id); break;
     case 'generateStatement':    generateStatement(); break;
     // Files
@@ -705,6 +707,7 @@ function normalizeInvoice(i) {
     calloutRef:  i.callout_ref || '',
     po:          i.po || '',
     date:        i.invoice_date,
+    paidDate:    i.paid_date || '',
     sentAt:      i.sent_at || '',
     sentBy:      i.sent_by || '',
   };
@@ -718,6 +721,16 @@ function normalizeBank(b) {
     credit: Number(b.credit),
     debit:  Number(b.debit),
   };
+}
+
+function invoicePaymentRevenue(year, month = null) {
+  return proxyDB.bank
+    .filter(t => {
+      if (t.cat !== 'Invoice Payment' || t.credit <= 0 || !t.date) return false;
+      const dt = new Date(t.date + 'T00:00:00');
+      return dt.getFullYear() === year && (month === null || dt.getMonth() === month);
+    })
+    .reduce((sum, t) => sum + t.credit, 0);
 }
 
 function normalizeSafetyFile(f) {
@@ -2393,14 +2406,14 @@ function renderDashboard(){
   const net            = proxyDB.bank.reduce((a,b)=>a+(b.credit||0)-(b.debit||0),0);
   const completedMTD   = proxyDB.callouts.filter(c=>{const cd=new Date(c.date+'T00:00:00');return (c.status==='Completed'||c.status==='Invoiced')&&cd.getMonth()===now.getMonth()&&cd.getFullYear()===now.getFullYear();}).length;
   const outstandingVal = proxyDB.invoices.filter(i=>i.status==='Sent'||i.status==='Overdue').reduce((a,i)=>a+i.amount,0);
-  const ytd            = proxyDB.invoices.filter(i=>{const d=new Date(i.date+'T00:00:00');return i.status==='Paid'&&d.getFullYear()===now.getFullYear();}).reduce((a,i)=>a+i.amount,0);
+  const ytd            = invoicePaymentRevenue(now.getFullYear());
   const quotePipeVal   = proxyDB.quotes.filter(q=>q.status==='Sent'||q.status==='Pending Approval').reduce((a,q)=>a+((q.items||[]).reduce((s,it)=>s+((it.qty||0)*(it.unit||0)),0)),0);
   const overdue        = proxyDB.invoices.filter(i=>i.status==='Overdue').length;
   const urgent         = proxyDB.callouts.filter(c=>(c.priority==='Urgent'||c.priority==='Emergency')&&(c.status==='Open'||c.status==='In Progress')).length;
   const pendingQA      = proxyDB.quotes.filter(q=>q.approvalStatus==='pending').length;
   const months=[];
   for(let i=5;i>=0;i--){const dt=new Date(now.getFullYear(),now.getMonth()-i,1);months.push({lbl:dt.toLocaleDateString('en-ZA',{month:'short'}),m:dt.getMonth(),y:dt.getFullYear()});}
-  const revData = months.map(m=>proxyDB.invoices.filter(i=>{const d=new Date(i.date+'T00:00:00');return d.getMonth()===m.m&&d.getFullYear()===m.y;}).reduce((a,i)=>a+i.amount,0));
+  const revData = months.map(m=>invoicePaymentRevenue(m.y, m.m));
 
   const d = { now, open, pq, mtd, net, completedMTD, outstandingVal, ytd, quotePipeVal, overdue, urgent, pendingQA, months, revData };
 
@@ -2542,15 +2555,17 @@ function buildPeriodComparison(now, showOps) {
   const curQ = Math.floor(cm / 3);
 
   // Helpers
-  const invSum = filter => proxyDB.invoices.filter(filter).reduce((a,i) => a + i.amount, 0);
   const d = s => new Date(s + 'T00:00:00');
 
-  const mtdRev   = invSum(i => { const dt=d(i.date); return dt.getFullYear()===cy && dt.getMonth()===cm; });
-  const pyMtdRev = invSum(i => { const dt=d(i.date); return dt.getFullYear()===py && dt.getMonth()===cm; });
-  const ytdRev   = invSum(i => { const dt=d(i.date); return dt.getFullYear()===cy && dt.getMonth()<=cm; });
-  const pyYtdRev = invSum(i => { const dt=d(i.date); return dt.getFullYear()===py && dt.getMonth()<=cm; });
-  const qtdRev   = invSum(i => { const dt=d(i.date); return dt.getFullYear()===cy && Math.floor(dt.getMonth()/3)===curQ; });
-  const pyQtdRev = invSum(i => { const dt=d(i.date); return dt.getFullYear()===py && Math.floor(dt.getMonth()/3)===curQ; });
+  const revenueIn = (year, test) => proxyDB.bank
+    .filter(t => t.cat==='Invoice Payment' && t.credit>0 && t.date && (()=>{const dt=d(t.date);return dt.getFullYear()===year&&test(dt);})())
+    .reduce((sum,t)=>sum+t.credit,0);
+  const mtdRev   = revenueIn(cy, dt => dt.getMonth()===cm);
+  const pyMtdRev = revenueIn(py, dt => dt.getMonth()===cm);
+  const ytdRev   = revenueIn(cy, dt => dt.getMonth()<=cm);
+  const pyYtdRev = revenueIn(py, dt => dt.getMonth()<=cm);
+  const qtdRev   = revenueIn(cy, dt => Math.floor(dt.getMonth()/3)===curQ);
+  const pyQtdRev = revenueIn(py, dt => Math.floor(dt.getMonth()/3)===curQ);
 
   const coMtd   = proxyDB.callouts.filter(c => { const dt=d(c.date); return dt.getFullYear()===cy && dt.getMonth()===cm; }).length;
   const pyCoMtd = proxyDB.callouts.filter(c => { const dt=d(c.date); return dt.getFullYear()===py && dt.getMonth()===cm; }).length;
@@ -2733,7 +2748,7 @@ function renderFinDashboard() {
   // Revenue 6-month chart data
   const months=[];
   for(let i=5;i>=0;i--){const dt=new Date(now.getFullYear(),now.getMonth()-i,1);months.push({lbl:dt.toLocaleDateString('en-ZA',{month:'short'}),m:dt.getMonth(),y:dt.getFullYear()});}
-  const revData = months.map(m=>proxyDB.invoices.filter(i=>{const d=new Date(i.date+'T00:00:00');return d.getMonth()===m.m&&d.getFullYear()===m.y;}).reduce((a,i)=>a+i.amount,0));
+  const revData = months.map(m=>invoicePaymentRevenue(m.y, m.m));
   const maxRev  = Math.max(...revData,1);
 
   const invStatuses = ['Draft','Sent','Paid','Overdue'];
@@ -2859,7 +2874,20 @@ function renderSupDashboard() {
 ═══════════════════════════════════════════════════════ */
 function renderCallouts(search='',filter=''){
   let items=[...proxyDB.callouts].sort((a,b)=>b.date.localeCompare(a.date));
-  if(search) items=items.filter(c=>c.id.toLowerCase().includes(search.toLowerCase())||c.jobNo.toLowerCase().includes(search.toLowerCase())||c.service.toLowerCase().includes(search.toLowerCase())||c.location.toLowerCase().includes(search.toLowerCase()));
+  if(search){
+    const s=search.toLowerCase();
+    items=items.filter(c=>{
+      if(c.id.toLowerCase().includes(s)) return true;
+      if(c.jobNo.toLowerCase().includes(s)) return true;
+      if(c.service.toLowerCase().includes(s)) return true;
+      if((c.location||'').toLowerCase().includes(s)) return true;
+      const inv=proxyDB.invoices.find(i=>i.calloutRef===c.id);
+      if(inv&&(inv.id.toLowerCase().includes(s)||inv.invoiceNo.toLowerCase().includes(s))) return true;
+      const q=proxyDB.quotes.find(q=>q.calloutRef===c.id);
+      if(q&&(q.id.toLowerCase().includes(s)||q.quoteNo.toLowerCase().includes(s))) return true;
+      return false;
+    });
+  }
   if(filter) items=items.filter(c=>c.status===filter);
 
   // For junior/senior tech: only show assigned to them
@@ -2898,6 +2926,7 @@ function renderCallouts(search='',filter=''){
         actions.push(`<button class="btn btn-g btn-s" data-action="prefillQuoteFromJob" data-id="${esc(c.id)}">Quote</button>`);
       }
     }
+    actions.push(`<button class="btn btn-g btn-s" data-action="openRecordChain" data-id="${esc(c.id)}">View</button>`);
     actions.push(`<button class="btn btn-g btn-s" data-action="openAttachmentsModal" data-entity-type="callout" data-entity-ref="${esc(c.id)}">Files</button>`);
     if(can('callout.confirm_closure')&&c.status==='Completed'&&!c.closureConfirmed&&!c.invoiceGenerated){
       actions.push(`<button class="btn btn-p btn-s" data-action="openConfirmClosureModal" data-id="${esc(c.id)}">Confirm Closure</button>`);
@@ -2961,10 +2990,15 @@ async function saveStatus(id){
 
 function openAssignPO(id){
   const c=proxyDB.callouts.find(x=>x.id===id);if(!c)return;
-  openModal(`Assign PO - ${c.id}`,`
-    <div class="fs-12 text-muted mb-14">Assign a Purchase Order number to this job. The PO will be referenced on the invoice.</div>
-    <div class="fgroup"><label class="flbl">Purchase Order Number</label><input class="finput" id="po-input" value="${esc(c.po||'')}" placeholder="e.g. PO-2026-045"></div>
-    <div class="mt3 flex-end"><button class="btn btn-p" data-action="assignPO" data-id="${esc(c.id)}">Assign PO</button></div>
+  openModal(`Assign PO — ${c.id}`,`
+    <div class="fs-12 text-muted mb-14">Assign a Purchase Order number to this job. The PO number and uploaded document will be referenced on the invoice.</div>
+    <div class="fgroup mb-12"><label class="flbl">Purchase Order Number <span class="text-ember">*</span></label><input class="finput" id="po-input" value="${esc(c.po||'')}" placeholder="e.g. CP1590"></div>
+    <div class="att-ctx mb-14">
+      <div class="fs-11 fw-600 mb-6">PO Document <span class="text-muted fs-10">(optional)</span></div>
+      <div class="fs-10 text-muted mb-8">Upload the official Purchase Order document. PDF, Word, or image accepted.</div>
+      <input type="file" id="po-doc" accept=".pdf,.docx,.doc,.jpg,.jpeg,.png" class="fs-11">
+    </div>
+    <div class="mt3 flex-end"><button class="btn btn-p" data-action="assignPO" data-id="${esc(c.id)}">Save PO</button></div>
   `);
 }
 
@@ -2997,22 +3031,27 @@ function openConfirmClosureModal(id){
   openModal(`Confirm Closure — ${c.id}`,`
     <div class="closure-warn mb-14">
       <div class="fs-11 text-ovr font-mono ls-1 mb-6">MANAGER CONFIRMATION REQUIRED</div>
-      <div class="fs-12">This callout was not closed by the client. A written confirmation and an uploaded document are required before an invoice can be generated.</div>
+      <div class="fs-12">Both a proof-of-evidence document and a signed client sign-off are required before this callout can be closed and invoiced.</div>
     </div>
     <div class="att-ctx mb-12">
       <div class="fs-11 fw-600">${esc(c.id)}  —  ${esc(c.service)}</div>
       <div class="fs-10 text-muted">${esc(c.client)}  ·  ${esc(c.location||'')}  ·  ${fmtD(c.date)}</div>
     </div>
     <div class="fgroup mb-12">
-      <label class="flbl">Confirmation Notes <span class="text-ember">*</span></label>
-      <textarea class="finput" id="cc-notes" rows="4" autocomplete="off" placeholder="Describe why the client did not close this callout and what written confirmation was received..."></textarea>
+      <label class="flbl">Closure Notes <span class="text-ember">*</span></label>
+      <textarea class="finput" id="cc-notes" rows="3" autocomplete="off" placeholder="Describe the work completed, findings, and any outstanding items..."></textarea>
+    </div>
+    <div class="att-ctx mb-12">
+      <div class="fs-11 fw-600 mb-4">Proof of Evidence <span class="text-ember">*</span></div>
+      <div class="fs-10 text-muted mb-8">Photo, job completion report, or site inspection record. PDF, Word, or image.</div>
+      <input type="file" id="cc-evidence" accept=".pdf,.docx,.doc,.jpg,.jpeg,.png" class="fs-11">
     </div>
     <div class="att-ctx mb-14">
-      <div class="fs-11 fw-600 mb-6">Upload Confirmation Document <span class="text-ember">*</span></div>
-      <div class="fs-10 text-muted mb-8">Upload the signed/written document confirming this closure. PDF, Word, or image accepted.</div>
-      <input type="file" id="cc-doc" accept=".pdf,.docx,.doc,.jpg,.jpeg,.png" class="fs-11">
+      <div class="fs-11 fw-600 mb-4">Client Sign-off <span class="text-ember">*</span></div>
+      <div class="fs-10 text-muted mb-8">Signed closure document from the client. PDF, Word, or image.</div>
+      <input type="file" id="cc-signoff" accept=".pdf,.docx,.doc,.jpg,.jpeg,.png" class="fs-11">
     </div>
-    <div class="mt3 flex-end"><button class="btn btn-p" data-action="saveConfirmClosure" data-id="${esc(c.id)}">Confirm &amp; Generate Invoice</button></div>
+    <div class="mt3 flex-end"><button class="btn btn-p" data-action="saveConfirmClosure" data-id="${esc(c.id)}">Confirm Closure</button></div>
   `);
 }
 
@@ -3021,15 +3060,21 @@ async function saveConfirmClosure(id){
   if(btn){if(btn.disabled)return;btn.disabled=true;}
 
   const notes=document.getElementById('cc-notes')?.value?.trim();
-  const fileInput=document.getElementById('cc-doc');
-  if(!notes){toast('Confirmation notes are required','err');if(btn)btn.disabled=false;return;}
-  if(!fileInput?.files.length){toast('Please upload the confirmation document','err');if(btn)btn.disabled=false;return;}
+  const evidenceInput=document.getElementById('cc-evidence');
+  const signoffInput=document.getElementById('cc-signoff');
+  if(!notes){toast('Closure notes are required','err');if(btn)btn.disabled=false;return;}
+  if(!evidenceInput?.files.length){toast('Proof of evidence document is required','err');if(btn)btn.disabled=false;return;}
+  if(!signoffInput?.files.length){toast('Client sign-off document is required','err');if(btn)btn.disabled=false;return;}
 
-  // Upload document first
-  const up=await apiUpload('callout',id,fileInput);
-  if(!up.success){toast(up.error||'Document upload failed','err');if(btn)btn.disabled=false;return;}
+  // Upload proof of evidence
+  const upEv=await apiUpload('callout',id,evidenceInput);
+  if(!upEv.success){toast(upEv.error||'Evidence upload failed','err');if(btn)btn.disabled=false;return;}
 
-  // Then confirm closure
+  // Upload client sign-off
+  const upSo=await apiUpload('callout',id,signoffInput);
+  if(!upSo.success){toast(upSo.error||'Sign-off upload failed — evidence saved, retry sign-off','err');if(btn)btn.disabled=false;return;}
+
+  // Confirm closure
   const r=await api('PUT',`callouts.php?id=${id}`,{action:'confirm_closure',closure_notes:notes});
   if(!r.success){toast(r.error||'Error confirming closure','err');if(btn)btn.disabled=false;return;}
 
@@ -3038,7 +3083,7 @@ async function saveConfirmClosure(id){
   closeModalDirect();
   renderCallouts('');
   renderDashboard();
-  toast(`${id} closure confirmed — Invoice ${r.invoice_ref||''} created`,'ok');
+  toast(`${id} closed — evidence and sign-off saved`,'ok');
 }
 
 function prefillQuoteFromJob(id){
@@ -3267,6 +3312,7 @@ function renderInvoices(search='',filter=''){
     <tr><td class="mono">${esc(inv.invoiceNo)}${inv.invoiceNo!==inv.id?`<div class="mlbl-9 mt-2 text-muted">${esc(inv.id)}</div>`:''}</td><td>${esc(inv.client)}</td><td class="amt">${fmt(inv.amount)}</td><td class="tc-11 nowrap">${fmtD(inv.dueDate)}</td><td>${pillH(inv.status)}</td>
     <td><div class="bgrp">
       <button class="btn btn-g btn-s" data-action="previewInvoice" data-id="${esc(inv.id)}">View</button>
+      ${inv.calloutRef?`<button class="btn btn-g btn-s" data-action="openRecordChain" data-id="${esc(inv.calloutRef)}">View</button>`:''}
       <button class="btn btn-g btn-s" data-action="openAttachmentsModal" data-entity-type="invoice" data-entity-ref="${esc(inv.id)}">Files</button>
       ${canSend&&inv.status!=='Paid'&&inv.status!=='Cancelled'&&inv.amount>0?`<button class="btn btn-p btn-s" data-action="openSendInvoiceModal" data-id="${esc(inv.id)}">Send</button>`:''}
       ${canPaid&&inv.status!=='Paid'?`<button class="btn btn-g btn-s" data-action="markPaid" data-id="${esc(inv.id)}">Paid</button>`:''}
@@ -3397,7 +3443,8 @@ function _applyInvoiceCalloutCtx(calloutId) {
   const co = proxyDB.callouts.find(x => x.id === calloutId); if (!co) return;
   if (co.clientId) document.getElementById('ni-client').value = co.clientId;
   document.getElementById('ni-callout-ref').value = calloutId;
-  populateLinkedDropdowns(); // rebuild after callout is set so linked quote is included
+  if (co.po) { const poEl = document.getElementById('ni-po'); if (poEl) poEl.value = co.po; }
+  populateLinkedDropdowns();
   const linkedQ = proxyDB.quotes.find(q => q.calloutRef === calloutId);
   if (linkedQ) {
     document.getElementById('ni-quote-ref').value = linkedQ.id;
@@ -3500,7 +3547,10 @@ async function renderStatement(){
           <div class="stmt-pcrd-ref">${esc(s.ref_id)}  ·  PENDING APPROVAL</div>
           <div class="stmt-pcrd-sub">Generated ${fmtD(s.created_at?.slice(0,10)||'')}  ·  ${s.invoice_refs?.split(',').filter(Boolean).length||0} invoices  ·  Total R ${Number(s.total_outstanding||0).toLocaleString('en-ZA',{minimumFractionDigits:2})}</div>
         </div>
-        ${canRelease?`<button class="btn btn-p btn-s" data-action="openReleaseStatementModal" data-id="${esc(s.ref_id)}">Release Statement</button>`:'<span class="fs-10 text-muted">Awaiting release by authorised user</span>'}
+        <div class="stmt-pcrd-actions">
+          <button class="btn btn-g btn-s" data-action="downloadStatement" data-id="${esc(s.ref_id)}">Download</button>
+          ${canRelease?`<button class="btn btn-p btn-s" data-action="openReleaseStatementModal" data-id="${esc(s.ref_id)}">Release Statement</button>`:'<span class="fs-10 text-muted">Awaiting release by authorised user</span>'}
+        </div>
       </div>
     </div>`).join('');
 
@@ -3512,7 +3562,10 @@ async function renderStatement(){
       <td>${esc(s.from_email||'')}</td>
       <td>${esc(s.to_emails||'')}</td>
       <td class="amt">R ${Number(s.total_outstanding||0).toLocaleString('en-ZA',{minimumFractionDigits:2})}</td>
-      <td><button class="btn btn-g btn-s" data-action="downloadStatement" data-id="${esc(s.ref_id)}">Download</button></td>
+      <td class="stmt-row-actions">
+        <button class="btn btn-g btn-s" data-action="downloadStatement" data-id="${esc(s.ref_id)}">Download</button>
+        ${canRelease?`<button class="btn btn-p btn-s" data-action="openResendStatementModal" data-id="${esc(s.ref_id)}">Send Again</button>`:''}
+      </td>
     </tr>`).join('');
 
   const outRowsLimited=outstanding.slice(0,10).map(inv=>`
@@ -3644,6 +3697,37 @@ async function releaseStatement(ref_id){
   closeModalDirect();
   toast(r.message||'Statement released','ok');
   renderStatement();
+}
+async function openResendStatementModal(ref_id){
+  const re=await api('GET','statements.php?action=email_options');
+  if(!re.success){toast(re.error||'Could not load email options','err');return;}
+  const fromOpts=re.from_options||[];
+  const toOpts=re.to_options||[];
+  const fromSel=fromOpts.map(u=>`<option value="${esc(u.email)}">${esc(u.name)} &lt;${esc(u.email)}&gt; (${esc(u.role)})</option>`).join('');
+  const toSel=toOpts.map(u=>`<option value="${esc(u.email)}">${esc(u.name)} &lt;${esc(u.email)}&gt;</option>`).join('');
+  openModal(`Resend Statement — ${ref_id}`,`
+    <div class="fs-12 mb-14">Review the FROM and TO addresses below. The statement will be re-emailed immediately when you click Send.</div>
+    <div class="fgrid">
+      <div class="fgroup ffull">
+        <label class="flbl">From Address <span class="text-ember">*</span></label>
+        <select class="finput" id="rs-from">${fromSel||'<option value="">No permitted email addresses found</option>'}</select>
+        <div class="fs-10 text-muted mt-4">Only email addresses you are authorised to send from are shown.</div>
+      </div>
+      <div class="fgroup ffull">
+        <label class="flbl">To Address <span class="text-ember">*</span></label>
+        <select class="finput" id="rs-to">${toSel||'<option value="">No users found</option>'}</select>
+        <div class="fs-10 text-muted mt-4">You may also type a custom address below.</div>
+      </div>
+      <div class="fgroup ffull">
+        <label class="flbl">Additional Recipients (comma-separated)</label>
+        <input class="finput" id="rs-extra" placeholder="extra@client.co.za, cc@firm.co.za">
+      </div>
+    </div>
+    <div class="mt3 flex-end">
+      <button class="btn btn-g mr-8" data-action="closeModalDirect">Cancel</button>
+      <button class="btn btn-p" data-action="releaseStatement" data-id="${esc(ref_id)}">Send Statement</button>
+    </div>
+  `);
 }
 
 function renderIncome(){
@@ -4292,6 +4376,91 @@ function confirmDialog(msg, opts = {}) {
 }
 
 /* ═══════════════════════════════════════════════════════
+   FULL RECORD CHAIN — Quote → Callout → Invoice → Payments
+═══════════════════════════════════════════════════════ */
+async function openRecordChain(calloutRef){
+  openModal(`Record — ${calloutRef}`, `<div class="tc-empty fs-12">Loading…</div>`);
+  const r = await api('GET', `callouts.php?action=chain&ref=${encodeURIComponent(calloutRef)}`);
+  if (!r.success) { document.getElementById('modal-bdy').innerHTML=`<div class="tc-empty text-ember">Failed to load record: ${esc(r.error||'unknown error')}</div>`; return; }
+  const {callout:co, quote:q, quote_items:qi, invoice:inv, payments:pays} = r.data;
+
+  const section = (icon,title,body) =>
+    `<div class="chain-section">
+       <div class="chain-hdr"><span class="chain-icon">${icon}</span><span class="chain-ttl">${title}</span></div>
+       <div class="chain-body">${body}</div>
+     </div>`;
+
+  const metaRow = (label,val) => val
+    ? `<div class="chain-meta-row"><span class="chain-lbl">${label}</span><span class="chain-val">${val}</span></div>`
+    : '';
+
+  // Quote section
+  let qHtml = '';
+  if (q) {
+    const itemRows = (qi||[]).map(i =>
+      `<tr><td>${esc(i.description)}</td><td class="tar">${i.qty}</td><td class="tar amt">${fmt(+i.unit_price)}</td><td class="tar amt">${fmt(+i.line_total)}</td></tr>`
+    ).join('');
+    const total = (qi||[]).reduce((s,i)=>s+(+i.line_total),0);
+    qHtml = section('Q','Quote',`
+      ${metaRow('Ref',esc(q.ref_id))}
+      ${metaRow('Quote No.',esc(q.quote_no||''))}
+      ${metaRow('Date',fmtD(q.quote_date))}
+      ${metaRow('Valid Until',fmtD(q.valid_until))}
+      ${metaRow('Status',`<span class="pill ${pillClass(q.status)}">${esc(q.status)}</span>`)}
+      ${metaRow('Submitted By',esc(q.submitted_by_name||q.submitted_by||''))}
+      ${metaRow('Approved By',esc(q.approved_by||''))}
+      ${q.notes?metaRow('Notes',esc(q.notes)):''}
+      ${itemRows?`<table class="chain-items-t mt-10">
+        <thead><tr><th>Description</th><th class="tar">Qty</th><th class="tar">Unit</th><th class="tar">Total</th></tr></thead>
+        <tbody>${itemRows}</tbody>
+        <tfoot><tr><td colspan="3" class="tar fw-600">Total</td><td class="tar amt fw-600">${fmt(total)}</td></tr></tfoot>
+      </table>`:''}
+    `);
+  } else {
+    qHtml = section('Q','Quote','<div class="text-muted fs-11">No quote on record for this job.</div>');
+  }
+
+  // Callout section
+  const coHtml = section('C','Callout',`
+    ${metaRow('Ref',esc(co.ref_id))}
+    ${metaRow('Date',fmtD(co.callout_date)+(co.callout_time?'  '+esc(co.callout_time):''))}
+    ${metaRow('Service',esc(co.service))}
+    ${metaRow('Location',esc(co.location||''))}
+    ${metaRow('Technician',esc(co.tech||co.assigned_to||''))}
+    ${metaRow('PO',esc(co.po||''))}
+    ${metaRow('Priority',`<span class="pill ${pillClass(co.priority)}">${esc(co.priority)}</span>`)}
+    ${metaRow('Status',`<span class="pill ${pillClass(co.status)}">${esc(co.status)}</span>`)}
+    ${metaRow('Logged By',esc(co.logged_by_name||co.logged_by||''))}
+    ${co.notes?metaRow('Notes',esc(co.notes)):''}
+  `);
+
+  // Invoice section
+  let invHtml = '';
+  if (inv) {
+    const payRows = (pays||[]).map(p =>
+      `<tr><td>${fmtD(p.payment_date)}</td><td class="tar amt">${fmt(+p.amount)}</td><td>${esc(p.notes||'')}</td></tr>`
+    ).join('');
+    invHtml = section('I','Invoice',`
+      ${metaRow('Ref',esc(inv.ref_id))}
+      ${metaRow('Date',fmtD(inv.invoice_date))}
+      ${metaRow('Due Date',fmtD(inv.due_date))}
+      ${metaRow('Amount',`<span class="amt fw-600">${fmt(+inv.amount)}</span>`)}
+      ${metaRow('Status',`<span class="pill ${pillClass(inv.status)}">${esc(inv.status)}</span>`)}
+      ${inv.paid_date?metaRow('Paid On',fmtD(inv.paid_date)):''}
+      ${payRows?`<table class="chain-items-t mt-10">
+        <thead><tr><th>Payment Date</th><th class="tar">Amount</th><th>Reference</th></tr></thead>
+        <tbody>${payRows}</tbody>
+      </table>`:''}
+    `);
+  } else {
+    invHtml = section('I','Invoice','<div class="text-muted fs-11">No invoice raised yet.</div>');
+  }
+
+  document.getElementById('modal-bdy').innerHTML =
+    `<div class="record-chain">${qHtml}${coHtml}${invHtml}</div>`;
+}
+
+/* ═══════════════════════════════════════════════════════
    MODAL / TOAST
 ═══════════════════════════════════════════════════════ */
 function openModal(title,html){
@@ -4444,9 +4613,16 @@ async function updateCalloutStatus(id, status){
 /* ── Override: assignPO ──────────────────────────────── */
 async function assignPO(id){
   const po = document.getElementById('po-input')?.value?.trim();
-  if (!po) return;
+  if (!po) { toast('PO number is required', 'err'); return; }
+  const btn = document.querySelector('[data-action="assignPO"]');
+  if (btn) { if (btn.disabled) return; btn.disabled = true; }
   const r = await api('PUT', `callouts.php?id=${id}`, { po });
-  if (!r.success) { toast(r.error || 'Error', 'err'); return; }
+  if (!r.success) { toast(r.error || 'Error assigning PO', 'err'); if (btn) btn.disabled = false; return; }
+  const fileInput = document.getElementById('po-doc');
+  if (fileInput?.files?.length) {
+    const up = await apiUpload('callout', id, fileInput);
+    if (!up.success) toast('PO saved but document upload failed — try Files to attach manually', 'err');
+  }
   await refreshCallouts();
   renderCallouts('');
   closeModalDirect();
@@ -4531,6 +4707,11 @@ function convertToInvoice(id) {
 }
 
 function openInvoiceFromCallout(calloutId) {
+  const co = proxyDB.callouts.find(x => x.id === calloutId);
+  if (!co?.po) {
+    toast(`PO number required before generating an invoice for ${calloutId}. Use the Assign PO button first.`, 'err');
+    return;
+  }
   _invoiceContext = { calloutId };
   showPortalPage('p-new-invoice', null);
 }
@@ -4573,14 +4754,19 @@ async function saveInvoice(){
   if (!clientId) { toast('Please select a client', 'err'); if(btn)btn.disabled=false; return; }
   if (!amount || !dueDate) { toast('Fill in amount and due date', 'err'); if(btn)btn.disabled=false; return; }
 
+  if (calloutRef) {
+    const linkedCo = proxyDB.callouts.find(x => x.id === calloutRef);
+    if (!linkedCo?.po) { toast('A PO number must be assigned to the linked callout before generating an invoice', 'err'); if(btn)btn.disabled=false; return; }
+  }
+
   const invoiceNo  = document.getElementById('ni-invoice-no')?.value?.trim() || '';
   const r = await api('POST', 'invoices.php', { client_id: clientId, amount, due_date: dueDate, status, po, quote_ref: quoteRef, callout_ref: calloutRef, invoice_no: invoiceNo });
   if (!r.success) { toast(r.error || 'Error', 'err'); if(btn)btn.disabled=false; return; }
-  
-  await refreshInvoices();
+
+  await Promise.all([refreshInvoices(), refreshCallouts()]);
   updateBadges();
   showPortalPage('p-invoices', null);
-  toast(`Invoice ${r.data?.ref_id || ''} created — use the Send button to email it to the client`, 'ok');
+  toast(`Invoice ${r.data?.ref_id || ''} created — callout marked Invoiced`, 'ok');
 }
 
 /* ── Override: logPayment ────────────────────────────── */
@@ -7589,3 +7775,250 @@ function safBadgeCount(){
   if(!proxyDB.safetyFiles) return 0;
   return proxyDB.safetyFiles.filter(f=>f.status==='Submitted').length;
 }
+
+/* ═══════════════════════════════════════════════════════
+   V3 PUB-SITE — IZILO-W-001 · THERMAL GEOMETRY, CINEMATIC
+   Runs once on DOMContentLoaded; guards against re-init.
+═══════════════════════════════════════════════════════ */
+(function v3PubSite(){
+  'use strict';
+  if(window.__v3PubInit) return;
+  window.__v3PubInit = true;
+
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function esc(s){var d=document.createElement('div');d.textContent=String(s==null?'':s);return d.innerHTML;}
+
+  /* ── Ignition preloader ── */
+  var ign = document.getElementById('ignition');
+  if(ign){
+    if(reduce || sessionStorage.getItem('bf_ign')){
+      ign.classList.add('done');
+    } else {
+      var pct=0, pctEl=document.getElementById('ignPct'), tri=document.getElementById('ignTri');
+      var t=setInterval(function(){
+        pct = Math.min(100, pct + Math.ceil(Math.random()*16));
+        if(pctEl) pctEl.textContent = pct+'%';
+        if(tri) _injectStyle('ignition-fill-css', '#ignTri{--fill:'+pct+'%}');
+        if(pct>=100){
+          clearInterval(t);
+          sessionStorage.setItem('bf_ign','1');
+          setTimeout(function(){ign.classList.add('done');}, 180);
+        }
+      }, 90);
+    }
+  }
+
+  /* ── Sticky pub-nav ── */
+  var pnav = document.getElementById('pub-nav');
+  function onV3Scroll(){if(pnav) pnav.classList.toggle('v3-solid', window.scrollY > 64);}
+  window.addEventListener('scroll', onV3Scroll, {passive:true});
+  onV3Scroll();
+
+  /* ── V3 mobile hamburger ── */
+  var ham = document.getElementById('v3ham');
+  var navLinks = document.getElementById('navLinks');
+  if(ham && navLinks){
+    ham.addEventListener('click', function(){
+      var open = navLinks.classList.toggle('v3-open');
+      ham.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    navLinks.addEventListener('click', function(e){
+      if(e.target.tagName === 'A'){
+        navLinks.classList.remove('v3-open');
+        ham.setAttribute('aria-expanded', 'false');
+      }
+    });
+  }
+
+  /* ── Scroll reveals ── */
+  if('IntersectionObserver' in window){
+    var io = new IntersectionObserver(function(es){
+      es.forEach(function(e){
+        if(e.isIntersecting){e.target.classList.add('in'); io.unobserve(e.target);}
+      });
+    }, {threshold:0.15});
+    document.querySelectorAll('#pub-home .rv').forEach(function(el, i){
+      el.classList.add('rv-delay-'+(reduce ? 0 : i%6));
+      io.observe(el);
+    });
+  } else {
+    document.querySelectorAll('#pub-home .rv').forEach(function(el){el.classList.add('in');});
+  }
+
+  /* ── Count-up stats ── */
+  if('IntersectionObserver' in window){
+    var cio = new IntersectionObserver(function(es){
+      es.forEach(function(e){
+        if(!e.isIntersecting) return;
+        cio.unobserve(e.target);
+        var el=e.target, end=parseInt(el.getAttribute('data-count'),10);
+        if(reduce){el.textContent=end;return;}
+        var t0=null;
+        requestAnimationFrame(function step(ts){
+          if(!t0) t0=ts;
+          var p = Math.min(1,(ts-t0)/1400);
+          el.textContent = Math.round(end*(1-Math.pow(1-p,3)));
+          if(p<1) requestAnimationFrame(step);
+        });
+      });
+    }, {threshold:0.4});
+    document.querySelectorAll('#pub-home [data-count]').forEach(function(el){cio.observe(el);});
+  }
+
+  /* ── Assessment wizard ── */
+  var STEPS = ['CONTACT','SITE','REQUIREMENTS','REVIEW'];
+  var cur=1;
+  var wizForm = document.getElementById('wizard');
+  if(wizForm){
+    var nEl=document.getElementById('wizN'), lblEl=document.getElementById('wizLbl');
+    var wizBack=document.getElementById('wizBack'), wizNext=document.getElementById('wizNext');
+    var wizErr=document.getElementById('wizErr'), wizNavRow=document.getElementById('wizNav');
+    var wizSegs = wizForm.querySelectorAll('.wiz-progress span');
+
+    var chipsEl = document.getElementById('needChips');
+    if(chipsEl){
+      chipsEl.addEventListener('click', function(e){
+        var b = e.target.closest('.chip');
+        if(!b) return;
+        b.setAttribute('aria-pressed', b.getAttribute('aria-pressed')==='true' ? 'false' : 'true');
+      });
+    }
+
+    function wval(id){var el=document.getElementById(id);return el ? el.value.trim() : '';}
+    function wneeds(){
+      return Array.prototype.filter.call(
+        document.querySelectorAll('#needChips .chip'),
+        function(c){return c.getAttribute('aria-pressed')==='true';}
+      ).map(function(c){return c.textContent;});
+    }
+
+    function wvalidate(step){
+      if(step===1){
+        if(!wval('w-name')) return 'Please enter your full name.';
+        if(!wval('w-phone')) return 'Please enter a phone number.';
+        var em=wval('w-email');
+        if(!em||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) return 'Please enter a valid email address.';
+      }
+      if(step===2){
+        if(!wval('w-type')) return 'Please select a site type.';
+        if(!wval('w-prov')) return 'Please select a province.';
+        if(!wval('w-area')) return 'Please tell us the town or area.';
+      }
+      if(step===3 && wneeds().length===0) return 'Select at least one requirement.';
+      if(step===4 && !document.getElementById('w-consent').checked) return 'Please confirm POPIA consent to submit.';
+      return '';
+    }
+
+    function wreview(){
+      var dl=document.getElementById('wizReview');
+      if(!dl) return;
+      var rows=[
+        ['Contact', esc(wval('w-name'))+(wval('w-company')?' · '+esc(wval('w-company')):'')],
+        ['Reach you on', esc(wval('w-phone'))+' · '+esc(wval('w-email'))],
+        ['Site', esc(wval('w-type'))+' — '+esc(wval('w-area'))+', '+esc(wval('w-prov'))],
+        ['Requirements', wneeds().map(esc).join(' · ')||'—'],
+        ['Notes', esc(wval('w-msg'))||'—']
+      ];
+      dl.innerHTML = rows.map(function(r){return '<dt>'+r[0]+'</dt><dd>'+r[1]+'</dd>';}).join('');
+    }
+
+    function wshow(step){
+      wizForm.querySelectorAll('.wiz-step').forEach(function(s){
+        s.classList.toggle('on', +s.getAttribute('data-step')===step);
+      });
+      wizSegs.forEach(function(s,i){s.classList.toggle('on', i<step);});
+      if(step<=4){nEl.textContent='0'+step; lblEl.textContent=STEPS[step-1];}
+      wizBack.disabled = step===1;
+      wizNext.textContent = step===4 ? 'Submit Request' : 'Next';
+      if(wizNavRow) step===5 ? $hide(wizNavRow) : $show(wizNavRow,'flex');
+      var counter=wizForm.querySelector('.wiz-counter');
+      var progress=wizForm.querySelector('.wiz-progress');
+      if(counter) step===5 ? $hide(counter) : $show(counter,'block');
+      if(progress) step===5 ? $hide(progress) : $show(progress,'flex');
+      if(wizErr) wizErr.textContent = '';
+    }
+
+    if(wizNext){
+      wizNext.addEventListener('click', function(){
+        var msg = wvalidate(cur);
+        if(msg){if(wizErr) wizErr.textContent=msg; return;}
+        if(cur===3) wreview();
+        if(cur===4){cur=5; wshow(5); return;}
+        cur++; wshow(cur);
+      });
+    }
+    if(wizBack){
+      wizBack.addEventListener('click', function(){if(cur>1){cur--; wshow(cur);}});
+    }
+  }
+
+  /* ── Testimonials ── */
+  var T=[
+    {q:'Two break-in attempts in the year before BlackFire. Zero since. The drone overwatch on our perimeter changed what “patrolled” means — and every incident is logged in the portal before I even ask.',w:'Facilities Manager',p:'Chemical Manufacturing · Kempton Park, Gauteng'},
+    {q:'They took over from our previous provider with no coverage gap — equipment audited, codes changed, officers posted, all in one weekend. The handover plan they promised is the handover we got.',w:'Estate Manager',p:'Residential Estate · Midrand, Gauteng'},
+    {q:'The monthly report used to be a phone call and a promise. Now it is callout logs, inspection records and safety files I can open myself. That visibility is why we renewed.',w:'Operations Director',p:'Logistics & Warehousing · Johannesburg South'}
+  ];
+  var ti=0;
+  var tQ=document.getElementById('tstQ'), tW=document.getElementById('tstW'),
+      tP=document.getElementById('tstP'), tDots=document.getElementById('tstDots');
+  if(tQ && tDots){
+    function setT(i){
+      ti=i;
+      tQ.textContent='“'+T[i].q+'”';
+      if(tW) tW.textContent=T[i].w;
+      if(tP) tP.textContent=T[i].p;
+      tDots.querySelectorAll('button').forEach(function(b,bi){
+        b.setAttribute('aria-selected', bi===i ? 'true' : 'false');
+      });
+    }
+    T.forEach(function(_,i){
+      var b=document.createElement('button');
+      b.type='button';
+      b.setAttribute('role','tab');
+      b.setAttribute('aria-label','Testimonial '+(i+1));
+      b.addEventListener('click',function(){setT(i);});
+      tDots.appendChild(b);
+    });
+    setT(0);
+    if(!reduce){ setInterval(function(){setT((ti+1)%T.length);}, 7000); }
+  }
+
+  /* ── Photo fallback ── */
+  document.querySelectorAll('#pub-home .scene-frame img, #pub-home .svc-img img').forEach(function(img){
+    function blocked(){
+      var f = img.closest('.scene-frame') || img.closest('.svc-img');
+      if(!f || f.classList.contains('img-blocked')) return;
+      f.classList.add('img-blocked');
+    }
+    img.addEventListener('error', blocked);
+    if(img.complete && img.naturalWidth===0) blocked();
+  });
+
+  /* ── Newsletter subscribe (stub — no backend endpoint yet) ── */
+  var newsBtn = document.getElementById('newsBtn');
+  var newsInput = document.getElementById('newsEmail');
+  if(newsBtn && newsInput){
+    newsBtn.addEventListener('click', function(){
+      var v = newsInput.value.trim();
+      if(!v || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)){
+        newsInput.focus(); return;
+      }
+      newsBtn.disabled = true;
+      newsInput.value = '';
+      newsInput.placeholder = 'You’re on the list — thank you.';
+      setTimeout(function(){newsBtn.disabled=false;}, 4000);
+    });
+  }
+
+  /* ── WhatsApp FAB: show in public state, hide in portal ── */
+  var waFab = document.getElementById('wa-fab');
+  if(waFab){
+    function syncWaFab(){
+      document.documentElement.dataset.state === 'public' ? $show(waFab,'flex') : $hide(waFab);
+    }
+    syncWaFab();
+    var stateObs = new MutationObserver(syncWaFab);
+    stateObs.observe(document.documentElement, {attributes:true, attributeFilter:['data-state']});
+  }
+
+})();

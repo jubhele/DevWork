@@ -212,6 +212,13 @@ if ($method === 'PUT') {
                     $po, date('Y-m-d'), (int)$usr['id'],
                 ]
             );
+            record_invoice_cost_of_sales([
+                'ref_id' => $inv_ref,
+                'callout_ref' => $quote['callout_ref'] ?? '',
+                'client_name' => $quote['client_name'],
+                'amount' => $quote['total_amount'],
+                'invoice_date' => date('Y-m-d'),
+            ]);
             db_exec("UPDATE bf_quotes SET status = 'Converted' WHERE ref_id = ?", [$ref_id]);
             db_commit();
         } catch (Exception $e) {

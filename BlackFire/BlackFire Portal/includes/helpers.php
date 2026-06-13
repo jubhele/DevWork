@@ -56,6 +56,52 @@ function valid_date(?string $d): bool {
     return $dt && $dt->format('Y-m-d') === $d;
 }
 
+function record_invoice_cost_of_sales(array $invoice): void {
+    $amount = (float)($invoice['amount'] ?? 0);
+    if ($amount <= 0) return;
+
+    $invoiceRef = clean($invoice['ref_id'] ?? '', 30);
+    $calloutRef = clean($invoice['callout_ref'] ?? '', 30);
+    $basisRef   = $calloutRef ?: $invoiceRef;
+    if (!$basisRef) return;
+
+    $costRef = clean('COST-' . $basisRef, 30);
+    $invoiceDate = valid_date($invoice['invoice_date'] ?? null)
+        ? $invoice['invoice_date']
+        : date('Y-m-d');
+    $clientName = clean($invoice['client_name'] ?? 'Client', 255);
+    $cost = round($amount / 1.30, 2);
+
+    $generated = db_row(
+        "SELECT id FROM bf_transactions
+          WHERE category = 'Cost of Sales' AND reference = ?
+          LIMIT 1",
+        [$costRef]
+    );
+    if ($generated) {
+        db_exec(
+            "UPDATE bf_transactions SET trans_date = ?, description = ?, debit = ? WHERE id = ?",
+            [$invoiceDate, "Cost of services - {$clientName} ({$basisRef})", $cost, (int)$generated['id']]
+        );
+        return;
+    }
+
+    $existing = db_row(
+        "SELECT id FROM bf_transactions
+          WHERE category = 'Cost of Sales' AND reference IN (?, ?)
+          LIMIT 1",
+        [$basisRef, $invoiceRef]
+    );
+    if ($existing) return;
+
+    db_exec(
+        "INSERT INTO bf_transactions
+         (trans_date, description, category, reference, credit, debit)
+         VALUES (?,?,?,?,?,?)",
+        [$invoiceDate, "Cost of services - {$clientName} ({$basisRef})", 'Cost of Sales', $costRef, 0, $cost]
+    );
+}
+
 /**
  * Set CORS + JSON headers (call before output)
  */

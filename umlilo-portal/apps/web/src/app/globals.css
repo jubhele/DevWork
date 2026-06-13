@@ -1,29 +1,44 @@
 @import "tailwindcss";
 
-/* ── Umlilo design tokens ──────────────────────────────────────────────────── */
+/* ── Umlilo / IZILO-W-001 design tokens ───────────────────────────────────── */
 @theme {
-  /* Dark palette */
-  --color-coal:         #0A0E19;
-  --color-navy:         #141B26;
-  --color-charcoal:     #1E2530;
-  --color-steel-dark:   #2B3340;
-  --color-ash:          #7A8699;
+  /* Dark register — coal/navy */
+  --color-coal:          #0A0E19;
+  --color-navy:          #141B26;
+  --color-charcoal:      #1E2530;
+  --color-steel-dark:    #2B3340;
+  --color-ash:           #7A8699;
+  --color-steel:         #A8B2BE;
+  --color-bone:          #E0E4EA;
 
-  /* Fire palette */
-  --color-ember-red:    #C0392B;
-  --color-fire-orange:  #E05A1A;
-  --color-ember-amber:  #F07820;
-  --color-flame-gold:   #F5A623;
+  /* Light register — paper/cream */
+  --color-paper:         #F5F1EA;
+  --color-paper-warm:    #EDE8DE;
+  --color-cream:         #E4DED2;
+  --color-graphite:      #C8C1B3;
 
-  /* Light palette */
-  --color-bone-paper:   #F5F1EA;
-  --color-ink-text:     #1A1814;
+  /* Ink (for light-bg text) */
+  --color-ink:           #1A1814;
+  --color-ink-2:         #4A4638;
+  --color-ink-muted:     #7A7566;
+
+  /* Fire palette — light-register variants */
+  --color-ember-l:       #A82A1E;
+  --color-fire-l:        #C94A10;
+  --color-amber-l:       #E06A1A;
+  --color-gold-l:        #D48A15;
+
+  /* Fire palette — dark-register variants */
+  --color-ember:         #C0392B;
+  --color-fire:          #E05A1A;
+  --color-amber:         #F07820;
+  --color-gold:          #F5A623;
 
   /* Status */
-  --color-success:      #27AE60;
-  --color-warning:      #F39C12;
-  --color-danger:       #E74C3C;
-  --color-info:         #2980B9;
+  --color-success:       #27AE60;
+  --color-warning:       #F39C12;
+  --color-danger:        #E74C3C;
+  --color-info:          #2980B9;
 
   /* Compliance bands */
   --color-compliance-red:    #C0392B;
@@ -36,6 +51,9 @@
   --font-body:    'Instrument Sans', sans-serif;
   --font-mono:    'IBM Plex Mono', monospace;
   --font-serif:   'Instrument Serif', serif;
+
+  /* Layout */
+  --max-w: 1200px;
 }
 
 /* ── Base ──────────────────────────────────────────────────────────────────── */

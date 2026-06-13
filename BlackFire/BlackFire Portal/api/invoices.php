@@ -87,30 +87,54 @@ if ($method === 'POST') {
     $invoice_no = clean($b['invoice_no'] ?? '', 50);
     if (!$invoice_no) $invoice_no = $ref;
 
-    $id  = db_insert(
-        "INSERT INTO bf_invoices
-         (ref_id, invoice_no, client_id, client_name, client_email, amount, due_date, status,
-          quote_ref, quote_id, callout_ref, callout_id, po, invoice_date, sent_by_user_id)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-        [
-            $ref,
-            $invoice_no,
-            $client_id,
-            $client_name,
-            $client_email,
-            $amount,
-            $b['due_date'],
-            clean($b['status'] ?? 'Draft'),
-            $quote_ref_str,
-            $quote_id_fk,
-            $co_ref_str,
-            $callout_id_fk,
-            clean($b['po'] ?? ''),
-            date('Y-m-d'),
-            (int)$usr['id'],
-        ]
-    );
+    $invoice_date = date('Y-m-d');
+    try {
+        db_begin();
+        $id = db_insert(
+            "INSERT INTO bf_invoices
+             (ref_id, invoice_no, client_id, client_name, client_email, amount, due_date, status,
+              quote_ref, quote_id, callout_ref, callout_id, po, invoice_date, sent_by_user_id)
+             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            [
+                $ref,
+                $invoice_no,
+                $client_id,
+                $client_name,
+                $client_email,
+                $amount,
+                $b['due_date'],
+                clean($b['status'] ?? 'Draft'),
+                $quote_ref_str,
+                $quote_id_fk,
+                $co_ref_str,
+                $callout_id_fk,
+                clean($b['po'] ?? ''),
+                $invoice_date,
+                (int)$usr['id'],
+            ]
+        );
+        record_invoice_cost_of_sales([
+            'ref_id' => $ref,
+            'callout_ref' => $co_ref_str,
+            'client_name' => $client_name,
+            'amount' => $amount,
+            'invoice_date' => $invoice_date,
+        ]);
+        if ($callout_id_fk) {
+            db_exec(
+                "UPDATE bf_callouts SET status = 'Invoiced', invoice_generated = 1 WHERE id = ?",
+                [$callout_id_fk]
+            );
+        }
+        db_commit();
+    } catch (Exception $e) {
+        db_rollback();
+        json_err('Invoice creation failed - no changes saved', 500);
+    }
 
+    if ($callout_id_fk && $co_ref_str) {
+        audit($usr['username'], 'UPDATE', "Callout $co_ref_str marked Invoiced — Invoice $ref generated");
+    }
     audit($usr['username'], 'CREATE', "Invoice $ref created (R" . number_format((float)$b['amount'], 2) . ")");
     $row = db_row("SELECT * FROM bf_invoices WHERE id = ?", [$id]);
     json_ok(['data' => $row], "Invoice $ref created");
@@ -205,9 +229,17 @@ if ($method === 'PUT') {
     }
     if (!$sets) json_err('No fields to update');
     $params[] = $ref_id;
-    db_exec("UPDATE bf_invoices SET " . implode(', ', $sets) . " WHERE ref_id = ?", $params);
+    try {
+        db_begin();
+        db_exec("UPDATE bf_invoices SET " . implode(', ', $sets) . " WHERE ref_id = ?", $params);
+        $row = db_row("SELECT * FROM bf_invoices WHERE ref_id = ?", [$ref_id]);
+        record_invoice_cost_of_sales($row);
+        db_commit();
+    } catch (Exception $e) {
+        db_rollback();
+        json_err('Invoice update failed - no changes saved', 500);
+    }
     audit($usr['username'], 'UPDATE', "Invoice $ref_id updated");
-    $row = db_row("SELECT * FROM bf_invoices WHERE ref_id = ?", [$ref_id]);
     json_ok(['data' => $row], "Invoice $ref_id updated");
 }
 
@@ -215,10 +247,22 @@ if ($method === 'PUT') {
 if ($method === 'DELETE') {
     $usr = require_perm('invoice.delete');
     if (!$ref_id) json_err('Missing id');
-    $inv = db_row("SELECT status FROM bf_invoices WHERE ref_id = ?", [$ref_id]);
+    $inv = db_row("SELECT ref_id, callout_ref, status FROM bf_invoices WHERE ref_id = ?", [$ref_id]);
     if (!$inv) json_err('Invoice not found', 404);
     if ($inv['status'] === 'Paid') json_err('Cannot delete a paid invoice — reverse the payment first.');
-    db_exec("DELETE FROM bf_invoices WHERE ref_id = ?", [$ref_id]);
+    $basis_ref = $inv['callout_ref'] ?: $inv['ref_id'];
+    try {
+        db_begin();
+        db_exec(
+            "DELETE FROM bf_transactions WHERE category = 'Cost of Sales' AND reference = ?",
+            [clean('COST-' . $basis_ref, 30)]
+        );
+        db_exec("DELETE FROM bf_invoices WHERE ref_id = ?", [$ref_id]);
+        db_commit();
+    } catch (Exception $e) {
+        db_rollback();
+        json_err('Invoice deletion failed - no changes saved', 500);
+    }
     audit($usr['username'], 'DELETE', "Invoice $ref_id deleted");
     json_ok([], "Invoice $ref_id deleted");
 }

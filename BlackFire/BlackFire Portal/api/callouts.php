@@ -20,6 +20,47 @@ $user   = require_auth();
 $method = $_SERVER['REQUEST_METHOD'];
 $ref_id = clean($_GET['id'] ?? '', 20);
 
+// ── GET — Chain lookup ─────────────────────────────────
+if ($method === 'GET' && ($_GET['action'] ?? '') === 'chain') {
+    require_perm('callout.view');
+    $ref = clean($_GET['ref'] ?? '', 30);
+    if (!$ref) json_err('ref required');
+
+    $co = db_row(
+        "SELECT c.*, COALESCE(u.name,'') AS logged_by_name
+           FROM bf_callouts c
+           LEFT JOIN bf_users u ON u.id = c.logged_by_user_id
+          WHERE c.ref_id = ?", [$ref]);
+    if (!$co) json_err('Callout not found', 404);
+
+    $quote = db_row(
+        "SELECT q.*, COALESCE(u.name,'') AS submitted_by_name
+           FROM bf_quotes q
+           LEFT JOIN bf_users u ON u.id = q.submitted_by_user_id
+          WHERE q.callout_ref = ? OR q.callout_id = ? LIMIT 1",
+        [$ref, (int)$co['id']]);
+
+    $items = $quote
+        ? db_select("SELECT * FROM bf_quote_items WHERE quote_id = ? ORDER BY id", [(int)$quote['id']])
+        : [];
+
+    $invoice = db_row(
+        "SELECT * FROM bf_invoices WHERE callout_ref = ? OR callout_id = ? LIMIT 1",
+        [$ref, (int)$co['id']]);
+
+    $payments = $invoice
+        ? db_select("SELECT * FROM bf_payments WHERE invoice_ref = ? ORDER BY payment_date", [$invoice['ref_id']])
+        : [];
+
+    json_ok([
+        'callout'     => $co,
+        'quote'       => $quote ?: null,
+        'quote_items' => $items,
+        'invoice'     => $invoice ?: null,
+        'payments'    => $payments,
+    ]);
+}
+
 // ── GET — List ─────────────────────────────────────────
 if ($method === 'GET') {
     require_perm('callout.view');

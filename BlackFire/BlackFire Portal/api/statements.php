@@ -145,7 +145,7 @@ if ($method === 'PUT') {
 
     $stmt = db_row("SELECT * FROM bf_statements WHERE ref_id = ?", [$ref_id]);
     if (!$stmt) json_err('Statement not found', 404);
-    if ($stmt['status'] !== 'pending_approval') json_err('Statement is not pending approval');
+    if (!in_array($stmt['status'], ['pending_approval', 'released'])) json_err('Statement cannot be sent');
 
     $from_email = clean($b['from_email'] ?? '', 150);
     $to_emails  = $b['to_emails'] ?? [];
@@ -216,8 +216,9 @@ if ($method === 'PUT') {
         [(int)$user['id'], $from_email, implode(',', $clean_tos), $ref_id]
     );
 
-    audit($user['username'], 'STATEMENT_RELEASED',
-          "Statement {$ref_id} released from {$from_email} to " . implode(', ', $clean_tos));
+    $audit_action = ($stmt['status'] === 'released') ? 'STATEMENT_RESENT' : 'STATEMENT_RELEASED';
+    audit($user['username'], $audit_action,
+          "Statement {$ref_id} sent from {$from_email} to " . implode(', ', $clean_tos));
 
     $stmt = db_row("SELECT * FROM bf_statements WHERE ref_id = ?", [$ref_id]);
     $msg = empty($errors)
