@@ -1378,7 +1378,7 @@ textarea.saf-cmt { resize:vertical; min-height:28px; width:100% }
 
 /* ── Hamburger button (hidden on desktop, shown by media query above) ── */
 .pub-ham-btn{
-  display:none;flex-direction:column;justify-content:center;
+  flex-direction:column;justify-content:center;
   gap:5px;padding:8px;background:none;border:none;cursor:pointer;
   -webkit-tap-highlight-color:transparent;
 }
