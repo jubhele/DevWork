@@ -353,7 +353,7 @@ export default function PublicLanding() {
           <div className="sec-head rv">
             <div className="eyebrow">What We Do</div>
             <h2>Eight disciplines. One command.</h2>
-            <p className="sec-sub">Fifty-five services across eight specialist disciplines &mdash; designed to interlock, not to be sold piecemeal.</p>
+            <p className="sec-sub">Fifty services across eight specialist disciplines &mdash; designed to interlock, not to be sold piecemeal.</p>
           </div>
           <div className="svc-grid">
             {[
@@ -366,17 +366,17 @@ export default function PublicLanding() {
               { img: 'photo-1687274427456-ccf06e264df2', alt: 'Perimeter fence', g: 'g-up', h: 'Perimeter Detection', p: 'Electric fencing, beams and thermal lines that find the breach before it becomes an entry.' },
               { img: 'photo-1484480974693-6ca0a78fb36b', alt: 'Inspection checklist', g: 'g-down', h: 'Risk & Compliance', p: 'Site assessments, safety files and audit-ready documentation — managed in the Umlilo Portal.' },
             ].map(s => (
-              <div className="svc-card rv" key={s.h}>
+              <a className="svc-card rv" href="#assess" key={s.h} aria-label={`Request an assessment for ${s.h}`} onClick={() => setChips(current => ({ ...current, [s.h]: true }))}>
                 <div className="svc-img">
                   <Image src={`https://images.unsplash.com/${s.img}?auto=format&fit=crop&w=800&h=500&q=80`} alt={s.alt} fill style={{ objectFit: 'cover' }} loading="lazy" unoptimized />
                   <span className={`svc-glyph ${s.g}`} />
                 </div>
                 <h3>{s.h}</h3>
                 <p>{s.p}</p>
-              </div>
+              </a>
             ))}
           </div>
-          <div className="svc-more rv"><a href="#assess">VIEW ALL 55 SERVICES &rarr;</a></div>
+          <div className="svc-more rv"><a href="#assess">REQUEST A SERVICE ASSESSMENT &rarr;</a></div>
         </div>
       </section>
 
