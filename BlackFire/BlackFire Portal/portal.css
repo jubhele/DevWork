@@ -669,6 +669,10 @@ tr:hover td{background:var(--row-hover)}
 @media(max-width:640px){
   #back-to-top{width:44px;height:44px;bottom:20px;right:20px;font-size:18px}
 }
+html[data-state="public"] #back-to-top{bottom:96px}
+@media(max-width:640px){
+  html[data-state="public"] #back-to-top{bottom:88px;right:22px}
+}
 
 /* Responsive portal — centered content, no sidebar offset */
 [data-state="portal"] #pmain{
