@@ -27,7 +27,7 @@ $companyLogoUrl = rtrim($cfg['base_url'] ?? '', '/') . '/' . ltrim($cfg['company
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://blackfiresolutions.co.za/">
 <meta property="og:title" content="<?= htmlspecialchars($cfg['company_name'] ?? 'BlackFire Solutions') ?> — Security Engineered to Protect">
-<meta property="og:description" content="PSIRA registered security company headquartered in Gauteng, operating nationwide. Specialists in drone surveillance, AI-powered CCTV, access control, armed response and integrated security technology across South Africa. 500+ clients. 55+ services.">
+<meta property="og:description" content="PSIRA registered security company headquartered in Gauteng, operating nationwide. Specialists in drone surveillance, AI-powered CCTV, access control, armed response and integrated security technology across South Africa. 500+ clients. 50+ services.">
 <meta property="og:image" content="<?= htmlspecialchars($companyLogoUrl) ?>">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -311,12 +311,12 @@ $companyLogoUrl = rtrim($cfg['base_url'] ?? '', '/') . '/' . ltrim($cfg['company
         <div class="sec-head rv">
           <div class="eyebrow">What We Do</div>
           <h2>Eight disciplines. One command.</h2>
-          <p class="sec-sub">Fifty-five services across eight specialist disciplines &mdash; designed to interlock, not to be sold piecemeal.</p>
+          <p class="sec-sub">Fifty services across eight specialist disciplines &mdash; designed to interlock, not to be sold piecemeal.</p>
         </div>
         <div id="home-cats" class="home-cats"></div>
         <div id="svc-filters" class="services-filter-row pub-svc-filters"></div>
         <div id="svc-grid" class="svc-grid"></div>
-        <div class="svc-more rv"><a href="#assess">VIEW ALL 55 SERVICES &rarr;</a></div>
+        <div class="svc-more rv"><a href="#assess">REQUEST A SERVICE ASSESSMENT &rarr;</a></div>
       </div>
     </section>
 
@@ -327,7 +327,7 @@ $companyLogoUrl = rtrim($cfg['base_url'] ?? '', '/') . '/' . ltrim($cfg['company
         <div class="stat rv"><div class="v"><span data-count="500">0</span><small>+</small></div><div class="k">Active clients</div></div>
         <div class="stat rv"><div class="v"><small>&lt;</small><span data-count="4">0</span><small>min</small></div><div class="k">Avg. response</div></div>
         <div class="stat rv"><div class="v">24<small>/7</small></div><div class="k">Control room</div></div>
-        <div class="stat rv"><div class="v"><span data-count="55">0</span><small>+</small></div><div class="k">Services offered</div></div>
+        <div class="stat rv"><div class="v"><span data-count="50">0</span><small>+</small></div><div class="k">Services offered</div></div>
       </div>
     </section>
 
@@ -593,7 +593,7 @@ $companyLogoUrl = rtrim($cfg['base_url'] ?? '', '/') . '/' . ltrim($cfg['company
 
     <div id="p-services" class="ppage">
       <div class="embed-hdr">
-        <div class="ptitle">Services</div><div class="psub">55 SERVICES  -  8 CATEGORIES</div>
+        <div class="ptitle">Services</div><div class="psub">50 SERVICES  -  8 CATEGORIES</div>
       </div>
       <div class="portal-svc-section">
         <div class="services-filter-row portal-svc-filters" id="portal-svc-filters"></div>

@@ -2262,14 +2262,19 @@ function buildSvcGrid(ctx){
     document.getElementById(gridId).innerHTML=items.map(s=>`<div class="svc-card"><div class="svc-img-wrap"><img src="${SVC_IMAGES[s.name]||''}" alt="${esc(s.name)}" class="svc-img" loading="lazy"><div class="svc-img-scrim"></div></div><div class="svc-card-body"><div class="svc-cat-dot"></div><div><div class="svc-name">${esc(s.name)}</div><div class="svc-cat">${esc(s.cat)}</div></div></div></div>`).join('');
   };
   const chips=['All',...CATEGORIES.map(c=>c.name)];
-  document.getElementById(filterId).innerHTML=chips.map(c=>`<div class="filter-chip ${c==='All'?'active':''}" data-action="filterSvc" data-cat="${esc(c)}" data-ctx="${ctx}">${esc(c)}</div>`).join('');
+  document.getElementById(filterId).innerHTML=chips.map(c=>`<button type="button" class="filter-chip ${c==='All'?'active':''}" data-action="filterSvc" data-cat="${esc(c)}" data-ctx="${ctx}" aria-pressed="${c==='All'?'true':'false'}">${esc(c)}</button>`).join('');
   render();
   window._svcF=window._svcF||{};
   window._svcF[ctx]={setActive:(v)=>{active=v==='All'?'all':v;render();}};
 }
 function filterSvc(el,cat,ctx){
-  document.querySelectorAll(`#${ctx==='pub'?'svc-filters':'portal-svc-filters'} .filter-chip`).forEach(c=>c.classList.remove('active'));
-  el.classList.add('active');window._svcF[ctx].setActive(cat);
+  document.querySelectorAll(`#${ctx==='pub'?'svc-filters':'portal-svc-filters'} .filter-chip`).forEach(c=>{
+    c.classList.remove('active');
+    c.setAttribute('aria-pressed','false');
+  });
+  el.classList.add('active');
+  el.setAttribute('aria-pressed','true');
+  window._svcF[ctx].setActive(cat);
 }
 function submitContact(){
   const n=document.getElementById('cf-name').value.trim();

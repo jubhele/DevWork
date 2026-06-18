@@ -270,16 +270,20 @@ body::before{content:'';position:fixed;inset:0;background-image:url('./blackfire
 
 /* ── CATEGORY CARDS ── */
 #pub-home .home-cats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:40px;margin-bottom:36px}
-#pub-home .cat-card{background:var(--navy);border:1px solid var(--steel-dk);border-radius:3px;padding:22px 18px;cursor:pointer;display:flex;flex-direction:column;gap:10px;position:relative;overflow:hidden;transition:border-color .22s}
+#pub-home .cat-card{width:100%;background:var(--navy);border:1px solid var(--steel-dk);border-radius:3px;padding:22px 18px;cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;gap:10px;position:relative;overflow:hidden;transition:border-color .22s;text-align:left;font-family:var(--f-body);color:inherit}
 #pub-home .cat-card::after{content:'';position:absolute;left:0;bottom:0;height:3px;width:100%;background:linear-gradient(90deg,var(--ember),var(--fire),var(--amber));transform:scaleX(0);transform-origin:left}
 @media (prefers-reduced-motion: no-preference){#pub-home .cat-card::after{transition:transform .26s}}
-#pub-home .cat-card:hover::after{transform:scaleX(1)}
-#pub-home .cat-card:hover{border-color:var(--ash)}
+#pub-home .cat-card:hover::after,#pub-home .cat-card.active::after{transform:scaleX(1)}
+#pub-home .cat-card:hover,#pub-home .cat-card.active{border-color:var(--ash)}
+#pub-home .cat-card:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
 #pub-home .cat-icon{font-size:28px;line-height:1}
 #pub-home .cat-name{font-family:var(--f-disp);font-weight:700;text-transform:uppercase;font-size:16px;letter-spacing:.03em;color:var(--bone)}
 #pub-home .cat-count{font-family:var(--f-mono);font-size:10px;letter-spacing:.14em;color:var(--gold);text-transform:uppercase}
 /* filter row */
 #pub-home .pub-svc-filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px}
+#pub-home .filter-chip{min-height:38px;padding:0 14px;border:1px solid var(--steel-dk);border-radius:20px;background:var(--navy);color:var(--steel);font-family:var(--f-body);font-size:13px;cursor:pointer}
+#pub-home .filter-chip:hover,#pub-home .filter-chip.active{border-color:var(--fire);background:var(--charcoal);color:var(--bone)}
+#pub-home .filter-chip:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 @media (max-width:1020px){#pub-home .home-cats{grid-template-columns:repeat(2,1fr)}}
 @media (max-width:520px){#pub-home .home-cats{grid-template-columns:1fr}}
 
