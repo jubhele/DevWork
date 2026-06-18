@@ -2237,15 +2237,17 @@ const SERVICES=[
   {name:'VIP & Executive Protection',cat:'Event Security'},{name:'Crowd Management',cat:'Event Security'},{name:'Sports Event Security',cat:'Event Security'},
 ];
 function buildHomeCats(){
-  document.getElementById('home-cats').innerHTML=CATEGORIES.map(c=>`<div class="cat-card" data-action="pubNavCat" data-cat="${esc(c.name)}"><span class="cat-icon">${c.icon}</span><div class="cat-name">${esc(c.name)}</div><div class="cat-count">${c.count} SERVICES</div></div>`).join('');
+  document.getElementById('home-cats').innerHTML=CATEGORIES.map(c=>`<button type="button" class="cat-card" data-action="pubNavCat" data-cat="${esc(c.name)}" aria-controls="svc-grid" aria-label="Show ${esc(c.name)} services"><span class="cat-icon" aria-hidden="true">${c.icon}</span><span class="cat-name">${esc(c.name)}</span><span class="cat-count">${c.count} SERVICES</span></button>`).join('');
 }
 function pubNavCat(el){
   const cat=el.dataset.cat;
-  pubNav('services');
   if(cat && window._svcF && window._svcF.pub){
     const chip=document.querySelector(`#svc-filters .filter-chip[data-cat="${cat}"]`);
     if(chip) filterSvc(chip,cat,'pub');
   }
+  document.querySelectorAll('#home-cats .cat-card').forEach(card=>card.classList.toggle('active',card===el));
+  history.replaceState(null,'','#services');
+  document.getElementById('svc-filters')?.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
 }
 function buildTicker(){
   const items=SERVICES.slice(0,20).map(s=>`<div class="live-item"><span class="live-dot"></span>${esc(s.name)}</div>`).join('');
