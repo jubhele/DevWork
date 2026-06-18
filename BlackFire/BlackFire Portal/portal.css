@@ -367,6 +367,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url('./blackfire
   #pub-home .hero .wrap,#pub-home .about-grid,#pub-home .faq-grid{grid-template-columns:1fr;gap:38px}
   #pub-home .hero{padding:48px 0 84px}
   #pub-home .faq-frame{position:static;aspect-ratio:16/10}
+  #pub-home .cta-frame{width:100%;height:420px;min-height:0;aspect-ratio:auto}
   #pub-home .steps{grid-template-columns:1fr}
   #pub-home .wiz-grid{grid-template-columns:1fr}
   #pub-site .v3-topbar{font-size:10px;padding:7px 14px}
