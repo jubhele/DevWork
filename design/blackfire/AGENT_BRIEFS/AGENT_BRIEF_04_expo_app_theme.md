@@ -7,11 +7,14 @@
 - `izilo.tsx` — `<IziloBand variant="diamond|chevron|triangle">` as react-native-svg components reproducing the three bands (geometry in the reference HTML's data-URIs — port exactly).
 - `components/` — Button (fire/ghost), Field, Chip, StatCard, SpecFrame (image placeholder carrying brief id), StepCounter (`01 / 04` mono).
 - `Preloader.tsx` — Ignition triangle fill, ≤1.2s, respects `AccessibilityInfo.isReduceMotionEnabled`.
+- A visible light/dark switch on login and authenticated headers, persisted under
+  `bf-theme` in SecureStore and initialized from the system preference when unset.
 
 ## Guards
 - Expo React Native only — Capacitor remains rejected (Apple 4.2).
 - No secrets in the app bundle; API base URL via app config.
 - Dark register is the app default; light register for document/evidence screens.
+- Theme choice is user-controlled; do not force dark mode or remove the switch during reskins.
 
 ## Exit gate
 Storybook (or Expo preview) screen showing every component in both registers + session log. No store submission in this brief.

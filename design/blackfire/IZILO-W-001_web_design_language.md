@@ -72,6 +72,14 @@ cream #E4DED2 · graphite #C8C1B3 dividers · ink #1A1814 text.
 **Embers dark:** #C0392B / #E05A1A / #F07820 / #F5A623.
 **Embers light (deepened):** #A82A1E / #C94A10 / #E06A1A / #D48A15.
 
+**Theme choice is permanent:** website, portal and app must expose a visible light/dark
+switch. Light uses Paper #F5F1EA, Raised Paper #FFFDF8, Warm Paper #EDE8DE,
+Ink #1A1814, Secondary Ink #4A4638 and accessible control Fire #BE430D
+(display Fire remains #C94A10). Dark uses Coal #0A0E19,
+Navy #141B26, Charcoal #1E2530, Bone #E0E4EA, Steel #A8B2BE and Ember Amber
+#F07820. Web stores the choice under `bf-theme`; Expo stores the same key in
+SecureStore. System preference is used only when no saved choice exists.
+
 **Type:** Big Shoulders Display (display, 700–900, uppercase, tracking −0.5 to +1%) ·
 Instrument Sans (body/UI) · IBM Plex Mono (data: stats, step counters, eyebrows,
 badges, PSIRA reg) · Instrument Serif (testimonial pull-quotes ONLY).
@@ -124,6 +132,8 @@ These have all been fixed before. Any agent that regresses one fails QA:
 8. `_backups/` snapshot of every existing file BEFORE modification (constitution §7a).
 9. Naming: "Umlilo Portal", "BlackFire Solutions", "BLKFR". Never "BFS". No "demo"/"TEST"/"sample" strings in UI.
 10. `portal.php` stays live throughout — section-by-section grafts, no big-bang rewrite.
+11. The light/dark switch stays visible and functional on public website, login,
+    authenticated portal and mobile app. Every semantic theme token exists in both modes.
 
 ## 9. Rollout order
 

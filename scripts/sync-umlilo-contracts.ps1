@@ -79,6 +79,9 @@ function Generate-Types {
         Add-Blank $lines
     }
 
+    if ($lines.Count -gt 0 -and $lines[$lines.Count - 1] -eq '') {
+        $lines.RemoveAt($lines.Count - 1)
+    }
     Write-Utf8NoBom -Path $Path -Lines $lines
 }
 
@@ -99,6 +102,19 @@ function Generate-Tokens {
         [void]$lines.Add("  $(Format-TsKey $color.Name): $(Quote-TsString $color.Value),")
     }
     [void]$lines.Add('} as const')
+    Add-Blank $lines
+
+    [void]$lines.Add('export const themes = {')
+    foreach ($theme in $Tokens.themes.PSObject.Properties) {
+        [void]$lines.Add("  $(Format-TsKey $theme.Name): {")
+        foreach ($token in $theme.Value.PSObject.Properties) {
+            [void]$lines.Add("    $(Format-TsKey $token.Name): $(Quote-TsString $token.Value),")
+        }
+        [void]$lines.Add('  },')
+    }
+    [void]$lines.Add('} as const')
+    [void]$lines.Add('export type ThemeMode = keyof typeof themes')
+    [void]$lines.Add('export type ThemePalette = (typeof themes)[ThemeMode]')
     Add-Blank $lines
 
     [void]$lines.Add('export const fonts = {')

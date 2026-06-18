@@ -24,6 +24,39 @@ export const colors = {
   complianceGreen: '#27AE60',
 } as const
 
+export const themes = {
+  light: {
+    canvas: '#F5F1EA',
+    surface: '#FFFDF8',
+    surfaceRaised: '#EDE8DE',
+    border: '#C8C1B3',
+    borderStrong: '#AFA797',
+    text: '#1A1814',
+    textSecondary: '#4A4638',
+    muted: '#6B665A',
+    accent: '#BE430D',
+    accentStrong: '#A82A1E',
+    accentSoft: '#F3DFD1',
+    onAccent: '#FFFFFF',
+  },
+  dark: {
+    canvas: '#0A0E19',
+    surface: '#141B26',
+    surfaceRaised: '#1E2530',
+    border: '#2B3340',
+    borderStrong: '#3D4A58',
+    text: '#E0E4EA',
+    textSecondary: '#A8B2BE',
+    muted: '#8894A5',
+    accent: '#F07820',
+    accentStrong: '#E05A1A',
+    accentSoft: '#35241D',
+    onAccent: '#0A0E19',
+  },
+} as const
+export type ThemeMode = keyof typeof themes
+export type ThemePalette = (typeof themes)[ThemeMode]
+
 export const fonts = {
   display: 'Big Shoulders Display',
   body: 'Instrument Sans',

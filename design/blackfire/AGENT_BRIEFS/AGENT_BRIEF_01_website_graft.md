@@ -11,7 +11,7 @@
 ## Section graft order (each = one commit)
 1. CSS tokens + IZILO band classes + spec-frame styles → append to portal.css under a `/* ═ V3 ═ */` banner. Do NOT delete existing classes yet — v2 selectors are removed only in the final cleanup commit after all sections render.
 2. Ignition preloader → markup at top of `#pub-site`; JS into portal.js (sessionStorage key `bf_ign`, reduced-motion skip). NO inline `<script>` without `nonce="<?= $cspNonce ?>"` — prefer portal.js.
-3. Topbar + nav (sticky/solid swap, logo on-dark variant via existing `.bf-logo-dark/.bf-logo-light` mechanism).
+3. Topbar + nav (sticky/solid swap, logo on-dark variant via existing `.bf-logo-dark/.bf-logo-light` mechanism, visible light/dark switch persisted as `bf-theme`).
 4. Hero — keep the PHP-templated headline exactly: `Security<br><span>engineered</span><br>to <span>protect.</span>` with `htmlspecialchars($cfg[...])` eyebrow. Spec-frame for IMG-BRIEF-01 until photography lands.
 5. Assessment wizard — markup + portal.js logic from reference. Wire submit to `api/public_enquiry.php` (AGENT_BRIEF_02 must be merged first). Map fields: name, company, phone, email, service = joined requirement chips, message = site_type + province + area + notes concatenated as labelled lines.
 6. About, Services (wire the 8 cards to existing `images/services/*.jpg` thumbs — glyphs in the reference become 64px image headers; keep ember underline hover), Stats, Testimonials, FAQ, How-it-works, CTA banner, Footer, WhatsApp FAB — in that order.
@@ -23,6 +23,7 @@
 - All dynamic `innerHTML` through `esc()`. The wizard review builder in the reference already does this — copy it exactly.
 - Zero `console.log`. Zero `demo|TEST|sample` strings.
 - Touch targets ≥44px; verify at 360px width; hamburger preserved.
+- Public website, login and portal retain a working light/dark switch; neither mode may contain unresolved semantic tokens.
 - Naming: "Umlilo Portal", never "BFS".
 - Existing `data-action` event-delegation pattern in portal.js is the house style — new interactions use it, not scattered listeners, except where the reference's module pattern is self-contained (preloader, wizard).
 
