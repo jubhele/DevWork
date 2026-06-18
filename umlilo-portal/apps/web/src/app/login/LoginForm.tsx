@@ -2,6 +2,8 @@
 
 import { Suspense, useState, useEffect, FormEvent } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
+import ThemeToggle from '@/components/ThemeToggle'
 
 interface CaptchaState {
   question: string
@@ -96,6 +98,9 @@ function LoginForm() {
 
   return (
     <div className="w-full max-w-sm">
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+        <ThemeToggle />
+      </div>
       {/* ── Login Panel ── */}
       {panel === 'login' && (
         <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 2, overflow: 'hidden' }}>
@@ -175,9 +180,9 @@ function LoginForm() {
                 Forgot password?
               </span>
               <span style={{ color: 'var(--muted)' }}>·</span>
-              <a href="/" style={{ color: 'var(--muted)', textDecoration: 'none' }}>
+              <Link href="/" style={{ color: 'var(--muted)', textDecoration: 'none' }}>
                 Back to site
-              </a>
+              </Link>
             </div>
           </form>
         </div>

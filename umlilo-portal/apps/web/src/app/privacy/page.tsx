@@ -1,3 +1,5 @@
+import ThemeToggle from '@/components/ThemeToggle'
+
 export const metadata = {
   title: 'Privacy Policy — BlackFire Solutions',
 }
@@ -11,6 +13,7 @@ export default function PrivacyPage() {
       <div className="max-w-3xl mx-auto">
         {/* Header */}
         <div className="mb-10">
+          <ThemeToggle className="float-right" />
           <span className="font-display text-2xl tracking-widest text-flame-gold uppercase">BlackFire</span>
           <p className="text-ash text-sm mt-1">Umlilo Portal — Privacy Policy</p>
         </div>

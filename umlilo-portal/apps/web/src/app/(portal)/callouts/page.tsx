@@ -40,12 +40,6 @@ export default async function CalloutsPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="font-display text-2xl tracking-wider text-bone-paper uppercase">Callouts</h1>
-        <Link
-          href="/callouts/new"
-          className="bg-fire-orange hover:bg-ember-amber text-coal font-display text-xs tracking-widest uppercase px-4 py-2 rounded transition-colors"
-        >
-          New Callout
-        </Link>
       </div>
 
       {callouts.length === 0 ? (

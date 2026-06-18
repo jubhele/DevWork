@@ -1,8 +1,9 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Image from 'next/image'
+import Link from 'next/link'
+import ThemeToggle from '@/components/ThemeToggle'
 import './landing.css'
 
 const TESTIMONIALS = [
@@ -24,9 +25,10 @@ const TESTIMONIALS = [
 ]
 
 const WIZARD_STEPS = ['CONTACT', 'SITE', 'REQUIREMENTS', 'REVIEW']
+type WizardForm = { name: string; company: string; phone: string; email: string; site_type: string; province: string; area: string; message: string }
+const EMPTY_WIZARD_FORM: WizardForm = { name: '', company: '', phone: '', email: '', site_type: '', province: '', area: '', message: '' }
 
 export default function PublicLanding() {
-  const router = useRouter()
   const [navSolid, setNavSolid] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [wizStep, setWizStep] = useState(1)
@@ -39,12 +41,10 @@ export default function PublicLanding() {
   const [ignDone, setIgnDone] = useState(false)
   const [ignPct, setIgnPct] = useState(0)
 
-  const wForm = useRef<{ name: string; company: string; phone: string; email: string; site_type: string; province: string; area: string; message: string }>({
-    name: '', company: '', phone: '', email: '', site_type: '', province: '', area: '', message: '',
-  })
-  const [formV, setFormV] = useState({ ...wForm.current })
+  const wForm = useRef<WizardForm>({ ...EMPTY_WIZARD_FORM })
+  const [formV, setFormV] = useState<WizardForm>({ ...EMPTY_WIZARD_FORM })
 
-  const updateField = (k: keyof typeof wForm.current, v: string) => {
+  const updateField = (k: keyof WizardForm, v: string) => {
     wForm.current[k] = v
     setFormV(prev => ({ ...prev, [k]: v }))
   }
@@ -52,7 +52,10 @@ export default function PublicLanding() {
   // Ignition preloader
   useEffect(() => {
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    if (reduced || sessionStorage.getItem('bf_ign')) { setIgnDone(true); return }
+    if (reduced || sessionStorage.getItem('bf_ign')) {
+      const doneTimer = window.setTimeout(() => setIgnDone(true), 0)
+      return () => window.clearTimeout(doneTimer)
+    }
     let pct = 0
     const t = setInterval(() => {
       pct = Math.min(100, pct + Math.ceil(Math.random() * 16))
@@ -183,7 +186,8 @@ export default function PublicLanding() {
           <a href="#assess">Get Assessed</a>
         </div>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          <button className="v3-btn v3-btn-ghost nav-cta" onClick={() => router.push('/login')}>Umlilo Portal &rarr;</button>
+          <ThemeToggle />
+          <Link className="v3-btn v3-btn-ghost nav-cta" href="/login">Umlilo Portal &rarr;</Link>
           <button className="ham-btn" aria-label="Open menu" aria-expanded={menuOpen} onClick={() => setMenuOpen(o => !o)}>&#8801;</button>
         </div>
       </nav>
@@ -511,7 +515,7 @@ export default function PublicLanding() {
             <a href="#assess">Request Assessment</a>
             <a href="tel:+27689126581">+27 68 912 6581</a>
             <a href="mailto:info@blackfiresolutions.co.za">info@blackfiresolutions.co.za</a>
-            <span className="login-link" onClick={() => router.push('/login')}>Umlilo Portal &rarr;</span>
+            <Link className="login-link" href="/login">Umlilo Portal &rarr;</Link>
           </div>
           <div className="foot-col news">
             <h4>Stay informed</h4>
@@ -523,7 +527,7 @@ export default function PublicLanding() {
               </button>
             </div>
             <div className="news-note">POPIA-compliant. Unsubscribe any time.</div>
-            <span className="login-link" style={{ marginTop: 18, fontFamily: 'var(--f-mono)', fontSize: 13, letterSpacing: '.14em', color: 'var(--gold)' }} onClick={() => router.push('/login')}>Umlilo Portal &rarr;</span>
+            <Link className="login-link" href="/login" style={{ marginTop: 18, fontFamily: 'var(--f-mono)', fontSize: 13, letterSpacing: '.14em', color: 'var(--gold)' }}>Umlilo Portal &rarr;</Link>
           </div>
         </div>
         <div className="wrap foot-bottom">

@@ -10,6 +10,11 @@
   --color-ash:           #7A8699;
   --color-steel:         #A8B2BE;
   --color-bone:          #E0E4EA;
+  --color-bone-paper:    #E0E4EA;
+  --color-ember-red:     #C0392B;
+  --color-fire-orange:   #E05A1A;
+  --color-ember-amber:   #F07820;
+  --color-flame-gold:    #F5A623;
 
   /* Light register — paper/cream */
   --color-paper:         #F5F1EA;
@@ -58,7 +63,7 @@
 
 /* ── Base ──────────────────────────────────────────────────────────────────── */
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 
   /* PHP portal CSS variable aliases — keeps login page in sync with PHP */
   --bg:       #0A0E19;
@@ -70,8 +75,111 @@
   --accent:   #F07820;
 }
 
+html[data-theme="light"] {
+  color-scheme: light;
+  --color-coal: #F5F1EA;
+  --color-navy: #FFFDF8;
+  --color-charcoal: #EDE8DE;
+  --color-steel-dark: #C8C1B3;
+  --color-ash: #6B665A;
+  --color-steel: #4A4638;
+  --color-bone: #1A1814;
+  --color-bone-paper: #1A1814;
+  --color-ember: #A82A1E;
+  --color-fire: #BE430D;
+  --color-fire-orange: #BE430D;
+  --color-ember-red: #A82A1E;
+  --color-ember-amber: #B84A10;
+  --color-flame-gold: #9A650A;
+  --color-amber: #E06A1A;
+  --color-gold: #B9700F;
+  --bg: #F5F1EA;
+  --surface: #FFFDF8;
+  --surface2: #EDE8DE;
+  --border: #C8C1B3;
+  --text: #1A1814;
+  --muted: #6B665A;
+  --accent: #BE430D;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --color-coal: #0A0E19;
+  --color-navy: #141B26;
+  --color-charcoal: #1E2530;
+  --color-steel-dark: #2B3340;
+  --color-ash: #8894A5;
+  --color-steel: #A8B2BE;
+  --color-bone: #E0E4EA;
+  --color-bone-paper: #E0E4EA;
+  --color-ember: #C0392B;
+  --color-fire: #E05A1A;
+  --color-fire-orange: #E05A1A;
+  --color-ember-red: #C0392B;
+  --color-ember-amber: #F07820;
+  --color-flame-gold: #F5A623;
+  --color-amber: #F07820;
+  --color-gold: #F5A623;
+  --bg: #0A0E19;
+  --surface: #141B26;
+  --surface2: #1E2530;
+  --border: #2B3340;
+  --text: #E0E4EA;
+  --muted: #8894A5;
+  --accent: #F07820;
+}
+
 body {
   background: var(--color-coal);
   color: var(--color-bone-paper);
   font-family: var(--font-body);
+  transition: background-color .2s ease, color .2s ease;
+}
+
+.theme-toggle {
+  min-height: 44px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid var(--color-steel-dark);
+  border-radius: 3px;
+  background: var(--color-navy);
+  color: var(--color-bone-paper);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  cursor: pointer;
+}
+
+.theme-toggle:hover,
+.theme-toggle:focus-visible {
+  border-color: var(--color-fire);
+  color: var(--color-fire);
+  outline: none;
+}
+
+.theme-toggle__mark {
+  width: 16px;
+  height: 16px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  background: linear-gradient(90deg, currentColor 50%, transparent 50%);
+}
+
+@media (max-width: 600px) {
+  .theme-toggle {
+    width: 44px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .theme-toggle__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
 }

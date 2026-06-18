@@ -1,5 +1,4 @@
 import { cookies } from 'next/headers'
-import Link from 'next/link'
 import { getApiAuthHeaders } from '@/lib/auth'
 import type { Invoice, PaginatedResponse } from '@blackfire/types'
 
@@ -82,9 +81,9 @@ export default async function InvoicesPage() {
                   className={`border-b border-steel-dark/50 hover:bg-charcoal transition-colors ${i % 2 === 0 ? '' : 'bg-charcoal/30'}`}
                 >
                   <td className="px-4 py-3">
-                    <Link href={`/invoices/${inv.id}`} className="text-flame-gold hover:text-fire-orange font-mono text-xs">
+                    <span className="text-flame-gold font-mono text-xs">
                       {inv.invoice_number ?? inv.invoice_no ?? inv.ref_id ?? inv.id}
-                    </Link>
+                    </span>
                   </td>
                   <td className="px-4 py-3 text-bone-paper">{inv.client_name}</td>
                   <td className="px-4 py-3">

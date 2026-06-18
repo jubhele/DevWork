@@ -128,6 +128,10 @@ $companyLogoUrl = rtrim($cfg['base_url'] ?? '', '/') . '/' . ltrim($cfg['company
     <a class="pub-nav-link" href="#assess">Get Assessed</a>
   </div>
   <div class="v3-topbar-actions">
+    <button class="theme-btn" type="button" data-action="toggleTheme" aria-label="Toggle light and dark mode" title="Toggle light and dark mode">
+      <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+      <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>
+    </button>
     <button class="v3-btn v3-btn-ghost" type="button" data-action="goLogin">Umlilo Portal &rarr;</button>
     <button class="pub-ham-btn" id="v3ham" aria-label="Open menu" aria-expanded="false">&#8801;</button>
   </div>
@@ -550,7 +554,7 @@ $companyLogoUrl = rtrim($cfg['base_url'] ?? '', '/') . '/' . ltrim($cfg['company
     <img src="<?= htmlspecialchars($cfg['company_logo'] ?? './blackfire_logo_transparent.png') ?>" alt="<?= htmlspecialchars($cfg['company_name'] ?? 'BlackFire Solutions') ?>" height="50" class="bf-logo-light">
     <div class="ptb-right">
       <span id="ptb-user"></span>
-      <button class="theme-btn" data-action="toggleTheme">
+      <button class="theme-btn" type="button" data-action="toggleTheme" aria-label="Toggle light and dark mode" title="Toggle light and dark mode">
         <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
         <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>
       </button>

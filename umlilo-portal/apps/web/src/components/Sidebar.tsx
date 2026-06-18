@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useUser } from '@/context/UserContext'
+import ThemeToggle from '@/components/ThemeToggle'
 
 interface NavItem {
   href: string
@@ -16,10 +17,6 @@ const NAV: NavItem[] = [
   { href: '/callouts',          label: 'Callouts',       permission: 'callout.view' },
   { href: '/quotes',            label: 'Quotes',         permission: 'quote.view' },
   { href: '/invoices',          label: 'Invoices',       permission: 'invoice.view' },
-  { href: '/safety',            label: 'Safety Files',   permission: 'safety.view' },
-  { href: '/clients',           label: 'Clients',        permission: 'client.view' },
-  { href: '/finance',           label: 'Finance',        permission: 'finance.view' },
-  { href: '/admin/users',       label: 'Users',          permission: 'user.view' },
   { href: '/admin/audit',       label: 'Audit Log',      roles: ['sysadmin', 'admin'] },
 ]
 
@@ -66,9 +63,10 @@ export default function Sidebar() {
       </nav>
 
       {/* User */}
-      <div className="px-5 py-4 border-t border-steel-dark text-xs text-ash">
+      <div className="px-5 py-4 border-t border-steel-dark text-xs text-ash space-y-3">
         <div className="font-medium text-bone-paper truncate">{user.name}</div>
         <div className="capitalize">{user.role.replace('_', ' ')}</div>
+        <ThemeToggle className="w-full justify-center" />
       </div>
     </aside>
   )
