@@ -388,7 +388,7 @@ export default function PublicLanding() {
             { count: 500, suffix: '+', label: 'Active clients', prefix: null },
             { count: 4, suffix: 'min', label: 'Avg. response', prefix: '<' },
             { count: null, suffix: '/7', label: 'Control room', prefix: '24' },
-            { count: 55, suffix: '+', label: 'Services offered', prefix: null },
+            { count: 50, suffix: '+', label: 'Services offered', prefix: null },
           ].map((s, i) => (
             <div className="stat rv" key={i}>
               <div className="v">
