@@ -210,14 +210,19 @@ if ($export) {
         http_response_code(403);
         exit;
     }
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
+    ini_set('display_errors', '0');
     $rows = call_user_func($fn);
-    ob_end_clean();
     header('Content-Type: text/csv; charset=UTF-8');
     header('Content-Disposition: attachment; filename="blackfire_' . $fname . '_' . date('Ymd') . '.csv"');
     if (!empty($rows)) {
         $f = fopen('php://output', 'w');
-        fputcsv($f, array_keys($rows[0]));
-        foreach ($rows as $r) fputcsv($f, array_map(fn($v) => $v ?? '', $r));
+        fputcsv($f, array_keys($rows[0]), ',', '"', '');
+        foreach ($rows as $r) {
+            fputcsv($f, array_map(static fn($v) => $v ?? '', $r), ',', '"', '');
+        }
         fclose($f);
     }
     exit;

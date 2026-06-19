@@ -6636,6 +6636,9 @@ function toggleGuide(){
 
 render();
 renderSubmission();
+document.getElementById('filterSection').value = '';
+document.getElementById('filterStatus').value = '';
+applyFilters();
 </script>
 </body>
 </html>`;
@@ -6786,6 +6789,7 @@ async function safDownloadPack(id){
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23C94A10' d='M8 0 5 6H0l4 4-2 6 6-3 6 3-2-6 4-4H11z'/%3E%3C/svg%3E">
 <title>Safety File Report — ${e(file.contractor||id)} — ${e(id)}</title>
 <style>
 :root{--accent:#C94A10;--red:#A82A1E;--grn:#1A6633;--amber:#9A6A0A;--bg:#F5F1EA;--surface:#fff;--border:#C8C1B3;--muted:#7A7566;--text:#1A1814}
