@@ -208,8 +208,8 @@ document.addEventListener('click', function(e) {
     case 'openDocViewer':        openDocViewer(+el.dataset.id, el.dataset.name, el.dataset.mime); break;
     case 'deleteAttachment':     deleteAttachment(+el.dataset.id, el.dataset.entityType, el.dataset.entityRef); break;
     case 'uploadAttachment':     uploadAttachment(el.dataset.entityType, el.dataset.entityRef); break;
-    case 'openBlobPreview':      { const u = el.dataset.blobUrl; window.open(u, '_blank'); setTimeout(() => URL.revokeObjectURL(u), 15000); } break;
-    case 'revokeBlobOnDownload': setTimeout(() => URL.revokeObjectURL(el.dataset.blobUrl), 2000); break;
+    case 'openBlobPreview':      openTrackerPreview(); break;
+    case 'revokeBlobOnDownload': downloadTrackerFile(); break;
     case 'triggerFileInput':     document.getElementById(el.dataset.targetId)?.click(); break;
     case 'printPage':            window.print(); break;
     // Users
@@ -427,6 +427,8 @@ async function deleteAttachment(id, entityType, entityRef) {
 
 /* ── Document viewer (inline PDF / image preview) ─────────────────── */
 let _dvBlobUrl = null;
+let _trackerHtml = '';
+let _trackerFileName = '';
 
 async function openDocViewer(id, name, mime) {
   const isPdf = mime === 'application/pdf';
@@ -6194,17 +6196,17 @@ async function safGenerateTracker(id) {
     return;
   }
 
-  const blob   = new Blob([html], { type: 'text/html;charset=utf-8' });
-  const blobUrl = URL.createObjectURL(blob);
   const fname   = id + '_Action_Tracker.html';
+  _trackerHtml = html;
+  _trackerFileName = fname;
 
   openModal('Action Plan Tracker — ' + id, `
     <div class="att-ctx mb-16 fs-11">
       <strong>${esc(file.contractor || id)}</strong> — ${sections.reduce((t,s)=>t+s.items.length,0)} non-conformance${sections.reduce((t,s)=>t+s.items.length,0)===1?'':'s'} across ${sections.length} section${sections.length===1?'':'s'}
     </div>
     <div class="flex-row gap-10 flex-wrap">
-      <button class="btn btn-p" data-action="openBlobPreview" data-blob-url="${blobUrl}">&#128065; Preview in Browser</button>
-      <a class="btn btn-g" id="tracker-dl-btn" href="${blobUrl}" download="${esc(fname)}" data-action="revokeBlobOnDownload" data-blob-url="${blobUrl}">&#8595; Download</a>
+      <button class="btn btn-p" data-action="openBlobPreview">&#128065; Preview in Browser</button>
+      <button class="btn btn-g" type="button" data-action="revokeBlobOnDownload">&#8595; Download</button>
     </div>
     <div class="fs-10 text-muted mt-10">The tracker opens as a self-contained page — no internet connection required.</div>
   `);
@@ -6679,6 +6681,28 @@ function _validateTrackerHTML(html) {
   } catch { issues.push('SECTIONS is not valid JSON'); }
 
   return issues;
+}
+
+function openTrackerPreview() {
+  if (!_trackerHtml) { toast('Tracker not ready', 'err'); return; }
+  const w = window.open('', '_blank', 'noopener');
+  if (!w) { toast('Popup blocked', 'err'); return; }
+  w.document.open();
+  w.document.write(_trackerHtml);
+  w.document.close();
+}
+
+function downloadTrackerFile() {
+  if (!_trackerHtml || !_trackerFileName) { toast('Tracker not ready', 'err'); return; }
+  const blob = new Blob([_trackerHtml], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = _trackerFileName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 15000);
 }
 
 function safPrintReport(){
