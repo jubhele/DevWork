@@ -208,7 +208,7 @@ document.addEventListener('click', function(e) {
     case 'openDocViewer':        openDocViewer(+el.dataset.id, el.dataset.name, el.dataset.mime); break;
     case 'deleteAttachment':     deleteAttachment(+el.dataset.id, el.dataset.entityType, el.dataset.entityRef); break;
     case 'uploadAttachment':     uploadAttachment(el.dataset.entityType, el.dataset.entityRef); break;
-    case 'openBlobPreview':      { const u = el.dataset.blobUrl; window.open(u, '_blank'); URL.revokeObjectURL(u); } break;
+    case 'openBlobPreview':      { const u = el.dataset.blobUrl; window.open(u, '_blank'); setTimeout(() => URL.revokeObjectURL(u), 15000); } break;
     case 'revokeBlobOnDownload': setTimeout(() => URL.revokeObjectURL(el.dataset.blobUrl), 2000); break;
     case 'triggerFileInput':     document.getElementById(el.dataset.targetId)?.click(); break;
     case 'printPage':            window.print(); break;
@@ -6645,8 +6645,10 @@ function _validateTrackerHTML(html) {
   if (!m) { issues.push('No <script> block found in generated output'); return issues; }
   const script = m[1];
 
-  // Syntax check — catches literal newlines inside string literals and any other parse error
-  try { new Function(script); } catch (e) { issues.push('Syntax error: ' + e.message); }
+  // Keep browser validation CSP-safe by rejecting eval-like constructs without executing generated code
+  if (/\b(?:eval|Function)\s*\(/.test(script)) {
+    issues.push('Standalone tracker script must not use eval/Function constructor');
+  }
 
   // Portal-only functions must not leak into the standalone file
   ['confirmDialog'].forEach(fn => {
