@@ -30,6 +30,10 @@ html[data-theme="dark"] .v3-landing {
   --ink:#E0E4EA; --ink-2:#A8B2BE; --ink-mut:#8894A5;
   --ember-l:#D34A3B; --fire-l:#F07820; --amber-l:#F58A2B; --gold-l:#F5B842;
 }
+html[data-theme="light"] .v3-landing {
+  --coal:#F0F0F0; --navy:#FFFFFF; --charcoal:#E8E8E8; --steel-dk:#CCCCCC;
+  --ash:#9E9E9E; --steel:#616161; --bone:#1A1814;
+}
 .v3-landing *, .v3-landing *::before, .v3-landing *::after { box-sizing: border-box; }
 .v3-landing img { max-width: 100%; display: block; }
 .v3-landing a { color: inherit; text-decoration: none; }
