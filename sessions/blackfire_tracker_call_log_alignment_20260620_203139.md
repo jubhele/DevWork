@@ -20,3 +20,9 @@ Active model: Gemini 3.5 Flash  Status: under-powered
 ## Blockers / Next Steps
 - Verify whether the SQL migration was executed, run it if not.
 - Audit code logic for task/call-log tab view integration and run verification tests.
+
+## âš  Session Log Incomplete
+The following mandatory sections were empty when this session ended: ## Learnings
+Action required: fill these in before running /learn or starting the next session.
+
+_Session ended: 2026-06-20 20:52:14 (Claude Code / claude-sonnet-4-6)_
