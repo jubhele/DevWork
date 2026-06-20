@@ -27,3 +27,22 @@ Action required: fill these in before running /learn or starting the next sessio
 
 _Session ended: 2026-06-20 20:52:14 (Claude Code / claude-sonnet-4-6)_
 _Session ended: 2026-06-20 20:53:53 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-06-20 21:05:12 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-06-20 21:11:40 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-06-20 21:29:26 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-06-20 21:34:38 (Claude Code / claude-sonnet-4-6)_
+
+## Resumed 2026-06-20
+
+### Additional Work
+- CO-190626-0115 identified as a June 19 callout missed by the June 20 batch migration (which covered 0116–0129).
+- Created `install/reclassify_CO-190626-0115_to_general.sql` — idempotent script that:
+  - Backs up both bf_callouts and bf_tasks before touching anything.
+  - If the record is already in bf_tasks with wrong category → updates category to 'general'.
+  - If still in bf_callouts → inserts into bf_tasks as TK-GEN-CO0115 (general), then deletes source callout.
+  - Confirms result with a SELECT at the end.
+
+### Next Steps
+- Run `reclassify_CO-190626-0115_to_general.sql` against the live MySQL database.
+- Verify the record appears under the General tab in the Tracker.
+_Session ended: 2026-06-20 21:44:29 (Claude Code / claude-sonnet-4-6)_

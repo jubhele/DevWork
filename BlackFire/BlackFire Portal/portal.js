@@ -925,7 +925,7 @@ async function doLogin(){
   await Promise.all([refreshAll(), loadDashPrefsFromAPI()]);
 
   // Navigate to first page for role (supports multi-role — first match wins)
-  const _roleMap2 = { call_logger:'p-new-callout', junior_tech:'p-callouts', senior_tech:'p-callouts', client_support:'p-dashboard', admin_clerk:'p-callouts', safety_officer:'p-safety' };
+  const _roleMap2 = { call_logger:'p-new-callout', junior_tech:'p-tracker', senior_tech:'p-tracker', client_support:'p-dashboard', admin_clerk:'p-tracker', safety_officer:'p-safety' };
   const _allRoles2 = SESSION.roles?.length ? SESSION.roles : [SESSION.role];
   const firstPage = Object.entries(_roleMap2).find(([r])=>_allRoles2.includes(r))?.[1] || 'p-dashboard';
   showPortalPage(firstPage, null);
@@ -2028,7 +2028,7 @@ const PAGE_ACTIONS = {
   'p-callouts':          [{ label:'Tracker', page:'p-tracker', perm:'task.view' }, { label:'+ Log Call', page:'p-new-callout', perm:'capture.new_callout' }],
   'p-tracker':           [{ label:'+ New Task', page:'p-new-task', perm:'task.create' }],
   'p-new-task':          [{ label:'Tracker', page:'p-tracker', perm:'task.view' }],
-  'p-quotes':            [{ label:'+ Submit Quote', page:'p-new-quote', perm:'capture.new_quote' }, { label:'Call Log', page:'p-callouts', perm:'callout.view' }, { label:'Invoices', page:'p-invoices', perm:'invoice.view' }],
+  'p-quotes':            [{ label:'+ Submit Quote', page:'p-new-quote', perm:'capture.new_quote' }, { label:'Tracker', page:'p-tracker', perm:'task.view' }, { label:'Invoices', page:'p-invoices', perm:'invoice.view' }],
   'p-finance-dashboard': [{ label:'Invoices', page:'p-invoices', perm:'invoice.view' }, { label:'Transactions', page:'p-transactions', perm:'finance.transactions' }, { label:'Income Stmt', page:'p-income', perm:'finance.income' }],
   'p-invoices':          [{ label:'+ New Invoice', page:'p-new-invoice', perm:'capture.new_invoice' }, { label:'Log Payment', page:'p-log-payment', perm:'capture.log_payment' }, { label:'Statements', page:'p-statement', perm:'finance.statement' }],
   'p-statement':         [{ label:'Invoices', page:'p-invoices', perm:'invoice.view' }, { label:'Clients', page:'p-clients' }],
@@ -2041,7 +2041,7 @@ const PAGE_ACTIONS = {
   'p-safety-audit':      [{ label:'Safety Files', page:'p-safety' }],
   'p-safety-detail':     [{ label:'Safety Files', page:'p-safety' }, { label:'+ New Audit', page:'p-safety-audit' }],
   'p-audit':             [{ label:'Users', page:'p-users', perm:'security.users' }, { label:'Support', page:'p-support-dashboard' }],
-  'p-new-callout':       [{ label:'Call Log', page:'p-callouts', perm:'callout.view' }],
+  'p-new-callout':       [{ label:'Tracker', page:'p-tracker', perm:'task.view' }],
   'p-new-quote':         [{ label:'Quote Log', page:'p-quotes', perm:'quote.view' }],
   'p-new-invoice':       [{ label:'Invoices', page:'p-invoices', perm:'invoice.view' }],
   'p-log-payment':       [{ label:'Invoices', page:'p-invoices', perm:'invoice.view' }, { label:'Transactions', page:'p-transactions', perm:'finance.transactions' }],
@@ -3458,8 +3458,8 @@ function saveCallout(){
   save();
   toast(`${id} logged`,'ok');
   audit('CREATE',`New callout: ${id}  -  ${service}`);
-  // Route back to callouts list
-  showPortalPage('p-callouts',null);
+  _trackerCat = 'call_log';
+  showPortalPage('p-tracker',null);
 }
 
 async function delCo(id){
@@ -3640,7 +3640,7 @@ function renderInvoices(search='',filter=''){
     <tr><td class="mono">${esc(inv.invoiceNo)}${inv.invoiceNo!==inv.id?`<div class="mlbl-9 mt-2 text-muted">${esc(inv.id)}</div>`:''}</td><td>${esc(inv.client)}</td><td class="amt">${fmt(inv.amount)}</td><td class="tc-11 nowrap">${fmtD(inv.dueDate)}</td><td>${pillH(inv.status)}</td>
     <td><div class="bgrp">
       <button class="btn btn-g btn-s" data-action="previewInvoice" data-id="${esc(inv.id)}">View</button>
-      ${inv.calloutRef?`<button class="btn btn-g btn-s" data-action="openRecordChain" data-id="${esc(inv.calloutRef)}">View</button>`:''}
+      ${inv.calloutRef?`<button class="btn btn-g btn-s" data-action="openRecordChain" data-id="${esc(inv.calloutRef)}">Callout</button>`:''}
       <button class="btn btn-g btn-s" data-action="openAttachmentsModal" data-entity-type="invoice" data-entity-ref="${esc(inv.id)}">Files</button>
       ${canSend&&inv.status!=='Paid'&&inv.status!=='Cancelled'&&inv.amount>0?`<button class="btn btn-p btn-s" data-action="openSendInvoiceModal" data-id="${esc(inv.id)}">Send</button>`:''}
       ${canPaid&&inv.status!=='Paid'?`<button class="btn btn-g btn-s" data-action="markPaid" data-id="${esc(inv.id)}">Paid</button>`:''}
@@ -4710,7 +4710,7 @@ async function openRecordChain(calloutRef){
   openModal(`Record — ${calloutRef}`, `<div class="tc-empty fs-12">Loading…</div>`);
   const r = await api('GET', `callouts.php?action=chain&ref=${encodeURIComponent(calloutRef)}`);
   if (!r.success) { document.getElementById('modal-bdy').innerHTML=`<div class="tc-empty text-ember">Failed to load record: ${esc(r.error||'unknown error')}</div>`; return; }
-  const {callout:co, quote:q, quote_items:qi, invoice:inv, payments:pays} = r.data;
+  const {callout:co, quote:q, quote_items:qi, invoice:inv, payments:pays} = r;
 
   const section = (icon,title,body) =>
     `<div class="chain-section">
@@ -4846,7 +4846,7 @@ document.addEventListener('DOMContentLoaded', async ()=>{
     { const _rl = SESSION.roles?.length > 1 ? SESSION.roles.map(r=>ROLE_LABELS[r]||r).join(' + ') : (ROLE_LABELS[SESSION.role]||SESSION.role);
       document.getElementById('dash-sub').textContent = `AECI CHEMPARK  -  ${_rl.toUpperCase()} VIEW`; }
     await Promise.all([refreshAll(), loadDashPrefsFromAPI()]);
-    const _roleMap = { call_logger:'p-new-callout', junior_tech:'p-callouts', senior_tech:'p-callouts', client_support:'p-dashboard', admin_clerk:'p-callouts', safety_officer:'p-safety' };
+    const _roleMap = { call_logger:'p-new-callout', junior_tech:'p-tracker', senior_tech:'p-tracker', client_support:'p-dashboard', admin_clerk:'p-tracker', safety_officer:'p-safety' };
     const _allRoles = SESSION.roles?.length ? SESSION.roles : [SESSION.role];
     const firstPage = Object.entries(_roleMap).find(([r])=>_allRoles.includes(r))?.[1] || 'p-dashboard';
     showPortalPage(firstPage, null);
@@ -4914,7 +4914,8 @@ async function saveCallout(){
   
   await refreshCallouts();
   updateBadges();
-  showPortalPage('p-callouts', null);
+  _trackerCat = 'call_log';
+  showPortalPage('p-tracker', null);
   toast(`Callout ${r.data?.ref_id || ''} logged — expand the row to assign a technician and PO`, 'ok');
   audit('CREATE', r.data?.ref_id || 'Callout created');
 }
