@@ -33,6 +33,16 @@ if ($action === 'captcha') {
 if ($action === 'me') {
     $user = current_user();
     if (!$user) json_err('Not authenticated', 401);
+    $profile = db_row(
+        "SELECT email, active, created_at, last_login FROM bf_users WHERE id = ?",
+        [(int)$user['id']]
+    ) ?: [];
+    $user['roles'] = !empty($user['roles']) ? $user['roles'] : [$user['role']];
+    $user['permissions'] = permissions_for_user($user);
+    $user['email'] = $profile['email'] ?? '';
+    $user['active'] = (bool)($profile['active'] ?? true);
+    $user['created_at'] = $profile['created_at'] ?? '';
+    $user['last_login'] = $profile['last_login'] ?? null;
     json_ok(['user' => $user, 'csrf_token' => csrf_token()]);
 }
 

@@ -1,0 +1,10 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+nodeLinker: hoisted
+allowBuilds:
+  sharp: true
+  unrs-resolver: true
+onlyBuiltDependencies:
+  - sharp
+  - unrs-resolver

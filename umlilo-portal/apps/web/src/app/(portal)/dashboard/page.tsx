@@ -1,4 +1,5 @@
 import { cookies } from 'next/headers'
+import Link from 'next/link'
 import { getApiAuthHeaders, getUserFromPortalCookie } from '@/lib/auth'
 import type { DashboardKPIs } from '@blackfire/types'
 
@@ -37,23 +38,32 @@ async function getKPIs(headers: Record<string, string> | null): Promise<Dashboar
   const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://blackfiresolutions.co.za/api'
   if (!headers) return null
   try {
-    const res = await fetch(`${API_BASE}/dashboard.php`, {
-      headers,
-      cache: 'no-store',
-    })
-    const body = await res.json()
-    return normalizeKPIs(body)
+    const response = await fetch(`${API_BASE}/dashboard.php`, { headers, cache: 'no-store' })
+    return normalizeKPIs(await response.json())
   } catch {
     return null
   }
 }
 
-function KPICard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
+function KPICard({ label, value, sub }: { label: string; value: string | number; sub: string }) {
   return (
-    <div className="bg-navy border border-steel-dark rounded-lg p-5">
-      <p className="text-xs text-ash uppercase tracking-wider mb-1">{label}</p>
-      <p className="text-2xl font-display text-bone-paper">{value}</p>
-      {sub && <p className="text-xs text-ash mt-1">{sub}</p>}
+    <article className="border border-steel-dark bg-navy p-5">
+      <p className="mb-2 font-mono text-[11px] uppercase tracking-[0.18em] text-ash">{label}</p>
+      <p className="font-display text-4xl font-bold leading-none text-bone-paper">{value}</p>
+      <p className="mt-2 text-xs text-ash">{sub}</p>
+    </article>
+  )
+}
+
+function WorkloadRow({ label, value, max }: { label: string; value: number; max: number }) {
+  const width = value === 0 ? 0 : Math.max(3, Math.round((value / Math.max(max, 1)) * 100))
+  return (
+    <div>
+      <div className="mb-2 flex items-center justify-between gap-4 font-mono text-[10px] uppercase tracking-[0.14em] text-ash">
+        <span>{label}</span>
+        <span className="text-bone-paper">{value}</span>
+      </div>
+      <div className="h-1.5 bg-charcoal"><div className="h-full bg-fire-orange" style={{ width: `${width}%` }} /></div>
     </div>
   )
 }
@@ -63,28 +73,60 @@ export default async function DashboardPage() {
   const portalCookie = cookieStore.get('bf_portal')?.value
   const user = getUserFromPortalCookie(portalCookie)
   const kpis = await getKPIs(getApiAuthHeaders(portalCookie))
+  const workloadMax = kpis ? Math.max(kpis.open_callouts, kpis.pending_quotes, kpis.overdue_invoices, 1) : 1
 
   return (
     <div>
-      <h1 className="font-display text-2xl tracking-wider text-bone-paper mb-1 uppercase">
-        Dashboard
-      </h1>
-      {user && (
-        <p className="text-ash text-sm mb-6">Welcome back, {user.name}.</p>
-      )}
+      <div className="mb-10 flex flex-wrap items-start justify-between gap-5">
+        <div>
+          <h1 className="font-display text-5xl font-bold leading-none text-bone-paper">Dashboard</h1>
+          <p className="mt-3 font-mono text-xs uppercase tracking-[0.24em] text-ash">AECI Chempark - {user?.role.replace('_', ' ')} view</p>
+        </div>
+        <button type="button" className="border border-steel-dark bg-navy px-4 py-2 font-mono text-[10px] uppercase tracking-[0.16em] text-steel">Edit Layout</button>
+      </div>
 
       {kpis ? (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-          <KPICard label="Open Callouts"    value={kpis.open_callouts} />
-          <KPICard label="Overdue Invoices" value={kpis.overdue_invoices} />
-          <KPICard label="MTD Revenue"      value={formatCurrency(kpis.mtd_revenue)} />
-          <KPICard label="Safety Score"     value={kpis.safety_score != null ? `${kpis.safety_score}%` : '—'} />
-          <KPICard label="Pending Quotes"   value={kpis.pending_quotes} />
-          <KPICard label="Active Clients"   value={kpis.active_clients} />
-        </div>
-      ) : (
-        <p className="text-ash text-sm">Could not load dashboard data.</p>
-      )}
+        <>
+          <div className="mb-5 grid gap-4 md:grid-cols-2">
+            <Link href="/callouts" className="border-l-2 border-fire-orange bg-[#fff4e8] p-6 text-fire-orange">
+              <p className="font-mono text-[11px] uppercase tracking-[0.24em]">Open Callouts</p>
+              <p className="mt-2 font-display text-5xl font-bold leading-none">{kpis.open_callouts}</p>
+              <p className="mt-2 text-sm">Operational jobs requiring attention</p>
+            </Link>
+            <Link href="/quotes" className="border-l-2 border-info bg-[#edf4ff] p-6 text-info">
+              <p className="font-mono text-[11px] uppercase tracking-[0.24em]">Quotes Pending Approval</p>
+              <p className="mt-2 font-display text-5xl font-bold leading-none">{kpis.pending_quotes}</p>
+              <p className="mt-2 text-sm">Submitted and awaiting review</p>
+            </Link>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <KPICard label="MTD Revenue" value={formatCurrency(kpis.mtd_revenue)} sub="Month to date" />
+            <KPICard label="Overdue Invoices" value={kpis.overdue_invoices} sub="Payment follow-up" />
+            <KPICard label="Safety Score" value={kpis.safety_score != null ? `${kpis.safety_score}%` : '-'} sub="Current compliance" />
+            <KPICard label="Active Clients" value={kpis.active_clients} sub="Current accounts" />
+          </div>
+
+          <div className="mt-6 grid gap-5 lg:grid-cols-[1.25fr_.85fr]">
+            <section className="border border-steel-dark bg-navy">
+              <div className="border-b border-steel-dark bg-charcoal px-5 py-4"><h2 className="font-display text-2xl font-bold text-bone-paper">Current Workload</h2></div>
+              <div className="space-y-6 p-6">
+                <WorkloadRow label="Open Callouts" value={kpis.open_callouts} max={workloadMax} />
+                <WorkloadRow label="Pending Quotes" value={kpis.pending_quotes} max={workloadMax} />
+                <WorkloadRow label="Overdue Invoices" value={kpis.overdue_invoices} max={workloadMax} />
+              </div>
+            </section>
+            <section className="border border-steel-dark bg-navy">
+              <div className="border-b border-steel-dark bg-charcoal px-5 py-4"><h2 className="font-display text-2xl font-bold text-bone-paper">Quick Access</h2></div>
+              <div className="divide-y divide-steel-dark">
+                <Link href="/callouts" className="flex items-center justify-between px-5 py-4 text-sm hover:bg-charcoal"><span>Callout register</span><span className="text-fire-orange">View</span></Link>
+                <Link href="/tracker" className="flex items-center justify-between px-5 py-4 text-sm hover:bg-charcoal"><span>Work tracker</span><span className="text-fire-orange">View</span></Link>
+                <Link href="/invoices" className="flex items-center justify-between px-5 py-4 text-sm hover:bg-charcoal"><span>Invoice register</span><span className="text-fire-orange">View</span></Link>
+              </div>
+            </section>
+          </div>
+        </>
+      ) : <p className="text-sm text-ash">Could not load dashboard data.</p>}
     </div>
   )
 }

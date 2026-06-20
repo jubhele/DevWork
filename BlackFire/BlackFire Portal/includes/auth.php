@@ -193,6 +193,22 @@ function can(string $perm, ?string $role = null): bool {
     return false;
 }
 
+function permissions_for_user(array $user): array {
+    $roles = !empty($user['roles']) ? $user['roles'] : [$user['role'] ?? ''];
+    if (in_array('sysadmin', $roles, true)) {
+        return array_keys(_load_role_perms());
+    }
+
+    $permissions = [];
+    foreach (_load_role_perms() as $permission => $allowed_roles) {
+        if (count(array_intersect($roles, $allowed_roles)) > 0) {
+            $permissions[] = $permission;
+        }
+    }
+    sort($permissions);
+    return $permissions;
+}
+
 /**
  * Require a specific permission or exit with 403
  */

@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 
 const PUBLIC_PATHS = ['/login', '/forgot-password']
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
-  const isPublic = PUBLIC_PATHS.some(p => pathname.startsWith(p))
+  const isPublic = PUBLIC_PATHS.some(path => pathname.startsWith(path))
   const sessionCookie = request.cookies.get('bf_portal')
 
   if (!isPublic && !sessionCookie) {

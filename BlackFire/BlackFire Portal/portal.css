@@ -1956,3 +1956,34 @@ textarea.saf-cmt { resize:vertical; min-height:28px; width:100% }
 .chain-items-t td{padding:4px 8px;border-bottom:1px solid var(--border)}
 .chain-items-t tfoot td{font-size:11px;background:var(--surface2);border-top:2px solid var(--border)}
 .chain-items-t .tar{text-align:right}
+
+/* ── Company Tracker ─────────────────────────────────────────── */
+.pnav-inline{display:flex;align-items:center;gap:4px;flex:1}
+.pnav-inline .pnitem{height:auto;padding:6px 14px;font-size:12px;border-bottom:2px solid transparent}
+
+/* Priority dots */
+.prio-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;vertical-align:middle}
+.bg-muted  {background:var(--muted)}
+.bg-info   {background:var(--blue)}
+.bg-warn   {background:var(--warn)}
+.bg-danger {background:var(--ember)}
+
+/* Task status badges */
+.badge-open      {background:rgba(59,130,246,.12);color:var(--blue)}
+.badge-inprog    {background:rgba(240,120,32,.12);color:var(--amber)}
+.badge-done      {background:rgba(22,163,74,.12);color:#16a34a}
+.badge-cancelled {background:rgba(100,116,139,.12);color:var(--muted)}
+
+/* Soft danger button (for delete) */
+.btn-danger-soft{color:var(--ember);border:1px solid rgba(192,57,43,.3);background:rgba(192,57,43,.06)}
+.btn-danger-soft:hover{background:var(--ember);color:#fff}
+
+/* Table helpers */
+.act-cell  {white-space:nowrap}
+.td-main   {max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.empty-row {text-align:center;padding:32px;color:var(--muted);font-size:13px}
+
+/* Layout utilities used in tracker */
+.gap1{gap:8px}
+.mr1{margin-right:8px}
+.fgroup-full{grid-column:1/-1}

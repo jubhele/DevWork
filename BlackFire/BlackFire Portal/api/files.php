@@ -17,6 +17,7 @@ ob_start();
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/helpers.php';
+require_once __DIR__ . '/../includes/tracker_records.php';
 
 $cfg = require __DIR__ . '/../config/config.php';
 date_default_timezone_set($cfg['timezone'] ?? 'Africa/Johannesburg');
@@ -46,11 +47,27 @@ function attach_dir(): string {
     return dirname(__DIR__) . '/uploads/attachments';
 }
 
+function attachment_can_view(array $user, array $attachment): bool {
+    if (in_array($attachment['entity_type'], ['task', 'callout'], true)) {
+        $record = tracker_record($attachment['entity_type'], $attachment['entity_ref']);
+        return $record && tracker_can_view($user, $attachment['entity_type'], $record);
+    }
+    $roles = task_user_roles($user);
+    return count(array_intersect($roles, ['sysadmin', 'admin', 'manager'])) > 0
+        || (int)($attachment['uploaded_by_id'] ?? 0) === (int)$user['id'];
+}
+
 // ── GET list ──────────────────────────────────────────────────────────
 if ($method === 'GET' && $action === 'list') {
     $entity_type = clean($_GET['entity_type'] ?? '', 20);
     $entity_ref  = clean($_GET['entity_ref']  ?? '', 50);
     if (!$entity_type || !$entity_ref) json_err('entity_type and entity_ref required');
+
+    if (in_array($entity_type, ['task', 'callout'], true)) {
+        $record = tracker_record($entity_type, $entity_ref);
+        if (!$record) json_err('Tracker record not found', 404);
+        if (!tracker_can_view($user, $entity_type, $record)) json_err('Permission denied', 403);
+    }
 
     api_headers();
     $rows = db_select(
@@ -73,8 +90,7 @@ if ($method === 'GET' && ($action === 'download' || $action === 'view')) {
     $row = db_row("SELECT * FROM bf_attachments WHERE id = ?", [$id]);
     if (!$row) { api_headers(); json_err('File not found', 404); }
 
-    // IDOR Protection: restrict to uploader or admin/manager.
-    if (!in_array($user['role'], ['admin', 'manager'], true) && (int)($row['uploaded_by_id'] ?? 0) !== (int)$user['id']) {
+    if (!attachment_can_view($user, $row)) {
         api_headers(); json_err('Permission denied', 403);
     }
 
@@ -110,7 +126,7 @@ if ($method === 'POST') {
     $entity_type = clean($_POST['entity_type'] ?? '', 20);
     $entity_ref  = clean($_POST['entity_ref']  ?? '', 50);
 
-    if (!in_array($entity_type, ['callout', 'invoice', 'quote', 'payment', 'safety_file', 'safety_compliance', 'safety_item'], true)) {
+    if (!in_array($entity_type, ['task', 'callout', 'invoice', 'quote', 'payment', 'safety_file', 'safety_compliance', 'safety_item'], true)) {
         json_err('Invalid entity_type');
     }
     if (!$entity_ref) json_err('entity_ref required');
@@ -144,6 +160,7 @@ if ($method === 'POST') {
         }
     } else {
         $entity_table_map = [
+            'task'        => 'bf_tasks',
             'callout'     => 'bf_callouts',
             'invoice'     => 'bf_invoices',
             'quote'       => 'bf_quotes',
@@ -154,6 +171,11 @@ if ($method === 'POST') {
         if (!db_row("SELECT id FROM {$entity_table} WHERE ref_id = ?", [$entity_ref])) {
             json_err(ucfirst($entity_type) . ' not found', 404);
         }
+    }
+
+    if (in_array($entity_type, ['task', 'callout'], true)) {
+        $record = tracker_record($entity_type, $entity_ref);
+        if (!$record || !tracker_can_edit($user, $entity_type, $record)) json_err('Permission denied', 403);
     }
 
     if (empty($_FILES['file']) || $_FILES['file']['error'] === UPLOAD_ERR_NO_FILE) {
@@ -222,7 +244,9 @@ if ($method === 'DELETE') {
     $row = db_row("SELECT * FROM bf_attachments WHERE id = ?", [$id]);
     if (!$row) json_err('File not found', 404);
 
-    if (!in_array($user['role'], ['admin', 'manager'], true) && (int)($row['uploaded_by_id'] ?? 0) !== (int)$user['id']) {
+    $roles = task_user_roles($user);
+    if (count(array_intersect($roles, ['sysadmin', 'admin', 'manager'])) === 0
+        && (int)($row['uploaded_by_id'] ?? 0) !== (int)$user['id']) {
         json_err('Permission denied', 403);
     }
 

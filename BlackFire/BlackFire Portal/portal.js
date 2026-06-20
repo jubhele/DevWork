@@ -165,6 +165,16 @@ document.addEventListener('click', function(e) {
     case 'openTxModal':          openTxModal(); break;
     case 'closeModalDirect':     closeModalDirect(); break;
     case 'closeModalBackdrop':   if (e.target === el) closeModal(e); break;
+    // Operations — tracker
+    case 'switchTrackerCat':     renderTracker(el.dataset.cat); break;
+    case 'saveNewTask':          saveNewTask(); break;
+    case 'openTaskStatus':       openTaskStatus(el.dataset.id); break;
+    case 'setTaskStatus':        setTaskStatus(el.dataset.id, el.dataset.status); break;
+    case 'deleteTask':           deleteTask(el.dataset.id); break;
+    case 'openTrackerRecord':    openTrackerRecord(el.dataset.entityType, el.dataset.id); break;
+    case 'saveTrackerSchedule':  saveTrackerSchedule(el.dataset.entityType, el.dataset.id); break;
+    case 'addTrackerUpdate':     addTrackerUpdate(el.dataset.entityType, el.dataset.id); break;
+    case 'saveTrackerUpdate':    saveTrackerUpdate(+el.dataset.updateId); break;
     // Operations — callouts
     case 'saveCallout':          saveCallout(); break;
     case 'openStatusModal':      openStatusModal(el.dataset.id); break;
@@ -525,6 +535,10 @@ const PERMS = {
   'safety.update':             ['admin','sysadmin','manager','admin_clerk','safety_officer','senior_tech'],
   'safety.delete':             ['admin','sysadmin','manager'],
   'safety.approve':            ['admin','sysadmin','manager'],
+  'task.view':   ['admin','sysadmin','manager','admin_clerk','finance','safety_officer','call_logger','junior_tech','senior_tech','viewer'],
+  'task.create': ['admin','sysadmin','manager','admin_clerk','call_logger','junior_tech','senior_tech'],
+  'task.update': ['admin','sysadmin','manager','admin_clerk'],
+  'task.delete': ['admin','sysadmin'],
 };
 function can(perm){
   const roles = SESSION?.roles?.length ? SESSION.roles : (SESSION?.role ? [SESSION.role] : []);
@@ -534,7 +548,7 @@ function can(perm){
 /* ═══════════════════════════════════════════════════════
    IN-MEMORY CACHE (populated from API on login/refresh)
 ═══════════════════════════════════════════════════════ */
-let DB = { callouts:[], quotes:[], invoices:[], bank:[], users:[], safetyFiles:[], clients:[] };
+let DB = { callouts:[], quotes:[], invoices:[], bank:[], users:[], safetyFiles:[], clients:[], tasks:[] };
 let SESSION = null;
 let AUDIT_LOG = [];
 let _dashPrefsCache = null; // populated from DB at login via loadDashPrefsFromAPI()
@@ -548,6 +562,11 @@ async function refreshSafetyFiles() {
 async function refreshCallouts() {
   const r = await api('GET', 'callouts.php?limit=500');
   if (r.success) DB.callouts = r.data || [];
+}
+async function refreshTasks() {
+  if (!can('task.view')) return;
+  const r = await api('GET', 'tasks.php?limit=500');
+  if (r.success) DB.tasks = r.data || [];
 }
 async function refreshQuotes() {
   const r = await api('GET', 'quotes.php?limit=500');
@@ -648,6 +667,7 @@ function populateLinkedDropdowns() {
 }
 async function refreshAll() {
   const tasks = [refreshCallouts(), refreshQuotes(), refreshInvoices(), refreshTransactions(), refreshSafetyFiles(), refreshClients()];
+  if (can('task.view')) tasks.push(refreshTasks());
   if (can('security.users')) tasks.push(refreshUsers());
   await Promise.all(tasks);
   populateLinkedDropdowns();
@@ -677,6 +697,10 @@ function normalizeCallout(c) {
     closureConfirmed: !!c.closure_confirmed,
     closureConfirmedBy: c.closure_confirmed_by || '',
     closureNotes:     c.closure_notes || '',
+    createdAt:        c.created_at || '',
+    startAt:          c.start_at || '',
+    endAt:            c.end_at || '',
+    dueAt:            c.due_at || '',
   };
 }
 function normalizeQuote(q) {
@@ -776,6 +800,7 @@ const proxyDB = {
   get users()       { return DB.users; },
   get safetyFiles() { return (DB.safetyFiles || []).map(normalizeSafetyFile); },
   get clients()     { return DB.clients || []; },
+  get tasks()       { return DB.tasks || []; },
   get counters()    { return { co:0, q:0, inv:0 }; },
 };
 
@@ -949,8 +974,8 @@ const NAV_CONFIG = [
     items: [
       { id:'p-ops-dashboard', label:'Overview',  perm: null },
       { id:'p-timeline',      label:'Timeline',  perm: null },
-      { id:'p-callouts',      label:'Call Log',  perm:'callout.view', badge:'nb-co' },
       { id:'p-quotes',        label:'Quote Log', perm:'quote.view',   badge:'nb-qte' },
+      { id:'p-tracker',       label:'Tracker',   perm:'task.view',    badge:'nb-co' },
     ],
   },
   {
@@ -985,9 +1010,9 @@ const NAV_CONFIG = [
    in localStorage so they survive page reload.
 ═══════════════════════════════════════════════════════ */
 const DASH_WIDGETS = [
-  { id:'w-ops',        label:'Operations',         desc:'Open callouts · pending quotes · recent job log',    perm:'callout.view' },
+  { id:'w-ops',        label:'Operations & Tracker', desc:'Open tasks · operational callouts · work by stream', perm:'task.view' },
   { id:'w-fin',        label:'Finance',             desc:'Invoiced MTD · net balance · 6-month revenue chart', perm:'invoice.view' },
-  { id:'w-alerts',     label:'Live Alerts',         desc:'Overdue invoices · urgent callouts · pending approvals', perm: null },
+  { id:'w-alerts',     label:'Live Alerts',         desc:'Overdue invoices · urgent tasks · pending approvals', perm: null },
   { id:'w-compliance', label:'Compliance Alerts',   desc:'Expiring and overdue safety certificates',          perm:'safety.view' },
   { id:'w-compare',    label:'Period Comparisons',  desc:'MTD vs PY MTD · YTD vs PY YTD · QTD vs PY QTD',   perm:'invoice.view' },
 ];
@@ -1121,7 +1146,7 @@ DB = load();
 
 function load(){
   try{ const d=localStorage.getItem(STORE); if(d) return JSON.parse(d); }catch(e){}
-  return { callouts:[], quotes:[], invoices:[], bank:[], safetyFiles:[], clients:[], counters:{co:0,q:0,inv:0} };
+  return { callouts:[], quotes:[], invoices:[], bank:[], safetyFiles:[], clients:[], tasks:[], counters:{co:0,q:0,inv:0} };
 }
 function save(){ try{ localStorage.setItem(STORE, JSON.stringify(DB)); }catch(e){} }
 function nextId(t){
@@ -1163,7 +1188,7 @@ function seedData(){
 ═══════════════════════════════════════════════════════ */
 const fmt = n=>'R'+Number(n).toLocaleString('en-ZA',{minimumFractionDigits:2,maximumFractionDigits:2});
 const fmtD  = d =>d?new Date(d+'T00:00:00').toLocaleDateString('en-ZA',{day:'2-digit',month:'short',year:'numeric'}):'-';
-const fmtDT = dt=>dt?new Date(dt).toLocaleString('en-ZA',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):'-';
+const fmtDT = dt=>dt?new Date(String(dt).replace(' ','T')).toLocaleString('en-ZA',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):'-';
 const esc = s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
 const ROLE_LABELS = {
@@ -1296,10 +1321,11 @@ const PAGE_INFO = {
   'p-dashboard': {
     title: 'Dashboard',
     sub: 'Your control centre',
-    purpose: 'The central hub showing live activity across the entire portal — callouts, invoices, safety compliance, and recent audit events at a glance. Every metric card pulls from live data, so what you see reflects the current state of the system.',
+    purpose: 'The central hub showing live tracker work, operational callouts, invoices, safety compliance, and recent activity at a glance. Tasks and callouts are counted separately so internal work never inflates field-operations figures.',
     steps: [
-      'Review the key metric cards at the top — badge numbers in red flag items needing urgent attention; amber numbers indicate items to monitor.',
-      'Check the Recent Callouts panel for any open incidents that have not been assigned or progressed since yesterday.',
+      'Review Open Tasks, Urgent Tasks, and Due Today for work in the Admin, Sales, and General streams.',
+      'Review Open Callouts separately — this count now contains only genuine client incidents and field jobs.',
+      'Check Recent Tracker Activity for work that has not been assigned or progressed.',
       'Check the Outstanding Invoices panel — anything overdue (past payment terms) should be followed up today.',
       'Review the Safety Compliance summary — it shows the percentage of safety files currently compliant and flags any that are expiring within 30 days.',
       'Scan the Audit Feed at the bottom — it shows the 5 most recent actions across all users. Anything unexpected warrants investigation.',
@@ -1309,7 +1335,7 @@ const PAGE_INFO = {
     tips: [
       'Check the dashboard every morning before starting work — it gives you the full picture in under a minute.',
       'Red badge numbers on the nav sidebar indicate urgent items across all pages. Clear these before end of day.',
-      'If the Recent Callouts panel shows the same open incidents day after day, escalate — they may be stalled.',
+      'If Recent Tracker Activity shows the same open work day after day, escalate it to the stream owner.',
       'The dashboard does not auto-refresh. Navigate away and back (or reload) to get the latest data.',
     ],
     faqs: [
@@ -1371,10 +1397,38 @@ const PAGE_INFO = {
     linked: 'Callouts, Quotes.',
     access: ['admin','sysadmin','manager','call_logger','senior_tech','junior_tech','client_support','admin_clerk','viewer'],
   },
+  'p-tracker': {
+    title: 'Tracker',
+    sub: 'Company workstreams and operational call log',
+    purpose: 'Use one workspace for all company work. Admin, Sales, and General contain internal tasks; Call Log contains only real client incidents, dispatched service work, and field jobs.',
+    steps: [
+      'Choose the stream first: Admin for finance, compliance, recruitment, and office work; Sales for opportunities and proposals; General for internal systems, training, and cross-functional work.',
+      'Use Call Log only for a genuine operational event or client service job that may require dispatch, a quote, or an invoice.',
+      'Click + New Task while an internal stream is active. The selected stream is carried into the task form.',
+      'Set an owner, priority, and Created, Start, End, and Due date/time values. Update status from Open to In Progress and then Done as work progresses.',
+      'Open Record on any row to add a labelled description. Each description remains a separate table record and can be edited later.',
+      'Use Files on any row to upload PDF, Word, Excel, JPEG, or PNG evidence and open it again from the same record.',
+      'Open the Call Log tab to search and manage operational jobs. Use + Log Call only from that stream.',
+    ],
+    tips: [
+      'A banking change, payment follow-up, compliance document, job mailbox, portal fix, or team training item is a task, not a callout.',
+      'A client request that is likely to become quoted work belongs in Sales until it becomes a confirmed operational job.',
+      'Imported tasks retain their original call-log reference for audit traceability.',
+      'Schedule changes, new descriptions, description edits, and file changes are written to the Audit Log. Description edits also preserve the prior revision.',
+    ],
+    faqs: [
+      { q: 'Why did the callout count drop?', a: 'Internal work logged as callouts was moved into the correct Tracker streams. Open Callouts now measures operational jobs only.' },
+      { q: 'Where is the old Call Log page?', a: 'Call Log is now the fourth tab inside Tracker. Existing links redirect to that tab.' },
+      { q: 'Can I overwrite the existing description?', a: 'Edit that description record and save it. The visible record changes, while the earlier version is preserved as a revision and the action is audited.' },
+      { q: 'Which stream should portal defects use?', a: 'Use General for internal portal defects and system improvements. Use Call Log only when the portal issue is itself part of a client operational job.' },
+    ],
+    linked: 'Dashboard, Quotes, Invoices, Clients.',
+    access: ['admin','sysadmin','manager','admin_clerk','senior_tech','junior_tech','call_logger','viewer','safety_officer'],
+  },
   'p-callouts': {
     title: 'Call Log',
     sub: 'Incident & service callout tracker',
-    purpose: 'The complete, auditable record of every security callout — incident type, location, assigned technician, PO number, status, and resolution. This is the operations team\'s primary working page.',
+    purpose: 'The Call Log tab inside Tracker is the complete, auditable record of every genuine security or service callout — incident type, location, assigned technician, PO number, status, and resolution.',
     steps: [
       'Click "+ Log Call" to create a new callout. Complete all required fields: client, site, service type, description, and priority.',
       'Use the search box to filter by client name, reference number, technician, or status. Combining filters narrows results quickly.',
@@ -1896,7 +1950,7 @@ const PAGE_INFO = {
       { q: 'What do the score colour bands mean exactly?', a: 'GREEN = 90%+ (fully compliant, no action required), YELLOW = 75–89% (minor non-conformances to monitor), ORANGE = 51–74% (significant gaps, corrective action plan required within 30 days), RED = below 51% (critical non-compliance — work may need to be stopped until resolved).' },
       { q: 'Can I edit the audit after it is submitted?', a: 'Use the Edit button while the file is in Draft or Active status. Once Approved, the record is locked to protect its legal integrity. Contact an Admin if a genuine factual amendment is needed — all changes are logged.' },
       { q: 'How do I track corrective actions?', a: 'Use the Status dropdown and Notes field on each Action Plan item. For a version to share with the contractor outside the portal, click the Tracker button to download an Excel-based action tracker.' },
-      { q: 'What is the Baseline score vs the Projected score?', a: 'Baseline is the score the file received when first submitted to Astute Insights. Projected shows what the score will be on re-submission if all items currently marked Fixed are accepted. Use Projected to demonstrate progress to the client.' },
+      { q: 'What is the Baseline score vs the Projected score?', a: 'Baseline is the score the file received when first submitted to Astute Insights. Projected shows what the score will be on re-submission if all items currently marked Fixed are accepted. Use Projected to show progress to the client.' },
       { q: 'Who can approve a safety file?', a: 'Only Admin and Manager roles. The approver must verify that all critical and high-priority corrective actions are closed and that supporting documents are attached before approving.' },
       { q: 'What is the Generate Docs button?', a: 'It creates template corrective action documents for all non-compliant items in the file in a single operation — saving the auditor from creating documents one by one. Review and customise each document before sending to the contractor.' },
     ],
@@ -1955,6 +2009,11 @@ const PAGE_PERMS = {
   'p-audit': [
     { perm: 'security.audit', label: 'View the full audit log' },
   ],
+  'p-tracker':      [
+    { perm: 'task.view',    label: 'View company task streams' },
+    { perm: 'callout.view', label: 'View the operational Call Log stream' },
+  ],
+  'p-new-task':     [{ perm: 'task.create', label: 'Create new tasks' }],
   'p-new-callout':  [{ perm: 'capture.new_callout',  label: 'Log new callouts' }],
   'p-new-quote':    [{ perm: 'capture.new_quote',    label: 'Submit new quotes' }],
   'p-new-invoice':  [{ perm: 'capture.new_invoice',  label: 'Create new invoices' }],
@@ -1964,9 +2023,11 @@ const PAGE_PERMS = {
 /* Per-page quick navigation actions (filtered to user's permissions at render time) */
 const PAGE_ACTIONS = {
   'p-dashboard':         [{ label:'Operations', page:'p-ops-dashboard' }, { label:'Finance', page:'p-finance-dashboard' }, { label:'Support', page:'p-support-dashboard' }],
-  'p-ops-dashboard':     [{ label:'Call Log', page:'p-callouts', perm:'callout.view' }, { label:'Quotes', page:'p-quotes', perm:'quote.view' }, { label:'Timeline', page:'p-timeline' }],
-  'p-timeline':          [{ label:'Call Log', page:'p-callouts', perm:'callout.view' }, { label:'Quotes', page:'p-quotes', perm:'quote.view' }],
-  'p-callouts':          [{ label:'+ Log Call', page:'p-new-callout', perm:'capture.new_callout' }, { label:'Quotes', page:'p-quotes', perm:'quote.view' }, { label:'Timeline', page:'p-timeline' }],
+  'p-ops-dashboard':     [{ label:'Tracker', page:'p-tracker', perm:'task.view' }, { label:'Quotes', page:'p-quotes', perm:'quote.view' }, { label:'Timeline', page:'p-timeline' }],
+  'p-timeline':          [{ label:'Tracker', page:'p-tracker', perm:'task.view' }, { label:'Quotes', page:'p-quotes', perm:'quote.view' }],
+  'p-callouts':          [{ label:'Tracker', page:'p-tracker', perm:'task.view' }, { label:'+ Log Call', page:'p-new-callout', perm:'capture.new_callout' }],
+  'p-tracker':           [{ label:'+ New Task', page:'p-new-task', perm:'task.create' }],
+  'p-new-task':          [{ label:'Tracker', page:'p-tracker', perm:'task.view' }],
   'p-quotes':            [{ label:'+ Submit Quote', page:'p-new-quote', perm:'capture.new_quote' }, { label:'Call Log', page:'p-callouts', perm:'callout.view' }, { label:'Invoices', page:'p-invoices', perm:'invoice.view' }],
   'p-finance-dashboard': [{ label:'Invoices', page:'p-invoices', perm:'invoice.view' }, { label:'Transactions', page:'p-transactions', perm:'finance.transactions' }, { label:'Income Stmt', page:'p-income', perm:'finance.income' }],
   'p-invoices':          [{ label:'+ New Invoice', page:'p-new-invoice', perm:'capture.new_invoice' }, { label:'Log Payment', page:'p-log-payment', perm:'capture.log_payment' }, { label:'Statements', page:'p-statement', perm:'finance.statement' }],
@@ -2323,6 +2384,10 @@ function goLogin(){
 function fillCreds(u,p){ document.getElementById('l-user').value=u; document.getElementById('l-pass').value=p; }
 
 function showPortalPage(id, el){
+  if(id === 'p-callouts') {
+    _trackerCat = 'call_log';
+    id = 'p-tracker';
+  }
   document.querySelectorAll('.ppage').forEach(p=>p.classList.remove('active'));
   const page=document.getElementById(id);
   if(page) page.classList.add('active');
@@ -2344,13 +2409,15 @@ function showPortalPage(id, el){
   // Render with current data immediately, then async-refresh and re-render
   const renders={
     'p-dashboard':         async()=>{ renderDashboard(); await refreshAll(); renderDashboard(); updateBadges(); safLoadDashCompliance(); },
-    'p-ops-dashboard':     async()=>{ renderOpsDashboard(); await Promise.all([refreshCallouts(),refreshQuotes()]); renderOpsDashboard(); updateBadges(); },
+    'p-ops-dashboard':     async()=>{ renderOpsDashboard(); await Promise.all([refreshTasks(),refreshCallouts(),refreshQuotes()]); renderOpsDashboard(); updateBadges(); },
     'p-finance-dashboard': async()=>{ renderFinDashboard(); await Promise.all([refreshInvoices(),refreshTransactions()]); renderFinDashboard(); updateBadges(); },
     'p-support-dashboard': async()=>{ renderSupDashboard(); await Promise.all([refreshUsers(),refreshSafetyFiles()]); renderSupDashboard(); updateBadges(); },
     'p-transactions': async()=>{ renderTransactions(''); await refreshTransactions(); renderTransactions(''); },
     'p-invoices':     async()=>{ renderInvoices(''); await refreshInvoices(); renderInvoices(''); updateBadges(); },
     'p-quotes':       async()=>{ renderQuotes(''); await refreshQuotes(); renderQuotes(''); updateBadges(); },
     'p-callouts':     async()=>{ renderCallouts(''); await refreshCallouts(); renderCallouts(''); updateBadges(); },
+    'p-tracker':      async()=>{ renderTracker(); await Promise.all([refreshTasks(), refreshCallouts()]); renderTracker(); updateBadges(); },
+    'p-new-task':     async()=>{ initNewTask(); },
     'p-timeline':     async()=>{ renderTimeline(); },
     'p-statement':    async()=>{ renderStatement(); },
     'p-income':       async()=>{ await Promise.all([refreshInvoices(), refreshTransactions()]); renderIncome(); },
@@ -2409,6 +2476,9 @@ function renderDashboard(){
   const now   = new Date();
 
   // Pre-compute shared data once
+  const openTasks      = proxyDB.tasks.filter(t=>t.status==='Open'||t.status==='In Progress').length;
+  const urgentTasks    = proxyDB.tasks.filter(t=>t.priority==='Urgent'&&(t.status==='Open'||t.status==='In Progress')).length;
+  const tasksDueToday  = proxyDB.tasks.filter(t=>t.due_date===localDateStr()&&(t.status==='Open'||t.status==='In Progress')).length;
   const open           = proxyDB.callouts.filter(c=>c.status==='Open'||c.status==='In Progress').length;
   const pq             = proxyDB.quotes.filter(q=>q.status==='Draft'||q.status==='Sent'||q.status==='Pending Approval').length;
   const mtd            = proxyDB.invoices.filter(i=>{const d=new Date(i.date+'T00:00:00');return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();}).reduce((a,i)=>a+i.amount,0);
@@ -2424,7 +2494,7 @@ function renderDashboard(){
   for(let i=5;i>=0;i--){const dt=new Date(now.getFullYear(),now.getMonth()-i,1);months.push({lbl:dt.toLocaleDateString('en-ZA',{month:'short'}),m:dt.getMonth(),y:dt.getFullYear()});}
   const revData = months.map(m=>invoicePaymentRevenue(m.y, m.m));
 
-  const d = { now, open, pq, mtd, net, completedMTD, outstandingVal, ytd, quotePipeVal, overdue, urgent, pendingQA, months, revData };
+  const d = { now, openTasks, urgentTasks, tasksDueToday, open, pq, mtd, net, completedMTD, outstandingVal, ytd, quotePipeVal, overdue, urgent, pendingQA, months, revData };
 
   let html = '';
   let hasContent = false;
@@ -2442,7 +2512,7 @@ function renderDashboard(){
   applyProgFills(container);
 
   // Nav badges (always update regardless of widget visibility)
-  const nbCo=document.getElementById('nb-co');if(nbCo)nbCo.textContent=open;
+  const nbCo=document.getElementById('nb-co');if(nbCo)nbCo.textContent=openTasks+open;
   const nbInv=document.getElementById('nb-inv');if(nbInv)nbInv.textContent=proxyDB.invoices.filter(i=>i.status==='Sent'||i.status==='Overdue').length;
   const nbQte=document.getElementById('nb-qte');if(nbQte)nbQte.textContent=proxyDB.quotes.filter(q=>q.status==='Pending Approval').length;
 }
@@ -2460,42 +2530,45 @@ function _buildDashBlock(wid, d){
 }
 
 function _dashBlockOps(d){
-  if(!can('callout.view')) return '';
-  const {open, pq, completedMTD} = d;
+  if(!can('task.view')&&!can('callout.view')) return '';
+  const {openTasks, urgentTasks, tasksDueToday, open, pq} = d;
   const kv = v => String(v).length>8 ? ' kval--compact' : '';
-  const sOpen=String(open), sPq=String(pq), sCmtd=String(completedMTD);
 
   const kpiCards = [
-    `<div class="kcard k1"><div class="klbl">Open Callouts</div><div class="kval${kv(sOpen)}">${sOpen}</div><div class="ksub">Active on site</div></div>`,
-    can('quote.view') ? `<div class="kcard k3"><div class="klbl">Pending Quotes</div><div class="kval${kv(sPq)}">${sPq}</div><div class="ksub">Awaiting approval</div></div>` : '',
-    `<div class="kcard k4"><div class="klbl">Completed MTD</div><div class="kval${kv(sCmtd)}">${sCmtd}</div><div class="ksub">Jobs closed this month</div></div>`,
+    can('task.view') ? `<div class="kcard k1"><div class="klbl">Open Tasks</div><div class="kval${kv(openTasks)}">${openTasks}</div><div class="ksub">Admin, Sales & General</div></div>` : '',
+    can('task.view') ? `<div class="kcard k2"><div class="klbl">Urgent Tasks</div><div class="kval${kv(urgentTasks)}">${urgentTasks}</div><div class="ksub">Immediate attention</div></div>` : '',
+    can('callout.view') ? `<div class="kcard k4"><div class="klbl">Open Callouts</div><div class="kval${kv(open)}">${open}</div><div class="ksub">Operational jobs only</div></div>` : '',
+    can('task.view') ? `<div class="kcard k3"><div class="klbl">Due Today</div><div class="kval${kv(tasksDueToday)}">${tasksDueToday}</div><div class="ksub">Tracker deadlines</div></div>` : '',
+    can('quote.view') ? `<div class="kcard k3"><div class="klbl">Pending Quotes</div><div class="kval${kv(pq)}">${pq}</div><div class="ksub">Awaiting approval</div></div>` : '',
   ].filter(Boolean).join('');
 
-  const rc = [...proxyDB.callouts].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5);
-  const rcRows = rc.length
-    ? rc.map(c=>`<tr><td class="mono">${esc(c.id)}</td><td class="tc-11">${esc(c.service.substring(0,30))}${c.service.length>30?'…':''}</td><td>${pillH(c.status)}</td></tr>`).join('')
-    : '<tr><td colspan="3" class="tc-empty-sm">No callouts</td></tr>';
+  const recentTasks = [...proxyDB.tasks].sort((a,b)=>(b.created_at||'').localeCompare(a.created_at||'')).slice(0,5);
+  const taskRows = recentTasks.length
+    ? recentTasks.map(t=>`<tr><td class="mono">${esc(t.ref_id)}</td><td class="tc-11">${esc(t.title.substring(0,38))}${t.title.length>38?'…':''}</td><td><span class="badge ${TASK_STATUS_BADGE[t.status]||''}">${esc(t.status)}</span></td></tr>`).join('')
+    : '<tr><td colspan="3" class="tc-empty-sm">No tracker activity</td></tr>';
 
-  const coTotal = Math.max(proxyDB.callouts.length,1);
-  const coActBars = [{s:'Open',col:'var(--blue)'},{s:'In Progress',col:'var(--amber)'},{s:'Completed',col:'var(--green)'},{s:'Invoiced',col:'var(--muted)'}].map(({s,col})=>{
-    const cnt=proxyDB.callouts.filter(c=>c.status===s).length;
-    return `<div class="mb-14"><div class="flex-sb mb-5"><span class="mlbl-xs">${s}</span><span class="mlbl-sm">${cnt}</span></div><div class="prog-bar"><div class="prog-fill" data-w="${Math.round(cnt/coTotal*100)}" data-bg="${col}"></div></div></div>`;
-  }).join('');
-  const prioBars = [{s:'Emergency',col:'var(--ember)'},{s:'Urgent',col:'var(--amber)'},{s:'Normal',col:'var(--blue)'},{s:'Routine',col:'var(--muted)'}].map(({s,col})=>{
-    const cnt=proxyDB.callouts.filter(c=>c.priority===s).length;
-    return `<div class="mb-14"><div class="flex-sb mb-5"><span class="mlbl-xs">${s}</span><span class="mlbl-sm">${cnt}</span></div><div class="prog-bar"><div class="prog-fill" data-w="${Math.round(cnt/coTotal*100)}" data-bg="${col}"></div></div></div>`;
+  const activeTasks = proxyDB.tasks.filter(t=>t.status==='Open'||t.status==='In Progress');
+  const workTotal = Math.max(activeTasks.length + open, 1);
+  const streamBars = [
+    {key:'admin', label:'Admin', col:'var(--blue)'},
+    {key:'sales', label:'Sales', col:'var(--amber)'},
+    {key:'general', label:'General', col:'var(--green)'},
+    {key:'call_log', label:'Call Log', col:'var(--ember)'},
+  ].map(({key,label,col})=>{
+    const cnt = key==='call_log' ? open : activeTasks.filter(t=>t.category===key).length;
+    return `<div class="mb-14"><div class="flex-sb mb-5"><span class="mlbl-xs">${label}</span><span class="mlbl-sm">${cnt}</span></div><div class="prog-bar"><div class="prog-fill" data-w="${Math.round(cnt/workTotal*100)}" data-bg="${col}"></div></div></div>`;
   }).join('');
 
-  const panelCallouts = `<div class="panel">
-    <div class="ph"><div class="ph-title">Recent Callouts</div><button class="btn btn-g btn-s" data-action="navPage" data-page="p-callouts">View All</button></div>
-    <div class="tw"><table><thead><tr><th>Job ID</th><th>Service</th><th>Status</th></tr></thead><tbody>${rcRows}</tbody></table></div>
+  const panelTracker = `<div class="panel">
+    <div class="ph"><div class="ph-title">Recent Tracker Activity</div><button class="btn btn-g btn-s" data-action="navPage" data-page="p-tracker">View All</button></div>
+    <div class="tw"><table><thead><tr><th>Ref</th><th>Task</th><th>Status</th></tr></thead><tbody>${taskRows}</tbody></table></div>
   </div>`;
   const panelActivity = `<div class="panel">
-    <div class="ph"><div class="ph-title">Callout Activity</div></div>
-    <div class="pb"><div class="mlbl-xs mlbl-section-top">By Status</div>${coActBars}<div class="mlbl-xs mlbl-section-mid">By Priority</div>${prioBars}</div>
+    <div class="ph"><div class="ph-title">Open Work by Stream</div></div>
+    <div class="pb">${streamBars}</div>
   </div>`;
 
-  return `<div class="kgrid kgrid--auto">${kpiCards}</div><div class="twocol">${panelCallouts}${panelActivity}</div>`;
+  return `<div class="kgrid kgrid--auto">${kpiCards}</div><div class="twocol">${panelTracker}${panelActivity}</div>`;
 }
 
 function _dashBlockFin(d){
@@ -2537,9 +2610,10 @@ function _dashBlockFin(d){
 }
 
 function _dashBlockAlerts(d){
-  const {overdue, urgent, pendingQA} = d;
+  const {overdue, urgentTasks, urgent, pendingQA} = d;
   let html='';
   if(overdue>0&&can('invoice.view'))  html+=`<div class="acard danger"><div class="albl">Overdue Invoices</div><div class="acount">${overdue}</div><div class="adesc">Immediate follow-up</div></div>`;
+  if(urgentTasks>0&&can('task.view')) html+=`<div class="acard warn"><div class="albl">Urgent Tracker Tasks</div><div class="acount">${urgentTasks}</div><div class="adesc">Internal work requiring attention</div></div>`;
   if(urgent>0)                        html+=`<div class="acard warn"><div class="albl">Urgent Callouts</div><div class="acount">${urgent}</div><div class="adesc">Priority dispatch</div></div>`;
   if(pendingQA>0&&can('quote.approve')) html+=`<div class="acard info"><div class="albl">Quotes Pending Approval</div><div class="acount">${pendingQA}</div><div class="adesc">Tech-submitted, awaiting review</div></div>`;
   return html ? `<div class="alert-strip" id="dash-alerts">${html}</div>` : '';
@@ -2677,22 +2751,26 @@ function renderOpsDashboard() {
   const el = document.getElementById('ops-dash-content');
   if (!el) return;
   const now = new Date();
-  const open       = proxyDB.callouts.filter(c => c.status === 'Open').length;
-  const inProg     = proxyDB.callouts.filter(c => c.status === 'In Progress').length;
-  const urgent     = proxyDB.callouts.filter(c => (c.priority === 'Urgent' || c.priority === 'Emergency') && (c.status === 'Open' || c.status === 'In Progress')).length;
+  const openTasks  = proxyDB.tasks.filter(t => t.status === 'Open' || t.status === 'In Progress').length;
+  const urgent     = proxyDB.tasks.filter(t => t.priority === 'Urgent' && (t.status === 'Open' || t.status === 'In Progress')).length;
+  const openCalls  = proxyDB.callouts.filter(c => c.status === 'Open' || c.status === 'In Progress').length;
   const pendingQA  = proxyDB.quotes.filter(q => q.approvalStatus === 'pending').length;
   const qMTD       = proxyDB.quotes.filter(q => { const d=new Date(q.date+'T00:00:00'); return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear(); }).length;
-  const recent     = [...proxyDB.callouts].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,6);
-  const statuses   = ['Open','In Progress','Completed','Invoiced'];
-  const total      = proxyDB.callouts.length || 1;
+  const recent     = [...proxyDB.tasks].sort((a,b)=>(b.created_at||'').localeCompare(a.created_at||'')).slice(0,6);
+  const activeTasks = proxyDB.tasks.filter(t => t.status === 'Open' || t.status === 'In Progress');
+  const total      = activeTasks.length + openCalls || 1;
 
-  const statBars = statuses.map(s=>{
-    const cnt = proxyDB.callouts.filter(c=>c.status===s).length;
+  const statBars = [
+    {key:'admin', label:'Admin', col:'var(--blue)'},
+    {key:'sales', label:'Sales', col:'var(--amber)'},
+    {key:'general', label:'General', col:'var(--green)'},
+    {key:'call_log', label:'Call Log', col:'var(--ember)'},
+  ].map(({key,label,col})=>{
+    const cnt = key==='call_log' ? openCalls : activeTasks.filter(t=>t.category===key).length;
     const pct = Math.round(cnt/total*100);
-    const col = s==='Open'?'var(--blue)':s==='In Progress'?'var(--amber)':s==='Completed'?'var(--green)':'var(--muted)';
     return `<div class="mb-14">
       <div class="flex-sb mb-5">
-        <span class="mlbl-xs">${s}</span>
+        <span class="mlbl-xs">${label}</span>
         <span class="mlbl-sm">${cnt}</span>
       </div>
       <div class="prog-bar">
@@ -2702,40 +2780,41 @@ function renderOpsDashboard() {
   }).join('');
 
   const recentRows = recent.length
-    ? recent.map(c=>`<tr>
-        <td class="mono tc-13">${esc(c.id)}</td>
-        <td class="tc-trunc">${esc(c.service)}</td>
-        <td>${pillH(c.priority)}</td>
-        <td>${pillH(c.status)}</td>
+    ? recent.map(t=>`<tr>
+        <td class="mono tc-13">${esc(t.ref_id)}</td>
+        <td class="tc-trunc">${esc(t.title)}</td>
+        <td>${esc(TASK_CATEGORY_LABELS[t.category]||t.category)}</td>
+        <td><span class="badge ${TASK_STATUS_BADGE[t.status]||''}">${esc(t.status)}</span></td>
       </tr>`).join('')
-    : `<tr><td colspan="4" class="tc-empty">No callouts yet</td></tr>`;
+    : `<tr><td colspan="4" class="tc-empty">No tracker activity yet</td></tr>`;
 
-  const qas = can('capture.new_callout') || can('capture.new_quote');
+  const qas = can('task.create') || can('capture.new_callout') || can('capture.new_quote');
   el.innerHTML = `
     <div class="kgrid">
-      <div class="kcard k1"><div class="klbl">Open Callouts</div><div class="kval">${open}</div><div class="ksub">Awaiting dispatch</div></div>
-      <div class="kcard k2"><div class="klbl">In Progress</div><div class="kval">${inProg}</div><div class="ksub">Active on site</div></div>
-      <div class="kcard kcard-ember"><div class="klbl">Urgent / Emergency</div><div class="kval kval-ember">${urgent}</div><div class="ksub">Priority dispatch</div></div>
+      <div class="kcard k1"><div class="klbl">Open Tasks</div><div class="kval">${openTasks}</div><div class="ksub">Admin, Sales & General</div></div>
+      <div class="kcard kcard-ember"><div class="klbl">Urgent Tasks</div><div class="kval kval-ember">${urgent}</div><div class="ksub">Immediate attention</div></div>
+      <div class="kcard k2"><div class="klbl">Open Callouts</div><div class="kval">${openCalls}</div><div class="ksub">Operational jobs only</div></div>
       <div class="kcard k3"><div class="klbl">Quotes This Month</div><div class="kval">${qMTD}</div><div class="ksub">${pendingQA} pending approval</div></div>
     </div>
     <div class="twocol">
       <div class="panel">
         <div class="ph">
-          <div class="ph-title">Recent Callouts</div>
-          <button class="btn btn-g btn-s" data-action="navPage" data-page="p-callouts">View All →</button>
+          <div class="ph-title">Recent Tracker Activity</div>
+          <button class="btn btn-g btn-s" data-action="navPage" data-page="p-tracker">View All →</button>
         </div>
-        <div class="tw"><table><thead><tr><th>Job ID</th><th>Service</th><th>Priority</th><th>Status</th></tr></thead>
+        <div class="tw"><table><thead><tr><th>Ref</th><th>Task</th><th>Stream</th><th>Status</th></tr></thead>
           <tbody>${recentRows}</tbody>
         </table></div>
       </div>
       <div class="panel">
-        <div class="ph"><div class="ph-title">Callout Breakdown</div></div>
+        <div class="ph"><div class="ph-title">Open Work by Stream</div></div>
         <div class="pb">${statBars}</div>
       </div>
     </div>
     ${qas ? `<div class="panel mt2">
       <div class="ph"><div class="ph-title">Quick Actions</div></div>
       <div class="pb dash-acts">
+        ${can('task.create')?`<button class="btn btn-p" data-action="navPage" data-page="p-new-task">+ New Task</button>`:''}
         ${can('capture.new_callout')?`<button class="btn btn-p" data-action="navPage" data-page="p-new-callout">+ Log Call</button>`:''}
         ${can('capture.new_quote')?`<button class="btn btn-g" data-action="navPage" data-page="p-new-quote">+ Submit Quote</button>`:''}
         <button class="btn btn-g" data-action="navPage" data-page="p-timeline">View Timeline →</button>
@@ -2879,6 +2958,242 @@ function renderSupDashboard() {
 }
 
 /* ═══════════════════════════════════════════════════════
+   TRACKER — Company task tracker (Admin / Sales / General)
+═══════════════════════════════════════════════════════ */
+const TASK_CATEGORY_ROLES = {
+  admin:   ['sysadmin','admin','admin_clerk','manager'],
+  sales:   ['sysadmin','admin','manager'],
+  general: ['sysadmin','admin','manager','admin_clerk','finance','safety_officer','call_logger','junior_tech','senior_tech','viewer'],
+};
+const TASK_CATEGORY_LABELS = { admin:'Admin', sales:'Sales', general:'General', call_log:'Call Log' };
+const TASK_PRIORITY_DOT    = { Low:'bg-muted', Normal:'bg-info', High:'bg-warn', Urgent:'bg-danger' };
+const TASK_STATUS_BADGE    = {
+  'Open':        'badge-open',
+  'In Progress': 'badge-inprog',
+  'Done':        'badge-done',
+  'Cancelled':   'badge-cancelled',
+};
+
+function visibleTaskCategories() {
+  const roles = SESSION?.roles?.length ? SESSION.roles : [SESSION?.role || ''];
+  return Object.keys(TASK_CATEGORY_ROLES).filter(cat => TASK_CATEGORY_ROLES[cat].some(role => roles.includes(role)));
+}
+
+function visibleTrackerStreams() {
+  const streams = visibleTaskCategories();
+  if (can('callout.view')) streams.push('call_log');
+  return streams;
+}
+
+let _trackerCat = null; // active category tab
+
+function renderTracker(cat) {
+  const cats = visibleTrackerStreams();
+  if (!cats.length) return;
+  if (!cat) cat = _trackerCat || cats[0];
+  if (!cats.includes(cat)) cat = cats[0];
+  _trackerCat = cat;
+
+  // Tab bar
+  const tabsEl = document.getElementById('tracker-tabs');
+  if (tabsEl) {
+    tabsEl.innerHTML = cats.map(c =>
+      `<button class="pnitem${c===cat?' active':''}" data-action="switchTrackerCat" data-cat="${c}">${esc(TASK_CATEGORY_LABELS[c])}</button>`
+    ).join('');
+  }
+
+  // New task button
+  const btnNew = document.getElementById('btn-new-task');
+  if (btnNew) { can('task.create') && cat !== 'call_log' ? $show(btnNew) : $hide(btnNew); }
+
+  const taskView = document.getElementById('tracker-task-view');
+  const callLogView = document.getElementById('tracker-calllog-view');
+  if (taskView) taskView.hidden = cat === 'call_log';
+  if (callLogView) callLogView.hidden = cat !== 'call_log';
+  if (cat === 'call_log') {
+    const search = document.getElementById('co-search')?.value || '';
+    const filter = document.getElementById('co-filter')?.value || '';
+    renderCallouts(search, filter);
+    return;
+  }
+
+  // Category filter select
+  const catSel = document.getElementById('ntk-category');
+  if (catSel && !catSel.options.length) {
+    visibleTaskCategories().forEach(c => {
+      const o = document.createElement('option');
+      o.value = c; o.textContent = TASK_CATEGORY_LABELS[c];
+      catSel.appendChild(o);
+    });
+  }
+  if (catSel) catSel.value = cat;
+
+  const items = proxyDB.tasks.filter(t => t.category === cat);
+  const canUpdate = can('task.update');
+  const canDelete = can('task.delete');
+
+  const tbody = document.getElementById('tracker-table');
+  if (!tbody) return;
+  tbody.innerHTML = items.length ? items.map(t => {
+    const dotCls  = TASK_PRIORITY_DOT[t.priority]  || 'bg-muted';
+    const bdgCls  = TASK_STATUS_BADGE[t.status]    || '';
+    const assignee = t.assignee_name || t.assigned_to || '—';
+    const actions = [];
+    actions.push(`<button class="btn btn-g btn-s" data-action="openTrackerRecord" data-entity-type="task" data-id="${esc(t.ref_id)}">Record</button>`);
+    actions.push(`<button class="btn btn-g btn-s" data-action="openAttachmentsModal" data-entity-type="task" data-entity-ref="${esc(t.ref_id)}">Files</button>`);
+    if (canUpdate) actions.push(`<button class="btn btn-g btn-s" data-action="openTaskStatus" data-id="${esc(t.ref_id)}">Status</button>`);
+    if (canDelete) actions.push(`<button class="btn btn-g btn-s btn-danger-soft" data-action="deleteTask" data-id="${esc(t.ref_id)}">Del</button>`);
+    return `<tr>
+      <td><span class="mono fs-10">${esc(t.ref_id)}</span></td>
+      <td class="td-main">${esc(t.title)}</td>
+      <td class="fs-11 text-muted">${esc(assignee)}</td>
+      <td><span class="prio-dot ${dotCls}"></span><span class="fs-11 text-muted">${esc(t.priority)}</span></td>
+      <td><span class="badge ${bdgCls}">${esc(t.status)}</span></td>
+      <td class="fs-11 text-muted nowrap">${fmtDT(t.created_at)}</td>
+      <td class="fs-11 text-muted nowrap">${fmtDT(t.start_at)}</td>
+      <td class="fs-11 text-muted nowrap">${fmtDT(t.end_at)}</td>
+      <td class="fs-11 text-muted nowrap">${fmtDT(t.due_at)}</td>
+      <td class="act-cell">${actions.join('')}</td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="10" class="empty-row">No tasks in ${esc(TASK_CATEGORY_LABELS[cat])}.</td></tr>`;
+}
+
+function initNewTask() {
+  // Reset form fields
+  ['ntk-title','ntk-desc','ntk-assigned','ntk-start','ntk-end','ntk-due'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  const pri = document.getElementById('ntk-priority'); if (pri) pri.value = 'Normal';
+  const catSel = document.getElementById('ntk-category');
+  if (catSel) {
+    const cats = visibleTaskCategories();
+    catSel.innerHTML = cats.map(c => `<option value="${c}">${esc(TASK_CATEGORY_LABELS[c])}</option>`).join('');
+    if (_trackerCat && cats.includes(_trackerCat)) catSel.value = _trackerCat;
+  }
+}
+
+async function saveNewTask() {
+  const title = (document.getElementById('ntk-title')?.value || '').trim();
+  const cat   = document.getElementById('ntk-category')?.value || '';
+  if (!title || !cat) { showToast('Title and category are required.', 'error'); return; }
+  const payload = {
+    category:    cat,
+    title,
+    description: document.getElementById('ntk-desc')?.value?.trim() || null,
+    priority:    document.getElementById('ntk-priority')?.value || 'Normal',
+    assigned_to: document.getElementById('ntk-assigned')?.value?.trim() || null,
+    start_at:    document.getElementById('ntk-start')?.value || null,
+    end_at:      document.getElementById('ntk-end')?.value || null,
+    due_at:      document.getElementById('ntk-due')?.value || null,
+  };
+  const r = await api('POST', 'tasks.php', payload);
+  if (r.success) {
+    showToast('Task created.', 'success');
+    await refreshTasks();
+    navPage('p-tracker');
+  } else {
+    showToast(r.message || 'Failed to create task.', 'error');
+  }
+}
+
+async function openTaskStatus(refId) {
+  const task = proxyDB.tasks.find(t => t.ref_id === refId);
+  if (!task) return;
+  const statuses = ['Open','In Progress','Done','Cancelled'];
+  const btns = statuses.map(s =>
+    `<button class="btn ${s===task.status?'btn-p':'btn-g'} btn-s" data-action="setTaskStatus" data-id="${esc(refId)}" data-status="${esc(s)}">${esc(s)}</button>`
+  ).join('');
+  showModal(`<div class="modal-head">Update Status — <span class="mono fs-11">${esc(refId)}</span></div>
+    <div class="pb">${esc(task.title)}</div>
+    <div class="flex-row gap1 mt2">${btns}</div>`);
+}
+
+async function setTaskStatus(refId, status) {
+  closeModal();
+  const r = await api('PUT', `tasks.php?id=${encodeURIComponent(refId)}`, { status });
+  if (r.success) { await refreshTasks(); renderTracker(); showToast('Status updated.','success'); }
+  else showToast(r.message || 'Update failed.','error');
+}
+
+async function deleteTask(refId) {
+  if (!confirm(`Delete task ${refId}? This cannot be undone.`)) return;
+  const r = await api('DELETE', `tasks.php?id=${encodeURIComponent(refId)}`);
+  if (r.success) { await refreshTasks(); renderTracker(); showToast('Task deleted.','success'); }
+  else showToast(r.message || 'Delete failed.','error');
+}
+
+function trackerDateInput(value) {
+  return value ? String(value).replace(' ', 'T').slice(0, 16) : '';
+}
+
+function openTrackerRecord(entityType, refId) {
+  if (!['task','callout'].includes(entityType)) return;
+  const record = entityType === 'task'
+    ? proxyDB.tasks.find(t => t.ref_id === refId)
+    : proxyDB.callouts.find(c => c.id === refId);
+  if (!record) return;
+  const canEdit = entityType === 'task' ? can('task.update') : can('callout.update');
+  const title = entityType === 'task' ? record.title : record.service;
+  const createdAt = entityType === 'task' ? record.created_at : record.createdAt;
+  const startAt = entityType === 'task' ? record.start_at : record.startAt;
+  const endAt = entityType === 'task' ? record.end_at : record.endAt;
+  const dueAt = entityType === 'task' ? record.due_at : record.dueAt;
+
+  openModal(`${refId} - Record`, `
+    <div class="att-ctx"><span class="fw-600">${esc(title)}</span></div>
+    <div class="form-title mt2">Schedule</div>
+    <div class="fgrid">
+      <div class="fgroup"><label class="flbl">Created</label><input class="finput" value="${esc(fmtDT(createdAt))}" disabled></div>
+      <div class="fgroup"><label class="flbl">Start Date & Time</label><input class="finput" id="tr-start" type="datetime-local" value="${esc(trackerDateInput(startAt))}" ${canEdit?'':'disabled'}></div>
+      <div class="fgroup"><label class="flbl">End Date & Time</label><input class="finput" id="tr-end" type="datetime-local" value="${esc(trackerDateInput(endAt))}" ${canEdit?'':'disabled'}></div>
+      <div class="fgroup"><label class="flbl">Due Date & Time</label><input class="finput" id="tr-due" type="datetime-local" value="${esc(trackerDateInput(dueAt))}" ${canEdit?'':'disabled'}></div>
+    </div>
+    <div class="flex-end mt2"><button class="btn btn-g btn-s" data-action="openAttachmentsModal" data-entity-type="${entityType}" data-entity-ref="${esc(refId)}">Files</button>${canEdit?`<button class="btn btn-p btn-s ml1" data-action="saveTrackerSchedule" data-entity-type="${entityType}" data-id="${esc(refId)}">Save Schedule</button>`:''}</div>
+    <div class="form-title mt3">Description Records</div>
+    <div id="tracker-updates-area"><div class="tc-empty">Loading records...</div></div>
+    ${canEdit?`<div class="panel mt2"><div class="pb"><div class="fgroup"><label class="flbl">New Label</label><input class="finput" id="tr-new-label" maxlength="120" placeholder="e.g. Client feedback"></div><div class="fgroup mt2"><label class="flbl">New Description</label><textarea class="finput" id="tr-new-content" rows="4" maxlength="10000" placeholder="Enter new information"></textarea></div><div class="flex-end mt2"><button class="btn btn-p btn-s" data-action="addTrackerUpdate" data-entity-type="${entityType}" data-id="${esc(refId)}">Add Description</button></div></div></div>`:''}
+    <div id="tracker-record-message" class="fs-11 text-muted mt2"></div>`);
+  loadTrackerUpdates(entityType, refId, canEdit);
+}
+
+async function loadTrackerUpdates(entityType, refId, canEdit) {
+  const area = document.getElementById('tracker-updates-area');
+  if (!area) return;
+  const r = await api('GET', `tracker_updates.php?entity_type=${entityType}&entity_ref=${encodeURIComponent(refId)}`);
+  const rows = r.data || [];
+  area.innerHTML = rows.length ? rows.map((row, index) => `<div class="panel mb-12"><div class="pb"><div class="flex-between fs-10 text-muted mb-12"><span>Record ${index+1} · ${esc(row.created_by||'')}</span><span>${Number(row.revision_count||0)} revision(s)</span></div><div class="fgroup"><label class="flbl">Label</label><input class="finput" id="tr-label-${row.id}" value="${esc(row.label)}" maxlength="120" ${canEdit?'':'disabled'}></div><div class="fgroup mt2"><label class="flbl">Description</label><textarea class="finput" id="tr-content-${row.id}" rows="4" maxlength="10000" ${canEdit?'':'disabled'}>${esc(row.content)}</textarea></div>${canEdit?`<div class="flex-end mt2"><button class="btn btn-g btn-s" data-action="saveTrackerUpdate" data-update-id="${row.id}">Save Edit</button></div>`:''}</div></div>`).join('') : '<div class="tc-empty">No description records yet.</div>';
+}
+
+async function saveTrackerSchedule(entityType, refId) {
+  const endpoint = entityType === 'task' ? 'tasks.php' : 'callouts.php';
+  const payload = { start_at: document.getElementById('tr-start')?.value || null, end_at: document.getElementById('tr-end')?.value || null, due_at: document.getElementById('tr-due')?.value || null };
+  const r = await api('PUT', `${endpoint}?id=${encodeURIComponent(refId)}`, payload);
+  const msg = document.getElementById('tracker-record-message');
+  if (msg) msg.textContent = r.success ? 'Schedule saved and recorded in the audit log.' : (r.error || 'Schedule could not be saved.');
+  if (r.success) { await Promise.all([refreshTasks(), refreshCallouts()]); renderTracker(); }
+}
+
+async function addTrackerUpdate(entityType, refId) {
+  const label = document.getElementById('tr-new-label')?.value.trim() || '';
+  const content = document.getElementById('tr-new-content')?.value.trim() || '';
+  if (!label || !content) { showToast('Label and description are required.', 'error'); return; }
+  const r = await api('POST', 'tracker_updates.php', { entity_type: entityType, entity_ref: refId, label, content });
+  if (!r.success) { showToast(r.error || 'Description could not be added.', 'error'); return; }
+  document.getElementById('tr-new-label').value = '';
+  document.getElementById('tr-new-content').value = '';
+  await loadTrackerUpdates(entityType, refId, true);
+  showToast('Description added and audited.', 'success');
+}
+
+async function saveTrackerUpdate(updateId) {
+  const label = document.getElementById(`tr-label-${updateId}`)?.value.trim() || '';
+  const content = document.getElementById(`tr-content-${updateId}`)?.value.trim() || '';
+  if (!label || !content) { showToast('Label and description are required.', 'error'); return; }
+  const r = await api('PUT', `tracker_updates.php?id=${updateId}`, { label, content });
+  showToast(r.success ? 'Description edit saved with revision history.' : (r.error || 'Description could not be saved.'), r.success ? 'success' : 'error');
+}
+
+/* ═══════════════════════════════════════════════════════
    CALLOUTS - with PO, status-update, assign-tech, assign-PO
 ═══════════════════════════════════════════════════════ */
 function renderCallouts(search='',filter=''){
@@ -2936,6 +3251,7 @@ function renderCallouts(search='',filter=''){
       }
     }
     actions.push(`<button class="btn btn-g btn-s" data-action="openRecordChain" data-id="${esc(c.id)}">View</button>`);
+    actions.push(`<button class="btn btn-g btn-s" data-action="openTrackerRecord" data-entity-type="callout" data-id="${esc(c.id)}">Record</button>`);
     actions.push(`<button class="btn btn-g btn-s" data-action="openAttachmentsModal" data-entity-type="callout" data-entity-ref="${esc(c.id)}">Files</button>`);
     if(can('callout.confirm_closure')&&c.status==='Completed'&&!c.closureConfirmed&&!c.invoiceGenerated){
       actions.push(`<button class="btn btn-p btn-s" data-action="openConfirmClosureModal" data-id="${esc(c.id)}">Confirm Closure</button>`);
@@ -2953,10 +3269,13 @@ function renderCallouts(search='',filter=''){
       <td>${pillH(c.priority)}</td>
       <td>${pillH(c.status)}</td>
       <td class="fs-10 text-muted">${esc(loggedByUser?.name||c.loggedBy||'-')}</td>
-      <td class="tc-11 nowrap">${fmtD(c.date)}${c.time?'  -  '+esc(c.time):''}</td>
+      <td class="tc-11 nowrap">${fmtDT(c.createdAt)}</td>
+      <td class="tc-11 nowrap">${fmtDT(c.startAt)}</td>
+      <td class="tc-11 nowrap">${fmtDT(c.endAt)}</td>
+      <td class="tc-11 nowrap">${fmtDT(c.dueAt)}</td>
       <td><div class="bgrp">${actions.join('')}</div></td>
     </tr>`;
-  }).join(''):'<tr><td colspan="9" class="tc-empty">'+(SESSION?.role==='junior_tech'||SESSION?.role==='senior_tech'?'No callouts assigned to you':'No callouts found')+'</td></tr>';
+  }).join(''):'<tr><td colspan="12" class="tc-empty">'+(SESSION?.role==='junior_tech'||SESSION?.role==='senior_tech'?'No callouts assigned to you':'No callouts found')+'</td></tr>';
 }
 
 function openStatusModal(id){
@@ -4549,7 +4868,11 @@ function updateBadges(){
   const nbCo=document.getElementById('nb-co');
   if(nbInv) nbInv.textContent=proxyDB.invoices.filter(i=>i.status==='Sent'||i.status==='Overdue').length||'';
   if(nbQte) nbQte.textContent=proxyDB.quotes.filter(q=>q.status==='Pending Approval').length||'';
-  if(nbCo)  nbCo.textContent=proxyDB.callouts.filter(c=>c.status==='Open'||c.status==='In Progress').length||'';
+  if(nbCo) {
+    const openTasks = proxyDB.tasks.filter(t=>t.status==='Open'||t.status==='In Progress').length;
+    const openCalls = proxyDB.callouts.filter(c=>c.status==='Open'||c.status==='In Progress').length;
+    nbCo.textContent=(openTasks+openCalls)||'';
+  }
   const nbSaf=document.getElementById('nb-saf');
   if(nbSaf) nbSaf.textContent=typeof safBadgeCount==='function'?safBadgeCount()||'':'';
 }

@@ -64,12 +64,30 @@ export type TransactionType =
   | 'credit'
   | 'debit'
 
+export type TaskCategory =
+  | 'admin'
+  | 'sales'
+  | 'general'
+
+export type TaskStatus =
+  | 'Open'
+  | 'In Progress'
+  | 'Done'
+  | 'Cancelled'
+
+export type TaskPriority =
+  | 'Low'
+  | 'Normal'
+  | 'High'
+  | 'Urgent'
+
 export interface User {
   id: number
   username: string
   name: string
   email: string
   role: Role
+  roles?: Role[]
   permissions: string[]
   client_id: number | null
   active: boolean
@@ -95,7 +113,11 @@ export interface Callout {
   status: CalloutStatus
   assigned_to: string | null
   callout_date: string
+  callout_time: string | null
   notes: string | null
+  start_at: string | null
+  end_at: string | null
+  due_at: string | null
   created_by: string
   created_at: string
   updated_at: string
@@ -252,4 +274,66 @@ export interface PaginatedResponse<T> extends ApiResponse<T[]> {
   total: number
   page: number
   per_page: number
+}
+
+export interface Task {
+  id: number
+  ref_id: string
+  category: TaskCategory
+  title: string
+  description: string | null
+  status: TaskStatus
+  priority: TaskPriority
+  assigned_to_user_id: number | null
+  assigned_to: string | null
+  assignee_name: string | null
+  created_by_user_id: number
+  created_by: string
+  creator_name: string | null
+  source_callout_ref: string | null
+  due_date: string | null
+  start_at: string | null
+  end_at: string | null
+  due_at: string | null
+  completed_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface TaskListResponse extends ApiResponse<Task[]> {
+  total: number
+  page: number
+  limit: number
+  categories: TaskCategory[]
+}
+
+export interface TrackerUpdate {
+  id: number
+  label: string
+  content: string
+  source_kind: string
+  created_by: string
+  updated_by: string | null
+  created_at: string
+  updated_at: string
+  revision_count: number
+}
+
+export interface TrackerUpdateRevision {
+  id: number
+  old_label: string
+  old_content: string
+  new_label: string
+  new_content: string
+  edited_by: string
+  edited_at: string
+}
+
+export interface Attachment {
+  id: number
+  original_name: string
+  file_size: number
+  mime_type: string
+  uploaded_by: string
+  created_at: string
 }

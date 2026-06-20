@@ -675,26 +675,75 @@ $companyLogoUrl = rtrim($cfg['base_url'] ?? '', '/') . '/' . ltrim($cfg['company
       <div class="panel"><div class="tw"><table><thead><tr><th>Quote #</th><th>Client</th><th>Total</th><th>Submitted By</th><th>Valid Until</th><th>Status</th><th>Actions</th></tr></thead><tbody id="qte-table"></tbody></table></div></div>
     </div>
 
-    <!-- CALLOUTS - PO + assignment columns -->
-    <div id="p-callouts" class="ppage">
-      <div class="ptitle">Callouts</div><div class="psub">JOB TICKETS  -  FIELD OPERATIONS</div>
-      <div class="srow">
-        <input type="text" class="sinput" id="co-search" placeholder="Search job, service, invoice no., quote no...">
-        <select class="sinput sinput-narrow" id="co-filter"><option value="">All</option><option>Open</option><option>In Progress</option><option>Completed</option><option>Invoiced</option></select>
-        <button class="btn btn-p btn-s" id="btn-newco" data-action="navPage" data-page="p-new-callout">+ Log Call</button>
-      </div>
-      <div class="panel"><div class="tw">
-        <table>
-          <thead><tr><th>Job ID</th><th>Service</th><th>Assigned To</th><th>PO #</th><th>Priority</th><th>Status</th><th>Logged By</th><th>Date</th><th>Actions</th></tr></thead>
-          <tbody id="co-table"></tbody>
-        </table>
-      </div></div>
-    </div>
+    <!-- Legacy route target; portal.js redirects this page to Tracker > Call Log. -->
+    <div id="p-callouts" class="ppage"></div>
 
     <!-- TIMELINE -->
     <div id="p-timeline" class="ppage">
       <div class="ptitle">Site Timeline</div><div class="psub">ACTIVITY LOG</div>
       <div class="panel"><div class="pb" id="timeline-content"></div></div>
+    </div>
+
+    <!-- TRACKER — Company workstreams + operational call log -->
+    <div id="p-tracker" class="ppage">
+      <div class="ptitle">Tracker</div><div class="psub">ADMIN · SALES · GENERAL · CALL LOG</div>
+      <div class="srow">
+        <div id="tracker-tabs" class="pnav-inline"></div>
+        <button class="btn btn-p btn-s" id="btn-new-task" data-action="navPage" data-page="p-new-task">+ New Task</button>
+      </div>
+      <div id="tracker-task-view" class="panel"><div class="tw">
+        <table>
+          <thead><tr><th>Ref</th><th>Title</th><th>Assigned To</th><th>Priority</th><th>Status</th><th>Created</th><th>Start</th><th>End</th><th>Due</th><th>Actions</th></tr></thead>
+          <tbody id="tracker-table"></tbody>
+        </table>
+      </div></div>
+      <div id="tracker-calllog-view" hidden>
+        <div class="srow">
+          <input type="text" class="sinput" id="co-search" placeholder="Search job, service, invoice no., quote no...">
+          <select class="sinput sinput-narrow" id="co-filter"><option value="">All</option><option>Open</option><option>In Progress</option><option>Completed</option><option>Invoiced</option></select>
+          <button class="btn btn-p btn-s" id="btn-newco" data-action="navPage" data-page="p-new-callout">+ Log Call</button>
+        </div>
+        <div class="panel"><div class="tw">
+          <table>
+            <thead><tr><th>Job ID</th><th>Service</th><th>Assigned To</th><th>PO #</th><th>Priority</th><th>Status</th><th>Logged By</th><th>Created</th><th>Start</th><th>End</th><th>Due</th><th>Actions</th></tr></thead>
+            <tbody id="co-table"></tbody>
+          </table>
+        </div></div>
+      </div>
+    </div>
+
+    <!-- NEW TASK -->
+    <div id="p-new-task" class="ppage">
+      <div class="ptitle">New Task</div><div class="psub">CREATE INTERNAL TASK</div>
+      <div class="panel"><div class="pb">
+        <div class="req-legend"><span class="req">*</span> Required field</div>
+        <div class="fgrid">
+          <div class="fgroup"><label class="flbl">Category <span class="req">*</span></label>
+            <select class="finput" id="ntk-category"></select>
+          </div>
+          <div class="fgroup"><label class="flbl">Title <span class="req">*</span></label>
+            <input class="finput" id="ntk-title" placeholder="Short task title">
+          </div>
+          <div class="fgroup fgroup-full"><label class="flbl">Description</label>
+            <textarea class="finput" id="ntk-desc" rows="3" placeholder="Optional detail…"></textarea>
+          </div>
+          <div class="fgroup"><label class="flbl">Priority</label>
+            <select class="finput" id="ntk-priority">
+              <option>Low</option><option selected>Normal</option><option>High</option><option>Urgent</option>
+            </select>
+          </div>
+          <div class="fgroup"><label class="flbl">Assign To (username)</label>
+            <input class="finput" id="ntk-assigned" placeholder="e.g. j.shange">
+          </div>
+          <div class="fgroup"><label class="flbl">Start Date &amp; Time</label><input class="finput" type="datetime-local" id="ntk-start"></div>
+          <div class="fgroup"><label class="flbl">End Date &amp; Time</label><input class="finput" type="datetime-local" id="ntk-end"></div>
+          <div class="fgroup"><label class="flbl">Due Date &amp; Time</label><input class="finput" type="datetime-local" id="ntk-due"></div>
+        </div>
+        <div class="mt3 flex-end">
+          <button class="btn btn-g btn-s mr1" data-action="navPage" data-page="p-tracker">Cancel</button>
+          <button class="btn btn-p" data-action="saveNewTask">Create Task →</button>
+        </div>
+      </div></div>
     </div>
 
     <!-- STATEMENT -->

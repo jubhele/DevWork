@@ -3,6 +3,11 @@
 # Opens http://localhost:8080 in your browser
 
 $port = 8080
+$workspaceRefresh = Join-Path $PSScriptRoot "..\..\scripts\refresh-workspace-secrets.ps1"
+if (Test-Path -LiteralPath $workspaceRefresh) {
+    & $workspaceRefresh
+}
+
 $existing = netstat -ano | Select-String ":$port\s"
 if ($existing) {
     Write-Host "Port $port already in use. Server may already be running."

@@ -26,14 +26,14 @@ export const colors = {
 
 export const themes = {
   light: {
-    canvas: '#F0F0F0',
-    surface: '#FFFFFF',
-    surfaceRaised: '#E8E8E8',
-    border: '#CCCCCC',
-    borderStrong: '#9E9E9E',
+    canvas: '#F5F1EA',
+    surface: '#FFFDF8',
+    surfaceRaised: '#EDE8DE',
+    border: '#C8C1B3',
+    borderStrong: '#AFA797',
     text: '#1A1814',
     textSecondary: '#4A4638',
-    muted: '#757575',
+    muted: '#6B665A',
     accent: '#BE430D',
     accentStrong: '#A82A1E',
     accentSoft: '#F3DFD1',

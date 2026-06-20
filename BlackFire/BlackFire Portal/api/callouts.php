@@ -11,6 +11,7 @@ ob_start();
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/helpers.php';
+require_once __DIR__ . '/../includes/tracker_records.php';
 
 $cfg = require __DIR__ . '/../config/config.php';
 date_default_timezone_set($cfg['timezone'] ?? 'Africa/Johannesburg');
@@ -32,6 +33,7 @@ if ($method === 'GET' && ($_GET['action'] ?? '') === 'chain') {
            LEFT JOIN bf_users u ON u.id = c.logged_by_user_id
           WHERE c.ref_id = ?", [$ref]);
     if (!$co) json_err('Callout not found', 404);
+    if (!tracker_can_view($user, 'callout', $co)) json_err('Forbidden', 403);
 
     $quote = db_row(
         "SELECT q.*, COALESCE(u.name,'') AS submitted_by_name
@@ -139,32 +141,61 @@ if ($method === 'POST') {
     $job_no = clean($b['job_no'] ?? '', 50);
     if (!$job_no) $job_no = $ref;
 
-    $id  = db_insert(
-        "INSERT INTO bf_callouts
-         (ref_id, job_no, client_id, client_name, client_email, service, location, tech, assigned_to, assigned_to_user_id,
-          priority, status, approval_status, callout_date, callout_time, notes, logged_by_user_id, po)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-        [
-            $ref,
-            $job_no,
-            $client_id,
-            $client_name,
-            $client_email,
-            clean($b['service']),
-            clean($b['location'] ?? ''),
-            clean($b['tech']     ?? ''),
-            $assigned_to_str,
-            $assigned_to_user_id,
-            clean($b['priority'] ?? 'Normal'),
-            clean($b['status']   ?? 'Open'),
-            $approval_status,
-            $b['callout_date'],
-            clean($b['callout_time'] ?? '08:00'),
-            clean($b['notes'] ?? '', 2000),
-            (int)$usr['id'],
-            clean($b['po'] ?? ''),
-        ]
-    );
+    $callout_time = clean($b['callout_time'] ?? '08:00');
+    $start_at = tracker_datetime($b['start_at'] ?? ($b['callout_date'] . ' ' . $callout_time));
+    $end_at = tracker_datetime($b['end_at'] ?? null);
+    $due_at = tracker_datetime($b['due_at'] ?? null);
+    foreach (['start_at', 'end_at', 'due_at'] as $field) {
+        if (!empty($b[$field]) && ${$field} === null) json_err("Invalid {$field} date and time");
+    }
+
+    $notes = clean($b['notes'] ?? '', 2000);
+
+    db_begin();
+    try {
+        $id = db_insert(
+            "INSERT INTO bf_callouts
+             (ref_id, job_no, client_id, client_name, client_email, service, location, tech, assigned_to, assigned_to_user_id,
+              priority, status, approval_status, callout_date, callout_time, notes, logged_by_user_id, po,
+              start_at, end_at, due_at)
+             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            [
+                $ref,
+                $job_no,
+                $client_id,
+                $client_name,
+                $client_email,
+                clean($b['service']),
+                clean($b['location'] ?? ''),
+                clean($b['tech']     ?? ''),
+                $assigned_to_str,
+                $assigned_to_user_id,
+                clean($b['priority'] ?? 'Normal'),
+                clean($b['status']   ?? 'Open'),
+                $approval_status,
+                $b['callout_date'],
+                $callout_time,
+                $notes,
+                (int)$usr['id'],
+                clean($b['po'] ?? ''),
+                $start_at,
+                $end_at,
+                $due_at,
+            ]
+        );
+        if ($notes) {
+            db_insert(
+                "INSERT INTO bf_tracker_updates
+                 (entity_type, entity_ref, label, content, source_kind, created_by_user_id, created_by)
+                 VALUES ('callout', ?, 'Initial notes', ?, 'initial', ?, ?)",
+                [$ref, $notes, (int)$usr['id'], $usr['name']]
+            );
+        }
+        db_commit();
+    } catch (Throwable $error) {
+        db_rollback();
+        json_err('Callout could not be created');
+    }
 
     audit($usr['username'], 'CREATE', "Callout $ref created (approval: $approval_status)");
     $row = db_row("SELECT * FROM bf_callouts WHERE id = ?", [$id]);
@@ -228,7 +259,7 @@ if ($method === 'PUT') {
             db_exec(
                 "UPDATE bf_callouts
                  SET closure_confirmed = 1, closure_confirmed_by = ?, closure_confirmed_at = NOW(),
-                     closure_notes = ?, invoice_generated = 1
+                     closure_notes = ?, invoice_generated = 1, end_at = COALESCE(end_at, NOW())
                  WHERE ref_id = ?",
                 [$usr['username'], $closure_notes, $ref_id]
             );
@@ -250,7 +281,8 @@ if ($method === 'PUT') {
     // ── Standard field update ────────────────────────────────────────
     $allowed = [
         'client_name', 'service', 'location', 'tech', 'assigned_to',
-        'priority', 'status', 'callout_date', 'callout_time', 'notes', 'po', 'job_no'
+        'priority', 'status', 'callout_date', 'callout_time', 'notes', 'po', 'job_no',
+        'start_at', 'end_at', 'due_at'
     ];
 
     require_perm('callout.update');
@@ -268,20 +300,57 @@ if ($method === 'PUT') {
     if (isset($b['status']) && !can('callout.update_status')) json_err('No permission to update status', 403);
     if (isset($b['po'])     && !can('callout.assign_po'))     json_err('No permission to assign PO', 403);
 
+    $current = db_row("SELECT * FROM bf_callouts WHERE ref_id = ?", [$ref_id]);
+    if (!$current) json_err('Callout not found', 404);
+
     $sets   = [];
     $params = [];
+    $changed = [];
     foreach ($allowed as $field) {
         if (array_key_exists($field, $b)) {
+            if (in_array($field, ['start_at', 'end_at', 'due_at'], true)) {
+                $value = tracker_datetime($b[$field]);
+                if (!empty($b[$field]) && $value === null) json_err("Invalid {$field} date and time");
+                $sets[] = "$field = ?";
+                $params[] = $value;
+                $changed[] = $field;
+                continue;
+            }
             $sets[]   = "$field = ?";
             $params[] = clean($b[$field], $field === 'notes' ? 2000 : 255);
+            $changed[] = $field;
         }
+    }
+
+    if (($b['status'] ?? '') === 'In Progress' && empty($current['start_at']) && !array_key_exists('start_at', $b)) {
+        $sets[] = 'start_at = NOW()';
+        $changed[] = 'start_at';
+    }
+    if (($b['status'] ?? '') === 'Completed' && empty($current['end_at']) && !array_key_exists('end_at', $b)) {
+        $sets[] = 'end_at = NOW()';
+        $changed[] = 'end_at';
     }
 
     if (!$sets) json_err('No fields to update');
     $params[] = $ref_id;
 
-    db_exec("UPDATE bf_callouts SET " . implode(', ', $sets) . " WHERE ref_id = ?", $params);
-    audit($usr['username'], 'UPDATE', "Callout $ref_id updated");
+    db_begin();
+    try {
+        db_exec("UPDATE bf_callouts SET " . implode(', ', $sets) . " WHERE ref_id = ?", $params);
+        if (array_key_exists('notes', $b) && clean($b['notes'], 2000) !== (string)($current['notes'] ?? '')) {
+            db_insert(
+                "INSERT INTO bf_tracker_updates
+                 (entity_type, entity_ref, label, content, created_by_user_id, created_by)
+                 VALUES ('callout', ?, 'Notes update', ?, ?, ?)",
+                [$ref_id, clean($b['notes'], 2000), (int)$usr['id'], $usr['name']]
+            );
+        }
+        db_commit();
+    } catch (Throwable $error) {
+        db_rollback();
+        json_err('Callout could not be updated');
+    }
+    audit($usr['username'], 'CALLOUT_UPDATE', "Updated {$ref_id}: " . implode(', ', array_values(array_unique($changed))));
 
     // ── Post-update: auto-invoice when client closes callout ─────────
     if (isset($b['status']) && $b['status'] === 'Completed') {

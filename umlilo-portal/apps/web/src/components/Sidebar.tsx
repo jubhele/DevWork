@@ -15,6 +15,7 @@ interface NavItem {
 const NAV: NavItem[] = [
   { href: '/dashboard',         label: 'Dashboard' },
   { href: '/callouts',          label: 'Callouts',       permission: 'callout.view' },
+  { href: '/tracker',           label: 'Tracker',        permission: 'task.view' },
   { href: '/quotes',            label: 'Quotes',         permission: 'quote.view' },
   { href: '/invoices',          label: 'Invoices',       permission: 'invoice.view' },
   { href: '/admin/audit',       label: 'Audit Log',      roles: ['sysadmin', 'admin'] },

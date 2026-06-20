@@ -12,8 +12,8 @@ if (-not $WorkspaceRoot) {
 
 $contractPath = Join-Path $WorkspaceRoot 'BlackFire\contracts\portal.contract.json'
 $tokensPath = Join-Path $WorkspaceRoot 'BlackFire\contracts\umlilo.tokens.json'
-$typesOut = Join-Path $WorkspaceRoot 'umlilo-portal\packages\types\index.ts'
-$tokensOut = Join-Path $WorkspaceRoot 'umlilo-portal\packages\ui-tokens\index.ts'
+$typesOut = Join-Path $WorkspaceRoot 'BlackFire\packages\types\index.ts'
+$tokensOut = Join-Path $WorkspaceRoot 'BlackFire\packages\ui-tokens\index.ts'
 
 function Read-JsonFile {
     param([string]$Path)

@@ -20,15 +20,41 @@ if (file_exists($secretsFile)) {
 // ── Local dev fallback (.env) ──────────────────────────────────────
 // Only used when blackfire_secrets.php is absent (local development).
 // Never deploy .env to the server — use blackfire_secrets.php instead.
-$envFile = __DIR__ . '/../.env';
-if (file_exists($envFile)) {
-    foreach (file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
-        if ($line[0] === '#' || strpos($line, '=') === false) continue;
-        [$key, $val] = explode('=', $line, 2);
-        $key = trim($key); $val = trim($val);
-        putenv("$key=$val");
-        $_ENV[$key]    = $val;
-        $_SERVER[$key] = $val;
+$portalMirrorFile = dirname(__DIR__) . DIRECTORY_SEPARATOR . '.env';
+$portalMirrorKeys = [
+    'BF_DB_HOST', 'BF_DB_PORT', 'BF_DB_NAME', 'BF_DB_USER', 'BF_DB_PASS',
+    'BF_DB_PASS_ENC', 'BF_APP_URL', 'BF_APP_KEY', 'BF_JWT_SECRET',
+    'BF_SESSION_LIFETIME', 'BF_SESSION_NAME', 'BF_SMTP_HOST', 'BF_SMTP_PORT',
+    'BF_SMTP_USER', 'BF_MAIL_PASS', 'BF_MAIL_PASS_ENC', 'BF_MAIL_FROM',
+    'BF_MAIL_FROM_NAME', 'BF_NOTIFICATION_EMAIL', 'BF_UPLOAD_PATH',
+    'BF_UPLOAD_MAX_SIZE', 'BF_COMPANY_NAME', 'BF_COMPANY_LEGAL_NAME',
+    'BF_COMPANY_REG', 'BF_COMPANY_VAT', 'BF_COMPANY_PHONE', 'BF_COMPANY_EMAIL',
+    'BF_COMPANY_ADDR', 'BF_COMPANY_TAGLINE', 'BF_COMPANY_LOGO',
+    'BF_INVOICE_PREFIX', 'BF_QUOTE_PREFIX', 'BF_CALLOUT_PREFIX',
+];
+
+if (!file_exists($secretsFile) && is_readable($portalMirrorFile)) {
+    foreach (file($portalMirrorFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
+        $line = preg_replace('/^\xEF\xBB\xBF/', '', trim($line));
+        if ($line === '' || $line[0] === '#' || strpos($line, '=') === false) {
+            continue;
+        }
+
+        [$key, $value] = explode('=', $line, 2);
+        $key = trim($key);
+        $value = trim($value);
+        if (!in_array($key, $portalMirrorKeys, true)) {
+            continue;
+        }
+
+        // Existing server values win if a mirror is accidentally present outside local development.
+        if (getenv($key) !== false || isset($_ENV[$key]) || isset($_SERVER[$key]) || defined($key)) {
+            continue;
+        }
+
+        putenv("$key=$value");
+        $_ENV[$key] = $value;
+        $_SERVER[$key] = $value;
     }
 }
 
@@ -57,13 +83,10 @@ function cfg_env(string $key, string $default = ''): string {
 if (!function_exists('bf_decrypt')) {
 function bf_decrypt(string $encoded): string {
     // Check all possible sources — putenv() is disabled on some shared hosts
-    $keyHex = getenv('BF_APP_KEY')
-           ?: ($_ENV['BF_APP_KEY'] ?? '')
-           ?: ($_SERVER['BF_APP_KEY'] ?? '')
-           ?: (defined('BF_APP_KEY') ? BF_APP_KEY : '');
+    $keyHex = cfg_env('BF_APP_KEY');
     if (!$keyHex) {
         // Fallback for local development: try plaintext password from env
-        $plainPass = getenv('BF_DB_PASS') ?: ($_ENV['BF_DB_PASS'] ?? '');
+        $plainPass = cfg_env('BF_DB_PASS');
         if ($plainPass) {
             error_log('[Portal] Using plaintext BF_DB_PASS (local dev mode)');
             return $plainPass;
@@ -87,16 +110,14 @@ return [
     // �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
     // DATABASE CONNECTION
     // �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
-    'db_host'    => getenv('BF_DB_HOST') ?: 'localhost',
-    'db_port'    => (int)(getenv('BF_DB_PORT') ?: 3306),
-    'db_name'    => getenv('BF_DB_NAME') ?: 'blackfm6w9f9_portal',
+    'db_host'    => cfg_env('BF_DB_HOST', 'localhost'),
+    'db_port'    => (int)cfg_env('BF_DB_PORT', '3306'),
+    'db_name'    => cfg_env('BF_DB_NAME', 'blackfm6w9f9_portal'),
     'db_user'    => getenv('BF_DB_USER')
         ?: ($_ENV['BF_DB_USER'] ?? '')
         ?: (defined('BF_DB_USER') ? BF_DB_USER : ''), // no hardcoded fallback — see .env.example
     'db_pass'    => bf_decrypt(
-        getenv('BF_DB_PASS_ENC')
-        ?: ($_ENV['BF_DB_PASS_ENC'] ?? '')
-        ?: (defined('BF_DB_PASS_ENC') ? BF_DB_PASS_ENC : '')
+        cfg_env('BF_DB_PASS_ENC')
     ),
     'db_charset' => 'utf8mb4',
     'db_options' => [
@@ -120,7 +141,7 @@ return [
     // �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
     'timezone'          => 'Africa/Johannesburg',
     'session_ttl'       => 3600,                  // 1 hour
-    'session_name'      => cfg_env('SESSION_NAME', 'BLKFR_SESSION'),
+    'session_name'      => cfg_env('BF_SESSION_NAME', 'BLKFR_SESSION'),
     'remember_duration' => 604800,                // 7 days
     'max_login_attempts' => 5,
     'lockout_duration'  => 900,                  // 15 minutes
@@ -131,14 +152,14 @@ return [
     // �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
     // EMAIL (for notifications & contact form)
     // �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
-    'mail_from'      => 'noreply@blackfiresolutions.co.za',
-    'mail_from_name' => cfg_env('COMPANY_NAME', 'BlackFire Solutions'),
-    'mail_host'      => 'mail.blackfiresolutions.co.za',
-    'mail_port'      => 587,
-    'mail_username'  => 'noreply@blackfiresolutions.co.za',
-    'mail_password'  => getenv('BF_MAIL_PASS') ?: '',
+    'mail_from'      => cfg_env('BF_MAIL_FROM', 'noreply@blackfiresolutions.co.za'),
+    'mail_from_name' => cfg_env('BF_MAIL_FROM_NAME', 'BlackFire Solutions'),
+    'mail_host'      => cfg_env('BF_SMTP_HOST', 'mail.blackfiresolutions.co.za'),
+    'mail_port'      => (int)cfg_env('BF_SMTP_PORT', '587'),
+    'mail_username'  => cfg_env('BF_SMTP_USER', 'noreply@blackfiresolutions.co.za'),
+    'mail_password'  => cfg_env('BF_MAIL_PASS'),
     'mail_encryption' => 'tls',
-    'notification_email' => 'jubhele@astuteinsights.co.za',
+    'notification_email' => cfg_env('BF_NOTIFICATION_EMAIL', 'jubhele@astuteinsights.co.za'),
 
     // �?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?
     // BUSINESS CONFIG
@@ -146,18 +167,18 @@ return [
     // Values read from: cPanel env vars → blackfire_secrets.php constants → .env → hardcoded fallback.
     // Update cPanel > Software > PHP > Environment Variables for production.
     // After Phase 1 (bf_host_companies table), the DB row takes precedence over these.
-    'company_name'        => cfg_env('COMPANY_NAME',       'BlackFire Solutions'),
-    'company_legal_name'  => cfg_env('COMPANY_LEGAL_NAME', 'Astute Insights Pty Ltd'),
-    'company_reg'         => cfg_env('COMPANY_REG',        '2021/964381/07'),
-    'company_vat'         => cfg_env('COMPANY_VAT',        '4060310358'),
-    'company_phone'       => cfg_env('COMPANY_PHONE',      '073 693 8446'),
-    'company_email'       => cfg_env('COMPANY_EMAIL',      'accounts@astuteinsights.co.za'),
-    'company_addr'        => cfg_env('COMPANY_ADDR',       '102 Aloeridge 2, Stoneridge Street, Greenstone, 1616'),
-    'company_tagline'     => cfg_env('COMPANY_TAGLINE',    'Fire, taught to behave.'),
-    'company_logo'        => cfg_env('COMPANY_LOGO',       './blackfire_logo_transparent.png'),
-    'invoice_prefix'      => cfg_env('INVOICE_PREFIX',     'INV'),
-    'quote_prefix'        => cfg_env('QUOTE_PREFIX',       'QTE'),
-    'callout_prefix'      => cfg_env('CALLOUT_PREFIX',     'CO'),
+    'company_name'        => cfg_env('BF_COMPANY_NAME',       'BlackFire Solutions'),
+    'company_legal_name'  => cfg_env('BF_COMPANY_LEGAL_NAME', 'Astute Insights Pty Ltd'),
+    'company_reg'         => cfg_env('BF_COMPANY_REG',        '2021/964381/07'),
+    'company_vat'         => cfg_env('BF_COMPANY_VAT',        '4060310358'),
+    'company_phone'       => cfg_env('BF_COMPANY_PHONE',      '073 693 8446'),
+    'company_email'       => cfg_env('BF_COMPANY_EMAIL',      'accounts@astuteinsights.co.za'),
+    'company_addr'        => cfg_env('BF_COMPANY_ADDR',       '102 Aloeridge 2, Stoneridge Street, Greenstone, 1616'),
+    'company_tagline'     => cfg_env('BF_COMPANY_TAGLINE',    'Fire, taught to behave.'),
+    'company_logo'        => cfg_env('BF_COMPANY_LOGO',       './blackfire_logo_transparent.png'),
+    'invoice_prefix'      => cfg_env('BF_INVOICE_PREFIX',     'INV'),
+    'quote_prefix'        => cfg_env('BF_QUOTE_PREFIX',       'QTE'),
+    'callout_prefix'      => cfg_env('BF_CALLOUT_PREFIX',     'CO'),
     'default_rate'        => 450,
     'default_currency'    => 'ZAR',
     'tax_rate'            => 0.15,
