@@ -94,3 +94,7 @@ _Session updated: 2026-06-20 16:48 SAST (OpenAI GPT-5 Codex)_
 - Validate that the destination drive is mounted before running the export so refresh success is not mistaken for backup success.
 _Session ended: 2026-06-20 17:16:50 (Claude Code / claude-sonnet-4-6)_
 _Session ended: 2026-06-20 17:18:49 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-06-21 19:57:58 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-06-21 20:05:42 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-06-21 20:10:45 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-06-21 20:23:35 (Claude Code / claude-sonnet-4-6)_
