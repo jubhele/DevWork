@@ -91,3 +91,5 @@ BlackFire/BlackFire Portal/install/bhekani_bo_2026-05-29.pdf
 /.pnpm-store/
 /mysql-data/
 .gstack/
+OllamaSetup.exe
+*.exe
