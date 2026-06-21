@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.105.0",
     "@blackfire/api-client": "workspace:*",
     "@blackfire/types": "workspace:*",
     "@blackfire/ui-tokens": "workspace:*",

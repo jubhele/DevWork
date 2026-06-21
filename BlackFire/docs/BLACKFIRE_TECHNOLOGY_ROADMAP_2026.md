@@ -2,8 +2,8 @@
 **Classification:** Internal Strategic Document
 **Author:** Jubhele Shange + Claude (Anthropic)
 **Date:** 2026-05-25
-**Version:** 1.0
-**Branch:** ndlunkulu
+**Version:** 2.0 — Updated 2026-06-21 to reflect implementation status
+**Branch:** ndlunkulu → chore/workspace-sync-20260618
 
 ---
 
@@ -241,15 +241,16 @@ Keep `portal.php` live throughout. Migrate one section at a time. Sign off each 
 
 ### Phase Timeline
 
-| Phase | Duration | Deliverable |
-|---|---|---|
-| 0 — Hosting + scaffold | Week 1 | Vercel project, env vars, monorepo |
-| 1 — Types + UMLILO tokens | Weeks 1–2 | Full TypeScript interfaces, Tailwind config |
-| 2 — API client | Week 2 | Typed wrappers for all 18 PHP endpoints |
-| 3 — Auth bridge | Weeks 2–3 | Login + session working against PHP auth |
-| 4 — Portal pages | Weeks 3–8 | One page per 2–3 days, sign-off per section |
-| 5 — New portals (STREAM4) | Weeks 6–10 | Secure Command, Ops Hub — native Next.js |
-| 6 — PHP API migration | Weeks 10–16 | Replace endpoints one at a time with Route Handlers |
+| Phase | Duration | Deliverable | Status |
+|---|---|---|---|
+| 0 — Hosting + scaffold | Week 1 | Vercel project, env vars, monorepo | ✅ Complete |
+| 1 — Types + UMLILO tokens | Weeks 1–2 | Full TypeScript interfaces, Tailwind config | ✅ Complete |
+| 2 — API client | Week 2 | Typed wrappers for all 18 PHP endpoints | ✅ Complete |
+| 3 — Auth bridge | Weeks 2–3 | Login + session working against PHP auth | ✅ Complete |
+| 4 — Portal pages | Weeks 3–8 | One page per 2–3 days, sign-off per section | ✅ Complete — dashboard, tracker, call-log, quotes, invoices, finance, safety, clients, admin |
+| 4a — Create/edit forms | — | 7 form pages: callout, quote, invoice, payment, safety, client, user | ✅ Complete 2026-06-21 |
+| 5 — New portals (STREAM4) | Weeks 6–10 | Secure Command, Ops Hub, Portal Hub — native Next.js | ✅ Complete 2026-06-21 |
+| 6 — PHP API migration | Weeks 10–16 | Replace endpoints one at a time with Route Handlers | ⬜ Pending |
 
 **Total to full parity + new portals: ~16 weeks.**
 
@@ -390,18 +391,19 @@ The app processes personal information of identifiable SA individuals. POPIA com
 
 ### Mobile Timeline
 
-| Phase | Duration | Deliverable |
-|---|---|---|
-| 0 — Register developer accounts | Week 1 | Apple + Google accounts active |
-| 1 — Bearer token auth (PHP) | Week 1 | `mobile_login` endpoint, `bf_mobile_tokens` table |
-| 2 — Expo scaffold + monorepo | Weeks 1–2 | `apps/mobile` wired to shared packages |
-| 3 — Auth + biometrics + SecureStore | Weeks 2–3 | Login, biometric unlock, session management |
-| 4 — Core screens | Weeks 3–5 | Dashboard, Callouts, Quotes |
-| 5 — Remaining modules + push | Weeks 5–7 | Safety, Invoices, Clients, FCM/APNs |
-| 6 — Compliance work | Weeks 7–8 | Privacy policy, consent screen, account deletion |
-| 7 — Security hardening | Week 8 | Cert pinning, log stripping, SecureStore audit |
-| 8 — TestFlight + Internal Testing | Weeks 8–10 | Real device testing, crash fixes |
-| 9 — Store submission | Weeks 10–11 | Both stores submitted, review period |
+| Phase | Duration | Deliverable | Status |
+|---|---|---|---|
+| 0 — Register developer accounts | Week 1 | Apple + Google accounts active | ⬜ Pending |
+| 1 — Bearer token auth (PHP) | Week 1 | `mobile_login` endpoint, `bf_mobile_tokens` table | ✅ Complete — `bf_mobile_tokens`, `bf_mobile_rate_limits`, dual-path `current_user()` |
+| 2 — Expo scaffold + monorepo | Weeks 1–2 | `apps/mobile` wired to shared packages | ✅ Complete |
+| 3 — Auth + biometrics + SecureStore | Weeks 2–3 | Login, biometric unlock, session management | ✅ Auth complete; biometrics ⬜ pending |
+| 4 — Core screens | Weeks 3–5 | Dashboard, Callouts, Quotes | ✅ Complete 2026-06-21 — Dashboard, Tracker, CallLog, Quotes |
+| 5 — Remaining modules + push | Weeks 5–7 | Safety, Invoices, Clients, FCM/APNs | ⬜ Invoices ✅, Safety/FCM ⬜ pending |
+| 6 — Compliance work | Weeks 7–8 | Privacy policy, consent screen, account deletion | ✅ Privacy Policy complete 2026-06-21; consent screen + deletion ⬜ pending |
+| 6a — Brand fonts | — | expo-font loading: Big Shoulders, Instrument Sans, IBM Plex Mono | ✅ Complete 2026-06-21 — TTF files still needed in assets/fonts/ |
+| 7 — Security hardening | Week 8 | Cert pinning, log stripping, SecureStore audit | ⬜ Pending |
+| 8 — TestFlight + Internal Testing | Weeks 8–10 | Real device testing, crash fixes | ⬜ Pending |
+| 9 — Store submission | Weeks 10–11 | Both stores submitted, review period | ⬜ Pending |
 
 **Total: ~11 weeks to public release on both stores.**
 
@@ -524,33 +526,36 @@ bf_callouts aggregated by time window, type, location, priority
 
 ### AI Build Order
 
-| Month | Feature | Business Rationale |
-|---|---|---|
-| 1 | Client Intelligence Reports | Directly protects AECI contract renewal |
-| 2 | Voice-to-Callout (ships with mobile app) | Field differentiation + app store wow factor |
-| 3 | Safety File Co-pilot | Reduces compliance labour, elevates AECI file quality |
-| 4 | Callout Anomaly Detection | Forward-looking intelligence layer (needs 6+ months of data) |
+| Month | Feature | Business Rationale | Status |
+|---|---|---|---|
+| 1 | Client Intelligence Reports | Directly protects AECI contract renewal | ✅ Complete 2026-06-21 — `/api/ai/reports` + `ReportTrigger` component |
+| 2 | Voice-to-Callout (ships with mobile app) | Field differentiation + app store wow factor | ✅ Complete 2026-06-21 — `/api/ai/voice-to-callout` (Whisper + Claude) |
+| 3 | Safety File Co-pilot | Reduces compliance labour, elevates AECI file quality | ✅ Complete 2026-06-21 — `/api/ai/safety-copilot` + `SafetyCopilot` component |
+| 4 | Callout Anomaly Detection | Forward-looking intelligence layer (needs 6+ months of data) | ✅ Complete 2026-06-21 — `/api/ai/anomaly` + `AnomalyWidget` on dashboard |
 
 ---
 
 ## 5. Full Timeline Summary
 
-| Stream | Period | Deliverable |
-|---|---|---|
-| Next.js scaffold + types | Weeks 1–2 | Monorepo, UMLILO tokens, TypeScript interfaces |
-| API client + auth bridge | Weeks 2–3 | Next.js calls PHP API, login works |
-| Portal pages migration | Weeks 3–8 | Section-by-section, sign-off before cutover |
-| Bearer token auth (PHP) | Week 1 | Mobile unblocked |
-| Expo scaffold + auth | Weeks 2–3 | Mobile login, biometrics, SecureStore |
-| Mobile core screens | Weeks 3–7 | All v1 portal features on mobile |
-| Mobile compliance + hardening | Weeks 7–8 | Privacy policy, cert pinning, data safety forms |
-| Store submission | Weeks 10–11 | Both stores live |
-| STREAM4 new portals | Weeks 6–10 | Secure Command, Ops, Hub — native Next.js |
-| PHP API migration | Weeks 10–16 | Replace endpoints with Route Handlers |
-| AI Report (v1) | Month 1 | Client Intelligence Reports live |
-| AI Voice | Month 2 | Ships with mobile app |
-| AI Safety Co-pilot | Month 3 | Safety module enhanced |
-| AI Anomaly Detection | Month 4 | Dashboard intelligence layer |
+| Stream | Period | Deliverable | Status |
+|---|---|---|---|
+| Next.js scaffold + types | Weeks 1–2 | Monorepo, UMLILO tokens, TypeScript interfaces | ✅ |
+| API client + auth bridge | Weeks 2–3 | Next.js calls PHP API, login works | ✅ |
+| Portal pages migration | Weeks 3–8 | Section-by-section, sign-off before cutover | ✅ |
+| Create/edit forms (7 pages) | — | Callout, quote, invoice, payment, safety, client, user | ✅ 2026-06-21 |
+| Bearer token auth (PHP) | Week 1 | Mobile unblocked | ✅ |
+| Expo scaffold + auth | Weeks 2–3 | Mobile login, biometrics, SecureStore | ✅ auth; ⬜ biometrics |
+| Mobile core screens | Weeks 3–7 | All v1 portal features on mobile | ✅ 6 screens 2026-06-21 |
+| Mobile brand fonts | — | expo-font with Big Shoulders/Instrument Sans/IBM Plex Mono | ✅ wired; ⬜ TTFs needed |
+| Mobile compliance + hardening | Weeks 7–8 | Privacy policy, cert pinning, data safety forms | ⬜ Pending |
+| Store submission | Weeks 10–11 | Both stores live | ⬜ Pending |
+| STREAM4 new portals | Weeks 6–10 | Secure Command, Ops Hub, Portal Hub — native Next.js | ✅ 2026-06-21 |
+| PHP API migration | Weeks 10–16 | Replace endpoints with Route Handlers | ⬜ Pending |
+| AI Report (v1) | Month 1 | Client Intelligence Reports live | ✅ 2026-06-21 |
+| AI Voice | Month 2 | Ships with mobile app | ✅ 2026-06-21 |
+| AI Safety Co-pilot | Month 3 | Safety module enhanced | ✅ 2026-06-21 |
+| AI Anomaly Detection | Month 4 | Dashboard intelligence layer | ✅ 2026-06-21 |
+| POPIA Privacy Policy | — | `/privacy` web page + `docs/PRIVACY_POLICY.md` | ✅ 2026-06-21 |
 
 ---
 

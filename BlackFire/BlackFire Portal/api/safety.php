@@ -241,7 +241,14 @@ if ($method === 'GET' && $ref_id) {
 if ($method === 'POST') {
     require_perm('safety.create');
     $b = get_body();
-    require_fields($b, ['contractor']);
+
+    // Accept web-form field aliases
+    if (empty($b['contractor']) && !empty($b['client_name'])) $b['contractor']   = $b['client_name'];
+    if (empty($b['region'])     && !empty($b['site']))         $b['region']       = $b['site'];
+    if (empty($b['auditor_name']) && !empty($b['auditor']))    $b['auditor_name'] = $b['auditor'];
+    if (empty($b['scope_of_work']) && !empty($b['notes']))     $b['scope_of_work']= $b['notes'];
+
+    if (empty($b['contractor'])) json_err('contractor or client_name is required');
 
     $ref = next_ref_id('saf');
 

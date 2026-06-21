@@ -34,6 +34,17 @@ if ($method === 'GET') {
         $params = [$like, $like, $like, $like, $like];
     }
 
+    // Optional status filter — accepts comma-separated list e.g. Sent,Overdue,Partial
+    $status_raw = clean($_GET['status'] ?? '', 100);
+    if ($status_raw) {
+        $statuses = array_filter(array_map('trim', explode(',', $status_raw)));
+        if ($statuses) {
+            $ph     = implode(',', array_fill(0, count($statuses), '?'));
+            $where  = $where ? "$where AND status IN ($ph)" : "WHERE status IN ($ph)";
+            array_push($params, ...$statuses);
+        }
+    }
+
     $total = db_row("SELECT COUNT(*) AS n FROM bf_invoices $where", $params)['n'] ?? 0;
     $rows  = db_select(
         "SELECT i.*, COALESCE(u.username,'') AS sent_by
@@ -45,11 +56,55 @@ if ($method === 'GET') {
     json_ok(['data' => $rows, 'total' => (int)$total]);
 }
 
+// ── POST — Log Payment (web form: ?action=payment) ────
+if ($method === 'POST' && clean($_GET['action'] ?? '', 20) === 'payment') {
+    $usr = require_perm('invoice.mark_paid');
+    $b   = get_body();
+    require_fields($b, ['invoice_id', 'amount', 'payment_date']);
+
+    $invoice_id = (int)$b['invoice_id'];
+    $inv = db_row("SELECT * FROM bf_invoices WHERE id = ?", [$invoice_id]);
+    if (!$inv) json_err('Invoice not found', 404);
+    if ($inv['status'] === 'Paid') json_err('Invoice is already marked as paid');
+
+    $amount   = (float)$b['amount'];
+    if ($amount <= 0) json_err('Amount must be greater than zero');
+    $pay_date = valid_date($b['payment_date'] ?? null) ? $b['payment_date'] : date('Y-m-d');
+    $method_s = clean($b['method'] ?? 'EFT', 50);
+    $ref_s    = clean($b['reference'] ?? '', 100);
+    $notes    = clean($b['notes'] ?? '', 1000);
+    $full_notes = trim("$method_s" . ($ref_s ? " — Ref: $ref_s" : '') . ($notes ? "\n$notes" : ''));
+
+    $db = get_db();
+    $db->beginTransaction();
+    try {
+        db_exec(
+            "UPDATE bf_invoices SET status = 'Paid', paid_date = ? WHERE id = ?",
+            [$pay_date, $invoice_id]
+        );
+        db_exec(
+            "INSERT INTO bf_transactions (trans_date, description, category, reference, credit, debit) VALUES (?,?,?,?,?,?)",
+            [$pay_date, "Payment received — {$inv['client_name']}", 'Invoice Payment', $inv['ref_id'], $amount, 0]
+        );
+        db_exec(
+            "INSERT INTO bf_payments (invoice_ref, client_name, amount, payment_date, notes, logged_by_user_id) VALUES (?,?,?,?,?,?)",
+            [$inv['ref_id'], $inv['client_name'], $amount, $pay_date, $full_notes, (int)$usr['id']]
+        );
+        $db->commit();
+    } catch (Exception $e) {
+        $db->rollBack();
+        json_err('Payment recording failed — no changes saved');
+    }
+
+    audit($usr['username'], 'PAID', "Invoice {$inv['ref_id']} payment logged (R" . number_format($amount, 2) . ")");
+    json_ok([], "Payment logged for Invoice {$inv['ref_id']}");
+}
+
 // ── POST — Create ──────────────────────────────────────
 if ($method === 'POST') {
     $usr = require_perm('invoice.create');
     $b   = get_body();
-    require_fields($b, ['amount', 'due_date', 'callout_ref']);
+    require_fields($b, ['amount', 'due_date']);
 
     $amount = (float)($b['amount'] ?? 0);
     if ($amount < 0) json_err('Amount cannot be negative');
@@ -78,10 +133,16 @@ if ($method === 'POST') {
         $qrow = db_row("SELECT id FROM bf_quotes WHERE ref_id = ? LIMIT 1", [$quote_ref_str]);
         $quote_id_fk = $qrow ? (int)$qrow['id'] : null;
     }
-    $crow = db_row("SELECT id, ref_id FROM bf_callouts WHERE ref_id = ? LIMIT 1", [$co_ref_str]);
-    if (!$crow) json_err('Linked callout not found', 422);
-    $callout_id_fk = (int)$crow['id'];
-    $co_ref_str = $crow['ref_id'];
+    $callout_id_fk = null;
+    if ($co_ref_str) {
+        $crow = db_row("SELECT id, ref_id FROM bf_callouts WHERE ref_id = ? LIMIT 1", [$co_ref_str]);
+        if ($crow) {
+            $callout_id_fk = (int)$crow['id'];
+            $co_ref_str    = $crow['ref_id'];
+        } else {
+            $co_ref_str = '';
+        }
+    }
 
     $ref        = next_ref_id('inv');
     $invoice_no = clean($b['invoice_no'] ?? '', 50);

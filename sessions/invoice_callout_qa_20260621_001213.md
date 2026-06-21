@@ -42,3 +42,4 @@ Active model: GPT-5  Status: over-powered
 - Statement-batch invoice imports bypass the callout-first workflow; any bulk import script must create the callout row first and populate callout_ref/callout_id before inserting the invoice.
 - When ROW_NUMBER()-computed callout refs collide with existing refs, INSERT IGNORE silently skips and leaves the invoice/quote unlinked — always run a gap-check SELECT after a bulk migration.
 - Q-140125-0001 is a competitor benchmark record and should remain callout-free; it is the only legitimate exception to the callout-first rule.
+_Session ended: 2026-06-21 03:27:32 (Claude Code / claude-sonnet-4-6)_

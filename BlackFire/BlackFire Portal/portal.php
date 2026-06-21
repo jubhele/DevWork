@@ -16,7 +16,7 @@ $companyLogoUrl = rtrim($cfg['base_url'] ?? '', '/') . '/' . ltrim($cfg['company
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="csp-nonce" content="<?= htmlspecialchars($cspNonce, ENT_QUOTES) ?>">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' https://fonts.googleapis.com 'nonce-<?= $cspNonce ?>'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://images.unsplash.com; script-src 'self' 'nonce-<?= $cspNonce ?>'; connect-src 'self'; frame-src 'self' blob:; object-src 'none';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://images.unsplash.com; script-src 'self' 'nonce-<?= $cspNonce ?>'; connect-src 'self'; frame-src 'self' blob:; object-src 'none';">
 <!-- Primary SEO -->
 <meta name="description" content="BlackFire Solutions — PSIRA registered security company headquartered in Gauteng, operating nationwide. Specialists in next-generation security: drone surveillance, AI-powered CCTV, access control, armed response and integrated security systems across South Africa. 500+ clients. Call +27 68 912 6581.">
 <meta name="keywords" content="security company South Africa, armed response Gauteng, drone security South Africa, drone surveillance Johannesburg, aerial security monitoring, CCTV installation South Africa, AI security systems, smart security Gauteng, access control nationwide, security guards South Africa, PSIRA registered security, integrated security solutions, remote monitoring South Africa, thermal imaging security, perimeter detection, electronic security Gauteng, event security South Africa, industrial security, commercial security Johannesburg, BlackFire Solutions">
@@ -732,12 +732,21 @@ $companyLogoUrl = rtrim($cfg['base_url'] ?? '', '/') . '/' . ltrim($cfg['company
               <option>Low</option><option selected>Normal</option><option>High</option><option>Urgent</option>
             </select>
           </div>
-          <div class="fgroup"><label class="flbl">Assign To (username)</label>
-            <input class="finput" id="ntk-assigned" placeholder="e.g. j.shange">
+          <div class="fgroup fgroup-full">
+            <label class="flbl">Assign To <span class="fs-11 text-muted">(select one or more)</span></label>
+            <select class="finput" id="ntk-assigned" multiple size="4" style="height:auto;min-height:80px">
+              <option value="" disabled>Loading staff…</option>
+            </select>
+            <div class="fs-11 text-muted mt-4">Hold Ctrl / ⌘ to select multiple people</div>
           </div>
           <div class="fgroup"><label class="flbl">Start Date &amp; Time</label><input class="finput" type="datetime-local" id="ntk-start"></div>
           <div class="fgroup"><label class="flbl">End Date &amp; Time</label><input class="finput" type="datetime-local" id="ntk-end"></div>
           <div class="fgroup"><label class="flbl">Due Date &amp; Time</label><input class="finput" type="datetime-local" id="ntk-due"></div>
+          <div class="fgroup fgroup-full">
+            <label class="flbl">Attach File <span class="fs-11 text-muted">(optional — upload after task is saved)</span></label>
+            <input type="file" class="finput" id="ntk-file" accept=".pdf,.xlsx,.xls,.docx,.doc,.jpg,.jpeg,.png">
+            <div class="fs-11 text-muted mt-4">PDF, Excel, Word, JPEG, PNG · Max 10 MB</div>
+          </div>
         </div>
         <div class="mt3 flex-end">
           <button class="btn btn-g btn-s mr1" data-action="navPage" data-page="p-tracker">Cancel</button>

@@ -49,6 +49,51 @@ function next_task_ref(string $category): string {
     return sprintf('%s-%03d', $prefix, $n);
 }
 
+// ── Multi-assignee helpers ────────────────────────────────────────────────────
+
+function resolve_assignees(array $usernames): array {
+    $result = [];
+    foreach (array_unique($usernames) as $uname) {
+        $uname = trim($uname);
+        if ($uname === '') continue;
+        $row = db_row("SELECT id, name, username FROM bf_users WHERE username = ? AND active = 1", [$uname]);
+        if ($row) $result[] = $row;
+    }
+    return $result;
+}
+
+function sync_task_assignees(string $task_ref, array $assignees, int $actor_uid): void {
+    db_exec("DELETE FROM bf_task_assignees WHERE task_ref = ?", [$task_ref]);
+    foreach ($assignees as $a) {
+        db_exec(
+            "INSERT IGNORE INTO bf_task_assignees (task_ref, user_id, username, name, assigned_by_uid)
+             VALUES (?, ?, ?, ?, ?)",
+            [$task_ref, (int)$a['id'], $a['username'], $a['name'], $actor_uid]
+        );
+    }
+}
+
+function enrich_tasks_with_assignees(array &$tasks): void {
+    if (empty($tasks)) return;
+    $refs         = array_column($tasks, 'ref_id');
+    $placeholders = implode(',', array_fill(0, count($refs), '?'));
+    $rows = db_select(
+        "SELECT task_ref, user_id, username, name
+           FROM bf_task_assignees
+          WHERE task_ref IN ($placeholders)
+          ORDER BY name ASC",
+        $refs
+    );
+    $by_ref = [];
+    foreach ($rows as $r) {
+        $by_ref[$r['task_ref']][] = ['user_id' => (int)$r['user_id'], 'username' => $r['username'], 'name' => $r['name']];
+    }
+    foreach ($tasks as &$t) {
+        $t['assignees'] = $by_ref[$t['ref_id']] ?? [];
+    }
+    unset($t);
+}
+
 // ── GET — Single task ─────────────────────────────────────────────────────────
 if ($method === 'GET' && $ref_id !== '') {
     require_perm('task.view');
@@ -65,6 +110,10 @@ if ($method === 'GET' && $ref_id !== '') {
     );
     if (!$task) json_err('Task not found', 404);
     if (!task_can_access_category(task_user_roles($user), $task['category'])) json_err('Forbidden', 403);
+
+    $tasks_arr = [&$task];
+    enrich_tasks_with_assignees($tasks_arr);
+    unset($tasks_arr);
 
     json_ok(['data' => $task]);
 }
@@ -122,6 +171,8 @@ if ($method === 'GET') {
         $params
     );
 
+    enrich_tasks_with_assignees($rows);
+
     json_ok([
         'data'       => $rows,
         'total'      => $total,
@@ -158,19 +209,18 @@ if ($method === 'POST') {
     $valid_priorities = ['Low', 'Normal', 'High', 'Urgent'];
     if (!in_array($priority, $valid_priorities, true)) $priority = 'Normal';
 
-    // Resolve assigned_to username → user_id
-    $assigned_to_user_id = null;
-    $assigned_to         = null;
-    if (!empty($body['assigned_to'])) {
-        $assignee = db_row(
-            "SELECT id, name, role FROM bf_users WHERE username = ? AND active = 1 LIMIT 1",
-            [clean($body['assigned_to'], 50)]
-        );
-        if ($assignee) {
-            $assigned_to_user_id = (int)$assignee['id'];
-            $assigned_to         = $assignee['name'];
-        }
+    // Resolve assignees — accepts array (assigned_to_usernames) or single string (assigned_to)
+    $assignee_usernames = [];
+    if (!empty($body['assigned_to_usernames']) && is_array($body['assigned_to_usernames'])) {
+        $assignee_usernames = array_map(fn($u) => clean($u, 100), $body['assigned_to_usernames']);
+    } elseif (!empty($body['assigned_to'])) {
+        $assignee_usernames = [clean($body['assigned_to'], 50)];
     }
+    $assignees = resolve_assignees($assignee_usernames);
+
+    // Primary assignee kept in main table for backward compat with existing filter/display code
+    $assigned_to_user_id = !empty($assignees) ? (int)$assignees[0]['id']   : null;
+    $assigned_to         = !empty($assignees) ? $assignees[0]['name']       : null;
 
     $ref_id = next_task_ref($category);
 
@@ -189,6 +239,9 @@ if ($method === 'POST') {
                 $due_date, $start_at, $end_at, $due_at,
             ]
         );
+        if (!empty($assignees)) {
+            sync_task_assignees($ref_id, $assignees, (int)$user['id']);
+        }
         if ($description) {
             db_insert(
                 "INSERT INTO bf_tracker_updates
@@ -283,30 +336,42 @@ if ($method === 'PUT') {
             }
         }
     }
-    if (array_key_exists('assigned_to', $body)) {
+    $new_assignees = null; // null means no change requested
+    if (array_key_exists('assigned_to_usernames', $body)) {
+        $unames = is_array($body['assigned_to_usernames']) ? $body['assigned_to_usernames'] : [];
+        $new_assignees = resolve_assignees(array_map(fn($u) => clean($u, 100), $unames));
+    } elseif (array_key_exists('assigned_to', $body)) {
         if (empty($body['assigned_to'])) {
-            $set[]    = 'assigned_to_user_id = NULL';
-            $set[]    = 'assigned_to = NULL';
-            $changed[] = 'assigned_to';
+            $new_assignees = [];
         } else {
-            $assignee = db_row(
-                "SELECT id, name FROM bf_users WHERE username = ? AND active = 1 LIMIT 1",
-                [clean($body['assigned_to'], 50)]
-            );
-            if ($assignee) {
-                $set[]    = 'assigned_to_user_id = ?';
-                $params[] = (int)$assignee['id'];
-                $set[]    = 'assigned_to = ?';
-                $params[] = $assignee['name'];
-                $changed[] = 'assigned_to';
-            }
+            $new_assignees = resolve_assignees([clean($body['assigned_to'], 50)]);
         }
+    }
+    if ($new_assignees !== null) {
+        $primary_uid  = !empty($new_assignees) ? (int)$new_assignees[0]['id']   : null;
+        $primary_name = !empty($new_assignees) ? $new_assignees[0]['name']       : null;
+        if ($primary_uid !== null) {
+            $set[]    = 'assigned_to_user_id = ?';
+            $params[] = $primary_uid;
+            $set[]    = 'assigned_to = ?';
+            $params[] = $primary_name;
+        } else {
+            $set[] = 'assigned_to_user_id = NULL';
+            $set[] = 'assigned_to = NULL';
+        }
+        $changed[] = 'assigned_to';
     }
 
     if (empty($set)) json_err('Nothing to update');
 
     $params[] = $ref_id;
     db_exec("UPDATE bf_tasks SET " . implode(', ', $set) . " WHERE ref_id = ?", $params);
+
+    // Sync junction table if assignees were changed
+    if ($new_assignees !== null) {
+        sync_task_assignees($ref_id, $new_assignees, (int)$user['id']);
+    }
+
     audit($user['username'], 'TASK_UPDATE', "Updated {$ref_id}: " . implode(', ', array_values(array_unique($changed))));
 
     $updated = db_row("SELECT * FROM bf_tasks WHERE ref_id = ?", [$ref_id]);

@@ -101,6 +101,10 @@ c:\DevWork\
 │   └── imports/                    ← Cross-project design imports
 ├── .claude/
 │   └── skills/gstack/          ← gstack multi-agent toolkit
+├── cybersecurity-skills/       ← 754 cybersecurity skills (git submodule: mukul975/Anthropic-Cybersecurity-Skills)
+│   ├── skills/                 ← individual skill directories (each with SKILL.md)
+│   ├── index.json              ← full skill index with framework mappings
+│   └── mappings/               ← MITRE ATT&CK, NIST CSF, D3FEND, ATLAS, AI RMF, F3 cross-refs
 ├── BlackFire/                  ← BlackFire / AECI project
 └── Astute/                     ← Astute project
 ```
@@ -127,6 +131,38 @@ gstack is installed at `.claude/skills/gstack/`. Use these skills when available
 | `/cso` | Security review (OWASP + STRIDE) |
 
 For web browsing use `/browse`. Do not use mcp__claude-in-chrome__* tools.
+
+---
+
+## 4a. Cybersecurity Skills Library
+
+754 production-grade cybersecurity skills are available at `c:\DevWork\cybersecurity-skills\skills\`.
+Managed as a git submodule (`mukul975/Anthropic-Cybersecurity-Skills`, Apache 2.0).
+Update with: `git submodule update --remote cybersecurity-skills`
+
+**Each skill** is a directory containing a `SKILL.md` with:
+- YAML frontmatter: name, description, domain, tags, and framework IDs
+- Structured Markdown: Overview, When to Use, Prerequisites, Step-by-step execution, Verification
+
+**Framework mappings** in frontmatter:
+| Key | Framework | Example ID |
+|-----|-----------|-----------|
+| `mitre_attack` | MITRE ATT&CK v19.1 | `T1071.001` |
+| `nist_csf` | NIST CSF 2.0 | `DE.CM-01` |
+| `mitre_atlas` | MITRE ATLAS v5.4 (AI threats) | `AML.T0047` |
+| `mitre_d3fend` | MITRE D3FEND v1.3 | `D3-NTA` |
+| `nist_ai_rmf` | NIST AI RMF 1.0 | `MEASURE-2.6` |
+| `mitre_f3` | MITRE F3 v1.1 (Financial fraud) | `F1005.006` |
+
+**How to use a skill:**
+1. Find it by keyword: `ls c:\DevWork\cybersecurity-skills\skills\ | grep <keyword>`
+2. Or find by ATT&CK ID: search SKILL.md frontmatter for the technique ID
+3. Read the `SKILL.md` and follow its step-by-step execution section
+4. Use `/cybersec-skill <topic>` if the slash command is installed
+
+**Security domains covered (26):** web security, pentesting, DFIR, threat intelligence, cloud security, malware analysis, network forensics, OSINT, red team, blue team, incident response, compliance (CMMC, SOC 2, ISO 27001), OT/ICS, mobile, API security, devsecops, vulnerability management, identity & access, data loss prevention, and more.
+
+**Umlindi uses this library** when conducting governance/compliance reviews — route security task requests through Umlindi (§12.2).
 
 ---
 

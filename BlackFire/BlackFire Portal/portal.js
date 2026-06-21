@@ -175,6 +175,8 @@ document.addEventListener('click', function(e) {
     case 'saveTrackerSchedule':  saveTrackerSchedule(el.dataset.entityType, el.dataset.id); break;
     case 'addTrackerUpdate':     addTrackerUpdate(el.dataset.entityType, el.dataset.id); break;
     case 'saveTrackerUpdate':    saveTrackerUpdate(+el.dataset.updateId); break;
+    case 'uploadTrackerFile':    uploadTrackerFile(el.dataset.entityType, el.dataset.entityRef); break;
+    case 'deleteTrackerFile':    deleteTrackerFile(+el.dataset.id, el.dataset.entityType, el.dataset.entityRef); break;
     // Operations — callouts
     case 'saveCallout':          saveCallout(); break;
     case 'openStatusModal':      openStatusModal(el.dataset.id); break;
@@ -1842,6 +1844,35 @@ const PAGE_INFO = {
     linked: 'Call Log, Clients.',
     access: ['admin','sysadmin','manager','call_logger','client_support'],
   },
+  'p-new-task': {
+    title: 'New Task',
+    sub: 'Create an internal task',
+    purpose: 'Log an internal task in the correct Tracker stream — Admin, Sales, or General. Use this form for any company work that is not a client callout: compliance actions, sales follow-ups, system improvements, training, and administrative items.',
+    steps: [
+      'Select the Category that matches the Tracker stream you are working in: Admin for finance, compliance, and office work; Sales for opportunities and proposals; General for systems, training, and cross-functional items.',
+      'Enter a concise, specific Title — describe the deliverable, not the activity. "Update VAT certificate on file" is better than "admin task".',
+      'Add a Description if the title alone does not give the assignee enough context — include key details, links, or reference numbers.',
+      'Set the Priority: Low (no urgency), Normal (standard work), High (required this week), Critical (blocking something else or overdue).',
+      'Assign To: enter the username of the person responsible. Leave blank if unassigned and update later from Tracker.',
+      'Set Start Date & Time and End Date & Time to scope the work window. Set Due Date if there is a hard deadline different from the end date.',
+      'Click Save — the task is created immediately and appears in the Tracker under the selected stream.',
+    ],
+    tips: [
+      'Tasks belong in Tracker streams (Admin, Sales, General). If it involves a client incident, a site visit, or potential billing, use Log Call instead.',
+      'A clear title is the most important field — the assignee reads it in the Tracker list without opening the record.',
+      'Set a due date even if it is generous. Tasks with no due date tend to drift.',
+      'Use the Description field to add context, links, or reference numbers — not to restate the title.',
+    ],
+    faqs: [
+      { q: 'Which category should I use?', a: 'Admin: finance, compliance, HR, office admin. Sales: client opportunities, proposals, follow-ups. General: internal systems, training, cross-team work, portal defects. Call Log is for client incidents and field jobs only.' },
+      { q: 'Can I reassign a task after saving?', a: 'Yes — open the task record in Tracker, expand it, and update the Assigned To field. The change is logged in the audit trail.' },
+      { q: 'What is the difference between End Date and Due Date?', a: 'End Date is when the work is expected to finish. Due Date is the hard deadline — when it must be completed regardless. If both are the same, set only the Due Date.' },
+      { q: 'Can I attach files to a task?', a: 'Yes — after saving, open the task in Tracker, expand the row, and use the Files section to attach PDFs, documents, or images.' },
+      { q: 'What if I created the task in the wrong stream (category)?', a: 'Open the task in Tracker, expand the row, and edit the Category field to move it to the correct stream.' },
+    ],
+    linked: 'Tracker, Dashboard.',
+    access: ['admin','sysadmin','manager','admin_clerk','senior_tech','call_logger','junior_tech'],
+  },
   'p-new-quote': {
     title: 'New Quote',
     sub: 'Draft a service quotation',
@@ -3037,7 +3068,9 @@ function renderTracker(cat) {
   tbody.innerHTML = items.length ? items.map(t => {
     const dotCls  = TASK_PRIORITY_DOT[t.priority]  || 'bg-muted';
     const bdgCls  = TASK_STATUS_BADGE[t.status]    || '';
-    const assignee = t.assignee_name || t.assigned_to || '—';
+    const assignee = (t.assignees && t.assignees.length)
+      ? t.assignees.map(a => esc(a.name)).join(', ')
+      : (t.assignee_name || t.assigned_to || '—');
     const actions = [];
     actions.push(`<button class="btn btn-g btn-s" data-action="openTrackerRecord" data-entity-type="task" data-id="${esc(t.ref_id)}">Record</button>`);
     actions.push(`<button class="btn btn-g btn-s" data-action="openAttachmentsModal" data-entity-type="task" data-entity-ref="${esc(t.ref_id)}">Files</button>`);
@@ -3058,11 +3091,11 @@ function renderTracker(cat) {
   }).join('') : `<tr><td colspan="10" class="empty-row">No tasks in ${esc(TASK_CATEGORY_LABELS[cat])}.</td></tr>`;
 }
 
-function initNewTask() {
-  // Reset form fields
-  ['ntk-title','ntk-desc','ntk-assigned','ntk-start','ntk-end','ntk-due'].forEach(id => {
+async function initNewTask() {
+  ['ntk-title','ntk-desc','ntk-start','ntk-end','ntk-due'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
+  const fileIn = document.getElementById('ntk-file'); if (fileIn) fileIn.value = '';
   const pri = document.getElementById('ntk-priority'); if (pri) pri.value = 'Normal';
   const catSel = document.getElementById('ntk-category');
   if (catSel) {
@@ -3070,30 +3103,53 @@ function initNewTask() {
     catSel.innerHTML = cats.map(c => `<option value="${c}">${esc(TASK_CATEGORY_LABELS[c])}</option>`).join('');
     if (_trackerCat && cats.includes(_trackerCat)) catSel.value = _trackerCat;
   }
+  const assignSel = document.getElementById('ntk-assigned');
+  if (assignSel) {
+    assignSel.innerHTML = '<option value="" disabled>Loading…</option>';
+    const r = await api('GET', 'task_users.php');
+    const users = r.data || [];
+    assignSel.innerHTML = users.map(u =>
+      `<option value="${esc(u.username)}">${esc(u.name)} (${esc(u.role.replace(/_/g,' '))})</option>`
+    ).join('');
+  }
 }
 
 async function saveNewTask() {
   const title = (document.getElementById('ntk-title')?.value || '').trim();
   const cat   = document.getElementById('ntk-category')?.value || '';
   if (!title || !cat) { showToast('Title and category are required.', 'error'); return; }
+
+  const assignSel = document.getElementById('ntk-assigned');
+  const assigned_to_usernames = assignSel
+    ? Array.from(assignSel.selectedOptions).map(o => o.value).filter(Boolean)
+    : [];
+
   const payload = {
-    category:    cat,
+    category:               cat,
     title,
-    description: document.getElementById('ntk-desc')?.value?.trim() || null,
-    priority:    document.getElementById('ntk-priority')?.value || 'Normal',
-    assigned_to: document.getElementById('ntk-assigned')?.value?.trim() || null,
-    start_at:    document.getElementById('ntk-start')?.value || null,
-    end_at:      document.getElementById('ntk-end')?.value || null,
-    due_at:      document.getElementById('ntk-due')?.value || null,
+    description:            document.getElementById('ntk-desc')?.value?.trim() || null,
+    priority:               document.getElementById('ntk-priority')?.value || 'Normal',
+    assigned_to_usernames,
+    start_at:               document.getElementById('ntk-start')?.value || null,
+    end_at:                 document.getElementById('ntk-end')?.value || null,
+    due_at:                 document.getElementById('ntk-due')?.value || null,
   };
   const r = await api('POST', 'tasks.php', payload);
-  if (r.success) {
-    showToast('Task created.', 'success');
-    await refreshTasks();
-    navPage('p-tracker');
+  if (!r.success) { showToast(r.message || 'Failed to create task.', 'error'); return; }
+
+  const refId = r.data?.ref_id;
+  const fileIn = document.getElementById('ntk-file');
+  if (refId && fileIn && fileIn.files.length) {
+    showToast('Task created. Uploading file…', 'success');
+    const up = await apiUpload('task', refId, fileIn);
+    if (!up.success) showToast(up.error || 'File upload failed.', 'error');
+    else showToast('Task created with file attached.', 'success');
   } else {
-    showToast(r.message || 'Failed to create task.', 'error');
+    showToast('Task created.', 'success');
   }
+
+  await refreshTasks();
+  navPage('p-tracker');
 }
 
 async function openTaskStatus(refId) {
@@ -3139,21 +3195,87 @@ function openTrackerRecord(entityType, refId) {
   const endAt = entityType === 'task' ? record.end_at : record.endAt;
   const dueAt = entityType === 'task' ? record.due_at : record.dueAt;
 
+  const assigneesHtml = (() => {
+    if (entityType !== 'task') return '';
+    const t = proxyDB.tasks.find(x => x.ref_id === refId);
+    const names = (t?.assignees && t.assignees.length)
+      ? t.assignees.map(a => esc(a.name)).join(', ')
+      : (t?.assignee_name || t?.assigned_to || '—');
+    return `<div class="fs-11 text-muted mb-12">Assigned to: <span class="fw-600">${names}</span></div>`;
+  })();
+
+  const fileIcon = m => m === 'application/pdf' ? '📄' : m && (m.includes('sheet') || m.includes('excel')) ? '📊' : m && m.includes('word') ? '📝' : m && m.startsWith('image/') ? '🖼' : '📎';
+  const fmtBytes = b => b < 1024 ? b + ' B' : b < 1048576 ? (b/1024).toFixed(1) + ' KB' : (b/1048576).toFixed(1) + ' MB';
+
   openModal(`${refId} - Record`, `
     <div class="att-ctx"><span class="fw-600">${esc(title)}</span></div>
+    ${assigneesHtml}
     <div class="form-title mt2">Schedule</div>
     <div class="fgrid">
       <div class="fgroup"><label class="flbl">Created</label><input class="finput" value="${esc(fmtDT(createdAt))}" disabled></div>
-      <div class="fgroup"><label class="flbl">Start Date & Time</label><input class="finput" id="tr-start" type="datetime-local" value="${esc(trackerDateInput(startAt))}" ${canEdit?'':'disabled'}></div>
-      <div class="fgroup"><label class="flbl">End Date & Time</label><input class="finput" id="tr-end" type="datetime-local" value="${esc(trackerDateInput(endAt))}" ${canEdit?'':'disabled'}></div>
-      <div class="fgroup"><label class="flbl">Due Date & Time</label><input class="finput" id="tr-due" type="datetime-local" value="${esc(trackerDateInput(dueAt))}" ${canEdit?'':'disabled'}></div>
+      <div class="fgroup"><label class="flbl">Start Date &amp; Time</label><input class="finput" id="tr-start" type="datetime-local" value="${esc(trackerDateInput(startAt))}" ${canEdit?'':'disabled'}></div>
+      <div class="fgroup"><label class="flbl">End Date &amp; Time</label><input class="finput" id="tr-end" type="datetime-local" value="${esc(trackerDateInput(endAt))}" ${canEdit?'':'disabled'}></div>
+      <div class="fgroup"><label class="flbl">Due Date &amp; Time</label><input class="finput" id="tr-due" type="datetime-local" value="${esc(trackerDateInput(dueAt))}" ${canEdit?'':'disabled'}></div>
     </div>
-    <div class="flex-end mt2"><button class="btn btn-g btn-s" data-action="openAttachmentsModal" data-entity-type="${entityType}" data-entity-ref="${esc(refId)}">Files</button>${canEdit?`<button class="btn btn-p btn-s ml1" data-action="saveTrackerSchedule" data-entity-type="${entityType}" data-id="${esc(refId)}">Save Schedule</button>`:''}</div>
+    ${canEdit?`<div class="flex-end mt2"><button class="btn btn-p btn-s" data-action="saveTrackerSchedule" data-entity-type="${entityType}" data-id="${esc(refId)}">Save Schedule</button></div>`:''}
+    <div class="form-title mt3">Files</div>
+    <div id="tr-files-area"><div class="tc-empty">Loading files…</div></div>
+    ${canEdit?`<div class="att-upsec mt2">
+      <div class="att-uprow">
+        <input type="file" id="tr-file-input" accept=".pdf,.xlsx,.xls,.docx,.doc,.jpg,.jpeg,.png" class="att-finp">
+        <button class="btn btn-p btn-s" data-action="uploadTrackerFile" data-entity-type="${entityType}" data-entity-ref="${esc(refId)}">Upload</button>
+      </div>
+      <div class="att-fhint">PDF, Excel, Word, JPEG, PNG · Max 10 MB</div>
+    </div>`:''}
     <div class="form-title mt3">Description Records</div>
     <div id="tracker-updates-area"><div class="tc-empty">Loading records...</div></div>
     ${canEdit?`<div class="panel mt2"><div class="pb"><div class="fgroup"><label class="flbl">New Label</label><input class="finput" id="tr-new-label" maxlength="120" placeholder="e.g. Client feedback"></div><div class="fgroup mt2"><label class="flbl">New Description</label><textarea class="finput" id="tr-new-content" rows="4" maxlength="10000" placeholder="Enter new information"></textarea></div><div class="flex-end mt2"><button class="btn btn-p btn-s" data-action="addTrackerUpdate" data-entity-type="${entityType}" data-id="${esc(refId)}">Add Description</button></div></div></div>`:''}
     <div id="tracker-record-message" class="fs-11 text-muted mt2"></div>`);
+  loadTrackerFiles(entityType, refId, canEdit);
   loadTrackerUpdates(entityType, refId, canEdit);
+}
+
+async function loadTrackerFiles(entityType, refId, canEdit) {
+  const area = document.getElementById('tr-files-area');
+  if (!area) return;
+  const r = await api('GET', `files.php?action=list&entity_type=${encodeURIComponent(entityType)}&entity_ref=${encodeURIComponent(refId)}`);
+  const canDel = SESSION && ['admin','manager','sysadmin'].includes(SESSION.role);
+  const list = r.attachments || [];
+  const fileIcon = m => m === 'application/pdf' ? '📄' : m && (m.includes('sheet')||m.includes('excel')) ? '📊' : m && m.includes('word') ? '📝' : m && m.startsWith('image/') ? '🖼' : '📎';
+  const fmtBytes = b => b < 1024 ? b+' B' : b < 1048576 ? (b/1024).toFixed(1)+' KB' : (b/1048576).toFixed(1)+' MB';
+  if (!list.length) { area.innerHTML = '<div class="att-empty">No files attached yet</div>'; return; }
+  area.innerHTML = list.map(a => `
+    <div class="att-row">
+      <span class="att-icon">${fileIcon(a.mime_type)}</span>
+      <div class="att-info">
+        <div class="att-name">${esc(a.original_name)}</div>
+        <div class="att-meta">${fmtBytes(a.file_size)} · ${esc(a.uploaded_by)} · ${(a.created_at||'').slice(0,10)}</div>
+      </div>
+      ${(a.mime_type==='application/pdf'||a.mime_type?.startsWith('image/'))?`<button class="btn btn-g btn-s" data-action="openDocViewer" data-id="${a.id}" data-name="${esc(a.original_name)}" data-mime="${esc(a.mime_type)}">&#128065; View</button>`:''}
+      <a href="${API_BASE}/files.php?action=download&id=${a.id}" target="_blank" class="btn btn-g btn-s">&#8595; Download</a>
+      ${canDel?`<button class="btn btn-g btn-s att-del" data-action="deleteTrackerFile" data-id="${a.id}" data-entity-type="${esc(entityType)}" data-entity-ref="${esc(refId)}">&#10005;</button>`:''}
+    </div>`).join('');
+}
+
+async function uploadTrackerFile(entityType, entityRef) {
+  const inp = document.getElementById('tr-file-input');
+  if (!inp || !inp.files.length) { showToast('Select a file first.', 'error'); return; }
+  const btn = document.querySelector('[data-action="uploadTrackerFile"]');
+  if (btn) { btn.disabled = true; btn.textContent = 'Uploading…'; }
+  const r = await apiUpload(entityType, entityRef, inp);
+  if (btn) { btn.disabled = false; btn.textContent = 'Upload'; }
+  if (!r.success) { showToast(r.error || 'Upload failed.', 'error'); return; }
+  inp.value = '';
+  showToast('File attached.', 'success');
+  await loadTrackerFiles(entityType, entityRef, true);
+}
+
+async function deleteTrackerFile(id, entityType, entityRef) {
+  if (!await confirmDialog('Remove this attachment?\n\nThis cannot be undone.', { title: 'Remove File', confirmLabel: 'Remove' })) return;
+  const r = await api('DELETE', `files.php?id=${id}`);
+  if (!r.success) { showToast(r.error || 'Delete failed.', 'error'); return; }
+  showToast('File removed.', 'success');
+  await loadTrackerFiles(entityType, entityRef, true);
 }
 
 async function loadTrackerUpdates(entityType, refId, canEdit) {

@@ -2,6 +2,8 @@ import { cookies } from 'next/headers'
 import Link from 'next/link'
 import { getServerUser } from '@/lib/auth'
 import type { DashboardResponse, TaskCategory } from '@blackfire/types'
+import AnomalyWidget from '@/components/AnomalyWidget'
+import ReportTrigger from '@/components/ReportTrigger'
 
 async function getDashboard(): Promise<DashboardResponse | null> {
   const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://blackfiresolutions.co.za/api'
@@ -68,6 +70,10 @@ export default async function DashboardPage() {
             <KPICard label="Overdue Invoices" value={kpis.overdue_invoices} />
             <KPICard label="MTD Revenue" value={`R${kpis.mtd_revenue.toLocaleString()}`} />
             <KPICard label="Active Clients" value={kpis.active_clients} />
+          </div>
+          <div className="mt-6 grid gap-5 xl:grid-cols-3">
+            <div className="xl:col-span-2"><AnomalyWidget /></div>
+            <ReportTrigger clientName="AECI Chempark" />
           </div>
           <div className="mt-6 grid gap-5 xl:grid-cols-[1.4fr_1fr]">
             <section className="overflow-hidden rounded border border-steel-dark bg-white shadow-sm">

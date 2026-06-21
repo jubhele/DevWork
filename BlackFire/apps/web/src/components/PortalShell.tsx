@@ -3,13 +3,17 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import { useUser } from '@/context/UserContext'
 
 const PRIMARY = [
   { href: '/dashboard', label: 'Dashboard', group: 'dashboard', matches: ['/dashboard'] },
   { href: '/tracker', label: 'Operations', group: 'operations', matches: ['/tracker', '/callouts', '/quotes', '/clients'] },
   { href: '/finance', label: 'Finance', group: 'finance', matches: ['/finance', '/invoices'] },
-  { href: '/safety', label: 'Support', group: 'support', matches: ['/safety', '/admin'] },
+  { href: '/secure', label: 'Secure', group: 'secure', matches: ['/secure'], roles: ['sysadmin', 'admin', 'manager'] },
+  { href: '/ops', label: 'Ops', group: 'ops', matches: ['/ops'], roles: ['sysadmin', 'admin', 'manager'] },
+  { href: '/hub', label: 'Hub', group: 'hub', matches: ['/hub'] },
+  { href: '/support', label: 'Support', group: 'support', matches: ['/support', '/safety', '/admin'] },
 ]
 
 const SECONDARY: Record<string, Array<{ href: string; label: string; permission?: string; roles?: string[] }>> = {
@@ -28,8 +32,21 @@ const SECONDARY: Record<string, Array<{ href: string; label: string; permission?
     { href: '/invoices', label: 'Invoices', permission: 'invoice.view' },
     { href: '/finance', label: 'Finance Overview', permission: 'finance.view' },
   ],
+  secure: [
+    { href: '/secure/incidents', label: 'Incidents', roles: ['sysadmin', 'admin', 'manager'] },
+    { href: '/secure/vault', label: 'Vault', roles: ['sysadmin', 'admin'] },
+  ],
+  ops: [
+    { href: '/ops/schedule', label: 'Schedule', roles: ['sysadmin', 'admin', 'manager'] },
+    { href: '/ops/tasks', label: 'Task Planning', roles: ['sysadmin', 'admin', 'manager'] },
+  ],
+  hub: [
+    { href: '/hub', label: 'All Portals' },
+  ],
   support: [
-    { href: '/safety', label: 'Overview', permission: 'safety.view' },
+    { href: '/support', label: 'Overview' },
+    { href: '/safety', label: 'Safety Files', permission: 'safety.view' },
+    { href: '/admin/users', label: 'Users & Roles', roles: ['sysadmin', 'admin'] },
     { href: '/admin/audit', label: 'Audit Log', roles: ['sysadmin', 'admin'] },
   ],
 }
@@ -47,8 +64,23 @@ export default function PortalShell({ children }: { children: React.ReactNode })
   const pathname = usePathname()
   const router = useRouter()
   const user = useUser()
+  const [theme, setTheme] = useState<'light' | 'dark'>('light')
 
-  const primary = PRIMARY.find(item => item.matches.some(prefix => pathname.startsWith(prefix))) ?? PRIMARY[0]
+  useEffect(() => {
+    const saved = (localStorage.getItem('bf-theme') as 'light' | 'dark') ?? 'light'
+    setTheme(saved)
+    document.documentElement.dataset.theme = saved
+  }, [])
+
+  function toggleTheme() {
+    const next = theme === 'dark' ? 'light' : 'dark'
+    setTheme(next)
+    document.documentElement.dataset.theme = next
+    localStorage.setItem('bf-theme', next)
+  }
+
+  const visiblePrimary = PRIMARY.filter(item => isVisible(user.role, user.permissions, item))
+  const primary = visiblePrimary.find(item => item.matches.some(prefix => pathname.startsWith(prefix))) ?? visiblePrimary[0]
   const secondary = (SECONDARY[primary.group] || []).filter(item => isVisible(user.role, user.permissions, item))
 
   async function signOut() {
@@ -71,7 +103,7 @@ export default function PortalShell({ children }: { children: React.ReactNode })
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
             <span className="hidden sm:block text-sm text-ink-text/80 truncate max-w-[200px]">{user.name}</span>
-            <span className="grid h-12 w-12 place-items-center rounded border border-steel-dark bg-bone-paper text-ink-text" aria-label="Light theme">☾</span>
+            <button onClick={toggleTheme} className="grid h-12 w-12 place-items-center rounded border border-steel-dark bg-bone-paper text-ink-text hover:bg-charcoal/20 transition-colors" aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'} title={theme === 'dark' ? 'Light mode' : 'Dark mode'}>{theme === 'dark' ? '☀' : '☾'}</button>
             <button onClick={() => router.refresh()} className="h-12 w-12 rounded border border-steel-dark bg-[#eee] text-ash" aria-label="Refresh page">↻</button>
             <Link href="/help" className="grid h-12 w-12 place-items-center rounded border border-steel-dark bg-[#eee] text-ash" aria-label="Help and guide">?</Link>
             <button onClick={signOut} className="h-12 rounded border border-steel-dark bg-white px-4 text-[11px] uppercase tracking-[0.22em] text-ash">Sign Out</button>
@@ -79,7 +111,7 @@ export default function PortalShell({ children }: { children: React.ReactNode })
         </div>
         <nav className="border-t border-steel-dark/60 bg-white">
           <div className="px-6 sm:px-8 flex items-center gap-6 justify-center overflow-x-auto">
-            {PRIMARY.map(item => {
+            {visiblePrimary.map(item => {
               const active = item.matches.some(prefix => pathname.startsWith(prefix))
               return (
                 <Link

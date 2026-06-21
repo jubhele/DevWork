@@ -131,4 +131,25 @@ if ($method === 'PUT') {
     json_ok(['data' => $row], 'User updated');
 }
 
+if ($method === 'DELETE') {
+    $action = $_GET['action'] ?? '';
+    if ($action !== 'self_delete') json_err('Method not allowed', 405);
+
+    $usr = require_auth();
+
+    // Soft-delete: deactivate and anonymise PII; hard-delete roles + sessions
+    $anon_name  = 'Deleted User #' . $usr['id'];
+    $anon_email = 'deleted+' . $usr['id'] . '@blackfire.internal';
+
+    db_exec("UPDATE bf_users SET active = 0, name = ?, email = ?, password_hash = '', title = '' WHERE id = ?",
+        [$anon_name, $anon_email, $usr['id']]);
+    db_exec("DELETE FROM bf_user_roles     WHERE user_id = ?",  [$usr['id']]);
+    db_exec("DELETE FROM bf_sessions       WHERE username = ?", [$usr['username']]);
+    db_exec("DELETE FROM bf_mobile_tokens  WHERE user_id = ?",  [$usr['id']]);
+    db_exec("DELETE FROM bf_password_resets WHERE user_id = ?", [$usr['id']]);
+
+    audit($usr['username'], 'DELETE', "Self-deletion requested by user #{$usr['id']}");
+    json_ok([], 'Account deactivated and personal data removed');
+}
+
 json_err('Method not allowed', 405);

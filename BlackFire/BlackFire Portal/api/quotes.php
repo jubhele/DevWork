@@ -81,10 +81,10 @@ if ($method === 'POST') {
         json_err('client_id or client_name is required');
     }
 
-    // Calculate total
+    // Calculate total — accept unit_price (web form) or unit (legacy)
     $total = 0;
     foreach ($items as $item) {
-        $total += ((float)($item['qty'] ?? 1)) * ((float)($item['unit'] ?? 0));
+        $total += ((float)($item['qty'] ?? 1)) * ((float)($item['unit_price'] ?? $item['unit'] ?? 0));
     }
 
     // Determine approval status
@@ -140,7 +140,12 @@ if ($method === 'POST') {
         foreach ($items as $item) {
             db_exec(
                 "INSERT INTO bf_quote_items (quote_id, description, qty, unit_price) VALUES (?,?,?,?)",
-                [$id, clean($item['desc'] ?? '', 255), (float)($item['qty'] ?? 1), (float)($item['unit'] ?? 0)]
+                [
+                    $id,
+                    clean($item['description'] ?? $item['desc'] ?? '', 255),
+                    (float)($item['qty'] ?? 1),
+                    (float)($item['unit_price'] ?? $item['unit'] ?? 0),
+                ]
             );
         }
         
