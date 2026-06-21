@@ -3159,13 +3159,13 @@ async function openTaskStatus(refId) {
   const btns = statuses.map(s =>
     `<button class="btn ${s===task.status?'btn-p':'btn-g'} btn-s" data-action="setTaskStatus" data-id="${esc(refId)}" data-status="${esc(s)}">${esc(s)}</button>`
   ).join('');
-  showModal(`<div class="modal-head">Update Status — <span class="mono fs-11">${esc(refId)}</span></div>
+  openModal(`Update Status — ${esc(refId)}`, `
     <div class="pb">${esc(task.title)}</div>
     <div class="flex-row gap1 mt2">${btns}</div>`);
 }
 
 async function setTaskStatus(refId, status) {
-  closeModal();
+  closeModalDirect();
   const r = await api('PUT', `tasks.php?id=${encodeURIComponent(refId)}`, { status });
   if (r.success) { await refreshTasks(); renderTracker(); showToast('Status updated.','success'); }
   else showToast(r.message || 'Update failed.','error');
