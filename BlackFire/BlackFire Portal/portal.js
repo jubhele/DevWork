@@ -661,7 +661,7 @@ function populateLinkedDropdowns() {
     const callouts = proxyDB.callouts.filter(c => c.status === 'Completed' && (!niClientId || c.clientId === niClientId));
     const coOpts2  = callouts.map(c => `<option value="${esc(c.id)}">${esc(c.id)} — ${esc(c.service)}</option>`).join('');
     const cur = niCalloutEl.value;
-    niCalloutEl.innerHTML = '<option value="">— None —</option>' + coOpts2;
+    niCalloutEl.innerHTML = '<option value="">— Select Completed Callout —</option>' + coOpts2;
     if (cur) niCalloutEl.value = cur;
   }
 }
@@ -3640,7 +3640,7 @@ function renderInvoices(search='',filter=''){
     <tr><td class="mono">${esc(inv.invoiceNo)}${inv.invoiceNo!==inv.id?`<div class="mlbl-9 mt-2 text-muted">${esc(inv.id)}</div>`:''}</td><td>${esc(inv.client)}</td><td class="amt">${fmt(inv.amount)}</td><td class="tc-11 nowrap">${fmtD(inv.dueDate)}</td><td>${pillH(inv.status)}</td>
     <td><div class="bgrp">
       <button class="btn btn-g btn-s" data-action="previewInvoice" data-id="${esc(inv.id)}">View</button>
-      ${inv.calloutRef?`<button class="btn btn-g btn-s" data-action="openRecordChain" data-id="${esc(inv.calloutRef)}">Callout</button>`:''}
+      ${inv.calloutRef?`<button class="btn btn-g btn-s" data-action="openRecordChain" data-id="${esc(inv.calloutRef)}">Callout</button>`:'<span class="pill overdue">Missing Callout</span>'}
       <button class="btn btn-g btn-s" data-action="openAttachmentsModal" data-entity-type="invoice" data-entity-ref="${esc(inv.id)}">Files</button>
       ${canSend&&inv.status!=='Paid'&&inv.status!=='Cancelled'&&inv.amount>0?`<button class="btn btn-p btn-s" data-action="openSendInvoiceModal" data-id="${esc(inv.id)}">Send</button>`:''}
       ${canPaid&&inv.status!=='Paid'?`<button class="btn btn-g btn-s" data-action="markPaid" data-id="${esc(inv.id)}">Paid</button>`:''}
@@ -4734,7 +4734,7 @@ async function openRecordChain(calloutRef){
       ${metaRow('Quote No.',esc(q.quote_no||''))}
       ${metaRow('Date',fmtD(q.quote_date))}
       ${metaRow('Valid Until',fmtD(q.valid_until))}
-      ${metaRow('Status',`<span class="pill ${pillClass(q.status)}">${esc(q.status)}</span>`)}
+      ${metaRow('Status',pillH(q.status))}
       ${metaRow('Submitted By',esc(q.submitted_by_name||q.submitted_by||''))}
       ${metaRow('Approved By',esc(q.approved_by||''))}
       ${q.notes?metaRow('Notes',esc(q.notes)):''}
@@ -4756,8 +4756,8 @@ async function openRecordChain(calloutRef){
     ${metaRow('Location',esc(co.location||''))}
     ${metaRow('Technician',esc(co.tech||co.assigned_to||''))}
     ${metaRow('PO',esc(co.po||''))}
-    ${metaRow('Priority',`<span class="pill ${pillClass(co.priority)}">${esc(co.priority)}</span>`)}
-    ${metaRow('Status',`<span class="pill ${pillClass(co.status)}">${esc(co.status)}</span>`)}
+    ${metaRow('Priority',pillH(co.priority))}
+    ${metaRow('Status',pillH(co.status))}
     ${metaRow('Logged By',esc(co.logged_by_name||co.logged_by||''))}
     ${co.notes?metaRow('Notes',esc(co.notes)):''}
   `);
@@ -4773,7 +4773,7 @@ async function openRecordChain(calloutRef){
       ${metaRow('Date',fmtD(inv.invoice_date))}
       ${metaRow('Due Date',fmtD(inv.due_date))}
       ${metaRow('Amount',`<span class="amt fw-600">${fmt(+inv.amount)}</span>`)}
-      ${metaRow('Status',`<span class="pill ${pillClass(inv.status)}">${esc(inv.status)}</span>`)}
+      ${metaRow('Status',pillH(inv.status))}
       ${inv.paid_date?metaRow('Paid On',fmtD(inv.paid_date)):''}
       ${payRows?`<table class="chain-items-t mt-10">
         <thead><tr><th>Payment Date</th><th class="tar">Amount</th><th>Reference</th></tr></thead>
@@ -5086,11 +5086,10 @@ async function saveInvoice(){
 
   if (!clientId) { toast('Please select a client', 'err'); if(btn)btn.disabled=false; return; }
   if (!amount || !dueDate) { toast('Fill in amount and due date', 'err'); if(btn)btn.disabled=false; return; }
+  if (!calloutRef) { toast('Select the completed callout this invoice belongs to', 'err'); if(btn)btn.disabled=false; return; }
 
-  if (calloutRef) {
-    const linkedCo = proxyDB.callouts.find(x => x.id === calloutRef);
-    if (!linkedCo?.po) { toast('A PO number must be assigned to the linked callout before generating an invoice', 'err'); if(btn)btn.disabled=false; return; }
-  }
+  const linkedCo = proxyDB.callouts.find(x => x.id === calloutRef);
+  if (!linkedCo?.po) { toast('A PO number must be assigned to the linked callout before generating an invoice', 'err'); if(btn)btn.disabled=false; return; }
 
   const invoiceNo  = document.getElementById('ni-invoice-no')?.value?.trim() || '';
   const r = await api('POST', 'invoices.php', { client_id: clientId, amount, due_date: dueDate, status, po, quote_ref: quoteRef, callout_ref: calloutRef, invoice_no: invoiceNo });

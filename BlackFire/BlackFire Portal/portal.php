@@ -830,7 +830,7 @@ $companyLogoUrl = rtrim($cfg['base_url'] ?? '', '/') . '/' . ltrim($cfg['company
           <div class="fgroup"><label class="flbl">Status</label><select class="finput" id="ni-status"><option>Draft</option><option>Sent</option></select></div>
           <div class="fgroup"><label class="flbl">PO Reference</label><input class="finput" id="ni-po" placeholder="PO number if applicable"></div>
           <div class="fgroup"><label class="flbl">Linked Quote</label><select class="finput" id="ni-quote-ref"><option value="">— None —</option></select></div>
-          <div class="fgroup"><label class="flbl">Linked Callout</label><select class="finput" id="ni-callout-ref"><option value="">— None —</option></select></div>
+          <div class="fgroup"><label class="flbl">Linked Callout <span class="req">*</span></label><select class="finput" id="ni-callout-ref" required><option value="">— Select Completed Callout —</option></select></div>
           <div class="fgroup ffull"><label class="flbl">Invoice No. <span class="flbl-hint">— number shown on your document; leave blank to auto-generate</span></label><input class="finput" id="ni-invoice-no" placeholder="Auto-generated if blank"></div>
         </div>
         <div class="mt3 flex-end"><button class="btn btn-p" data-action="saveInvoice">Create Invoice</button></div>

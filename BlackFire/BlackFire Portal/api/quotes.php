@@ -185,6 +185,12 @@ if ($method === 'PUT') {
         if (!$quote) json_err('Quote not found', 404);
         if ($quote['status'] !== 'Approved') json_err('Only Approved quotes can be converted to invoices', 422);
 
+        $linked_callout = db_row(
+            "SELECT id, ref_id FROM bf_callouts WHERE ref_id = ? OR id = ? LIMIT 1",
+            [$quote['callout_ref'] ?? '', (int)($quote['callout_id'] ?? 0)]
+        );
+        if (!$linked_callout) json_err('Quote must be linked to a valid callout before conversion', 422);
+
         $existing = db_row("SELECT ref_id FROM bf_invoices WHERE quote_ref = ? LIMIT 1", [$ref_id]);
         if ($existing) json_err('Quote already converted — see Invoice ' . $existing['ref_id'], 409);
 
@@ -208,13 +214,13 @@ if ($method === 'PUT') {
                     $due_date,
                     'Draft',
                     $ref_id, (int)$quote['id'],
-                    $quote['callout_ref'] ?? '', $quote['callout_id'] ? (int)$quote['callout_id'] : null,
+                    $linked_callout['ref_id'], (int)$linked_callout['id'],
                     $po, date('Y-m-d'), (int)$usr['id'],
                 ]
             );
             record_invoice_cost_of_sales([
                 'ref_id' => $inv_ref,
-                'callout_ref' => $quote['callout_ref'] ?? '',
+                'callout_ref' => $linked_callout['ref_id'],
                 'client_name' => $quote['client_name'],
                 'amount' => $quote['total_amount'],
                 'invoice_date' => date('Y-m-d'),

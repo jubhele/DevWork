@@ -49,7 +49,7 @@ if ($method === 'GET') {
 if ($method === 'POST') {
     $usr = require_perm('invoice.create');
     $b   = get_body();
-    require_fields($b, ['amount', 'due_date']);
+    require_fields($b, ['amount', 'due_date', 'callout_ref']);
 
     $amount = (float)($b['amount'] ?? 0);
     if ($amount < 0) json_err('Amount cannot be negative');
@@ -78,10 +78,10 @@ if ($method === 'POST') {
         $qrow = db_row("SELECT id FROM bf_quotes WHERE ref_id = ? LIMIT 1", [$quote_ref_str]);
         $quote_id_fk = $qrow ? (int)$qrow['id'] : null;
     }
-    if ($co_ref_str) {
-        $crow = db_row("SELECT id FROM bf_callouts WHERE ref_id = ? LIMIT 1", [$co_ref_str]);
-        $callout_id_fk = $crow ? (int)$crow['id'] : null;
-    }
+    $crow = db_row("SELECT id, ref_id FROM bf_callouts WHERE ref_id = ? LIMIT 1", [$co_ref_str]);
+    if (!$crow) json_err('Linked callout not found', 422);
+    $callout_id_fk = (int)$crow['id'];
+    $co_ref_str = $crow['ref_id'];
 
     $ref        = next_ref_id('inv');
     $invoice_no = clean($b['invoice_no'] ?? '', 50);
