@@ -1,0 +1,44 @@
+version: "3.9"
+# Development overrides — use with: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+# Adds: hot-reload for api, Flower monitoring UI, verbose logging, pgAdmin always on.
+
+services:
+  db:
+    ports:
+      - "5432:5432"
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app            # mount entire project for hot-reload
+      - ./uploads:/app/uploads
+    environment:
+      DEBUG_MODE: "true"
+      APP_ENV: development
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+
+  worker:
+    volumes:
+      - .:/app
+      - ./uploads:/app/uploads
+    environment:
+      DEBUG_MODE: "true"
+    command: celery -A crawler.celery_app worker --loglevel=debug --concurrency=1
+
+  flower:
+    image: mher/flower:latest
+    restart: unless-stopped
+    environment:
+      CELERY_BROKER_URL: redis://redis:6379/0
+      FLOWER_PORT: 5555
+    ports:
+      - "5555:5555"
+    depends_on:
+      - redis
+    profiles:
+      - dev
+
+  pgadmin:
+    profiles: []           # override: always on in dev (not just --profile dev)
