@@ -7,3 +7,6 @@ coverage
 .env.local
 apps/*/node_modules
 packages/*/node_modules
+
+temp/
+sessions/debug_*.log

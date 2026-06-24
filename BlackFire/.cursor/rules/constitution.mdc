@@ -1,0 +1,21 @@
+﻿---
+description: BlackFire workspace constitution â€” always apply
+globs: ["**/*"]
+alwaysApply: true
+---
+
+# BlackFire Constitution (Cursor)
+
+Mirror of AGENTS.md. Supplement, do not contradict.
+
+## Core Rules
+- Session log mandatory: `sessions/BlackFire_<topic>_YYYYMMDD_HHmmss.md`
+- Backup before every file change: `_backups/<name>_backup_YYYYMMDD_HHmmss.<ext>`
+- No hardcoded secrets. All secrets in `.env` only.
+- All Python modules use `log_debug()` from `api/debug.py` (Pattern 21 observability hook)
+- Modular and dynamic code â€” no hardcoded values
+- `DEBUG_MODE=false` in production
+
+## Architecture
+See `docs/architecture.md` and `docs/plan.md` for full context.
+

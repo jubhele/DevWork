@@ -988,6 +988,7 @@ const NAV_CONFIG = [
       { id:'p-invoices',          label:'Invoices',         perm:'invoice.view',         badge:'nb-inv' },
       { id:'p-statement',         label:'Statements',       perm:'finance.statement' },
       { id:'p-transactions',      label:'Transactions',     perm:'finance.transactions' },
+      { id:'p-pl-ledger',         label:'P&L Ledger',        perm:'finance.income' },
       { id:'p-income',            label:'Income Stmt',      perm:'finance.income' },
       { id:'p-reconcile',         label:'Reconciliation',   perm:'finance.transactions' },
       { id:'p-clients',           label:'Clients',          perm:'clients.view' },
@@ -1512,7 +1513,31 @@ const PAGE_INFO = {
       { q: 'What is the difference between the finance dashboard and the Income Statement?', a: 'The finance dashboard shows current snapshot figures. The Income Statement is a period report (income vs expense) for accounting and management reporting.' },
       { q: 'Why do totals on this page look different after I log a payment?', a: 'Payment logging updates the invoice status immediately. Navigate away and back to refresh the dashboard totals.' },
     ],
-    linked: 'Invoices, Transactions, Statements, Income Statement.',
+    linked: 'Invoices, Transactions, Statements, P&L Ledger.',
+    access: ['admin','sysadmin','manager','admin_clerk'],
+  },
+  'p-pl-ledger': {
+    title: 'P&L Ledger',
+    sub: 'Full financial record — AECI Chempark',
+    purpose: 'The authoritative financial record for the AECI Chempark account. Five integrated views cover every remittance received, bank statement confirmation, sales invoice, supplier cost, and monthly P&L — all reconciled to the BF_AECI_Full_PL_Ledger source.',
+    steps: [
+      'Use the tab bar at the top to switch between the five views: Remittances, Bank Statement, Sales Invoices, Supplier Costs, and Monthly P&L.',
+      'Remittances (All): full list of payments remitted by Chemhold Investments Pty Ltd. Supplier code AST6. Issued by Yolanda Herbst (Cash Book Controller).',
+      'Bank Statement: only bank-confirmed receipts against FNB *8644. ⚠ items are remitted but not yet in the bank — investigate with AECI.',
+      'Sales Invoices: every invoice raised against AECI, cross-referenced to the remittance control number that settled it.',
+      'Supplier Costs: Siyasiza Group (labour/materials) and Megahertz Systems (hardware) costs against the job.',
+      'Monthly P&L: cash basis — income = bank-confirmed receipts only. Costs = Siyasiza + Megahertz. Unreconciled remittances excluded.',
+    ],
+    tips: [
+      'Remittance Only ⚠ entries = payment was sent by AECI but not received in FNB *8644. Follow up with Yolanda Herbst directly.',
+      'The Monthly P&L uses bank-confirmed cash only — accrual figures will differ from the invoice totals.',
+      'Supplier cost data is updated from Siyasiza and Megahertz invoices captured in the portal.',
+    ],
+    faqs: [
+      { q: 'Why does the total remitted differ from total invoiced?', a: 'Remittances cover multiple invoices in a single payment. Some invoices may also still be outstanding or paid outside this ledger period.' },
+      { q: 'What are the unreconciled remittances?', a: 'Three remittances (Jan–Feb 2026, totalling R32,735.97) were received by email from Yolanda Herbst but the corresponding amounts have not appeared in FNB *8644. These require investigation with AECI.' },
+    ],
+    linked: 'Invoices, Transactions, Income Statement, Reconciliation.',
     access: ['admin','sysadmin','manager','admin_clerk'],
   },
   'p-invoices': {
@@ -2011,6 +2036,9 @@ const PAGE_PERMS = {
   'p-finance-dashboard': [
     { perm: 'finance.transactions', label: 'View financial overview' },
   ],
+  'p-pl-ledger': [
+    { perm: 'finance.income', label: 'View P&L ledger' },
+  ],
   'p-invoices': [
     { perm: 'invoice.view',      label: 'View invoices' },
     { perm: 'invoice.create',    label: 'Create new invoices' },
@@ -2060,7 +2088,8 @@ const PAGE_ACTIONS = {
   'p-tracker':           [{ label:'+ New Task', page:'p-new-task', perm:'task.create' }],
   'p-new-task':          [{ label:'Tracker', page:'p-tracker', perm:'task.view' }],
   'p-quotes':            [{ label:'+ Submit Quote', page:'p-new-quote', perm:'capture.new_quote' }, { label:'Tracker', page:'p-tracker', perm:'task.view' }, { label:'Invoices', page:'p-invoices', perm:'invoice.view' }],
-  'p-finance-dashboard': [{ label:'Invoices', page:'p-invoices', perm:'invoice.view' }, { label:'Transactions', page:'p-transactions', perm:'finance.transactions' }, { label:'Income Stmt', page:'p-income', perm:'finance.income' }],
+  'p-finance-dashboard': [{ label:'P&L Ledger', page:'p-pl-ledger', perm:'finance.income' }, { label:'Invoices', page:'p-invoices', perm:'invoice.view' }, { label:'Transactions', page:'p-transactions', perm:'finance.transactions' }],
+  'p-pl-ledger':         [{ label:'Invoices', page:'p-invoices', perm:'invoice.view' }, { label:'Income Stmt', page:'p-income', perm:'finance.income' }, { label:'Reconciliation', page:'p-reconcile', perm:'finance.transactions' }],
   'p-invoices':          [{ label:'+ New Invoice', page:'p-new-invoice', perm:'capture.new_invoice' }, { label:'Log Payment', page:'p-log-payment', perm:'capture.log_payment' }, { label:'Statements', page:'p-statement', perm:'finance.statement' }],
   'p-statement':         [{ label:'Invoices', page:'p-invoices', perm:'invoice.view' }, { label:'Clients', page:'p-clients' }],
   'p-transactions':      [{ label:'Invoices', page:'p-invoices', perm:'invoice.view' }, { label:'Income Stmt', page:'p-income', perm:'finance.income' }],
@@ -2441,7 +2470,7 @@ function showPortalPage(id, el){
   const renders={
     'p-dashboard':         async()=>{ renderDashboard(); await refreshAll(); renderDashboard(); updateBadges(); safLoadDashCompliance(); },
     'p-ops-dashboard':     async()=>{ renderOpsDashboard(); await Promise.all([refreshTasks(),refreshCallouts(),refreshQuotes()]); renderOpsDashboard(); updateBadges(); },
-    'p-finance-dashboard': async()=>{ renderFinDashboard(); await Promise.all([refreshInvoices(),refreshTransactions()]); renderFinDashboard(); updateBadges(); },
+    'p-finance-dashboard': async()=>{ await Promise.all([refreshInvoices(),refreshTransactions()]); await renderFinDashboard(); updateBadges(); },
     'p-support-dashboard': async()=>{ renderSupDashboard(); await Promise.all([refreshUsers(),refreshSafetyFiles()]); renderSupDashboard(); updateBadges(); },
     'p-transactions': async()=>{ renderTransactions(''); await refreshTransactions(); renderTransactions(''); },
     'p-invoices':     async()=>{ renderInvoices(''); await refreshInvoices(); renderInvoices(''); updateBadges(); },
@@ -2451,6 +2480,7 @@ function showPortalPage(id, el){
     'p-new-task':     async()=>{ initNewTask(); },
     'p-timeline':     async()=>{ renderTimeline(); },
     'p-statement':    async()=>{ renderStatement(); },
+    'p-pl-ledger':    async()=>{ renderPLLedger(); },
     'p-income':       async()=>{ await Promise.all([refreshInvoices(), refreshTransactions()]); renderIncome(); },
     'p-reconcile':    async()=>{ await refreshTransactions(); renderReconcile(); },
     'p-log-payment':  async()=>{ await refreshInvoices(); renderPayList(); },
@@ -2688,23 +2718,24 @@ function buildPeriodComparison(now, showOps) {
   const ytdLbl = `Jan–${monthName}`;
 
   function pctDelta(curr, prev) {
-    if(prev===0 && curr===0) return {pct:0, dir:'flat'};
-    if(prev===0) return {pct:100, dir:'up'};
+    if(prev===0 && curr===0) return {pct:0, dir:'flat', noBase:false};
+    if(prev===0) return {pct:0, dir:'up', noBase:true};
     const p = Math.round(((curr-prev)/prev)*100);
-    return {pct:Math.abs(p), dir: p>0?'up': p<0?'down':'flat'};
+    return {pct:Math.abs(p), dir: p>0?'up': p<0?'down':'flat', noBase:false};
   }
 
   function cmpCard(title, curr, prev, isCurrency, subPrev) {
-    const {pct, dir} = pctDelta(curr, prev);
+    const {pct, dir, noBase} = pctDelta(curr, prev);
     const arrow = dir==='up'?'↑': dir==='down'?'↓':'→';
     const cls = `pcomp-delta pcomp-delta--${dir}`;
     const currStr = isCurrency ? fmt(curr) : String(curr);
     const prevStr = isCurrency ? fmt(prev) : String(prev);
+    const deltaLabel = noBase ? `<span class="${cls}">New</span>` : `<span class="${cls}">${arrow} ${pct}%</span>`;
     return `<div class="pcomp-card">
       <div class="pcomp-title">${title}</div>
       <div class="pcomp-main">
         <span class="pcomp-val">${currStr}</span>
-        <span class="${cls}">${arrow} ${pct}%</span>
+        ${deltaLabel}
       </div>
       <div class="pcomp-footer">vs ${subPrev}: <strong>${prevStr}</strong></div>
     </div>`;
@@ -2854,72 +2885,99 @@ function renderOpsDashboard() {
   applyProgFills(el);
 }
 
-function renderFinDashboard() {
+async function renderFinDashboard() {
   const el = document.getElementById('fin-dash-content');
   if (!el) return;
+
+  // Show loading skeleton while fetching
+  el.innerHTML = `<div class="kgrid kgrid--4" id="fin-dash-kpis"><div class="kcard k4"><div class="klbl">Loading…</div></div></div><div id="fin-dash-body"></div>`;
+
+  let plsData = null;
+  try { plsData = await api('GET','pl_ledger.php?action=summary'); } catch(e) {}
+
   const now = new Date();
-  const mtd         = proxyDB.invoices.filter(i=>{ const d=new Date(i.date+'T00:00:00'); return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear(); }).reduce((a,i)=>a+i.amount,0);
-  const overdue     = proxyDB.invoices.filter(i=>i.status==='Overdue');
-  const sent        = proxyDB.invoices.filter(i=>i.status==='Sent');
-  const outstanding = [...overdue,...sent].reduce((a,i)=>a+i.amount,0);
-  const net         = proxyDB.bank.reduce((a,b)=>a+(b.credit||0)-(b.debit||0),0);
+  const overdue = proxyDB.invoices.filter(i=>i.status==='Overdue');
+  const sent    = proxyDB.invoices.filter(i=>i.status==='Sent');
 
-  // Revenue 6-month chart data
+  // P&L aligned KPIs (from remittances + supplier costs DB)
+  const bankConf    = plsData?.bank_confirmed    ?? 0;
+  const unrecon     = plsData?.unreconciled      ?? 0;
+  const outstanding = plsData?.outstanding       ?? [...overdue,...sent].reduce((a,i)=>a+i.amount,0);
+  const supCosts    = plsData?.supplier_costs    ?? 0;
+  const grossMargin = plsData?.gross_margin      ?? 0;
+  const totalInv    = plsData?.total_invoiced    ?? proxyDB.invoices.reduce((a,i)=>a+i.amount,0);
+
+  // Monthly P&L chart (bank-confirmed receipts per month, last 6 months)
   const months=[];
-  for(let i=5;i>=0;i--){const dt=new Date(now.getFullYear(),now.getMonth()-i,1);months.push({lbl:dt.toLocaleDateString('en-ZA',{month:'short'}),m:dt.getMonth(),y:dt.getFullYear()});}
-  const revData = months.map(m=>invoicePaymentRevenue(m.y, m.m));
-  const maxRev  = Math.max(...revData,1);
+  for(let i=5;i>=0;i--){const dt=new Date(now.getFullYear(),now.getMonth()-i,1);months.push({lbl:dt.toLocaleDateString('en-ZA',{month:'short'}),ym:`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`});}
 
-  const invStatuses = ['Draft','Sent','Paid','Overdue'];
-  const invTotal    = proxyDB.invoices.length || 1;
-  const statBars    = invStatuses.map(s=>{
-    const cnt = proxyDB.invoices.filter(i=>i.status===s).length;
-    const pct = Math.round(cnt/invTotal*100);
-    const col = s==='Paid'?'var(--green)':s==='Overdue'?'var(--ember)':s==='Sent'?'var(--amber)':'var(--muted)';
-    return `<div class="mb-14">
-      <div class="flex-sb mb-5">
-        <span class="mlbl-xs">${s}</span>
-        <span class="mlbl-sm">${cnt}</span>
-      </div>
-      <div class="prog-bar">
-        <div class="prog-fill" data-w="${pct}" data-bg="${col}"></div>
-      </div>
+  let mplData = null;
+  try { mplData = await api('GET','pl_ledger.php?action=monthly_pl'); } catch(e) {}
+  const mplMap = {};
+  (mplData?.rows||[]).forEach(r=>{ mplMap[r.ym]=r; });
+  const revData  = months.map(m=>mplMap[m.ym]?.cash_received||0);
+  const costData = months.map(m=>mplMap[m.ym]?.total_costs||0);
+  const maxVal   = Math.max(...revData,...costData,1);
+
+  const chartBars = months.map((m,i)=>{
+    const rh = Math.max(2, Math.round((revData[i]/maxVal)*100));
+    const ch = Math.max(2, Math.round((costData[i]/maxVal)*100));
+    return `<div class="cbar-w">
+      <div class="cval" style="font-size:10px">${revData[i]>0?'R'+Math.round(revData[i]/1000)+'K':''}</div>
+      <div class="cbar cbar-stacked" data-h="${rh}" title="Income: ${fmt(revData[i])}"></div>
+      <div class="cbar cbar-cost" data-h="${ch}" title="Costs: ${fmt(costData[i])}"></div>
+      <div class="clbl">${m.lbl}</div>
     </div>`;
   }).join('');
 
-  const chartBars = revData.map((v,i)=>`
-    <div class="cbar-w">
-      <div class="cbar" data-h="${Math.max(Math.round(v/maxRev*100),2)}" title="${fmt(v)}"></div>
-      <div class="clbl">${months[i].lbl}</div>
-      <div class="cval">${v>0?fmt(v):''}</div>
-    </div>`).join('');
+  // Invoice status breakdown
+  const invStatuses = ['Paid','Sent','Overdue','Draft'];
+  const invTotal    = Math.max(proxyDB.invoices.length,1);
+  const statBars    = invStatuses.map(s=>{
+    const cnt = proxyDB.invoices.filter(i=>i.status===s).length;
+    const col = s==='Paid'?'var(--green)':s==='Overdue'?'var(--ember)':s==='Sent'?'var(--amber)':'var(--muted)';
+    return `<div class="mb-14">
+      <div class="flex-sb mb-5"><span class="mlbl-xs">${s}</span><span class="mlbl-sm">${cnt}</span></div>
+      <div class="prog-bar"><div class="prog-fill" data-w="${Math.round(cnt/invTotal*100)}" data-bg="${col}"></div></div>
+    </div>`;
+  }).join('');
 
   const qas = can('capture.new_invoice') || can('capture.log_payment');
-  el.innerHTML = `
-    <div class="kgrid">
-      <div class="kcard k2"><div class="klbl">Invoiced MTD</div><div class="kval">${fmt(mtd)}</div><div class="ksub">Month to date</div></div>
-      <div class="kcard kcard-ember"><div class="klbl">Outstanding</div><div class="kval kval-ember">${fmt(outstanding)}</div><div class="ksub">${overdue.length} overdue · ${sent.length} sent</div></div>
-      <div class="kcard k4"><div class="klbl">Net Balance</div><div class="kval">${fmt(net)}</div><div class="ksub">Credits − Debits</div></div>
-      <div class="kcard k1"><div class="klbl">Total Invoices</div><div class="kval">${proxyDB.invoices.length}</div><div class="ksub">All time</div></div>
-    </div>
+  const margPct = bankConf>0 ? Math.round((grossMargin/bankConf)*100) : 0;
+
+  document.getElementById('fin-dash-kpis').outerHTML = `<div class="kgrid kgrid--4">
+    <div class="kcard k1"><div class="klbl">Bank Confirmed</div><div class="kval text-ok">${fmt(bankConf)}</div><div class="ksub">FNB *8644 — total received</div></div>
+    <div class="kcard k3"><div class="klbl">Unreconciled</div><div class="kval${unrecon>0?' text-ovr':''}">${fmt(unrecon)}</div><div class="ksub">Remitted, not in bank ⚠</div></div>
+    <div class="kcard${outstanding>0?' kcard-ember':''}"><div class="klbl">Outstanding Invoices</div><div class="kval${outstanding>0?' kval-ember':''}">${fmt(outstanding)}</div><div class="ksub">${overdue.length} overdue · ${sent.length} sent</div></div>
+    <div class="kcard k1"><div class="klbl">Gross Margin</div><div class="kval${grossMargin>=0?' text-ok':' text-ovr'}">${fmt(grossMargin)}</div><div class="ksub">${margPct}% on cash received</div></div>
+  </div>`;
+
+  document.getElementById('fin-dash-body').innerHTML = `
     <div class="twocol">
       <div class="panel">
-        <div class="ph"><div class="ph-title">Revenue — 6 Months</div></div>
+        <div class="ph"><div class="ph-title">Income vs Costs — 6 Months</div><div class="ph-sub"><span class="legend-dot legend-ok"></span>Income <span class="legend-dot legend-cost ml-2"></span>Costs</div></div>
         <div class="rev-chart-wrap"><div class="chart-bars">${chartBars}</div></div>
       </div>
       <div class="panel">
-        <div class="ph"><div class="ph-title">Invoice Status Breakdown</div></div>
+        <div class="ph"><div class="ph-title">Invoice Status Breakdown</div><button class="btn btn-g btn-s" data-action="navPage" data-page="p-invoices">View All</button></div>
         <div class="pb">${statBars}</div>
       </div>
     </div>
-    ${qas ? `<div class="panel mt2">
+    ${unrecon>0?`<div class="panel mt2 panel-warn-top">
+      <div class="ph"><div class="ph-title">⚠ Unreconciled Remittances — Action Required</div></div>
+      <div class="pb"><p class="text-muted">R${unrecon.toLocaleString('en-ZA',{minimumFractionDigits:2,maximumFractionDigits:2})} has been remitted by AECI but has not been confirmed in FNB *8644. Investigate with AECI Cash Book Controller (Yolanda Herbst).</p>
+      <button class="btn btn-g btn-s" data-action="navPage" data-page="p-pl-ledger">View Remittances →</button></div>
+    </div>`:''}
+    ${qas?`<div class="panel mt2">
       <div class="ph"><div class="ph-title">Quick Actions</div></div>
       <div class="pb dash-acts">
         ${can('capture.new_invoice')?`<button class="btn btn-p" data-action="navPage" data-page="p-new-invoice">+ New Invoice</button>`:''}
         ${can('capture.log_payment')?`<button class="btn btn-g" data-action="navPage" data-page="p-log-payment">Log Payment</button>`:''}
-        <button class="btn btn-g" data-action="navPage" data-page="p-transactions">View Transactions →</button>
+        <button class="btn btn-g" data-action="navPage" data-page="p-pl-ledger">P&L Ledger →</button>
+        <button class="btn btn-g" data-action="navPage" data-page="p-transactions">Transactions →</button>
       </div>
-    </div>` : ''}`;
+    </div>`:''}`;
+
   { let css=''; el.querySelectorAll('.cbar[data-h]').forEach((b,i)=>{ b.dataset.cbi=i; css+=`.cbar[data-cbi="${i}"]{height:${b.dataset.h}%;}`; }); if(css)_injectStyle('cbar-fin-css',css); }
   applyProgFills(el);
 }
@@ -4330,6 +4388,215 @@ function renderReconcile(){
   }
   extInput.addEventListener('input', calcDiff);
   if(savedExternal) calcDiff();
+}
+
+/* ═══════════════════════════════════════════════════════
+   P&L LEDGER — 5-tab full financial record
+═══════════════════════════════════════════════════════ */
+const PLL_TABS = [
+  { id:'pll-remittances', label:'Remittances (All)' },
+  { id:'pll-bank',        label:'Bank Statement' },
+  { id:'pll-invoices',    label:'Sales Invoices' },
+  { id:'pll-costs',       label:'Supplier Costs' },
+  { id:'pll-monthly',     label:'Monthly P&L' },
+];
+
+let pllActiveTab = 'pll-remittances';
+let pllData = {};
+
+async function renderPLLedger() {
+  // Build tab nav
+  const tabEl = document.getElementById('pl-ledger-tabs');
+  if (tabEl && !tabEl.dataset.built) {
+    tabEl.dataset.built = '1';
+    tabEl.innerHTML = PLL_TABS.map(t =>
+      `<button class="pnav-btn${t.id===pllActiveTab?' active':''}" data-pll-tab="${t.id}">${t.lbl||t.label}</button>`
+    ).join('');
+    tabEl.querySelectorAll('[data-pll-tab]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        pllActiveTab = btn.dataset.pllTab;
+        tabEl.querySelectorAll('[data-pll-tab]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        PLL_TABS.forEach(t => {
+          const el = document.getElementById(t.id);
+          if (el) el.hidden = (t.id !== pllActiveTab);
+        });
+        _pllRenderTab(pllActiveTab);
+      });
+    });
+  }
+
+  // Show active tab, hide others
+  PLL_TABS.forEach(t => {
+    const el = document.getElementById(t.id);
+    if (el) el.hidden = (t.id !== pllActiveTab);
+  });
+
+  // Fetch all data in parallel
+  try {
+    const [rem, bank, inv, costs, mpl] = await Promise.all([
+      api('GET','pl_ledger.php?action=remittances'),
+      api('GET','pl_ledger.php?action=bank_statement'),
+      api('GET','pl_ledger.php?action=invoices'),
+      api('GET','pl_ledger.php?action=supplier_costs'),
+      api('GET','pl_ledger.php?action=monthly_pl'),
+    ]);
+    pllData = { rem, bank, inv, costs, mpl };
+    _pllRenderTab(pllActiveTab);
+  } catch(e) {
+    console.error('PLL fetch error', e);
+  }
+}
+
+function _pllRenderTab(tab) {
+  if (!pllData.rem) return;
+  const { rem, bank, inv, costs, mpl } = pllData;
+
+  if (tab === 'pll-remittances') {
+    const rows = rem.rows || [];
+    document.getElementById('pll-rem-kpis').innerHTML = `
+      <div class="kcard k2"><div class="klbl">Total Remitted</div><div class="kval">${fmt(rem.total)}</div><div class="ksub">${rows.length} remittances</div></div>
+      <div class="kcard k1"><div class="klbl">Bank Confirmed</div><div class="kval text-ok">${fmt(rem.bank_confirmed)}</div><div class="ksub">${rows.filter(r=>r.bank_confirmed=='1').length} payments matched</div></div>
+      <div class="kcard k3"><div class="klbl">Unreconciled</div><div class="kval${rem.unreconciled>0?' text-ovr':''}">${fmt(rem.unreconciled)}</div><div class="ksub">Remittance only — not in FNB</div></div>`;
+    document.getElementById('pll-rem-table').innerHTML = rows.map(r => {
+      const flagged = r.bank_confirmed=='0';
+      return `<tr${flagged?' class="tr-flag"':''}>
+        <td class="nowrap">${fmtD(r.remittance_date)}</td>
+        <td class="mono">${esc(r.control_no)||'—'}</td>
+        <td class="mono">${esc(r.cheque_no)||'—'}</td>
+        <td class="amt">${fmt(r.amount)}</td>
+        <td>${r.bank_confirmed=='1'?'<span class="badge-ok">Yes ✓</span>':'<span class="badge-warn">No ⚠</span>'}</td>
+        <td class="nowrap">${r.bank_date?fmtD(r.bank_date):'—'}</td>
+        <td class="td-inv-covered">${esc(r.invoices_covered)}</td>
+        <td class="td-notes">${esc(r.notes)||''}</td>
+        <td><span class="mlbl-9${r.status==='Bank Confirmed'?' mlbl-ok':' mlbl-warn'}">${esc(r.status)}</span></td>
+      </tr>`;
+    }).join('');
+    document.getElementById('pll-rem-tfoot').innerHTML = `
+      <tr class="tfoot-total">
+        <td colspan="3"><strong>TOTAL</strong></td>
+        <td class="amt"><strong>${fmt(rem.total)}</strong></td>
+        <td colspan="5" class="text-muted">Bank confirmed: ${fmt(rem.bank_confirmed)} | Remittance only: ${fmt(rem.unreconciled)}</td>
+      </tr>`;
+  }
+
+  if (tab === 'pll-bank') {
+    const rows = bank.rows || [];
+    document.getElementById('pll-bank-kpis').innerHTML = `
+      <div class="kcard k1"><div class="klbl">Total Received</div><div class="kval text-ok">${fmt(bank.total)}</div><div class="ksub">${bank.count} entries</div></div>
+      <div class="kcard k3"><div class="klbl">Unreconciled</div><div class="kval text-ovr">${fmt(rem.unreconciled)}</div><div class="ksub">In remittances but not in bank</div></div>
+      <div class="kcard k4"><div class="klbl">Match Rate</div><div class="kval">${Math.round((bank.total/rem.total)*100)}%</div><div class="ksub">Of total remitted</div></div>`;
+    document.getElementById('pll-bank-table').innerHTML = rows.map(r => `<tr>
+      <td class="nowrap">${fmtD(r.bank_date)}</td>
+      <td class="mono">${esc(r.control_no)||'—'}</td>
+      <td class="mono">${esc(r.cheque_no)||'—'}</td>
+      <td class="amt text-ok">${fmt(r.amount)}</td>
+      <td class="td-inv-covered">${esc(r.invoices_covered)}</td>
+      <td><span class="badge-ok">Match ✓</span></td>
+    </tr>`).join('');
+    document.getElementById('pll-bank-tfoot').innerHTML = `
+      <tr class="tfoot-total">
+        <td colspan="3"><strong>TOTAL RECEIVED (BANK)</strong></td>
+        <td class="amt text-ok"><strong>${fmt(bank.total)}</strong></td>
+        <td colspan="2" class="text-muted">${rows.length} matched | ${rows.filter(r=>!r.control_no).length} missing PDF</td>
+      </tr>`;
+  }
+
+  if (tab === 'pll-invoices') {
+    const rows = inv.rows || [];
+    document.getElementById('pll-inv-kpis').innerHTML = `
+      <div class="kcard k1"><div class="klbl">Total Invoiced</div><div class="kval">${fmt(inv.total_invoiced)}</div><div class="ksub">${rows.length} invoices</div></div>
+      <div class="kcard k2"><div class="klbl">Paid</div><div class="kval text-ok">${fmt(inv.total_paid)}</div><div class="ksub">${rows.filter(r=>r.status==='Paid').length} invoices</div></div>
+      <div class="kcard k3"><div class="klbl">Outstanding</div><div class="kval${inv.total_outstanding>0?' text-ovr':''}">${fmt(inv.total_outstanding)}</div><div class="ksub">${rows.filter(r=>r.status!=='Paid'&&r.status!=='Cancelled').length} invoices</div></div>`;
+    document.getElementById('pll-inv-table').innerHTML = rows.map(r => `<tr>
+      <td class="nowrap">${fmtD(r.invoice_date)}</td>
+      <td class="mono td-ref-sm">${esc(r.ref_id)}</td>
+      <td class="mono">${esc(r.po)||'—'}</td>
+      <td>${esc(r.client_name)}</td>
+      <td class="amt">${fmt(r.amount)}</td>
+      <td class="mono">${esc(r.remittance_ctrl)||'—'}</td>
+      <td class="nowrap">${r.payment_date?fmtD(r.payment_date):'—'}</td>
+      <td><span class="badge-${r.status==='Paid'?'ok':r.status==='Overdue'?'warn':'muted'}">${esc(r.status)}</span></td>
+      <td class="text-right">${r.age_days!=null?r.age_days:'—'}</td>
+    </tr>`).join('');
+    document.getElementById('pll-inv-tfoot').innerHTML = `
+      <tr class="tfoot-total">
+        <td colspan="4"><strong>TOTAL INVOICED</strong></td>
+        <td class="amt"><strong>${fmt(inv.total_invoiced)}</strong></td>
+        <td colspan="4" class="text-muted">Paid: ${fmt(inv.total_paid)} | Outstanding: ${fmt(inv.total_outstanding)}</td>
+      </tr>`;
+  }
+
+  if (tab === 'pll-costs') {
+    const bySup = costs.by_supplier || {};
+    const totals = costs.totals || {};
+    document.getElementById('pll-cost-kpis').innerHTML = `
+      <div class="kcard k3"><div class="klbl">Total Supplier Costs</div><div class="kval text-ovr">${fmt(costs.grand_total)}</div><div class="ksub">${(costs.rows||[]).length} invoices</div></div>
+      <div class="kcard k3"><div class="klbl">Siyasiza Group</div><div class="kval text-ovr">${fmt(totals['Siyasiza Group']||0)}</div><div class="ksub">Field labour &amp; materials</div></div>
+      <div class="kcard k3"><div class="klbl">Megahertz Systems</div><div class="kval text-ovr">${fmt(totals['Megahertz Systems']||0)}</div><div class="ksub">Hardware &amp; equipment</div></div>`;
+    const makeTable = (sup, label) => {
+      const items = (bySup[sup]||[]).sort((a,b)=>a.date.localeCompare(b.date));
+      if (!items.length) return '';
+      return `<div class="panel"><div class="ph"><div class="ph-title">${esc(label)}</div></div><div class="tw"><table>
+        <thead><tr><th>Date</th><th>Ref</th><th>Description</th><th>Amount</th><th>Paid</th><th>Status</th></tr></thead>
+        <tbody>${items.map(r=>`<tr>
+          <td class="nowrap">${fmtD(r.date)}</td>
+          <td class="mono">${esc(r.ref_id)}</td>
+          <td>${esc(r.description)}</td>
+          <td class="amt text-ovr">${fmt(r.amount)}</td>
+          <td class="amt text-ok">${fmt(r.amount_paid)}</td>
+          <td><span class="mlbl-9 mlbl-${r.status==='paid'?'ok':r.status==='partially_paid'?'warn':'muted'}">${esc(r.status)}</span></td>
+        </tr>`).join('')}</tbody>
+        <tfoot><tr class="tfoot-total"><td colspan="3"><strong>Total — ${esc(label)}</strong></td><td class="amt text-ovr"><strong>${fmt(totals[sup]||0)}</strong></td><td colspan="2"></td></tr></tfoot>
+      </table></div></div>`;
+    };
+    document.getElementById('pll-cost-tables').innerHTML =
+      makeTable('Siyasiza Group','Costs — Siyasiza Group (Pty) Ltd') +
+      makeTable('Megahertz Systems','Costs — Megahertz Systems PVT Ltd');
+  }
+
+  if (tab === 'pll-monthly') {
+    const rows = mpl.rows || [];
+    const totals = mpl.totals || {};
+    const maxMargin = Math.max(...rows.map(r=>Math.abs(r.cumulative_margin)),1);
+    document.getElementById('pll-mpl-kpis').innerHTML = `
+      <div class="kcard k1"><div class="klbl">Cash Received</div><div class="kval text-ok">${fmt(totals.cash_received)}</div><div class="ksub">Bank confirmed (FNB *8644)</div></div>
+      <div class="kcard k3"><div class="klbl">Total Costs</div><div class="kval text-ovr">${fmt(totals.total_costs)}</div><div class="ksub">Siyasiza + Megahertz</div></div>
+      <div class="kcard k1"><div class="klbl">Gross Margin</div><div class="kval${totals.gross_margin>=0?' text-ok':' text-ovr'}">${fmt(totals.gross_margin)}</div><div class="ksub">Cumulative (all months)</div></div>
+      <div class="kcard k2"><div class="klbl">Margin %</div><div class="kval">${totals.cash_received>0?Math.round((totals.gross_margin/totals.cash_received)*100)+'%':'—'}</div><div class="ksub">On cash received</div></div>`;
+    document.getElementById('pll-mpl-table').innerHTML = rows.map(r => {
+      const neg = r.gross_margin < 0;
+      return `<tr>
+        <td class="nowrap"><strong>${esc(r.label)}</strong></td>
+        <td class="amt text-ok">${r.cash_received>0?fmt(r.cash_received):'-'}</td>
+        <td class="amt text-ovr">${r.siyasiza_cost>0?'('+fmt(r.siyasiza_cost)+')':'-'}</td>
+        <td class="amt text-ovr">${r.megahertz_cost>0?'('+fmt(r.megahertz_cost)+')':'-'}</td>
+        <td class="amt text-ovr">${r.total_costs>0?'('+fmt(r.total_costs)+')':'-'}</td>
+        <td class="amt ${neg?'text-ovr':'text-ok'}">${fmt(r.gross_margin)}</td>
+        <td class="amt ${r.cumulative_margin>=0?'text-ok':'text-ovr'}">${fmt(r.cumulative_margin)}</td>
+      </tr>`;
+    }).join('');
+    document.getElementById('pll-mpl-tfoot').innerHTML = `
+      <tr class="tfoot-total">
+        <td><strong>TOTAL</strong></td>
+        <td class="amt text-ok"><strong>${fmt(totals.cash_received)}</strong></td>
+        <td class="amt text-ovr"><strong>(${fmt(totals.siyasiza_cost)})</strong></td>
+        <td class="amt text-ovr"><strong>(${fmt(totals.megahertz_cost)})</strong></td>
+        <td class="amt text-ovr"><strong>(${fmt(totals.total_costs)})</strong></td>
+        <td class="amt text-ok"><strong>${fmt(totals.gross_margin)}</strong></td>
+        <td class="amt text-ok"><strong>${fmt(totals.gross_margin)}</strong></td>
+      </tr>`;
+    // Cumulative margin bar chart
+    document.getElementById('pll-margin-chart').innerHTML = rows.map(r => {
+      const h = Math.max(4, Math.round((Math.abs(r.cumulative_margin)/maxMargin)*100));
+      const neg = r.cumulative_margin < 0;
+      return `<div class="cbar-w">
+        <div class="cval">${r.cumulative_margin!==0?'R'+Math.round(Math.abs(r.cumulative_margin)/1000)+'K':''}</div>
+        <div class="cbar${neg?' cbar-neg':''}" data-h="${h}" title="${fmt(r.cumulative_margin)}"></div>
+        <div class="clbl">${esc(r.label.substring(0,3))}</div>
+      </div>`;
+    }).join('');
+  }
 }
 
 /* ═══════════════════════════════════════════════════════

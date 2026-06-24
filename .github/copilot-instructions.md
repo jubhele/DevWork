@@ -16,7 +16,23 @@ Log structure:
 - **Model**: <model name>
 - **Decisions** (fill at end)
 - **Work Done**: list files changed and what changed
+- **Agent Accountability** (fill at end — one row per task assigned this session)
 - **Blockers / Next Steps** (fill at end)
+- **Learnings** (MANDATORY — fill before ending session)
+
+**Agent Accountability table** (mandatory at session end):
+
+| Task ID | Assigned Agent | Completed By | Status | Iterations | Note |
+|---------|---------------|--------------|--------|------------|------|
+
+Mlawuli fills one row when the user confirms the goal is achieved. Umlindi audits at session end.
+
+**Goal Status field (mandatory in every session log):**
+```
+## Goal Status
+PENDING   ← user changes to ACHIEVED when goal is done
+```
+Closing signature written ONLY on ACHIEVED. Exception: 30min inactivity with core sections filled → auto-sign marked `[AUTOMATED - no user confirmation after 30min]`.
 
 ---
 
@@ -114,7 +130,39 @@ Routing: Content → Nkanyezi | Docs → Usiba | Research → Mhloli | Code → 
 All payloads pass through Sibali before reaching any Sebenza agent.
 Umdwebi brand source: `design/blackfire/brand_tokens.md`
 
+**Agent Accountability (MANDATORY):**
+Closing signature written to session log ONCE when user confirms goal is achieved (Goal Status = ACHIEVED):
+```
+> Completed by: {AgentName}  |  Task: {task_id}  |  Status: COMPLETED  |  Confirmed: User confirmed ACHIEVED  |  {datetime}
+```
+Auto-confirm exception (30min inactivity, core sections filled):
+```
+> Completed by: {AgentName}  |  Status: COMPLETED [AUTOMATED]  |  Confirmed: AUTOMATED -- no user confirmation after 30min
+```
+Full rules: `Multi-Agent Workforce Architecture & System Prompts.md §14`
+
 ---
+
+## Session Log Enforcement Script (MANDATORY)
+
+The workspace uses a shared PowerShell enforcement script that must run at the end of every session:
+
+```
+c:\DevWork\.claude\scripts\session-log-update.ps1
+```
+
+**What it does:**
+- Checks Decisions, Work Done, Learnings, and Goal Status
+- Writes the closing accountability signature **once** — only when `## Goal Status` = `ACHIEVED`
+- Auto-signs after 30 min inactivity with `[AUTOMATED - no user confirmation after 30min]`
+- Once signed, subsequent runs just timestamp and exit
+
+**How to run:**
+```powershell
+powershell.exe -NonInteractive -File "c:\DevWork\.claude\scripts\session-log-update.ps1"
+```
+
+GitHub Copilot does not support lifecycle shell hooks. Run this manually before ending the session. For automation, add it as a VS Code task in `.vscode/tasks.json`.
 
 ## Sensitive Files (never expose or commit)
 

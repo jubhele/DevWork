@@ -1,0 +1,23 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Close Session Log",
+      "type": "shell",
+      "command": "powershell.exe",
+      "args": [
+        "-NonInteractive",
+        "-File",
+        "${workspaceFolder}\\.claude\\scripts\\session-log-update.ps1"
+      ],
+      "group": "none",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "showReuseMessage": false
+      },
+      "problemMatcher": [],
+      "detail": "Checks session log sections and writes the closing accountability signature when Goal Status = ACHIEVED. Run this at the end of every session (all providers). Claude Code runs it automatically via Stop hook."
+    }
+  ]
+}

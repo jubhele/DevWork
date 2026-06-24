@@ -21,7 +21,25 @@ Log structure:
 - **Goal** (fill at start)
 - **Decisions** (fill at end)
 - **Work Done** (fill at end)
+- **Agent Accountability** (fill at end — see below)
 - **Blockers / Next Steps** (fill at end)
+- **Learnings** (MANDATORY — fill before ending session)
+
+**Agent Accountability table** (mandatory at session end):
+
+| Task ID | Assigned Agent | Completed By | Status | Iterations | Note |
+|---------|---------------|--------------|--------|------------|------|
+| ...     | ...           | ...          | COMPLETED/FAILED | n/cap | brief note |
+
+Mlawuli fills one row when the user confirms the goal is achieved. Umlindi audits at session end — any agent assigned with no COMPLETED entry is a HIGH governance violation, flagged by name.
+
+**Goal Status field (mandatory in every session log):**
+```
+## Goal Status
+PENDING   ← user changes to ACHIEVED when goal is done
+```
+- The closing signature is written ONLY when Goal Status = ACHIEVED (user confirmed).
+- Exception: if the session log has been inactive for 30+ minutes with Decisions + Work Done filled, the hook auto-signs and marks `[AUTOMATED - no user confirmation after 30min]`.
 
 ---
 
@@ -82,6 +100,35 @@ Nothing is ever hardcoded. All secrets live in `.env` (NOT in repo).
 - `.env.example` → committed, all keys with empty values — copy to `.env` on setup
 - Full policy in `CLAUDE.md §8`
 
+## Session Log Enforcement Script (MANDATORY)
+
+The workspace uses a shared PowerShell enforcement script that must run at the end of every session:
+
+```
+c:\DevWork\.claude\scripts\session-log-update.ps1
+```
+
+**What it does:**
+- Checks Decisions, Work Done, Learnings, and Goal Status
+- Writes the closing accountability signature **once** — only when `## Goal Status` = `ACHIEVED`
+- Auto-signs after 30 min inactivity with `[AUTOMATED - no user confirmation after 30min]`
+- Once signed, subsequent runs just timestamp and exit
+
+**How to run:**
+```powershell
+powershell.exe -NonInteractive -File "c:\DevWork\.claude\scripts\session-log-update.ps1"
+```
+
+| Provider | Hook support | Invocation |
+|----------|-------------|-----------|
+| Claude Code | Auto (Stop hook in `.claude/settings.json`) | Runs automatically |
+| Factory Droid | Auto (`hooks.on_session_end` in `.factory/config.yaml`) | Runs automatically |
+| GitHub Copilot | None | Run manually at session end |
+| OpenAI Codex | None | Run manually at session end |
+| Google Antigravity | None | Run manually at session end |
+| Cursor | None | Run manually, or via VS Code task |
+| Kiro | None | Run manually at session end |
+
 ## Sensitive Files (never commit)
 
 - `.env` — workspace secrets
@@ -137,3 +184,14 @@ Nkanyezi=3 | Usiba=2 | Mhloli=5 | Umakhi=3 | Umdwebi=2 | Mvavanyi=3 | Umlindi=2
 
 **Fault tolerance:** Mlawuli retries a failed worker agent up to 3 times before flagging a system error.
 **Memory compression:** Sibali triggers summarisation when a worker's context hits 70% capacity.
+
+**Agent Accountability (MANDATORY):**
+The closing signature is written to the session log ONCE when the user confirms the goal is achieved (Goal Status = ACHIEVED). Format:
+```
+> Completed by: {AgentName}  |  Task: {task_id}  |  Status: COMPLETED  |  Confirmed: User confirmed ACHIEVED  |  {datetime}
+```
+If not confirmed within 30 minutes and core sections are filled, auto-sign with:
+```
+> Completed by: {AgentName}  |  Status: COMPLETED [AUTOMATED]  |  Confirmed: AUTOMATED -- no user confirmation after 30min
+```
+Full accountability rules: `Multi-Agent Workforce Architecture & System Prompts.md §14`

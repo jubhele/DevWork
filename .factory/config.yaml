@@ -45,6 +45,21 @@ rules:
       - chatsessions/
       - "BlackFire/BlackFire Portal/install/blackfire_aeci_seed.sql"
   - session_log_required: true        # write sessions/<topic>_YYYYMMDD_HHmmss.md
+  - agent_accountability_required: true  # session log must include Agent Accountability table
+                                          # closing signature written ONLY when user sets Goal Status = ACHIEVED
+                                          # auto-confirm: 30min inactivity + core sections filled = AUTOMATED signature
+                                          # Umlindi audits at session end — unmatched assignments = HIGH violation
+
+hooks:
+  # Session log enforcement — mirrors Claude Code Stop hook behaviour
+  on_session_end:
+    - type: command
+      command: "powershell.exe -NonInteractive -File \"c:\\DevWork\\.claude\\scripts\\session-log-update.ps1\""
+      timeout: 15
+      description: >
+        Checks mandatory session log sections (Decisions, Work Done, Learnings,
+        Goal Status). Writes the closing accountability signature ONLY when Goal
+        Status = ACHIEVED (user confirmed) or 30min inactivity auto-confirm.
 
 cost_governance:
   tier_1_max_usd: 0.05

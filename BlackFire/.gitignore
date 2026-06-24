@@ -31,3 +31,4 @@ chatsessions/*.jsonl
 temp/
 
 .vercel
+sessions/debug_*.log

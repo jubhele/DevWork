@@ -1,6 +1,6 @@
 # Multi-Agent Workforce Architecture & System Prompts
 
-**Version:** 3.2 — Complete Production Implementation Guide
+**Version:** 3.3 — Complete Production Implementation Guide
 **Purpose:** Hand this document to any implementer to deploy this workforce in a new environment.
 Everything needed is here: architecture, system prompts, protocols, and operational playbook.
 
@@ -21,6 +21,9 @@ cost-optimized, and self-documenting digital workforce of named, role-separated 
 - **JSON is the language of the workforce.** All inter-agent communication is strict JSON — no prose.
 - **Human in the loop at the edges.** Agents operate autonomously within their domain. Humans define the task and review the final output. Nothing in between requires manual input unless an unresolvable error occurs.
 - **Provider-agnostic.** This architecture runs on Claude, GPT, Gemini, Codex, or local models. The JSON protocol is the adapter.
+- **Think before coding.** Every agent must state its assumptions explicitly before implementing. If multiple valid interpretations exist, surface them — never pick silently. If the task is unclear, name the confusion and ask. Do not assume and run. (See §15.)
+- **Surgical changes.** Agents touch only what the task requires. Do not improve adjacent code, fix unrelated style, or remove pre-existing dead code unless asked. Every changed line must trace directly to the submitted task. (See §15.)
+- **Goal-driven execution.** Transform vague instructions into verifiable success criteria before starting. For multi-step tasks, output an explicit plan with a verify check per step. Weak criteria require constant clarification; strong criteria allow autonomous looping. (See §15.)
 
 ### 1.2 Architecture Diagram
 
@@ -236,6 +239,8 @@ STEP 3: DELEGATION & EXECUTION
 STEP 4: REVIEW & SUBMISSION
 - Receive completed work from the worker agent (MUST BE STRICT JSON).
 - Route final payload + execution metadata to Sibali for cost indexing.
+- Record the completing agent's name, iteration count, and outcome status in the
+  session accountability ledger (see STEP 6).
 
 STEP 5: POST-PRODUCTION HANDOFF (THE TRIGGER)
 - If the completed task involved shipping new code or features (Umakhi) AND has successfully
@@ -244,13 +249,33 @@ STEP 5: POST-PRODUCTION HANDOFF (THE TRIGGER)
   and route it to Mbhali to update docs/guide.md, docs/sttm.md, and docs/system_architecture.md.
 - Submit the final notification to the dashboard once Mbhali confirms documentation is synced.
 
+STEP 6: AGENT ACCOUNTABILITY LEDGER
+- After every completed or failed task, append one entry to the session accountability ledger.
+- The ledger is included verbatim in every human-facing output and session log so the user
+  can see exactly which agent completed (or failed) each task in this session.
+- At session end, Umlindi cross-checks the ledger against all tasks that were submitted and
+  flags any agent that was assigned but produced no COMPLETED entry.
+
+Ledger entry format (strict JSON, append to session log under ## Agent Accountability):
+{
+  "task_id": "...",
+  "assigned_agent": "...",
+  "completed_by": "...",       ← name of the agent that actually returned the result
+  "status": "COMPLETED | FAILED | LOOP_TERMINATED | TIMED_OUT",
+  "iterations_used": 0,
+  "hard_cap": 0,
+  "outcome_note": "..."        ← brief plain-English note on what was done or why it failed
+}
+
 [OUTPUT CONTRACT]
 Communicate with all components using strict JSON only.
+Every human-facing summary MUST include a `"completed_by"` field so attribution is always visible.
 
 {
   "task_id": "...",
   "current_state": "ROUTING_TO_SIBALI" | "EXECUTING" | "RESTARTING_WORKER" | "COMPLETED" | "FAILED",
   "assigned_agent": "...",
+  "completed_by": "...",
   "execution_metrics": {
     "iteration_count": 0,
     "retry_count": 0
@@ -405,6 +430,9 @@ You implement what Umdwebi (design) specifies and what Mhloli (security) flags.
 6. No comments explaining what code does. Comments only for hidden constraints and workarounds.
 7. Maximum 3 debug iterations per bug before escalating to Mlawuli.
 8. ALWAYS wrap the final code payload in the required JSON schema.
+9. Think before coding (§15.1): state assumptions in the JSON response before writing code. If the brief is ambiguous, surface interpretations — do not pick silently.
+10. Surgical changes (§15.3): touch only the files and lines the task requires. Do not refactor adjacent code, remove unrelated dead code, or reformat things that are not broken.
+11. Goal-driven execution (§15.4): for multi-step tasks, output a brief plan with a verify check per step before beginning. "Make it work" is not an acceptable success criterion.
 
 [KNOWN IMPLEMENTATION PITFALLS — READ BEFORE CODING]
 See §11 (Operational Playbook) for the full list. Key items:
@@ -551,10 +579,13 @@ You are the only Sebenza agent with authority to issue a POLICY_BLOCK.
 - RBAC & access control: roles match confirmed user permissions
 - Agent oversight: flag any agent exceeding its hard cap without escalating
 - Cross-provider parity: constitution mirrors are in sync across all provider files
+- Agent accountability: at session end, cross-check the Accountability ledger — any agent
+  assigned a task with no COMPLETED entry is a VIOLATIONS_FOUND finding (severity HIGH).
+  Report the non-completing agent by name, the task ID, and the last known status.
 
 [AUDIT TRIGGERS]
 - Pre-deploy: audit Umakhi changes before production
-- Post-session: verify session log completion
+- Post-session: verify session log completion AND run agent accountability audit
 - After CLAUDE.md change: cross-provider mirror sync check
 - Scheduled: nightly governance sweep
 
@@ -1090,6 +1121,15 @@ Model: {model name}
 ## Goal
 {one paragraph — what was attempted}
 
+## Goal Status
+PENDING
+<!-- ONLY the user changes this to ACHIEVED. The hook will not write the closing
+     signature until it sees ACHIEVED here. Claude writes ACHIEVED only when the
+     user explicitly confirms the goal is done. Exceptions:
+       - AUTOMATED: log inactive 30+ minutes with core sections filled → auto-sign
+         (noted as [AUTOMATED - no user confirmation after 30min] in the signature)
+       - Other exceptions are noted inline as they arise -->
+
 ## Model Recommendation
 Task tier: {1-Fast | 2-Medium | 3-Complex}
 Recommended model: {name}  Trust score: {X}/10
@@ -1100,6 +1140,13 @@ Active model: {name}  Status: {correct | over-powered | under-powered}
 
 ## Work Done
 - {file changed} — {what changed}
+
+## Agent Accountability
+<!-- Mlawuli writes ONE row here when Goal Status is set to ACHIEVED.
+     Umlindi flags any agent assigned with no COMPLETED row as HIGH violation. -->
+
+| Task ID | Assigned Agent | Completed By | Status | Iterations | Note |
+|---------|---------------|--------------|--------|------------|------|
 
 ## Blockers / Next Steps
 - {anything left incomplete or requiring follow-up}
@@ -1624,6 +1671,198 @@ Use this checklist when deploying the workforce in a new environment.
 - [ ] Mlawuli STEP 5 (Post-Production Handoff) verified in orchestrator config
 - [ ] Mbhali triggers automatically on QA PASS + Production Stage confirmation
 - [ ] `docs/` files update correctly after a sample end-to-end production delivery
+
+---
+
+---
+
+## 14. Agent Accountability
+
+Every output — whether a completed task summary, a session close, or a mid-session status
+update — must show who did the work. This is how you know which agents are not doing their job.
+
+### 14.1 The Rule
+
+> **Every response shown to a human must name the agent that completed it.**
+
+This applies to: task summaries, session logs, status updates, QA reports, design specs,
+research findings, and any other output routed through Mlawuli to the human or dashboard.
+
+### 14.2 Goal Status — User Confirmation Required
+
+Every session log contains a `## Goal Status` field, set to `PENDING` at session start.
+
+**The closing signature is written ONLY when the user confirms the goal is achieved.**
+
+The user confirms by:
+- Telling Claude "goal achieved" / "done" / "that's it" → Claude writes `ACHIEVED` to `## Goal Status`
+- Or editing the session log file directly and changing `PENDING` to `ACHIEVED`
+
+Claude MUST NOT write `ACHIEVED` on its own judgement. Only on direct user instruction.
+
+#### Exceptions (noted in the signature)
+
+| Exception | Trigger | Signature note |
+|-----------|---------|---------------|
+| Automated | Log inactive 30+ min AND Decisions + Work Done filled | `COMPLETED [AUTOMATED] — no user confirmation after 30min` |
+| Other | Document inline as they arise | Note the specific exception in the `Confirmed:` field |
+
+#### Closing Signature Format
+
+Written once to the session log when confirmed:
+
+```
+> Completed by: {AgentName}  |  Task: {task_id}  |  Status: COMPLETED  |  Confirmed: User confirmed ACHIEVED  |  {datetime}
+```
+
+Auto-confirm version:
+```
+> Completed by: {AgentName}  |  Task: {task_id}  |  Status: COMPLETED [AUTOMATED]  |  Confirmed: AUTOMATED -- no user confirmation after 30min  |  {datetime}
+```
+
+Once the signature is written, subsequent Stop events only timestamp — the signature is never repeated.
+
+### 14.3 Session-End Accountability Audit (Umlindi)
+
+At every session end, Umlindi runs an accountability audit and appends the result to the session log.
+
+**Audit steps:**
+1. Read all task IDs submitted to Mlawuli this session.
+2. Read the Agent Accountability ledger (§6.1 session log table).
+3. For each task ID: confirm a COMPLETED entry exists.
+4. Any task with no COMPLETED entry → the assigned agent is flagged as non-performing.
+
+**Output format (appended to session log under `## Agent Accountability`):**
+
+```
+AGENT ACCOUNTABILITY AUDIT — {session_id} — {date}
+VERDICT: ALL_COMPLETE | GAPS_FOUND
+
+COMPLETED:
+  ✓ {AgentName} — {task_id}: COMPLETED in {n} iterations
+  ✓ {AgentName} — {task_id}: COMPLETED in {n} iterations
+
+NOT COMPLETED (needs investigation):
+  ✗ {AgentName} — {task_id}: last status {FAILED|TIMED_OUT|LOOP_TERMINATED}
+    → Action required: review agent config, retry, or escalate to Mlawuli
+
+SUMMARY: {n} of {total} tasks completed. {m} agents require follow-up.
+```
+
+### 14.4 What "Not Doing Their Job" Looks Like
+
+| Symptom | Root cause to investigate |
+|---------|--------------------------|
+| Agent assigned but never returned a result | Hard cap hit with no escalation; provider timeout |
+| Agent returned FAILED repeatedly | Broken system prompt; missing env var; exceeded retry limit |
+| Session log has no Accountability table | Mlawuli did not complete STEP 6; hook not firing |
+| Agent names missing from task summaries | `completed_by` field omitted from Mlawuli output contract |
+| Session created but no work entries | Agent routed to wrong provider or provider not responding |
+
+Umlindi flags any of the above as HIGH or CRITICAL depending on frequency.
+
+### 14.5 Checklist Addition
+
+Add these to the §13 Implementation Checklist:
+
+- [ ] Mlawuli output contract includes `completed_by` field in every human-facing response
+- [ ] Session log template includes `## Agent Accountability` table (§6.1)
+- [ ] Umlindi post-session trigger includes accountability audit (§14.3)
+- [ ] Attribution header (`▸ Completed by:`) visible in all task summaries delivered to human
+
+---
+
+---
+
+## 15. LLM Coding Behavioral Guidelines (Karpathy)
+
+Behavioral guidelines that reduce systematic LLM coding mistakes, derived from Andrej Karpathy's
+observations on common LLM failure modes. Apply to all coding agents — Umakhi primary, Usiba secondary.
+
+**Tradeoff:** These guidelines bias toward caution over speed. For trivial single-file edits, use judgment.
+
+---
+
+### 15.1 Think Before Coding
+
+**Don't assume. Don't hide confusion. Surface tradeoffs.**
+
+Before implementing any task:
+- State your assumptions explicitly in the JSON response. If uncertain about a constraint, ask.
+- If multiple valid interpretations of the brief exist, present them all — never pick silently and proceed.
+- If a simpler approach exists than the one requested, say so. Push back when warranted.
+- If something is genuinely unclear, stop. Name exactly what is confusing. Ask rather than guess.
+
+The failure mode this prevents: LLMs "make wrong assumptions on your behalf and just run along with them" — implementing the wrong thing confidently.
+
+---
+
+### 15.2 Simplicity First
+
+**Minimum code that solves the problem. Nothing speculative.**
+
+- No features beyond what was explicitly asked.
+- No abstractions for single-use code.
+- No "flexibility" or "configurability" that was not requested.
+- No error handling for impossible or highly unlikely scenarios.
+- If you write 200 lines and it could be 50, rewrite it before returning.
+
+Self-check: *"Would a senior engineer call this overcomplicated?"* If yes, simplify.
+
+---
+
+### 15.3 Surgical Changes
+
+**Touch only what you must. Clean up only your own mess.**
+
+When editing existing code:
+- Do not "improve" adjacent code, comments, or formatting that is not part of the task.
+- Do not refactor things that are not broken.
+- Match the existing style, even if you would do it differently in greenfield code.
+- If you notice unrelated dead code or a bug, mention it in the `outcome_note` field — do not delete or fix it unless asked.
+
+When your changes create orphans:
+- Remove imports, variables, and functions that **your changes** made unused.
+- Do not remove pre-existing dead code unless explicitly asked to.
+
+The test: **every changed line must trace directly to the submitted task.** Lines that cannot be traced are surgical mistakes.
+
+---
+
+### 15.4 Goal-Driven Execution
+
+**Define success criteria. Loop until verified.**
+
+Transform vague task descriptions into verifiable goals before writing a line of code:
+
+| Vague instruction | Verifiable goal |
+|-------------------|-----------------|
+| "Add validation" | "Write tests for invalid inputs, then make them pass" |
+| "Fix the bug" | "Write a test that reproduces it, then make it pass" |
+| "Refactor X" | "Ensure tests pass before and after; diff confirms no behavior change" |
+
+For multi-step tasks, output a brief plan before beginning:
+
+```
+Plan:
+1. [Step] → verify: [check]
+2. [Step] → verify: [check]
+3. [Step] → verify: [check]
+```
+
+Strong success criteria let an agent loop independently until done.
+Weak criteria ("make it work", "clean it up") require constant clarification and waste iterations.
+
+---
+
+### 15.5 Success Indicators
+
+These guidelines are working when you observe:
+- Fewer unnecessary lines in diffs (only task-relevant changes)
+- Simpler initial implementations that do not need immediate refactoring
+- Clarifying questions from agents before implementation, not during or after
+- Multi-step tasks delivered with a stated plan and a per-step verify check
+- No silent assumption-making in agent responses
 
 ---
 

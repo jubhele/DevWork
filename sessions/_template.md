@@ -6,6 +6,13 @@ Model: <model name>
 ## Goal
 <one paragraph — what was attempted this session>
 
+## Goal Status
+PENDING
+<!-- The hook will NOT write the closing signature until this is set to ACHIEVED.
+     Set it to ACHIEVED when the user confirms the goal is done.
+     Exceptions: if the log is inactive for 6+ hours with core sections filled,
+     the hook auto-signs and notes [AUTOMATED - no user confirmation after 30min]. -->
+
 ## Model Recommendation
 <!-- Fill at session start — see CLAUDE.md § 11 -->
 Task tier: <1-Fast | 2-Medium | 3-Complex>

@@ -533,6 +533,30 @@ When operating as the primary agent (default mode), Claude Code:
 2. Routes the conceptual payload through Sibali's tier logic (§11.1) before proceeding.
 3. Executes the task under the Sebenza agent's constraints (see `agents/sebenza_agents.md`).
 4. Logs the session with the JSON metadata block (§13.2) if the task involved inter-agent coordination.
+5. **Accountability signature:** Written to the session log **once** — only when the user explicitly confirms the goal is achieved by setting `## Goal Status` to `ACHIEVED`. Claude writes `ACHIEVED` only on direct user instruction.
+6. **Auto-confirm exception:** If the session log has been inactive for 30+ minutes and Decisions + Work Done are filled, the Stop hook auto-signs with `[AUTOMATED - no user confirmation after 30min]` noted in the signature.
+7. **Session-end audit (Umlindi):** Any Sebenza agent assigned a task with no COMPLETED entry is a HIGH governance violation — reported by name.
+   Full accountability protocol: `Multi-Agent Workforce Architecture & System Prompts.md §14`
+
+### 12.4 Agent Accountability (MANDATORY — all providers)
+
+Every session log **must** include these two fields:
+
+**`## Goal Status`** — set to `PENDING` at session start. User changes to `ACHIEVED` when done.
+The closing signature is ONLY written when this field = `ACHIEVED`.
+
+**`## Agent Accountability`** table — one row written by Mlawuli at goal completion:
+
+| Task ID | Assigned Agent | Completed By | Status | Iterations | Note |
+|---------|---------------|--------------|--------|------------|------|
+
+Closing signature format:
+```
+> Completed by: {AgentName}  |  Task: {task_id}  |  Status: COMPLETED  |  Confirmed: User confirmed ACHIEVED  |  {datetime}
+```
+Auto-confirm (30min inactivity): same format with `Status: COMPLETED [AUTOMATED]` and `Confirmed: AUTOMATED -- no user confirmation after 30min`.
+
+Umlindi cross-checks at session end — any assigned agent missing a COMPLETED row = HIGH violation.
 
 ---
 

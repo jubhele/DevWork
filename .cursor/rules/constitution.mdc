@@ -12,7 +12,21 @@ This mirrors CLAUDE.md for Cursor. Full constitution in `CLAUDE.md`.
 
 Create or update a log in `c:\DevWork\sessions\` at session start and end.
 Format: `<chat-name>_YYYYMMDD_HHmmss.md` — one file per session, named after the chat topic with a timestamp suffix.
-Sections: Goal, Provider, Model, Decisions, Work Done, Blockers/Next Steps.
+Sections: Goal, Provider, Model, Decisions, Work Done, **Agent Accountability**, Blockers/Next Steps, Learnings.
+
+**Agent Accountability table** (mandatory at session end):
+
+| Task ID | Assigned Agent | Completed By | Status | Iterations | Note |
+|---------|---------------|--------------|--------|------------|------|
+
+Any agent assigned but with no COMPLETED row is flagged as a HIGH governance violation by Umlindi.
+
+**Goal Status field (mandatory in every session log):**
+```
+## Goal Status
+PENDING   ← user changes to ACHIEVED when goal is done
+```
+Closing signature written ONLY on ACHIEVED. Exception: 30min inactivity with core sections filled → auto-sign marked `[AUTOMATED - no user confirmation after 30min]`.
 
 ## Memory
 
@@ -70,6 +84,37 @@ Classify the task at conversation start and verify the active model matches:
 
 Output recommendation block (see CLAUDE.md § 11.3) if model is wrong for the tier. Log in session log.
 Target cost: Tier 1 < $0.05 | Tier 2 $0.05–$0.50 | Tier 3 $0.50–$5.00.
+
+## Agent Accountability (MANDATORY)
+
+Every result shown to the human must name the completing agent:
+```
+▸ Completed by: {AgentName}  |  Task: {task_id}  |  Iterations: {n}/{cap}  |  Status: COMPLETED
+```
+Closing signature written to session log ONCE — only when user sets `## Goal Status` to `ACHIEVED`.
+Auto-confirm exception: 30min inactivity with core sections filled → signature marked `[AUTOMATED - no user confirmation after 30min]`.
+Full rules: `Multi-Agent Workforce Architecture & System Prompts.md §14`
+
+## Session Log Enforcement Script (MANDATORY)
+
+The workspace uses a shared PowerShell enforcement script that must run at the end of every session:
+
+```
+c:\DevWork\.claude\scripts\session-log-update.ps1
+```
+
+**What it does:**
+- Checks Decisions, Work Done, Learnings, and Goal Status
+- Writes the closing accountability signature **once** — only when `## Goal Status` = `ACHIEVED`
+- Auto-signs after 30 min inactivity with `[AUTOMATED - no user confirmation after 30min]`
+- Once signed, subsequent runs just timestamp and exit
+
+**How to run:**
+```powershell
+powershell.exe -NonInteractive -File "c:\DevWork\.claude\scripts\session-log-update.ps1"
+```
+
+Cursor does not support lifecycle shell hooks natively. Run this manually before ending the session, or add it as a VS Code task in `.vscode/tasks.json` for one-click execution.
 
 ## Sensitive Files (never commit)
 

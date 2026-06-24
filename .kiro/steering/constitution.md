@@ -10,8 +10,22 @@ This mirrors CLAUDE.md for Kiro. Full authoritative constitution in `CLAUDE.md`.
 
 Create or update a log in `c:\DevWork\sessions\` at session start and end.
 Format: `<chat-name>_YYYYMMDD_HHmmss.md`
-Sections: Goal, Provider, Model, Decisions, Work Done, Blockers/Next Steps, Learnings.
+Sections: Goal, Provider, Model, Decisions, Work Done, **Agent Accountability**, Blockers/Next Steps, Learnings.
 Mirror to: `G:\My Drive\JS\Agentic AI\sessions\<filename>.md.tbl.bk`
+
+**Agent Accountability table** (mandatory at session end — one row per task):
+
+| Task ID | Assigned Agent | Completed By | Status | Iterations | Note |
+|---------|---------------|--------------|--------|------------|------|
+
+Umlindi audits at close — any agent assigned with no COMPLETED entry is a HIGH governance violation.
+
+**Goal Status field (mandatory in every session log):**
+```
+## Goal Status
+PENDING   ← user changes to ACHIEVED when goal is done
+```
+Closing signature written ONLY on ACHIEVED. Exception: 30min inactivity with core sections filled → auto-sign marked `[AUTOMATED - no user confirmation after 30min]`.
 
 ## Memory
 
@@ -54,6 +68,37 @@ Providers: Claude Code, GitHub Copilot, OpenAI Codex, Google Antigravity, Cursor
 1. Commit WIP with `WIP:` prefix.
 2. Update session log with current state and next steps.
 3. Next provider reads session log before continuing.
+
+## Agent Accountability (MANDATORY)
+
+Every result shown to the human must name the completing agent:
+```
+▸ Completed by: {AgentName}  |  Task: {task_id}  |  Iterations: {n}/{cap}  |  Status: COMPLETED
+```
+If not completed: `▸ NOT COMPLETED — assigned to: {AgentName}  |  Task: {task_id}  |  Last status: {status}`
+
+Closing signature written once on user ACHIEVED confirmation. Auto-signs after 30min inactivity (marked AUTOMATED). Full rules: `Multi-Agent Workforce Architecture & System Prompts.md §14`
+
+## Session Log Enforcement Script (MANDATORY)
+
+The workspace uses a shared PowerShell enforcement script that must run at the end of every session:
+
+```
+c:\DevWork\.claude\scripts\session-log-update.ps1
+```
+
+**What it does:**
+- Checks that Decisions, Work Done, Learnings, and Goal Status sections are filled
+- Writes the closing accountability signature **once** — only when `## Goal Status` = `ACHIEVED`
+- Auto-signs after 30 min inactivity with `[AUTOMATED - no user confirmation after 30min]`
+- Once signed, subsequent runs just timestamp and exit
+
+**How to run at session end:**
+```powershell
+powershell.exe -NonInteractive -File "c:\DevWork\.claude\scripts\session-log-update.ps1"
+```
+
+Kiro does not support lifecycle hooks natively. Run this manually before ending the session, or wire it into any available task runner / pre-commit hook for this workspace.
 
 ## Sensitive Files (never commit)
 

@@ -13,7 +13,7 @@
 │                                                                      │
 │  auth.php  tasks.php  callouts.php  quotes.php  invoices.php        │
 │  clients.php  safety.php  users.php  audit.php  files.php           │
-│  dashboard.php  finance.php                                          │
+│  dashboard.php  finance.php  pl_ledger.php                          │
 └──────────────────────────────────────────────────────────────────────┘
          ▲                   ▲                      ▲
          │ same-origin       │ CORS/cookie           │ CORS/cookie
@@ -82,7 +82,8 @@ The mobile app stores the session token in secure device storage (`apps/mobile/s
 | `p-invoices`     | `/invoices`               | `InvoicesScreen` (TBD)  | `invoices.php`                           |
 | `p-new-invoice`  | `/invoices/new`           | —                        | `invoices.php` (POST)                    |
 | `p-log-payment`  | `/invoices/log-payment`   | —                        | `invoices.php?action=payment`            |
-| `p-finance-dashboard` | `/finance`           | —                        | `finance.php?action=summary`             |
+| `p-finance-dashboard` | `/finance`           | —                        | `finance.php?action=summary`, `pl_ledger.php?action=summary` |
+| `p-pl-ledger`    | `/finance/pl-ledger`      | —                        | `pl_ledger.php?action=remittances\|bank_statement\|invoices\|supplier_costs\|monthly_pl` |
 | `p-statement`    | `/finance/statements`     | —                        | `finance.php?action=statement`           |
 | `p-clients`      | `/clients`                | —                        | `clients.php`                            |
 | `p-safety`       | `/safety`                 | —                        | `safety.php`                             |
@@ -129,7 +130,9 @@ apps/web/src/app/
     ├── invoices/
     │   └── page.tsx                  → Invoice log table
     ├── finance/
-    │   └── page.tsx                  → Finance KPIs + aging chart
+    │   ├── page.tsx                  → Finance KPIs + aging chart (now pulls from pl_ledger.php?action=summary)
+    │   └── pl-ledger/
+    │       └── page.tsx              → P&L Ledger (5 tabs: Remittances, Bank Statement, Sales Invoices, Supplier Costs, Monthly P&L) ⬜ web app not yet implemented
     ├── clients/
     │   └── page.tsx                  → Client accounts table
     ├── safety/
@@ -172,6 +175,7 @@ apps/web/src/app/
 - Clients → `/clients` _(client.view)_
 
 **Finance**
+- P&L Ledger → `/finance/pl-ledger` _(finance.income)_
 - Invoices → `/invoices` _(invoice.view)_
 - Finance Overview → `/finance` _(finance.view)_
 
@@ -254,7 +258,102 @@ The same `bf_portal` session cookie authenticated against the same PHP backend i
 
 ---
 
-## 9. Public Assets (Web App)
+## 9. AECI End-to-End Transaction Lifecycle
+
+> **Everything starts as a Call Log.** No quote, PO, invoice, statement, or payment exists
+> without a callout record at its root. The callout is the single source of truth that every
+> downstream document links back to.
+
+### 9.1 Client-Side Flow (Astute Insights → AECI Chempark)
+
+```
+Call Log  →  Quote  →  PO  →  Work Executed  →  Invoice  →  Statement  →  Remittance  →  Bank Confirmed
+(bf_callouts) (bf_quotes) [AECI issues]           (bf_invoices)  [bf_statements]  (bf_remittances)  bank_confirmed=1
+```
+
+**Step-by-step:**
+
+| Step | Who | Portal Object | DB Table | Notes |
+|------|-----|---------------|----------|-------|
+| 1. Call logged | Call logger | Callout (`CO-YYYY-####`) | `bf_callouts` | Status: Open |
+| 2. Quote prepared | Senior tech / Admin | Quote (`Q-YYYY-####`) | `bf_quotes` | Linked to callout via `callout_ref` |
+| 3. Quote sent | Admin | Quote status → Sent | `bf_quotes` | Emailed to AECI procurement |
+| 4. PO received | AECI | PO number noted on callout | `bf_callouts.po` | AECI issues CP-series PO |
+| 5. Quote converted | Admin | Quote status → Converted | `bf_quotes` | |
+| 6. Work executed | Technician | Callout status → In Progress → Completed | `bf_callouts` | |
+| 7. Invoice raised | Admin | Invoice (`INV-AI-YYYYMMDD`) | `bf_invoices` | Status: Draft → Sent |
+| 8. Statement sent | Admin | Statement (monthly summary) | `bf_statements` ⚠️ | See §9.3 gap |
+| 9. Remittance received | AECI (Yolanda Herbst) | Remittance advice email | `bf_remittances` | Supplier code AST6; payer: Chemhold Investments Pty Ltd |
+| 10. Bank confirmation | Admin | `bank_confirmed=1` on remittance | `bf_remittances` | Reconciled against FNB *8644; ⚠ 3 remittances (R32,735.97) unconfirmed as at 2026-06-24 |
+| 11. Invoice closed | Admin | Invoice status → Paid | `bf_invoices` | |
+
+### 9.2 Supplier-Side Flow (Megahertz / Siyasiza → Astute Insights)
+
+```
+Call Log  →  Supplier Quote  →  Supplier PO  →  Work Executed  →  Supplier Invoice  →  Payment
+(bf_callouts)  (bf_supplier_invoices              [future]                (bf_supplier_invoices)  (bf_transactions)
+               doc_type='Estimate')
+```
+
+**Step-by-step:**
+
+| Step | Who | Portal Object | DB Table | Notes |
+|------|-----|---------------|----------|-------|
+| 1. Callout triggers supplier need | Admin | Same callout that drove client quote | `bf_callouts` | Same root `CO-` record |
+| 2. Supplier estimate received | Supplier (Megahertz / Siyasiza) | Estimate/Quote doc filed | `bf_supplier_invoices` (`doc_type='Estimate'`) | Precedes the work order |
+| 3. Supplier PO issued | Admin | *(not yet tracked in portal)* | — | **Gap — see §9.3** |
+| 4. Work executed | Supplier technician | — | — | |
+| 5. Supplier invoice received | Supplier | Supplier invoice | `bf_supplier_invoices` (`doc_type='Invoice'`) | Linked to callout by context |
+| 6. Supplier payment made | Admin | Transaction (debit) | `bf_transactions` | Category: `Supplier Payment` |
+
+### 9.3 Statement Records (bf_statements — verified 2026-06-22)
+
+`bf_statements` exists and contains 5 released statements:
+
+| ref_id | Scheduled | Released | Total Outstanding | Invoice Refs |
+|--------|-----------|----------|-------------------|-------------|
+| STMT-060326-0001 | 2026-03-06 | 2026-03-06 | R59,339.43 | INV-060326-0001/0002/0003 |
+| STMT-130326-0001 | 2026-03-13 | 2026-03-13 | R140,966.83 | 7 invoices (Mar 6+9+12 batch) |
+| STMT-210526-0001 | 2026-05-21 | 2026-05-21 | R254,181.23 | 15 invoices (Oct 2025 – Apr 2026) |
+| STMT-AI20260518 | 2026-06-02 | 2026-06-02 | R26,037.50 | INV-AI20260506/0427/AI27052026 |
+| STMT-090626-0012 | 2026-06-09 | 2026-06-13 | R19,600.00 | INV-090626-0102/0104 ⚠️ |
+
+**Schema (actual):**
+
+```sql
+bf_statements (
+  id, ref_id VARCHAR(20) UNIQUE,
+  scheduled_for DATE,
+  status ENUM('pending_approval','released','cancelled'),
+  from_email, to_emails TEXT, invoice_refs TEXT,
+  total_outstanding DECIMAL(12,2),
+  released_by_user_id, released_at DATETIME, created_at DATETIME
+)
+```
+
+### 9.4 Known Data Issues (as at 2026-06-22)
+
+| Issue | Severity | Status |
+|-------|----------|--------|
+| **STMT-090626-0012** refs `INV-090626-0102` and `INV-090626-0104` — these invoices do not exist in `bf_invoices`. Statement was already released (sent 2026-06-13, total R19,600). The invoices appear to have been deleted after the statement was sent. | HIGH — audit gap | **Needs Jubhele input** — cannot recreate without knowing callout/PO/amounts |
+| **INV-AI20260316b** (CP1593, R10,844.50, status Sent) not in any statement | MEDIUM — invoice not yet chased via statement | Add to next statement when following up CP1593 |
+| **INV-AI20250701** (CP1185, R6,037.50, status Sent) not in any statement | MEDIUM — overdue since Jul 2025 | Confirm payment status with Jubhele; add to a catch-up statement if still outstanding |
+| **Supplier POs not tracked** | LOW | Future work — when BlackFire issues a PO to Megahertz/Siyasiza, no DB record exists |
+| **Megahertz estimates not linked to callouts** | LOW | Est 313/318/320/331 in `bf_supplier_invoices` but `callout_ref` empty — populate once mapping is confirmed |
+
+### 9.4 Megahertz Document Chain (Estimate → Invoice)
+
+| Estimate | Date | Amount | Invoice | Date | Amount | Status |
+|----------|------|--------|---------|------|--------|--------|
+| Est 313 | 2026-02-23 | R850 | Inv 1308 | 2026-02-27 | R1,700 | Partially Paid (R450 cash paid; R1,250 outstanding) |
+| Est 318 | 2026-03-03 | R24,447 | Inv 1310 | 2026-03-04 | R26,657 | Paid in full (R19,607 + R3,000 + R4,050) |
+| Est 320 | 2026-03-18 | R3,140 | — | — | — | Quote Only — no invoice yet |
+| Est 331 | 2026-03-25 | R7,950 | — | — | — | Quote Only — no invoice yet |
+| — | — | — | Inv 1313 | 2026-03-11 | R8,888 | Partially Paid (R2,234 paid; R6,654 outstanding) |
+
+---
+
+## 10. Public Assets (Web App)
 
 All files in `apps/web/public/` are served from the root URL:
 
@@ -315,11 +414,11 @@ All tokens are shared between the web app (via Tailwind CSS config) and the mobi
 
 ## 12. Implementation Status
 
-| Surface          | Login | Dashboard | Tracker | Call Log | Quotes | Invoices | Finance | Safety | Admin |
-|------------------|-------|-----------|---------|----------|--------|----------|---------|--------|-------|
-| PHP Portal       | ✅    | ✅        | ✅      | ✅       | ✅     | ✅       | ✅      | ✅     | ✅    |
-| Web App (Next.js)| ✅    | ✅        | ✅      | ✅       | ✅*    | ✅*      | ✅*     | ✅*    | ✅*   |
-| Mobile (Expo)    | ✅    | ⬜        | ⬜      | ⬜       | ⬜     | ⬜       | ⬜      | ⬜     | ⬜    |
+| Surface          | Login | Dashboard | Tracker | Call Log | Quotes | Invoices | Finance | P&L Ledger | Safety | Admin |
+|------------------|-------|-----------|---------|----------|--------|----------|---------|------------|--------|-------|
+| PHP Portal       | ✅    | ✅        | ✅      | ✅       | ✅     | ✅       | ✅      | ✅         | ✅     | ✅    |
+| Web App (Next.js)| ✅    | ✅        | ✅      | ✅       | ✅*    | ✅*      | ✅*     | ⬜         | ✅*    | ✅*   |
+| Mobile (Expo)    | ✅    | ⬜        | ⬜      | ⬜       | ⬜     | ⬜       | ⬜      | ⬜         | ⬜     | ⬜    |
 
 > `✅*` = Page exists and renders live data from the API, but create/edit/delete actions are not yet wired up in the web app.  
 > `⬜` = Not yet implemented.
@@ -334,6 +433,14 @@ These views exist but have no mutation paths yet:
 - `/clients/new` — new client
 - `/admin/users/new` — new portal user
 - Call-log new callout form (`/tracker/call-log/new`)
+
+### Web App — P&L Ledger (`/finance/pl-ledger`)
+
+The PHP portal now has a full P&L Ledger (`p-pl-ledger`) backed by `api/pl_ledger.php`. The web app needs a corresponding `/finance/pl-ledger` page with the same 5 tabs. The API is already live — only the Next.js page needs to be built.
+
+Required: `apps/web/src/app/(portal)/finance/pl-ledger/page.tsx`  
+API calls: `pl_ledger.php?action=remittances|bank_statement|invoices|supplier_costs|monthly_pl`  
+Permission: `finance.income`
 
 ---
 
@@ -370,4 +477,4 @@ This allows the web app to read from the same local database as the PHP portal f
 
 ---
 
-_Last updated: 2026-06-21 — generated from QA session `app_portal_parity_qa_20260621_100000.md`_
+_Last updated: 2026-06-22 — §9 AECI transaction lifecycle and statement gap added from session `blackfire_finance_data_reconciliation_20260622_000000.md`_

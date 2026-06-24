@@ -776,6 +776,84 @@ $companyLogoUrl = rtrim($cfg['base_url'] ?? '', '/') . '/' . ltrim($cfg['company
       </div>
     </div>
 
+    <!-- P&L LEDGER — 5-tab view matching BF_AECI_Full_PL_Ledger Excel -->
+    <div id="p-pl-ledger" class="ppage">
+      <div class="ptitle">P&amp;L Ledger</div><div class="psub">AECI CHEMPARK  ·  FULL FINANCIAL RECORD</div>
+      <div class="srow">
+        <div id="pl-ledger-tabs" class="pnav-inline"></div>
+      </div>
+      <!-- TAB: Remittances (All) -->
+      <div id="pll-remittances" class="pll-tab">
+        <div class="pl-legend">Issued by Yolanda Herbst (Cash Book Controller, AECI) &middot; Supplier Code: AST6 &middot; Bank account: FNB *8644 &middot; <span class="badge-warn">⚠ = flag requires attention</span></div>
+        <div class="kgrid kgrid--4 mb2" id="pll-rem-kpis"></div>
+        <div class="panel">
+          <div class="ph"><div class="ph-title">All Payment Remittances — Chemhold Investments Pty Ltd</div></div>
+          <div class="tw">
+            <table>
+              <thead><tr><th>Remittance Date</th><th>Control No</th><th>Cheque/Payment No</th><th>Amount (ZAR)</th><th>Bank Confirmed</th><th>Bank Date</th><th>Invoices Covered</th><th>Notes / Flags</th><th>Status</th></tr></thead>
+              <tbody id="pll-rem-table"></tbody>
+              <tfoot id="pll-rem-tfoot"></tfoot>
+            </table>
+          </div>
+        </div>
+      </div>
+      <!-- TAB: Bank Statement -->
+      <div id="pll-bank" class="pll-tab" hidden>
+        <div class="pl-legend">FNB Bank Account *8644 | Chemhold Investments Pty Ltd — All Receipts</div>
+        <div class="kgrid kgrid--3 mb2" id="pll-bank-kpis"></div>
+        <div class="panel">
+          <div class="ph"><div class="ph-title">Bank Statement — Confirmed Receipts</div></div>
+          <div class="tw">
+            <table>
+              <thead><tr><th>Bank Date</th><th>Control No</th><th>Cheque/Payment No</th><th>Amount (ZAR)</th><th>Invoices Covered</th><th>Match</th></tr></thead>
+              <tbody id="pll-bank-table"></tbody>
+              <tfoot id="pll-bank-tfoot"></tfoot>
+            </table>
+          </div>
+        </div>
+      </div>
+      <!-- TAB: Sales Invoices -->
+      <div id="pll-invoices" class="pll-tab" hidden>
+        <div class="pl-legend">Payment confirmed by remittance Control No &middot; R12,750×7 retainer records EXCLUDED — not confirmed by any remittance or bank entry</div>
+        <div class="kgrid kgrid--3 mb2" id="pll-inv-kpis"></div>
+        <div class="panel">
+          <div class="ph"><div class="ph-title">Sales Invoices Raised</div></div>
+          <div class="tw">
+            <table>
+              <thead><tr><th>Inv Date</th><th>Invoice Ref</th><th>PO #</th><th>Description</th><th>Amount (ZAR)</th><th>Remittance Ctrl</th><th>Payment Date</th><th>Status</th><th>Age (days)</th></tr></thead>
+              <tbody id="pll-inv-table"></tbody>
+              <tfoot id="pll-inv-tfoot"></tfoot>
+            </table>
+          </div>
+        </div>
+      </div>
+      <!-- TAB: Supplier Costs -->
+      <div id="pll-costs" class="pll-tab" hidden>
+        <div class="pl-legend">On-site technician callouts, installations, hardware — Siyasiza Group (Pty) Ltd + Megahertz Systems</div>
+        <div class="kgrid kgrid--3 mb2" id="pll-cost-kpis"></div>
+        <div class="twocol" id="pll-cost-tables"></div>
+      </div>
+      <!-- TAB: Monthly P&L -->
+      <div id="pll-monthly" class="pll-tab" hidden>
+        <div class="pl-legend">Income = bank-confirmed receipts only (FNB *8644) &middot; Costs = Siyasiza + Megahertz &middot; <span class="badge-warn">R32,735.97 in unreconciled remittances EXCLUDED</span></div>
+        <div class="kgrid kgrid--4 mb2" id="pll-mpl-kpis"></div>
+        <div class="panel">
+          <div class="ph"><div class="ph-title">Monthly Cash Flow &amp; P&amp;L</div></div>
+          <div class="tw">
+            <table>
+              <thead><tr><th>Month</th><th>Cash Received (R)</th><th>Siyasiza Cost (R)</th><th>Megahertz Cost (R)</th><th>Total Costs (R)</th><th>Gross Margin (R)</th><th>Cumulative Margin (R)</th></tr></thead>
+              <tbody id="pll-mpl-table"></tbody>
+              <tfoot id="pll-mpl-tfoot"></tfoot>
+            </table>
+          </div>
+        </div>
+        <div class="panel mt2">
+          <div class="ph"><div class="ph-title">Cumulative Margin — Monthly</div></div>
+          <div class="rev-chart-wrap"><div class="chart-bars" id="pll-margin-chart"></div></div>
+        </div>
+      </div>
+    </div>
+
     <!-- LOG CALL (new callout) -->
     <div id="p-new-callout" class="ppage">
       <div class="ptitle">Log Call</div><div class="psub">CREATE JOB TICKET</div>

@@ -1,0 +1,64 @@
+﻿# Environment
+.env
+.env.*
+!.env.example
+*.env.local
+config.local.*
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+
+# Node / Next.js
+node_modules/
+.next/
+.vercel/
+out/
+pnpm-lock.yaml
+
+# Playwright
+playwright-report/
+test-results/
+
+# Uploads (generated content â€” not committed)
+uploads/
+
+# Backups
+_backups/
+
+# Session debug logs
+sessions/debug_*.log
+
+# Temp
+temp/
+
+# Docker volumes
+mysql-data/
+pgdata/
+redis-data/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
