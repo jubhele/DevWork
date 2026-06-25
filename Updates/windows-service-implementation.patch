@@ -1,0 +1,135 @@
+diff --git a/Multi-Agent Workforce Architecture & System Prompts.md b/Multi-Agent Workforce Architecture & System Prompts.md
+index 3f13b21..7c9a8d1 100644
+--- a/Multi-Agent Workforce Architecture & System Prompts.md
++++ b/Multi-Agent Workforce Architecture & System Prompts.md
+@@ -3,7 +3,8 @@
+ 
+-**Version:** 3.3 — Complete Production Implementation Guide
++**Version:** 3.4 — Reference Windows Service Implementation
++
+ **Purpose:** Hand this document to any implementer to deploy this workforce in a new environment.
+ Everything needed is here: architecture, system prompts, protocols, and operational playbook.
+ 
+@@ 1.2 Architecture Diagram
+ **Flow for every task:**
+ - Human submits task → Mlawuli
+ - Mlawuli → Sibali (cost clearance + payload trim)
+ - Sibali → Mlawuli (approved payload + token budget)
+ - Mlawuli → Worker Agent (optimized payload)
+ - Worker Agent → Mlawuli (completed work)
+ - Mlawuli → Sibali (final cost indexing)
+ - Mlawuli → Human / Dashboard (result)
++
++> **Implementation Note (Windows Reference Deployment)**  
++> In the reference implementation, Mlawuli and worker agents execute as
++> **persistent Windows services** using NSSM. Inter-agent communication occurs
++> via a **file-based JSON task queue** rather than in-memory RPC. This enables
++> background execution, crash recovery, and survivability across reboot.
+ 
++### 1.4 Execution Model (Windows Service Mode)
++
++The reference implementation runs all agents as **long-lived PowerShell
++processes** registered as Windows services.
++
++Rules:
++- Agents MUST never exit unless explicitly stopped
++- Infinite execution loops are mandatory
++- Crash recovery is handled by the service manager (NSSM)
++- Agents must tolerate restart at any loop boundary
+ 
+@@ §3.2 Mlawuli — CORE DIRECTIVES
+ 4. Hard Cap Enforcement: Monitor iteration cycles. Terminate runaway loops immediately.
++
++5. Execution Persistence: Mlawuli MUST execute as a persistent process.
++   Exiting the process is considered a fatal failure.
++
++6. Queue Discipline: All task queue reads MUST be normalised into arrays,
++   regardless of JSON cardinality.
+ 
+@@ §3.6 Umakhi — CORE DIRECTIVES
+ 11. Goal-driven execution (§15.4): for multi-step tasks, output a brief plan before beginning.
++
++12. Patch Discipline:
++    Umakhi MUST emit valid `git apply` patches only.
++    Prose or partial diffs are forbidden.
++
++13. Crash Safety:
++    Umakhi MUST trap runtime errors and MUST NOT corrupt the task queue.
+ 
+@@ JSON Communication Protocol
+ ### 5.4 Worker Agent Response
+ {
+   "agent": "...",
+   "task_id": "...",
+   "status": "COMPLETED | NEEDS_INPUT | ESCALATING | FAILED",
+   "iteration": 1,
+   "output": { ... },
+   "needs_from": null
+ }
++
++### 5.5 File-Based Task Queue (Reference Implementation)
++
++The reference deployment uses a filesystem-backed queue.
++
++```text
++queue/
++  tasks.json
++```
++
++Task object:
++
++```json
++{
++  "id": "yyyyMMddHHmmss",
++  "type": "build",
++  "status": "pending | running | done"
++}
++```
++
++Rules:
++- `tasks.json` MUST always encode a JSON array
++- Agents MUST normalise decoded JSON to an array
++- Agents MUST synchronously persist task state transitions
+ 
+@@ §11 Operational Playbook
++### 11.6 Windows Service Operations (Reference)
++
++In the reference implementation, agents are managed as Windows services via NSSM.
++
++Requirements:
++- Infinite loops (non-terminating)
++- Stdout/stderr redirected to logs
++- Automatic restart enabled
++- No interactive prompts
++
++Example commands:
++
++```powershell
++nssm status AI-Orchestrator
++nssm restart AI-Umakhi
++```
+ 
+@@ Observability
+ **Pattern 21 — Standardized Debug Hook**
++
++**Pattern 23 — PowerShell JSON Cardinality Failure**
++
++Problem:
++`ConvertFrom-Json` returns a scalar object for single-item arrays,
++breaking mutation with `+=`.
++
++Fix:
++All decoded JSON MUST be normalised:
++
++```powershell
++$tasks = @($decodedJson)
++```
+ 
+@@ §4.4 Deployment Steps
+ **Step 7 — Test with a sample task**
+ Route a simple task through the full chain.
++
++**Step 8 — Register Persistent Services**
++
++Deploy all agents as Windows services using NSSM.
++Deployment is incomplete until all agents report `SERVICE_RUNNING`.
