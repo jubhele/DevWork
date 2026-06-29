@@ -3,8 +3,6 @@
 import { useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://blackfiresolutions.co.za/api'
-
 export default function NewCalloutPage() {
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
@@ -16,19 +14,19 @@ export default function NewCalloutPage() {
     setError(null)
     const data = new FormData(event.currentTarget)
     try {
-      const res = await fetch(`${API_BASE}/callouts.php`, {
+      const res = await fetch('/api/callouts', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
         body: JSON.stringify({
-          client_name: data.get('client_name'),
+          clientName: data.get('client_name'),
           service: data.get('service'),
           location: data.get('location'),
           priority: data.get('priority'),
-          assigned_to: data.get('assigned_to') || null,
-          callout_date: data.get('callout_date'),
-          callout_time: data.get('callout_time') || null,
-          notes: data.get('notes') || null,
+          tech: data.get('assigned_to') || undefined,
+          calloutDate: data.get('callout_date') || undefined,
+          calloutTime: data.get('callout_time') || undefined,
+          notes: data.get('notes') || undefined,
         }),
       })
       const body = await res.json()
@@ -36,7 +34,7 @@ export default function NewCalloutPage() {
       router.push('/tracker?stream=call-log')
       router.refresh()
     } catch {
-      setError('Could not reach the portal API.')
+      setError('Could not reach the API.')
     } finally {
       setSaving(false)
     }

@@ -4,7 +4,6 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Task, TaskStatus } from '@blackfire/types'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://blackfiresolutions.co.za/api'
 const STATUSES: TaskStatus[] = ['Open', 'In Progress', 'Done', 'Cancelled']
 
 export default function TaskActions({ task, canUpdate }: { task: Task; canUpdate: boolean }) {
@@ -19,21 +18,21 @@ export default function TaskActions({ task, canUpdate }: { task: Task; canUpdate
     startTransition(async () => {
       setError(null)
       try {
-        const response = await fetch(`${API_BASE}/tasks.php?id=${encodeURIComponent(task.ref_id)}`, {
-          method: 'PUT',
+        const response = await fetch('/api/tasks', {
+          method: 'PATCH',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-          body: JSON.stringify({ status: nextStatus }),
+          body: JSON.stringify({ id: task.ref_id, status: nextStatus }),
         })
         const body = await response.json()
         if (!response.ok || !body.success) {
-          setError(body.error ?? 'Status could not be updated.')
+          setError(body.message ?? 'Status could not be updated.')
           return
         }
         setStatus(nextStatus)
         router.refresh()
       } catch {
-        setError('Could not reach the portal API.')
+        setError('Could not reach the API.')
       }
     })
   }

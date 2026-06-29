@@ -1,15 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
-import Anthropic from '@anthropic-ai/sdk'
+import { getServerAnthropicKey } from '@/lib/server-ai-key'
+import { callLLMWithFallback, createRouteLogger, mapAIServiceError } from '@/lib/ai-retry-handler'
+
+const logger = createRouteLogger('api/ai/voice-to-callout')
 
 // Voice-to-Callout
 // Accepts: multipart/form-data with audio file field "audio"
 // 1. Transcribes via OpenAI Whisper
-// 2. Extracts structured callout fields via Claude
+// 2. Extracts structured callout fields via Claude (or fallback providers)
 // Returns: { transcript, callout: { service, location, priority, description, actions_taken } }
 
-async function transcribeWithWhisper(audioBlob: Blob, filename: string): Promise<string> {
-  const openAiKey = process.env.GBL_OPENAI_API_KEY
-  if (!openAiKey) throw new Error('GBL_OPENAI_API_KEY not configured')
+async function transcribeWithWhisper(audioBlob: Blob, filename: string, openaiKey: string): Promise<string> {
+  if (!openaiKey) throw new Error('GBL_OPENAI_API_KEY not configured')
 
   const form = new FormData()
   form.append('file', audioBlob, filename)
@@ -18,7 +20,7 @@ async function transcribeWithWhisper(audioBlob: Blob, filename: string): Promise
 
   const res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
     method: 'POST',
-    headers: { Authorization: `Bearer ${openAiKey}` },
+    headers: { Authorization: `Bearer ${openaiKey}` },
     body: form,
   })
   if (!res.ok) {
@@ -30,9 +32,22 @@ async function transcribeWithWhisper(audioBlob: Blob, filename: string): Promise
 }
 
 export async function POST(req: NextRequest) {
-  const anthropicKey = process.env.GBL_ANTHROPIC_API_KEY
-  if (!anthropicKey) {
-    return NextResponse.json({ success: false, message: 'AI not configured — set GBL_ANTHROPIC_API_KEY' }, { status: 503 })
+  const anthropicKey = getServerAnthropicKey() ?? process.env.GBL_ANTHROPIC_API_KEY
+  const openaiKey = process.env.GBL_OPENAI_API_KEY
+  const googleKey = process.env.GBL_GOOGLE_AI_API_KEY
+
+  if (!openaiKey) {
+    return NextResponse.json(
+      { success: false, message: 'OpenAI Whisper not configured — set GBL_OPENAI_API_KEY' },
+      { status: 503 }
+    )
+  }
+
+  if (!anthropicKey && !openaiKey && !googleKey) {
+    return NextResponse.json(
+      { success: false, message: 'No AI providers configured for extraction' },
+      { status: 503 }
+    )
   }
 
   let transcript: string
@@ -42,20 +57,23 @@ export async function POST(req: NextRequest) {
     if (!audioFile) return NextResponse.json({ success: false, message: 'No audio file provided' }, { status: 400 })
 
     const audioBlob = new Blob([await audioFile.arrayBuffer()], { type: audioFile.type || 'audio/webm' })
-    transcript = await transcribeWithWhisper(audioBlob, audioFile.name || 'callout.webm')
+    transcript = await transcribeWithWhisper(audioBlob, audioFile.name || 'callout.webm', openaiKey)
+    logger.log(`[Whisper] ✓ Transcription complete (${transcript.length} chars)`)
   } catch (err) {
-    return NextResponse.json({ success: false, message: (err as Error).message }, { status: 502 })
+    const msg = (err as Error).message
+    logger.error(`Transcription failed: ${msg}`)
+    return NextResponse.json({ success: false, message: msg }, { status: 502 })
   }
 
   if (!transcript.trim()) {
     return NextResponse.json({ success: false, message: 'No speech detected in audio' }, { status: 422 })
   }
 
-  const client = new Anthropic({ apiKey: anthropicKey })
-  const message = await client.messages.create({
-    model: 'claude-haiku-4-5-20251001',
-    max_tokens: 512,
-    messages: [{
+  const result = await callLLMWithFallback(
+    anthropicKey,
+    openaiKey,
+    googleKey,
+    [{
       role: 'user',
       content: `Extract structured fields from this spoken field incident report from a BlackFire Solutions security officer at AECI Chempark, South Africa.
 
@@ -70,14 +88,23 @@ Return ONLY valid JSON with exactly these fields (use null for anything unclear)
 
 Transcript: "${transcript}"`
     }],
-  })
+    { model: 'claude-haiku-4-5-20251001', maxTokens: 512 },
+    logger
+  )
+
+  if (!result.success) {
+    logger.error(`Callout extraction failed: ${result.error}`)
+    const mapped = mapAIServiceError(result.error)
+    return NextResponse.json({ success: false, message: mapped.message }, { status: mapped.status })
+  }
 
   let callout: Record<string, unknown> = {}
   try {
-    const text = message.content[0].type === 'text' ? message.content[0].text : '{}'
+    const text = result.data?.content[0]?.text ?? '{}'
     const match = text.match(/\{[\s\S]*\}/)
     callout = match ? JSON.parse(match[0]) : {}
   } catch { callout = {} }
 
+  logger.log(`✓ Callout extraction complete via ${result.providerUsed}`)
   return NextResponse.json({ success: true, transcript, callout })
 }

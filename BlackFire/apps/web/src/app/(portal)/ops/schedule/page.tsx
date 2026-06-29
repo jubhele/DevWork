@@ -1,33 +1,8 @@
-import { cookies } from 'next/headers'
 import Link from 'next/link'
-import { getServerUser } from '@/lib/auth'
+import { getCurrentUser } from '@/lib/server-auth'
 import { redirect } from 'next/navigation'
 import type { Task } from '@blackfire/types'
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://blackfiresolutions.co.za/api'
-
-async function getTodaysTasks(cookieHeader: string): Promise<Task[]> {
-  const today = new Date().toISOString().slice(0, 10)
-  try {
-    const res = await fetch(`${API_BASE}/tasks.php?due_date=${today}&limit=100`, {
-      headers: { Cookie: cookieHeader, 'X-Requested-With': 'XMLHttpRequest' },
-      cache: 'no-store',
-    })
-    const body = res.ok ? await res.json() : null
-    return body?.success ? (body.data ?? []) : []
-  } catch { return [] }
-}
-
-async function getUpcomingTasks(cookieHeader: string): Promise<Task[]> {
-  try {
-    const res = await fetch(`${API_BASE}/tasks.php?status=Open,In+Progress&limit=100`, {
-      headers: { Cookie: cookieHeader, 'X-Requested-With': 'XMLHttpRequest' },
-      cache: 'no-store',
-    })
-    const body = res.ok ? await res.json() : null
-    return body?.success ? (body.data ?? []) : []
-  } catch { return [] }
-}
+import { getTasks } from '@/lib/data/tasks'
 
 const STATUS_STYLE: Record<string, string> = {
   'Open':        'bg-info/10 text-info',
@@ -37,14 +12,16 @@ const STATUS_STYLE: Record<string, string> = {
 }
 
 export default async function SchedulePage() {
-  const cookieHeader = (await cookies()).toString()
-  const user = await getServerUser(cookieHeader)
+  const user = await getCurrentUser()
   if (!user) redirect('/login')
 
-  const [todayTasks, upcoming] = await Promise.all([
-    getTodaysTasks(cookieHeader),
-    getUpcomingTasks(cookieHeader),
+  const todayStr = new Date().toISOString().slice(0, 10)
+  const [todayResult, upcomingResult] = await Promise.all([
+    getTasks({ dueDate: todayStr, limit: 100 }).catch(() => ({ data: [] as Task[] })),
+    getTasks({ status: ['Open', 'In Progress'], limit: 100 }).catch(() => ({ data: [] as Task[] })),
   ])
+  const todayTasks = todayResult.data
+  const upcoming  = upcomingResult.data
 
   const today = new Date().toLocaleDateString('en-ZA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 

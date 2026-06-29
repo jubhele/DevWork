@@ -1,29 +1,15 @@
-import { cookies } from 'next/headers'
 import Link from 'next/link'
-import { getServerUser } from '@/lib/auth'
+import { getCurrentUser } from '@/lib/server-auth'
+import { redirect } from 'next/navigation'
 import type { Client } from '@blackfire/types'
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://blackfiresolutions.co.za/api'
-
-async function getClients(cookieHeader: string): Promise<Client[]> {
-  try {
-    const res = await fetch(`${API_BASE}/clients.php?limit=500`, {
-      headers: { Cookie: cookieHeader, 'X-Requested-With': 'XMLHttpRequest' },
-      cache: 'no-store',
-    })
-    const body = res.ok ? await res.json() : null
-    return body?.success ? (body.data ?? []) : []
-  } catch {
-    return []
-  }
-}
+import { getClients } from '@/lib/data/clients'
 
 export default async function ClientsPage() {
-  const cookieHeader = (await cookies()).toString()
-  const user = await getServerUser(cookieHeader)
-  const clients = await getClients(cookieHeader)
+  const user = await getCurrentUser()
+  if (!user) redirect('/login')
+  const clients = await getClients()
 
-  const canCreate = user?.role === 'sysadmin' || user?.role === 'admin' || user?.role === 'manager'
+  const canCreate = user.role === 'sysadmin' || user.role === 'admin' || user.role === 'manager'
 
   return (
     <div>

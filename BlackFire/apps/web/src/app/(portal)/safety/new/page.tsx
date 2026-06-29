@@ -3,8 +3,6 @@
 import { useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://blackfiresolutions.co.za/api'
-
 export default function NewSafetyAuditPage() {
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
@@ -16,16 +14,15 @@ export default function NewSafetyAuditPage() {
     setError(null)
     const data = new FormData(event.currentTarget)
     try {
-      const res = await fetch(`${API_BASE}/safety.php`, {
+      const res = await fetch('/api/safety', {
         method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          client_name: data.get('client_name'),
-          site: data.get('site'),
-          audit_date: data.get('audit_date'),
-          auditor: data.get('auditor') || null,
-          notes: data.get('notes') || null,
+          clientName:  data.get('client_name'),
+          site:        data.get('site'),
+          auditDate:   data.get('audit_date'),
+          auditorName: data.get('auditor') || null,
+          notes:       data.get('notes') || null,
         }),
       })
       const body = await res.json()

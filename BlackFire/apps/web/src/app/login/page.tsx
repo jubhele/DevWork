@@ -1,8 +1,8 @@
 'use client'
 
-import { Suspense, useEffect, useState, type FormEvent, type ReactNode } from 'react'
+import { Suspense, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { auth } from '@blackfire/api-client'
+import { ApiError, auth } from '@blackfire/api-client'
 
 export default function LoginPage() {
   return (
@@ -19,10 +19,18 @@ function LoginForm() {
 
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
-  const [captchaQuestion, setCaptchaQuestion] = useState('Security check: loading…')
+  const [captchaQuestion, setCaptchaQuestion] = useState('Security check: loading...')
   const [captchaAnswer, setCaptchaAnswer] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const usernameRef = useRef<HTMLInputElement | null>(null)
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      usernameRef.current?.focus({ preventScroll: true })
+    }, 0)
+    return () => window.clearTimeout(timer)
+  }, [])
 
   useEffect(() => {
     let active = true
@@ -30,7 +38,7 @@ function LoginForm() {
     auth.captcha()
       .then(res => {
         if (!active) return
-        setCaptchaQuestion(res.data?.question ?? 'Security check: 1 + 5 = ?')
+        setCaptchaQuestion(res.question ?? 'Security check: 1 + 5 = ?')
       })
       .catch(() => {
         if (!active) return
@@ -53,8 +61,12 @@ function LoginForm() {
       } else {
         setError(res.message ?? 'Login failed')
       }
-    } catch {
-      setError('Could not reach the server. Try again.')
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message)
+      } else {
+        setError('Could not reach the server. Try again.')
+      }
     } finally {
       setLoading(false)
     }
@@ -63,52 +75,55 @@ function LoginForm() {
   return (
     <LoginShell
       form={
-        <form onSubmit={handleSubmit} className="bg-navy border border-steel-dark rounded-lg p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="relative z-20 bg-navy border border-steel-dark rounded-lg p-6 space-y-4">
           <div>
-            <label className="block text-xs text-ash mb-1 uppercase tracking-wider">Username</label>
+            <label htmlFor="username" className="block text-xs text-ash mb-1 uppercase tracking-wider">Username</label>
             <input
+              id="username"
               type="text"
+              autoFocus
+              ref={usernameRef}
               autoComplete="username"
               required
               value={username}
               onChange={e => setUsername(e.target.value)}
-              className="w-full bg-charcoal border border-steel-dark rounded px-3 py-2 text-sm text-bone-paper
-                         focus:outline-none focus:border-fire-orange transition-colors"
+              className="w-full cursor-text bg-charcoal border border-steel-dark rounded px-3 py-2 text-sm text-ink-text
+                         focus:outline-none focus:border-fire-orange focus:ring-1 focus:ring-fire-orange transition-colors"
             />
           </div>
 
           <div>
-            <label className="block text-xs text-ash mb-1 uppercase tracking-wider">Password</label>
+            <label htmlFor="password" className="block text-xs text-ash mb-1 uppercase tracking-wider">Password</label>
             <input
+              id="password"
               type="password"
               autoComplete="current-password"
               required
               value={password}
               onChange={e => setPassword(e.target.value)}
-              className="w-full bg-charcoal border border-steel-dark rounded px-3 py-2 text-sm text-bone-paper
-                         focus:outline-none focus:border-fire-orange transition-colors"
+              className="w-full cursor-text bg-charcoal border border-steel-dark rounded px-3 py-2 text-sm text-ink-text
+                         focus:outline-none focus:border-fire-orange focus:ring-1 focus:ring-fire-orange transition-colors"
             />
           </div>
 
           <div>
-            <label className="block text-xs text-ash mb-1 uppercase tracking-wider">
+            <label htmlFor="captcha" className="block text-xs text-ash mb-1 uppercase tracking-wider">
               {captchaQuestion}
             </label>
             <input
+              id="captcha"
               type="number"
               inputMode="numeric"
               autoComplete="off"
               required
               value={captchaAnswer}
               onChange={e => setCaptchaAnswer(e.target.value)}
-              className="w-full bg-charcoal border border-steel-dark rounded px-3 py-2 text-sm text-bone-paper
-                         focus:outline-none focus:border-fire-orange transition-colors"
+              className="w-full cursor-text bg-charcoal border border-steel-dark rounded px-3 py-2 text-sm text-ink-text
+                         focus:outline-none focus:border-fire-orange focus:ring-1 focus:ring-fire-orange transition-colors"
             />
           </div>
 
-          {error && (
-            <p className="text-danger text-xs">{error}</p>
-          )}
+          {error && <p className="text-danger text-xs">{error}</p>}
 
           <button
             type="submit"
@@ -140,9 +155,7 @@ function LoginShell({ form }: { form?: ReactNode }) {
 
         {form ?? <div className="h-64 bg-navy border border-steel-dark rounded-lg" />}
 
-        <p className="text-center text-xs text-ash mt-6">
-          Umlilo Portal
-        </p>
+        <p className="text-center text-xs text-ash mt-6">Umlilo Portal</p>
       </div>
     </div>
   )

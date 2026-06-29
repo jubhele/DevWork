@@ -1,27 +1,10 @@
 import { cookies } from 'next/headers'
 import Link from 'next/link'
 import { getServerUser } from '@/lib/auth'
+import { getDashboardData } from '@/lib/data/dashboard'
 import type { DashboardResponse, TaskCategory } from '@blackfire/types'
 import AnomalyWidget from '@/components/AnomalyWidget'
 import ReportTrigger from '@/components/ReportTrigger'
-
-async function getDashboard(): Promise<DashboardResponse | null> {
-  const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://blackfiresolutions.co.za/api'
-  const cookieStore = await cookies()
-  try {
-    const res = await fetch(`${API_BASE}/dashboard.php`, {
-      headers: {
-        Cookie: cookieStore.toString(),
-        'X-Requested-With': 'XMLHttpRequest',
-      },
-      cache: 'no-store',
-    })
-    const body = await res.json()
-    return body.success ? body : null
-  } catch {
-    return null
-  }
-}
 
 function KPICard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
   return (
@@ -36,7 +19,7 @@ function KPICard({ label, value, sub }: { label: string; value: string | number;
 export default async function DashboardPage() {
   const cookieStore = await cookies()
   const user = await getServerUser(cookieStore.toString())
-  const dashboard = await getDashboard()
+  const dashboard = user ? await getDashboardData(user.role) : null
   const kpis = dashboard?.data
   const streamLabels: Record<TaskCategory, string> = { admin: 'Admin', sales: 'Sales', general: 'General' }
 

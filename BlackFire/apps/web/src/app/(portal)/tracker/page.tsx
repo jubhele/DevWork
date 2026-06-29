@@ -1,35 +1,10 @@
-import { cookies } from 'next/headers'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import type { Callout, PaginatedResponse, Task, TaskCategory, TaskListResponse } from '@blackfire/types'
-import { getServerUser, can } from '@/lib/auth'
+import type { Callout, Task, TaskCategory } from '@blackfire/types'
+import { getCurrentUser, can } from '@/lib/server-auth'
 import { streamLabel, visibleTrackerStreams, type TrackerStream } from '@/lib/tracker'
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://blackfiresolutions.co.za/api'
-
-async function getTasks(category: TaskCategory, cookieHeader: string): Promise<TaskListResponse | null> {
-  try {
-    const response = await fetch(`${API_BASE}/tasks.php?category=${category}&limit=500`, {
-      headers: { Cookie: cookieHeader, 'X-Requested-With': 'XMLHttpRequest' },
-      cache: 'no-store',
-    })
-    return response.ok ? response.json() : null
-  } catch {
-    return null
-  }
-}
-
-async function getCallouts(cookieHeader: string): Promise<PaginatedResponse<Callout> | null> {
-  try {
-    const response = await fetch(`${API_BASE}/callouts.php?limit=500`, {
-      headers: { Cookie: cookieHeader, 'X-Requested-With': 'XMLHttpRequest' },
-      cache: 'no-store',
-    })
-    return response.ok ? response.json() : null
-  } catch {
-    return null
-  }
-}
+import { getTasks } from '@/lib/data/tasks'
+import { getCallouts } from '@/lib/data/callouts'
 
 function Status({ value }: { value: string }) {
   const tone = value === 'Done' || value === 'Completed' || value === 'Invoiced'
@@ -49,8 +24,7 @@ export default async function TrackerPage({
 }: {
   searchParams: Promise<{ stream?: string }>
 }) {
-  const cookieHeader = (await cookies()).toString()
-  const user = await getServerUser(cookieHeader)
+  const user = await getCurrentUser()
   if (!user) notFound()
 
   const streams = visibleTrackerStreams(user)
@@ -58,8 +32,8 @@ export default async function TrackerPage({
 
   const requested = (await searchParams).stream as TrackerStream | undefined
   const active = requested && streams.includes(requested) ? requested : streams[0]
-  const tasks = active === 'call-log' ? [] : (await getTasks(active, cookieHeader))?.data ?? []
-  const callouts = active === 'call-log' ? (await getCallouts(cookieHeader))?.data ?? [] : []
+  const tasks = active === 'call-log' ? [] : (await getTasks({ category: active as TaskCategory }).catch(() => ({ data: [] }))).data
+  const callouts = active === 'call-log' ? (await getCallouts().catch(() => ({ data: [] }))).data : []
 
   return (
     <div>

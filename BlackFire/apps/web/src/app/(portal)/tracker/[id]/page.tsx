@@ -1,29 +1,18 @@
-import { cookies } from 'next/headers'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { Task } from '@blackfire/types'
-import { can, getServerUser } from '@/lib/auth'
+import { getCurrentUser, can } from '@/lib/server-auth'
 import { TASK_CATEGORY_LABELS } from '@/lib/tracker'
 import TaskActions from './TaskActions'
 import TrackerRecordPanel from '@/components/TrackerRecordPanel'
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://blackfiresolutions.co.za/api'
+import { getTask } from '@/lib/data/tasks'
 
 export default async function TaskPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const cookieHeader = (await cookies()).toString()
-  const user = await getServerUser(cookieHeader)
+  const user = await getCurrentUser()
   if (!user) notFound()
 
-  let task: Task | null = null
-  try {
-    const response = await fetch(`${API_BASE}/tasks.php?id=${encodeURIComponent(id)}`, {
-      headers: { Cookie: cookieHeader, 'X-Requested-With': 'XMLHttpRequest' },
-      cache: 'no-store',
-    })
-    const body = response.ok ? await response.json() : null
-    task = body?.success ? body.data : null
-  } catch {}
+  const task = await getTask(id).catch(() => null)
   if (!task) notFound()
 
   return (

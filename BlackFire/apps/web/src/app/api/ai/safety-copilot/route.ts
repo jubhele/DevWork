@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import Anthropic from '@anthropic-ai/sdk'
+import { getServerAnthropicKey } from '@/lib/server-ai-key'
+import { callLLMWithFallback, createRouteLogger, mapAIServiceError } from '@/lib/ai-retry-handler'
+
+const logger = createRouteLogger('api/ai/safety-copilot')
 
 // Safety Co-pilot — three capabilities:
 //   action=prefill   → pre-populate new file from prior submissions for same site
@@ -7,25 +10,31 @@ import Anthropic from '@anthropic-ai/sdk'
 //   action=risk      → forward risk assessment before submission
 
 export async function POST(req: NextRequest) {
-  const apiKey = process.env.GBL_ANTHROPIC_API_KEY
-  if (!apiKey) {
-    return NextResponse.json({ success: false, message: 'AI not configured — set GBL_ANTHROPIC_API_KEY' }, { status: 503 })
+  const anthropicKey = getServerAnthropicKey() ?? process.env.GBL_ANTHROPIC_API_KEY
+  const openaiKey = process.env.GBL_OPENAI_API_KEY
+  const googleKey = process.env.GBL_GOOGLE_AI_API_KEY
+
+  if (!anthropicKey && !openaiKey && !googleKey) {
+    return NextResponse.json(
+      { success: false, message: 'No AI providers configured — set GBL_ANTHROPIC_API_KEY, GBL_OPENAI_API_KEY, or GBL_GOOGLE_AI_API_KEY' },
+      { status: 503 }
+    )
   }
 
   const body = await req.json().catch(() => ({}))
   const action = body.action as string
 
-  const client = new Anthropic({ apiKey })
-
   // ── Comment generation ────────────────────────────────────────────────────
   if (action === 'comment') {
     const { section, item_number, description, status, notes } = body
-    const message = await client.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 400,
-      messages: [{
-        role: 'user',
-        content: `You are a South African OHS Act compliance officer writing a safety file audit comment for AECI Chempark.
+    try {
+      const result = await callLLMWithFallback(
+        anthropicKey,
+        openaiKey,
+        googleKey,
+        [{
+          role: 'user',
+          content: `You are a South African OHS Act compliance officer writing a safety file audit comment for AECI Chempark.
 
 Section: ${section}
 Item ${item_number}: ${description}
@@ -38,10 +47,21 @@ Write a concise, professional remediation comment (2-3 sentences) that:
 3. Uses formal, audit-standard language
 
 Return only the comment text, no preamble.`
-      }],
-    })
-    const comment = message.content[0].type === 'text' ? message.content[0].text.trim() : ''
+        }],
+        { model: 'claude-sonnet-4-6', maxTokens: 400 },
+        logger
+      )
+    if (!result.success) {
+        const mapped = mapAIServiceError(result.error)
+        return NextResponse.json({ success: false, message: mapped.message }, { status: mapped.status })
+    }
+    const comment = result.data?.content[0]?.text?.trim() ?? ''
+    logger.log(`✓ Comment generated via ${result.providerUsed}`)
     return NextResponse.json({ success: true, comment })
+    } catch (err) {
+      const mapped = mapAIServiceError(err instanceof Error ? err.message : String(err))
+      return NextResponse.json({ success: false, message: mapped.message }, { status: mapped.status })
+    }
   }
 
   // ── Risk prediction ───────────────────────────────────────────────────────
@@ -52,10 +72,11 @@ Return only the comment text, no preamble.`
     const failing = items.filter(i => i.status === 'Not to Standard' || i.status === 'Fail')
     const pending = items.filter(i => i.status === 'Pending')
 
-    const message = await client.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 600,
-      messages: [{
+    const result = await callLLMWithFallback(
+      anthropicKey,
+      openaiKey,
+      googleKey,
+      [{
         role: 'user',
         content: `You are an OHS compliance risk analyst reviewing a safety file before submission for AECI Chempark, South Africa.
 
@@ -65,13 +86,20 @@ Pending items (${pending.length}): ${JSON.stringify(pending.slice(0, 10))}
 Identify up to 3 forward risks that AECI's safety department is likely to flag at inspection. Return a JSON array only — no other text:
 [{ "risk": "short title", "severity": "high|medium|low", "detail": "1-2 sentences explaining the risk and suggested pre-submission action" }]`
       }],
-    })
+      { model: 'claude-sonnet-4-6', maxTokens: 600 },
+      logger
+    )
+    if (!result.success) {
+      const mapped = mapAIServiceError(result.error)
+      return NextResponse.json({ success: false, message: mapped.message }, { status: mapped.status })
+    }
     let flags: unknown[] = []
     try {
-      const text = message.content[0].type === 'text' ? message.content[0].text : '[]'
+      const text = result.data?.content[0]?.text ?? '[]'
       const match = text.match(/\[[\s\S]*\]/)
       flags = match ? JSON.parse(match[0]) : []
     } catch { flags = [] }
+    logger.log(`✓ Risk assessment via ${result.providerUsed} — found ${flags.length} risks`)
     return NextResponse.json({ success: true, flags })
   }
 

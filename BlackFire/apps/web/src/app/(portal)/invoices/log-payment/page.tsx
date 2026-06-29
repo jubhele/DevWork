@@ -4,8 +4,6 @@ import { useState, useEffect, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Invoice } from '@blackfire/types'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://blackfiresolutions.co.za/api'
-
 export default function LogPaymentPage() {
   const router = useRouter()
   const [invoices, setInvoices] = useState<Invoice[]>([])
@@ -13,10 +11,7 @@ export default function LogPaymentPage() {
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    fetch(`${API_BASE}/invoices.php?status=Sent,Overdue,Partial&limit=200`, {
-      credentials: 'include',
-      headers: { 'X-Requested-With': 'XMLHttpRequest' },
-    })
+    fetch('/api/invoices?status=Sent,Overdue,Partial&limit=200')
       .then(r => r.ok ? r.json() : null)
       .then(body => { if (body?.success) setInvoices(body.data ?? []) })
       .catch(() => null)
@@ -28,12 +23,11 @@ export default function LogPaymentPage() {
     setError(null)
     const data = new FormData(event.currentTarget)
     try {
-      const res = await fetch(`${API_BASE}/invoices.php?action=payment`, {
+      const res = await fetch('/api/payments', {
         method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          invoice_id: data.get('invoice_id'),
+          invoice_id: Number(data.get('invoice_id')),
           amount: parseFloat(data.get('amount') as string) || 0,
           method: data.get('method'),
           reference: data.get('reference') || null,

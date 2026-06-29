@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import Anthropic from '@anthropic-ai/sdk'
+import { getServerAnthropicKey } from '@/lib/server-ai-key'
+import { callLLMWithFallback, createRouteLogger, mapAIServiceError } from '@/lib/ai-retry-handler'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://blackfiresolutions.co.za/api'
+const logger = createRouteLogger('api/ai/anomaly')
 
 // Fetch the last 90 days of callouts from the PHP API using the request's session cookie
 async function fetchCallouts(cookieHeader: string) {
@@ -15,9 +17,15 @@ async function fetchCallouts(cookieHeader: string) {
 }
 
 export async function GET(req: NextRequest) {
-  const apiKey = process.env.GBL_ANTHROPIC_API_KEY
-  if (!apiKey) {
-    return NextResponse.json({ success: false, message: 'AI not configured — set GBL_ANTHROPIC_API_KEY' }, { status: 503 })
+  const anthropicKey = getServerAnthropicKey() ?? process.env.GBL_ANTHROPIC_API_KEY
+  const openaiKey = process.env.GBL_OPENAI_API_KEY
+  const googleKey = process.env.GBL_GOOGLE_AI_API_KEY
+
+  if (!anthropicKey && !openaiKey && !googleKey) {
+    return NextResponse.json(
+      { success: false, message: 'No AI providers configured — set GBL_ANTHROPIC_API_KEY, GBL_OPENAI_API_KEY, or GBL_GOOGLE_AI_API_KEY' },
+      { status: 503 }
+    )
   }
 
   const cookieHeader = req.headers.get('cookie') ?? ''
@@ -41,12 +49,11 @@ export async function GET(req: NextRequest) {
     location: c.location,
   }))
 
-  const client = new Anthropic({ apiKey })
-
-  const message = await client.messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 1024,
-    messages: [{
+  const result = await callLLMWithFallback(
+    anthropicKey,
+    openaiKey,
+    googleKey,
+    [{
       role: 'user',
       content: `You are a security operations analyst reviewing field service callout data for BlackFire Solutions, a security company at AECI Chempark, South Africa.
 
@@ -61,18 +68,31 @@ Return ONLY a JSON array. Each item must have exactly these fields:
 If no noteworthy patterns exist, return an empty array [].
 
 Callout data (${callouts.length} records):
-${JSON.stringify(summary, null, 2)}`
+${JSON.stringify(summary, null, 2)}`,
     }],
-  })
+    { model: 'claude-sonnet-4-6', maxTokens: 1024 },
+    logger
+  )
+
+  if (!result.success) {
+    logger.error(`All providers failed: ${result.error}`)
+    const mapped = mapAIServiceError(result.error)
+    return NextResponse.json(
+      { success: false, message: mapped.message },
+      { status: mapped.status }
+    )
+  }
 
   let flags: unknown[] = []
   try {
-    const text = message.content[0].type === 'text' ? message.content[0].text : '[]'
+    const text = result.data?.content[0]?.text ?? '[]'
     const match = text.match(/\[[\s\S]*\]/)
     flags = match ? JSON.parse(match[0]) : []
-  } catch {
+  } catch (err) {
+    logger.error(`Failed to parse response: ${err instanceof Error ? err.message : 'Unknown error'}`)
     flags = []
   }
 
+  logger.log(`✓ Analysis complete via ${result.providerUsed}. Found ${flags.length} anomalies in ${callouts.length} records.`)
   return NextResponse.json({ success: true, flags, analysed: callouts.length })
 }

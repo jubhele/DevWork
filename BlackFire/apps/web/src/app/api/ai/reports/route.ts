@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import Anthropic from '@anthropic-ai/sdk'
+import { getServerAnthropicKey } from '@/lib/server-ai-key'
+import { callLLMWithFallback, createRouteLogger, mapAIServiceError } from '@/lib/ai-retry-handler'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://blackfiresolutions.co.za/api'
+const logger = createRouteLogger('api/ai/reports')
 
 async function fetchAll(cookieHeader: string) {
   const headers = { Cookie: cookieHeader, 'X-Requested-With': 'XMLHttpRequest' }
@@ -21,9 +23,15 @@ async function fetchAll(cookieHeader: string) {
 }
 
 export async function POST(req: NextRequest) {
-  const apiKey = process.env.GBL_ANTHROPIC_API_KEY
-  if (!apiKey) {
-    return NextResponse.json({ success: false, message: 'AI not configured — set GBL_ANTHROPIC_API_KEY' }, { status: 503 })
+  const anthropicKey = getServerAnthropicKey() ?? process.env.GBL_ANTHROPIC_API_KEY
+  const openaiKey = process.env.GBL_OPENAI_API_KEY
+  const googleKey = process.env.GBL_GOOGLE_AI_API_KEY
+
+  if (!anthropicKey && !openaiKey && !googleKey) {
+    return NextResponse.json(
+      { success: false, message: 'No AI providers configured — set GBL_ANTHROPIC_API_KEY, GBL_OPENAI_API_KEY, or GBL_GOOGLE_AI_API_KEY' },
+      { status: 503 }
+    )
   }
 
   const cookieHeader = req.headers.get('cookie') ?? ''
@@ -63,12 +71,11 @@ export async function POST(req: NextRequest) {
 
   const latestSafety = safetyList[0] as Record<string, unknown> | undefined
 
-  const client = new Anthropic({ apiKey })
-
-  const message = await client.messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 2048,
-    messages: [{
+  const result = await callLLMWithFallback(
+    anthropicKey,
+    openaiKey,
+    googleKey,
+    [{
       role: 'user',
       content: `You are a senior security analyst writing a monthly client intelligence report for BlackFire Solutions — a professional security services company operating at ${client_name} in Modderfontein, Johannesburg, South Africa.
 
@@ -91,12 +98,24 @@ REPORT STRUCTURE (use these exact headings):
 ## Risk Assessment
 ## Recommended Actions for ${client_name}
 
-End with a professional closing paragraph from BlackFire Solutions leadership. Keep each section concise — this is an executive-level document.`
+End with a professional closing paragraph from BlackFire Solutions leadership. Keep each section concise — this is an executive-level document.`,
     }],
-  })
+    { model: 'claude-sonnet-4-6', maxTokens: 2048 },
+    logger
+  )
 
-  const reportText = message.content[0].type === 'text' ? message.content[0].text : 'Report generation failed.'
+  if (!result.success) {
+    logger.error(`All providers failed: ${result.error}`)
+    const mapped = mapAIServiceError(result.error)
+    return NextResponse.json(
+      { success: false, message: mapped.message },
+      { status: mapped.status }
+    )
+  }
 
+  const reportText = result.data?.content[0]?.text ?? 'Report generation failed.'
+
+  logger.log(`✓ Report generated via ${result.providerUsed} for ${client_name} (${month})`)
   return NextResponse.json({
     success: true,
     report: reportText,

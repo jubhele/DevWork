@@ -1,45 +1,18 @@
-import { cookies } from 'next/headers'
-import { getServerUser } from '@/lib/auth'
+import { getCurrentUser } from '@/lib/server-auth'
 import { notFound } from 'next/navigation'
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://blackfiresolutions.co.za/api'
-
-interface AuditEntry {
-  id: number
-  username: string
-  action: string
-  entity_type: string | null
-  entity_ref: string | null
-  detail: string | null
-  ip: string | null
-  created_at: string
-}
-
-async function getAuditLog(cookieHeader: string, page: number): Promise<{ data: AuditEntry[]; total: number }> {
-  try {
-    const res = await fetch(`${API_BASE}/audit.php?limit=100&offset=${(page - 1) * 100}`, {
-      headers: { Cookie: cookieHeader, 'X-Requested-With': 'XMLHttpRequest' },
-      cache: 'no-store',
-    })
-    const body = res.ok ? await res.json() : null
-    return body?.success ? { data: body.data ?? [], total: body.total ?? 0 } : { data: [], total: 0 }
-  } catch {
-    return { data: [], total: 0 }
-  }
-}
+import { getAuditLog, type AuditEntry } from '@/lib/data/audit'
 
 export default async function AuditPage({
   searchParams,
 }: {
   searchParams: Promise<{ page?: string }>
 }) {
-  const cookieHeader = (await cookies()).toString()
-  const user = await getServerUser(cookieHeader)
+  const user = await getCurrentUser()
 
   if (!user || !['sysadmin', 'admin'].includes(user.role)) notFound()
 
   const page = Math.max(1, parseInt((await searchParams).page ?? '1'))
-  const { data: entries, total } = await getAuditLog(cookieHeader, page)
+  const { data: entries, total } = await getAuditLog(page)
   const totalPages = Math.ceil(total / 100)
 
   return (

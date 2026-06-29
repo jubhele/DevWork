@@ -11,13 +11,13 @@ import type {
   Statement,
   DashboardKPIs,
   AuditEvent,
+  Task,
+  TaskCategory,
+  TaskStatus,
 } from '@blackfire/types'
 
 // Injected at build time — web uses session cookie, mobile passes Bearer token
-const API_BASE =
-  typeof process !== 'undefined'
-    ? process.env.NEXT_PUBLIC_API_BASE ?? 'https://blackfiresolutions.co.za/api'
-    : 'https://blackfiresolutions.co.za/api'
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://blackfiresolutions.co.za/api'
 
 export class AuthError extends Error {
   constructor() { super('Unauthenticated') }
@@ -57,16 +57,46 @@ async function apiFetch<T>(endpoint: string, options: FetchOptions = {}): Promis
 // ─── Auth ────────────────────────────────────────────────────────────────────
 
 export const auth = {
-  captcha: () =>
-    apiFetch<ApiResponse<{ question: string }>>('auth.php?action=captcha'),
+  captcha: async () => {
+    const res = await fetch('/api/auth/captcha', {
+      credentials: 'include',
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+    })
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      throw new ApiError(res.status, body.message ?? `HTTP ${res.status}`)
+    }
+    return res.json() as Promise<{ success: boolean; message?: string; question?: string }>
+  },
 
-  me: (token?: string) =>
-    apiFetch<ApiResponse<User>>('auth.php?action=me', { token }),
+  me: async () => {
+    const res = await fetch('/api/auth/me', {
+      credentials: 'include',
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+    })
+    if (res.status === 401) throw new AuthError()
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      throw new ApiError(res.status, body.message ?? `HTTP ${res.status}`)
+    }
+    return res.json() as Promise<ApiResponse<User>>
+  },
 
   login: (username: string, password: string, captcha?: string) =>
-    apiFetch<AuthResponse>('auth.php?action=login', {
+    fetch('/api/auth/login', {
       method: 'POST',
+      credentials: 'include',
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({ username, password, captcha }),
+    }).then(async res => {
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new ApiError(res.status, body.message ?? `HTTP ${res.status}`)
+      }
+      return res.json() as Promise<AuthResponse>
     }),
 
   mobileLogin: (username: string, password: string, device_id: string, device_name: string) =>
@@ -76,14 +106,24 @@ export const auth = {
     }),
 
   logout: (token?: string) =>
-    apiFetch<ApiResponse>('auth.php?action=logout', { method: 'POST', token }),
+    fetch('/api/auth/logout', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+    }).then(async res => {
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new ApiError(res.status, body.message ?? `HTTP ${res.status}`)
+      }
+      return res.json() as Promise<ApiResponse>
+    }),
 }
 
 // ─── Dashboard ───────────────────────────────────────────────────────────────
 
 export const dashboard = {
   kpis: (token?: string) =>
-    apiFetch<ApiResponse<DashboardKPIs>>('dashboard.php', { token }),
+    apiFetch<ApiResponse<DashboardKPIs>>('/api/dashboard', { token }),
 }
 
 // ─── Callouts ────────────────────────────────────────────────────────────────
@@ -91,14 +131,14 @@ export const dashboard = {
 export const callouts = {
   list: (params?: Record<string, string>, token?: string) => {
     const qs = params ? '?' + new URLSearchParams(params).toString() : ''
-    return apiFetch<PaginatedResponse<Callout>>(`callouts.php${qs}`, { token })
+    return apiFetch<{ success: boolean; data: Callout[]; total: number }>(`/api/callouts${qs}`, { token })
   },
   get: (id: number, token?: string) =>
-    apiFetch<ApiResponse<Callout>>(`callouts.php?id=${id}`, { token }),
+    apiFetch<ApiResponse<Callout>>(`/api/callouts?id=${id}`, { token }),
   create: (data: Partial<Callout>, token?: string) =>
-    apiFetch<ApiResponse<Callout>>('callouts.php', { method: 'POST', body: JSON.stringify(data), token }),
+    apiFetch<ApiResponse<Callout>>('/api/callouts', { method: 'POST', body: JSON.stringify(data), token }),
   update: (id: number, data: Partial<Callout>, token?: string) =>
-    apiFetch<ApiResponse<Callout>>(`callouts.php?id=${id}`, { method: 'PUT', body: JSON.stringify(data), token }),
+    apiFetch<ApiResponse<Callout>>(`/api/callouts?id=${id}`, { method: 'PUT', body: JSON.stringify(data), token }),
 }
 
 // ─── Quotes ──────────────────────────────────────────────────────────────────
@@ -106,10 +146,12 @@ export const callouts = {
 export const quotes = {
   list: (params?: Record<string, string>, token?: string) => {
     const qs = params ? '?' + new URLSearchParams(params).toString() : ''
-    return apiFetch<PaginatedResponse<Quote>>(`quotes.php${qs}`, { token })
+    return apiFetch<{ success: boolean; data: Quote[]; total: number }>(`/api/quotes${qs}`, { token })
   },
   get: (id: number, token?: string) =>
-    apiFetch<ApiResponse<Quote>>(`quotes.php?id=${id}`, { token }),
+    apiFetch<ApiResponse<Quote>>(`/api/quotes?id=${id}`, { token }),
+  create: (data: Partial<Quote> & { items: Array<{ description: string; qty: number; unitPrice: number }> }, token?: string) =>
+    apiFetch<ApiResponse<Quote>>('/api/quotes', { method: 'POST', body: JSON.stringify(data), token }),
   approve: (id: number, token?: string) =>
     apiFetch<ApiResponse>(`approvals.php`, { method: 'POST', body: JSON.stringify({ type: 'quote', id }), token }),
 }
@@ -119,19 +161,38 @@ export const quotes = {
 export const invoices = {
   list: (params?: Record<string, string>, token?: string) => {
     const qs = params ? '?' + new URLSearchParams(params).toString() : ''
-    return apiFetch<PaginatedResponse<Invoice>>(`invoices.php${qs}`, { token })
+    return apiFetch<{ success: boolean; data: Invoice[]; total: number }>(`/api/invoices${qs}`, { token })
   },
   get: (id: number, token?: string) =>
-    apiFetch<ApiResponse<Invoice>>(`invoices.php?id=${id}`, { token }),
+    apiFetch<ApiResponse<Invoice>>(`/api/invoices?id=${id}`, { token }),
+  create: (data: Partial<Invoice>, token?: string) =>
+    apiFetch<ApiResponse<Invoice>>('/api/invoices', { method: 'POST', body: JSON.stringify(data), token }),
+  markPaid: (id: number, paidDate?: string, token?: string) =>
+    apiFetch<ApiResponse<Invoice>>('/api/invoices', { method: 'PATCH', body: JSON.stringify({ id, paidDate }), token }),
 }
 
 // ─── Clients ─────────────────────────────────────────────────────────────────
 
 export const clients = {
   list: (token?: string) =>
-    apiFetch<ApiResponse<Client[]>>('clients.php', { token }),
+    apiFetch<ApiResponse<Client[]>>('/api/clients', { token }),
   get: (id: number, token?: string) =>
-    apiFetch<ApiResponse<Client>>(`clients.php?id=${id}`, { token }),
+    apiFetch<ApiResponse<Client>>(`/api/clients?id=${id}`, { token }),
+}
+
+// ─── Tasks ───────────────────────────────────────────────────────────────────
+
+export const tasks = {
+  list: (params?: Record<string, string>, token?: string) => {
+    const qs = params ? '?' + new URLSearchParams(params).toString() : ''
+    return apiFetch<{ success: boolean; data: Task[]; total: number }>(`/api/tasks${qs}`, { token })
+  },
+  get: (id: string | number, token?: string) =>
+    apiFetch<ApiResponse<Task>>(`/api/tasks?id=${id}`, { token }),
+  create: (data: { category: TaskCategory; title: string; [k: string]: unknown }, token?: string) =>
+    apiFetch<ApiResponse<Task>>('/api/tasks', { method: 'POST', body: JSON.stringify(data), token }),
+  updateStatus: (refId: string, status: TaskStatus, token?: string) =>
+    apiFetch<ApiResponse<Task>>('/api/tasks', { method: 'PATCH', body: JSON.stringify({ id: refId, status }), token }),
 }
 
 // ─── Safety ──────────────────────────────────────────────────────────────────
@@ -139,15 +200,17 @@ export const clients = {
 export const safety = {
   list: (params?: Record<string, string>, token?: string) => {
     const qs = params ? '?' + new URLSearchParams(params).toString() : ''
-    return apiFetch<PaginatedResponse<SafetyFile>>(`safety.php${qs}`, { token })
+    return apiFetch<PaginatedResponse<SafetyFile>>(`/api/safety${qs}`, { token })
   },
   get: (id: number, token?: string) =>
-    apiFetch<ApiResponse<SafetyFile>>(`safety.php?id=${id}`, { token }),
+    apiFetch<ApiResponse<SafetyFile>>(`/api/safety?id=${id}`, { token }),
 }
 
 // ─── Finance ─────────────────────────────────────────────────────────────────
 
 export const finance = {
+  summary: (token?: string) =>
+    apiFetch<{ success: boolean; data: { mtd_invoiced: number; mtd_collected: number; outstanding_balance: number; overdue_amount: number; overdue_count: number; aging: Array<{ band: string; amount: number }> } }>('/api/finance', { token }),
   statement: (client_id: number, from: string, to: string, token?: string) =>
     apiFetch<ApiResponse<Statement>>(
       `statements.php?client_id=${client_id}&from=${from}&to=${to}`,
@@ -155,11 +218,46 @@ export const finance = {
     ),
 }
 
+// ─── Tracker updates ─────────────────────────────────────────────────────────
+
+export const trackerUpdates = {
+  list: (entityType: string, entityRef: string, token?: string) =>
+    apiFetch<{ success: boolean; data: unknown[] }>(`/api/tracker-updates?entity_type=${encodeURIComponent(entityType)}&entity_ref=${encodeURIComponent(entityRef)}`, { token }),
+  revisions: (id: number, token?: string) =>
+    apiFetch<{ success: boolean; data: unknown[] }>(`/api/tracker-updates?id=${id}&action=revisions`, { token }),
+  create: (data: { entityType: string; entityRef: string; label: string; content: string; sourceKind?: string }, token?: string) =>
+    apiFetch<{ success: boolean; data: { id: number } }>('/api/tracker-updates', { method: 'POST', body: JSON.stringify(data), token }),
+  update: (id: number, data: { label: string; content: string }, token?: string) =>
+    apiFetch<{ success: boolean }>(`/api/tracker-updates?id=${id}`, { method: 'PUT', body: JSON.stringify(data), token }),
+  delete: (id: number, token?: string) =>
+    apiFetch<{ success: boolean }>(`/api/tracker-updates?id=${id}`, { method: 'DELETE', token }),
+}
+
+// ─── Transactions ─────────────────────────────────────────────────────────────
+
+export const transactions = {
+  list: (params?: Record<string, string>, token?: string) => {
+    const qs = params ? '?' + new URLSearchParams(params).toString() : ''
+    return apiFetch<{ success: boolean; data: unknown[]; total: number; totals: { total_credit: number; total_debit: number } }>(`/api/transactions${qs}`, { token })
+  },
+  create: (data: { trans_date: string; description: string; category: string; reference?: string; credit?: number; debit?: number }, token?: string) =>
+    apiFetch<{ success: boolean; data: { id: number } }>('/api/transactions', { method: 'POST', body: JSON.stringify(data), token }),
+}
+
+// ─── Enquiries ────────────────────────────────────────────────────────────────
+
+export const enquiries = {
+  submit: (data: { name: string; company?: string; phone?: string; email: string; service: string; message?: string }, token?: string) =>
+    apiFetch<{ success: boolean; message: string }>('/api/enquiries', { method: 'POST', body: JSON.stringify(data), token }),
+  list: (token?: string) =>
+    apiFetch<{ success: boolean; enquiries: unknown[] }>('/api/enquiries', { token }),
+}
+
 // ─── Audit ───────────────────────────────────────────────────────────────────
 
 export const audit = {
   list: (params?: Record<string, string>, token?: string) => {
     const qs = params ? '?' + new URLSearchParams(params).toString() : ''
-    return apiFetch<PaginatedResponse<AuditEvent>>(`audit.php${qs}`, { token })
+    return apiFetch<PaginatedResponse<AuditEvent>>('/api/audit', { token })
   },
 }

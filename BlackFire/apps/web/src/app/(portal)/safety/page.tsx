@@ -1,24 +1,8 @@
-import { cookies } from 'next/headers'
 import Link from 'next/link'
-import { getServerUser, can } from '@/lib/auth'
+import { getCurrentUser, can } from '@/lib/server-auth'
+import { redirect } from 'next/navigation'
 import type { SafetyFile } from '@blackfire/types'
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://blackfiresolutions.co.za/api'
-
-async function getSafetyFiles(cookieHeader: string, filter: string): Promise<SafetyFile[]> {
-  try {
-    const params = new URLSearchParams({ limit: '500' })
-    if (filter && filter !== 'all') params.set('status', filter)
-    const res = await fetch(`${API_BASE}/safety.php?${params}`, {
-      headers: { Cookie: cookieHeader, 'X-Requested-With': 'XMLHttpRequest' },
-      cache: 'no-store',
-    })
-    const body = res.ok ? await res.json() : null
-    return body?.success ? (body.data ?? []) : []
-  } catch {
-    return []
-  }
-}
+import { getSafetyFiles } from '@/lib/data/safety'
 
 function StatusBadge({ value }: { value: string }) {
   const tone =
@@ -41,10 +25,10 @@ export default async function SafetyPage({
 }: {
   searchParams: Promise<{ filter?: string }>
 }) {
-  const cookieHeader = (await cookies()).toString()
-  const user = await getServerUser(cookieHeader)
+  const user = await getCurrentUser()
+  if (!user) redirect('/login')
   const filter = (await searchParams).filter ?? 'all'
-  const files = await getSafetyFiles(cookieHeader, filter)
+  const files = await getSafetyFiles({ filter })
 
   return (
     <div>
@@ -53,7 +37,7 @@ export default async function SafetyPage({
           <h1 className="font-display text-5xl tracking-tight text-ink-text">Safety Files</h1>
           <p className="mt-2 text-sm uppercase tracking-[0.28em] text-ash">Compliance and safety document management</p>
         </div>
-        {can(user, 'safety.create') && (
+        {user != null && can(user, 'safety.create') && (
           <Link href="/safety/new" className="rounded border border-fire-orange bg-fire-orange px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-white">
             + New Audit
           </Link>

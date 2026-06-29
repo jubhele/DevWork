@@ -1,22 +1,8 @@
-import { cookies } from 'next/headers'
 import Link from 'next/link'
-import { getServerUser } from '@/lib/auth'
-import { hasRole } from '@/lib/auth'
+import { getCurrentUser } from '@/lib/server-auth'
 import { redirect } from 'next/navigation'
 import type { Callout } from '@blackfire/types'
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://blackfiresolutions.co.za/api'
-
-async function getIncidents(cookieHeader: string): Promise<Callout[]> {
-  try {
-    const res = await fetch(`${API_BASE}/callouts.php?priority=Urgent,Emergency&limit=200`, {
-      headers: { Cookie: cookieHeader, 'X-Requested-With': 'XMLHttpRequest' },
-      cache: 'no-store',
-    })
-    const body = res.ok ? await res.json() : null
-    return body?.success ? (body.data ?? []) : []
-  } catch { return [] }
-}
+import { getCallouts } from '@/lib/data/callouts'
 
 const PRIORITY_STYLE: Record<string, string> = {
   Emergency: 'bg-danger/10 text-danger',
@@ -25,11 +11,10 @@ const PRIORITY_STYLE: Record<string, string> = {
 }
 
 export default async function IncidentsPage() {
-  const cookieHeader = (await cookies()).toString()
-  const user = await getServerUser(cookieHeader)
-  if (!user || !hasRole(user, 'sysadmin', 'admin', 'manager')) redirect('/dashboard')
+  const user = await getCurrentUser()
+  if (!user || !['sysadmin', 'admin', 'manager'].includes(user.role)) redirect('/dashboard')
 
-  const incidents = await getIncidents(cookieHeader)
+  const { data: incidents } = await getCallouts({ priorities: ['Urgent', 'Emergency'], limit: 200 })
   const open = incidents.filter(c => c.status === 'Open' || c.status === 'In Progress')
   const closed = incidents.filter(c => c.status !== 'Open' && c.status !== 'In Progress')
 

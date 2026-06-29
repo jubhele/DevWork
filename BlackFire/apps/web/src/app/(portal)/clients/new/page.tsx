@@ -3,8 +3,6 @@
 import { useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://blackfiresolutions.co.za/api'
-
 export default function NewClientPage() {
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
@@ -16,17 +14,15 @@ export default function NewClientPage() {
     setError(null)
     const data = new FormData(event.currentTarget)
     try {
-      const res = await fetch(`${API_BASE}/clients.php`, {
+      const res = await fetch('/api/clients', {
         method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: data.get('name'),
-          contact_person: data.get('contact_person') || null,
-          email: data.get('email') || null,
-          phone: data.get('phone') || null,
-          address: data.get('address') || null,
-          site: data.get('site') || null,
+          name:          data.get('name'),
+          contactPerson: data.get('contact_person') || undefined,
+          email:         data.get('email') || undefined,
+          phone:         data.get('phone') || undefined,
+          address:       data.get('address') || undefined,
         }),
       })
       const body = await res.json()

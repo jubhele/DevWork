@@ -3,8 +3,6 @@
 import { useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://blackfiresolutions.co.za/api'
-
 interface LineItem { description: string; qty: string; unit_price: string }
 
 export default function NewQuotePage() {
@@ -35,19 +33,18 @@ export default function NewQuotePage() {
     const validItems = items.filter(it => it.description && parseFloat(it.unit_price) > 0)
     if (!validItems.length) { setError('Add at least one line item.'); setSaving(false); return }
     try {
-      const res = await fetch(`${API_BASE}/quotes.php`, {
+      const res = await fetch('/api/quotes', {
         method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          client_name: data.get('client_name'),
-          callout_ref: data.get('callout_ref') || null,
-          valid_until: data.get('valid_until'),
-          notes: data.get('notes') || null,
+          clientName:  data.get('client_name'),
+          calloutRef:  data.get('callout_ref') || null,
+          validUntil:  data.get('valid_until'),
+          notes:       data.get('notes') || null,
           items: validItems.map(it => ({
             description: it.description,
-            qty: parseFloat(it.qty) || 1,
-            unit_price: parseFloat(it.unit_price) || 0,
+            qty:       parseFloat(it.qty) || 1,
+            unitPrice: parseFloat(it.unit_price) || 0,
           })),
         }),
       })

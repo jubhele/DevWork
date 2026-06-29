@@ -63,7 +63,7 @@ Write-Host 'Starting Next.js web app on http://localhost:3000 ...' -ForegroundCo
 $nextJob = Start-Job -ScriptBlock {
   param($path)
   Set-Location -LiteralPath $path
-  & pnpm dev 2>&1
+  & pnpm exec next dev -p 3000 2>&1
 } -ArgumentList $webPath
 Write-Host "[next]   Job ID $($nextJob.Id)" -ForegroundColor DarkGray
 

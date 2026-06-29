@@ -6,8 +6,6 @@ import type { TaskCategory } from '@blackfire/types'
 import { useUser } from '@/context/UserContext'
 import { TASK_CATEGORY_LABELS, visibleTaskCategories } from '@/lib/tracker'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://blackfiresolutions.co.za/api'
-
 export default function NewTaskPage() {
   const router = useRouter()
   const user = useUser()
@@ -24,14 +22,14 @@ export default function NewTaskPage() {
     setError(null)
     const data = new FormData(event.currentTarget)
     try {
-      const response = await fetch(`${API_BASE}/tasks.php`, {
+      const response = await fetch('/api/tasks', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
         body: JSON.stringify({
           category,
           title: data.get('title'),
-          description: data.get('description') || null,
+          description: data.get('description') || undefined,
           priority: data.get('priority'),
           assigned_to: data.get('assigned_to') || null,
           start_at: data.get('start_at') || null,
@@ -41,13 +39,13 @@ export default function NewTaskPage() {
       })
       const body = await response.json()
       if (!response.ok || !body.success) {
-        setError(body.error ?? 'Task could not be created.')
+        setError(body.message ?? 'Task could not be created.')
         return
       }
       router.push(`/tracker?stream=${category}`)
       router.refresh()
     } catch {
-      setError('Could not reach the portal API.')
+      setError('Could not reach the API.')
     } finally {
       setSaving(false)
     }

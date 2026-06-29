@@ -1,32 +1,7 @@
-import { cookies } from 'next/headers'
 import Link from 'next/link'
-import { getServerUser } from '@/lib/auth'
+import { getCurrentUser } from '@/lib/server-auth'
 import { notFound } from 'next/navigation'
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://blackfiresolutions.co.za/api'
-
-interface PortalUser {
-  id: number
-  username: string
-  display_name: string
-  role: string
-  status: string
-  last_login: string | null
-  created_at: string
-}
-
-async function getUsers(cookieHeader: string): Promise<PortalUser[]> {
-  try {
-    const res = await fetch(`${API_BASE}/users.php?limit=500`, {
-      headers: { Cookie: cookieHeader, 'X-Requested-With': 'XMLHttpRequest' },
-      cache: 'no-store',
-    })
-    const body = res.ok ? await res.json() : null
-    return body?.success ? (body.data ?? []) : []
-  } catch {
-    return []
-  }
-}
+import { getPortalUsers, type PortalUser } from '@/lib/data/users'
 
 const ROLE_LABELS: Record<string, string> = {
   sysadmin: 'Sysadmin',
@@ -42,12 +17,11 @@ const ROLE_LABELS: Record<string, string> = {
 }
 
 export default async function UsersPage() {
-  const cookieHeader = (await cookies()).toString()
-  const user = await getServerUser(cookieHeader)
+  const user = await getCurrentUser()
 
   if (!user || !['sysadmin', 'admin'].includes(user.role)) notFound()
 
-  const users = await getUsers(cookieHeader)
+  const users = await getPortalUsers()
 
   return (
     <div>

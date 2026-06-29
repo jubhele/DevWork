@@ -1,21 +1,8 @@
-import { cookies } from 'next/headers'
 import Link from 'next/link'
-import { getServerUser } from '@/lib/auth'
+import { getCurrentUser } from '@/lib/server-auth'
 import { redirect } from 'next/navigation'
 import type { Task } from '@blackfire/types'
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://blackfiresolutions.co.za/api'
-
-async function getTasks(cookieHeader: string, status: string): Promise<Task[]> {
-  try {
-    const res = await fetch(`${API_BASE}/tasks.php?status=${encodeURIComponent(status)}&limit=200`, {
-      headers: { Cookie: cookieHeader, 'X-Requested-With': 'XMLHttpRequest' },
-      cache: 'no-store',
-    })
-    const body = res.ok ? await res.json() : null
-    return body?.success ? (body.data ?? []) : []
-  } catch { return [] }
-}
+import { getTasks } from '@/lib/data/tasks'
 
 const STATUS_STYLE: Record<string, string> = {
   'Open':        'bg-info/10 text-info',
@@ -25,16 +12,15 @@ const STATUS_STYLE: Record<string, string> = {
 }
 
 export default async function OpsTasksPage() {
-  const cookieHeader = (await cookies()).toString()
-  const user = await getServerUser(cookieHeader)
+  const user = await getCurrentUser()
   if (!user) redirect('/login')
 
-  const [openTasks, inProgressTasks] = await Promise.all([
-    getTasks(cookieHeader, 'Open'),
-    getTasks(cookieHeader, 'In Progress'),
+  const [openResult, inProgressResult] = await Promise.all([
+    getTasks({ status: 'Open', limit: 200 }).catch(() => ({ data: [] as Task[] })),
+    getTasks({ status: 'In Progress', limit: 200 }).catch(() => ({ data: [] as Task[] })),
   ])
 
-  const all = [...inProgressTasks, ...openTasks]
+  const all = [...inProgressResult.data, ...openResult.data]
   const byStream: Record<string, Task[]> = {}
   for (const t of all) {
     const key = t.category ?? 'General'

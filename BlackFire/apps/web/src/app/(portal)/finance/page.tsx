@@ -1,29 +1,5 @@
-import { cookies } from 'next/headers'
 import Link from 'next/link'
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://blackfiresolutions.co.za/api'
-
-interface FinanceSummary {
-  mtd_invoiced: number
-  mtd_collected: number
-  outstanding_balance: number
-  overdue_amount: number
-  overdue_count: number
-  aging: { band: string; amount: number }[]
-}
-
-async function getFinanceSummary(cookieHeader: string): Promise<FinanceSummary | null> {
-  try {
-    const res = await fetch(`${API_BASE}/finance.php?action=summary`, {
-      headers: { Cookie: cookieHeader, 'X-Requested-With': 'XMLHttpRequest' },
-      cache: 'no-store',
-    })
-    const body = res.ok ? await res.json() : null
-    return body?.success ? body.data : null
-  } catch {
-    return null
-  }
-}
+import { getFinanceSummary } from '@/lib/data/finance'
 
 function KPI({ label, value, tone }: { label: string; value: string; tone?: 'danger' | 'warning' }) {
   const textClass = tone === 'danger' ? 'text-danger' : tone === 'warning' ? 'text-warning' : 'text-ink-text'
@@ -40,8 +16,7 @@ function rnd(n: number) {
 }
 
 export default async function FinancePage() {
-  const cookieHeader = (await cookies()).toString()
-  const summary = await getFinanceSummary(cookieHeader)
+  const summary = await getFinanceSummary()
 
   return (
     <div>

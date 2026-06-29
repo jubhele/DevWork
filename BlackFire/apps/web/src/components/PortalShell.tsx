@@ -84,8 +84,7 @@ export default function PortalShell({ children }: { children: React.ReactNode })
   const secondary = (SECONDARY[primary.group] || []).filter(item => isVisible(user.role, user.permissions, item))
 
   async function signOut() {
-    const apiBase = process.env.NEXT_PUBLIC_API_BASE ?? 'https://blackfiresolutions.co.za/api'
-    await fetch(`${apiBase}/auth.php?action=logout`, {
+    await fetch('/api/auth/logout', {
       method: 'POST',
       credentials: 'include',
       headers: { 'X-Requested-With': 'XMLHttpRequest' },

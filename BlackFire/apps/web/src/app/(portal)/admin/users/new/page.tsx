@@ -3,8 +3,6 @@
 import { useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://blackfiresolutions.co.za/api'
-
 const ROLES = [
   'admin', 'manager', 'admin_clerk', 'call_logger',
   'senior_tech', 'junior_tech', 'client_support', 'safety_officer', 'viewer',
@@ -26,15 +24,14 @@ export default function NewUserPage() {
     if (password !== confirm) { setError('Passwords do not match.'); setSaving(false); return }
     if (password.length < 8) { setError('Password must be at least 8 characters.'); setSaving(false); return }
     try {
-      const res = await fetch(`${API_BASE}/users.php`, {
+      const res = await fetch('/api/users', {
         method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           username: data.get('username'),
-          name: data.get('name'),
-          email: data.get('email'),
-          role: data.get('role'),
+          name:     data.get('name'),
+          email:    data.get('email'),
+          role:     data.get('role'),
           password,
         }),
       })

@@ -3,8 +3,6 @@
 import { useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://blackfiresolutions.co.za/api'
-
 export default function NewInvoicePage() {
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
@@ -21,15 +19,14 @@ export default function NewInvoicePage() {
     setError(null)
     const data = new FormData(event.currentTarget)
     try {
-      const res = await fetch(`${API_BASE}/invoices.php`, {
+      const res = await fetch('/api/invoices', {
         method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          client_name: data.get('client_name'),
-          quote_ref: data.get('quote_ref') || null,
+          clientName: data.get('client_name'),
+          quoteRef: data.get('quote_ref') || null,
           amount: numAmount,
-          due_date: data.get('due_date'),
+          dueDate: data.get('due_date'),
           notes: data.get('notes') || null,
         }),
       })

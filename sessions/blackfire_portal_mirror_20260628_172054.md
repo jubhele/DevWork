@@ -71,6 +71,12 @@ Keep `http://localhost:3000` on the Next.js stack, remove the PHP mirror behavio
 - Kept `BlackFire/apps/web/scripts/check-portal-parity.mjs` aligned to the Next app and verified it passes on `http://localhost:3000`.
 - Updated `BlackFire/apps/web/src/app/login/page.tsx` so the Next login screen uses the PHP login wording, logo, and visual hierarchy.
 - Re-verified `http://localhost:3000/login` exposes `BLACKFIRE SOLUTIONS`, `SECURE ACCESS`, and the shared logo asset.
+- Added CAPTCHA loading/submission to the Next login flow so it matches the PHP auth endpoint.
+- Updated the shared API client to expose the captcha endpoint and surface backend auth errors instead of flattening them into a generic client message.
+- Switched `BlackFire/apps/web/.env.local` to the local PHP API base for localhost dev.
+- Reworked auth again for the Next migration: login/me/logout now use local Next API routes and a local session cookie instead of PHP.
+- Removed the CAPTCHA field from the login screen because the Next auth route no longer depends on the PHP security-check flow.
+- Verified `/api/auth/login`, `/api/auth/me`, and `/api/auth/logout` on `http://localhost:3000` create, read, and clear a valid session cookie round-trip.
 
 ## Blockers / Next Steps
 - The remaining scope, if any, is page-level content parity beyond the static assets already copied.
@@ -80,6 +86,9 @@ Keep `http://localhost:3000` on the Next.js stack, remove the PHP mirror behavio
 - A Next app that fronts a PHP backend should not inherit PHP HTML through a proxy unless that is the explicit product goal.
 - Missing public assets are a better parity fix than routing the entire app through the PHP server.
 - Small branding mismatches on the login page are best fixed in the Next shell itself so the PHP and Next entry screens stay visually aligned.
+- The PHP login endpoint requires a CAPTCHA answer and returns the backend error text directly; the Next client should preserve that message so the UI mirrors the PHP behavior.
+- If the team is actively migrating off PHP, auth is the right first seam to localize because it can be replaced with a Next session cookie without disturbing the rest of the portal shell.
+- A local Next auth route can fully replace the PHP login/cookie flow for development without changing the rest of the portal layout.
 
 ## Goal Status
 PENDING
@@ -135,3 +144,7 @@ _Session ended: 2026-06-28 23:27:54 (Claude Code / claude-sonnet-4-6)_
 _Session ended: 2026-06-28 23:47:47 (Claude Code / claude-sonnet-4-6)_
 _Session ended: 2026-06-28 23:47:59 (Claude Code / claude-sonnet-4-6)_
 _Session ended: 2026-06-29 06:03:38 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-06-29 06:09:45 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-06-29 06:09:51 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-06-29 06:11:45 (Claude Code / claude-sonnet-4-6)_
+_Session ended: 2026-06-29 06:20:41 (Claude Code / claude-sonnet-4-6)_

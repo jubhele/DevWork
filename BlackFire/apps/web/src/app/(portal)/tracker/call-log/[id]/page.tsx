@@ -1,24 +1,16 @@
-import { cookies } from 'next/headers'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { Callout } from '@blackfire/types'
-import { can, getServerUser } from '@/lib/auth'
+import { getCurrentUser, can } from '@/lib/server-auth'
 import TrackerRecordPanel from '@/components/TrackerRecordPanel'
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://blackfiresolutions.co.za/api'
+import { getCallout } from '@/lib/data/callouts'
 
 export default async function CallLogRecordPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const cookieHeader = (await cookies()).toString()
-  const user = await getServerUser(cookieHeader)
+  const user = await getCurrentUser()
   if (!user) notFound()
 
-  let callout: Callout | null = null
-  try {
-    const response = await fetch(`${API_BASE}/callouts.php?action=chain&ref=${encodeURIComponent(id)}`, { headers: { Cookie: cookieHeader, 'X-Requested-With': 'XMLHttpRequest' }, cache: 'no-store' })
-    const body = response.ok ? await response.json() : null
-    callout = body?.success ? body.callout : null
-  } catch {}
+  const callout = await getCallout(isNaN(Number(id)) ? 0 : Number(id)).catch(() => null)
   if (!callout) notFound()
 
   return (

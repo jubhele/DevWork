@@ -1,21 +1,7 @@
-import { cookies } from 'next/headers'
 import Link from 'next/link'
-import { getServerUser } from '@/lib/auth'
-import type { Invoice, PaginatedResponse } from '@blackfire/types'
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://blackfiresolutions.co.za/api'
-
-async function getInvoices(cookieHeader: string): Promise<PaginatedResponse<Invoice> | null> {
-  try {
-    const res = await fetch(`${API_BASE}/invoices.php?limit=500`, {
-      headers: { Cookie: cookieHeader, 'X-Requested-With': 'XMLHttpRequest' },
-      cache: 'no-store',
-    })
-    return res.ok ? res.json() : null
-  } catch {
-    return null
-  }
-}
+import { getCurrentUser, can } from '@/lib/server-auth'
+import { getInvoices } from '@/lib/data/invoices'
+import type { Invoice } from '@blackfire/types'
 
 function Status({ value }: { value: string }) {
   const tone =
@@ -27,13 +13,11 @@ function Status({ value }: { value: string }) {
 }
 
 export default async function InvoicesPage() {
-  const cookieHeader = (await cookies()).toString()
-  const user = await getServerUser(cookieHeader)
-  const result = await getInvoices(cookieHeader)
-  const invoices: Invoice[] = result?.data ?? []
+  const user = await getCurrentUser()
+  const result = await getInvoices()
+  const invoices: Invoice[] = result.data
 
-  const canCreate = user?.role === 'sysadmin' || user?.role === 'admin' || user?.role === 'manager' ||
-    user?.permissions?.includes('capture.new_invoice')
+  const canCreate = user != null && can(user, 'invoices.create')
 
   return (
     <div>
