@@ -12,6 +12,30 @@ The authoritative source is `CLAUDE.md` — when in doubt, defer to it.
 
 ---
 
+## Session Close Hook (MANDATORY — all providers)
+
+At the end of every session, run the session close hook:
+
+```
+VS Code: Ctrl+Shift+P → Tasks: Run Task → Close Session Log
+```
+
+Or directly in any terminal:
+```powershell
+powershell.exe -NonInteractive -File "c:\DevWork\.claude\scripts\session-log-update.ps1"
+```
+
+This script:
+- Checks mandatory sections (Decisions, Work Done, Learnings, Goal Status)
+- Writes the one-time accountability signature when Goal Status = ACHIEVED (user confirmed)
+- Auto-signs after 30min inactivity with `[AUTOMATED]` flag
+- Never repeats the signature if already written
+
+**Claude Code** runs this automatically via the Stop hook in `.claude/settings.json`.
+**All other providers** must run it manually at session end (VS Code task above).
+
+---
+
 ## Mandatory: Session Logging
 
 Every session must create or update a log in `c:\DevWork\sessions\`.

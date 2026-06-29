@@ -8,6 +8,21 @@ alwaysApply: true
 
 This mirrors CLAUDE.md for Cursor. Full constitution in `CLAUDE.md`.
 
+## Session Close Hook (MANDATORY)
+
+At the end of every session, run:
+
+```
+VS Code: Ctrl+Shift+P → Tasks: Run Task → Close Session Log
+```
+
+Or in terminal:
+```powershell
+powershell.exe -NonInteractive -File "c:\DevWork\.claude\scripts\session-log-update.ps1"
+```
+
+Writes the accountability signature when Goal Status = ACHIEVED. Auto-signs after 30min inactivity. Never repeats. Claude Code runs this automatically via Stop hook — Cursor must run it manually.
+
 ## Session Logging (Mandatory)
 
 Create or update a log in `c:\DevWork\sessions\` at session start and end.

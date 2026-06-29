@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useState, type FormEvent, type ReactNode } from 'react'
+import { Suspense, useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { auth } from '@blackfire/api-client'
 
@@ -19,15 +19,35 @@ function LoginForm() {
 
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [captchaQuestion, setCaptchaQuestion] = useState('Security check: loading…')
+  const [captchaAnswer, setCaptchaAnswer] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    let active = true
+
+    auth.captcha()
+      .then(res => {
+        if (!active) return
+        setCaptchaQuestion(res.data?.question ?? 'Security check: 1 + 5 = ?')
+      })
+      .catch(() => {
+        if (!active) return
+        setCaptchaQuestion('Security check: 1 + 5 = ?')
+      })
+
+    return () => {
+      active = false
+    }
+  }, [])
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
     setLoading(true)
     try {
-      const res = await auth.login(username, password)
+      const res = await auth.login(username, password, captchaAnswer)
       if (res.success) {
         router.push(next)
       } else {
@@ -70,6 +90,22 @@ function LoginForm() {
             />
           </div>
 
+          <div>
+            <label className="block text-xs text-ash mb-1 uppercase tracking-wider">
+              {captchaQuestion}
+            </label>
+            <input
+              type="number"
+              inputMode="numeric"
+              autoComplete="off"
+              required
+              value={captchaAnswer}
+              onChange={e => setCaptchaAnswer(e.target.value)}
+              className="w-full bg-charcoal border border-steel-dark rounded px-3 py-2 text-sm text-bone-paper
+                         focus:outline-none focus:border-fire-orange transition-colors"
+            />
+          </div>
+
           {error && (
             <p className="text-danger text-xs">{error}</p>
           )}
@@ -90,19 +126,22 @@ function LoginForm() {
 
 function LoginShell({ form }: { form?: ReactNode }) {
   return (
-    <div className="min-h-screen bg-coal flex items-center justify-center px-4">
+    <div className="min-h-screen bg-coal flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <span className="font-display text-3xl tracking-widest text-flame-gold uppercase">
-            BlackFire
+          <div className="mb-4 flex justify-center">
+            <img src="/blackfire_logo_transparent.png" alt="BlackFire Solutions" className="h-[74px] w-auto" />
+          </div>
+          <span className="block font-display text-[28px] leading-none tracking-[0.3em] text-flame-gold uppercase">
+            Umlilo Portal
           </span>
-          <p className="text-ash text-sm mt-1 font-body">Umlilo Portal</p>
+          <p className="text-ash text-sm mt-2 tracking-[0.22em] uppercase font-body">Secure Access</p>
         </div>
 
         {form ?? <div className="h-64 bg-navy border border-steel-dark rounded-lg" />}
 
         <p className="text-center text-xs text-ash mt-6">
-          BlackFire Solutions - Umlilo Portal
+          Umlilo Portal
         </p>
       </div>
     </div>

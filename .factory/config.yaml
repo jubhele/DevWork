@@ -61,6 +61,16 @@ hooks:
         Goal Status). Writes the closing accountability signature ONLY when Goal
         Status = ACHIEVED (user confirmed) or 30min inactivity auto-confirm.
 
+hooks:
+  post_task:
+    - name: session-close
+      command: "powershell.exe -NonInteractive -File \"c:\\DevWork\\.claude\\scripts\\session-log-update.ps1\""
+      timeout: 15
+      description: >
+        Runs after every task completion. Checks mandatory session log sections.
+        Writes the one-time accountability signature when Goal Status = ACHIEVED (user confirmed).
+        Auto-signs with [AUTOMATED] flag after 30min inactivity. Never repeats if already signed.
+
 cost_governance:
   tier_1_max_usd: 0.05
   tier_2_max_usd: 0.50

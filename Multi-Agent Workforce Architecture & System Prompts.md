@@ -1,6 +1,6 @@
 # Multi-Agent Workforce Architecture & System Prompts
 
-**Version:** 3.3 — Complete Production Implementation Guide
+**Version:** 3.4 — Complete Production Implementation Guide
 **Purpose:** Hand this document to any implementer to deploy this workforce in a new environment.
 Everything needed is here: architecture, system prompts, protocols, and operational playbook.
 
@@ -1173,52 +1173,166 @@ Append to the Markdown log:
 }
 ```
 
-### 6.3 Automated Session Log Compliance Hooks (Claude Code)
+### 6.3 Session Log Enforcement Scripts
 
-Two PowerShell hooks enforce session log discipline automatically, without relying on the agent to remember.
+Two PowerShell scripts enforce session log discipline. They live in `{workspace}/.claude/scripts/` and are the **enforcement layer** — they ensure that no session ends without a complete, signed log, regardless of which provider was active.
 
-These hook registrations are **Claude Code-specific** because Claude Code reads `{workspace}/.claude/settings.json` and supports `Stop` / `PostToolUse` lifecycle hooks. Do not assume other providers read `.claude/` files.
+#### What These Scripts Represent
 
-For other providers, implement the same control objective through the provider's native mechanism if one exists, or through a repo-level fallback:
-- Provider-native lifecycle hooks or rule files when supported.
-- Wrapper scripts that start sessions, run the agent, and validate the session log on exit.
-- Pre-commit, CI, or task-runner checks that fail when required session sections are missing.
-- Manual checklist enforcement through the provider mirror file when no automation is available.
+These scripts are the operational backbone of session accountability. They are not documentation — they are running code that enforces the governance rules in §6 and §14 on every session, automatically where possible, manually otherwise. Without them, rules about session logs and accountability signatures are aspirational text. With them, they are enforced at the infrastructure level.
 
-Required outcome for every provider: session logs must be created at start, updated after substantive work, and checked before handoff or completion.
+---
 
-#### Stop Hook — `session-log-update.ps1`
+#### Script 1 — `session-log-update.ps1` (Session Close)
 
-Fires after **every response** (Claude Code `Stop` event). Checks:
+**What it does:** This is the session close script. It runs at the end of a session and is responsible for writing the one-time accountability signature — the permanent archive record that proves the session completed and who did the work.
 
-| Check | Fail action |
-|-------|-------------|
-| `## Learnings` section exists and has content | Injects `⚠ Session Log Incomplete` warning block into the log |
-| `## Decisions` section has content | Same |
-| `## Work Done` section has content | Same |
-| No log file created today | Creates a minimal stub log with the `⚠` notice |
+**Logic flow:**
 
-Always appends `_Session ended: YYYY-MM-DD HH:mm:ss_` regardless of check results.
+```
+Run
+ │
+ ├─ Find today's session log in sessions/
+ │   └─ If none exists → create a minimal stub and continue
+ │
+ ├─ Already signed? (line matching "> Completed by:" exists)
+ │   └─ YES → write timestamp only and exit (signature never repeats)
+ │
+ ├─ Check Goal Status section
+ │   ├─ ACHIEVED → user confirmed → proceed to sign
+ │   └─ PENDING → check auto-confirm condition:
+ │       ├─ Log inactive 30+ minutes AND Decisions + Work Done filled
+ │       │   └─ YES → auto-sign with [AUTOMATED] flag
+ │       └─ NO → warn about incomplete sections, timestamp only, exit
+ │
+ └─ Write signature (once):
+     ├─ Insert one row into ## Agent Accountability table
+     ├─ Append closing attribution line:
+     │   > Completed by: ...  |  Task: ...  |  Status: ...  |  Confirmed: ...  |  {datetime}
+     └─ Append timestamp: _Session ended: YYYY-MM-DD HH:mm:ss_
+```
 
-#### PostToolUse Hook — `session-log-reminder.ps1`
+**Signature formats:**
 
-Fires after every **Edit** or **Write** tool call — i.e., at the exact moment a file is changed.
-Checks whether `## Work Done` has real content. If empty, outputs a reminder line to the tool result stream so the agent sees it immediately.
+User confirmed:
+```
+> Completed by: Claude Code (Mlawuli)  |  Task: {session-name}  |  Status: COMPLETED  |  Confirmed: User confirmed ACHIEVED  |  {datetime}
+```
 
-This is the point-of-change enforcement: the agent is reminded to update the log *when the work happens*, not only at session end.
+Auto-confirmed (30min inactivity):
+```
+> Completed by: Claude Code (Mlawuli)  |  Task: {session-name}  |  Status: COMPLETED [AUTOMATED]  |  Confirmed: AUTOMATED -- no user confirmation after 30min  |  {datetime}
+```
 
-#### Hook Registration (`{workspace}/.claude/settings.json`)
+**Key properties:**
+- Idempotent — running it multiple times never writes the signature twice
+- Creates a stub log if none exists so nothing goes unrecorded
+- Warns about empty Decisions / Work Done / Learnings / Goal Status mid-session
+- The 30-minute auto-confirm threshold is set at the top of the script (`$AUTO_CONFIRM_HOURS = 0.5`)
+
+---
+
+#### Script 2 — `session-log-reminder.ps1` (Point-of-Change Reminder)
+
+**What it does:** This is the mid-session prompt. It fires the moment a file is changed (after every Edit or Write tool call in Claude Code) and checks whether `## Work Done` has been updated. If it hasn't, it writes a reminder directly into the tool result stream so the agent sees it immediately — at the point of change, not at session end when it's too late.
+
+**Logic flow:**
+
+```
+Edit/Write tool call completes
+ │
+ ├─ Find today's session log
+ │   └─ If none → output warning: "No session log found — create one"
+ │
+ └─ Check ## Work Done section
+     ├─ Has real content → silent (no output)
+     └─ Empty or placeholder → output to agent:
+         "[session-log] ⚠ Work Done section is empty — update {logfile} before this session ends."
+```
+
+**Key property:** This script outputs to stdout, which Claude Code captures and shows to the agent as part of the tool result. The agent is reminded mid-task, not retroactively.
+
+---
+
+#### Trigger Mechanisms Per Provider
+
+| Provider | Script triggered by | How |
+|----------|--------------------|-----|
+| **Claude Code** | `session-log-update.ps1` | Automatic — `Stop` hook fires after every response |
+| **Claude Code** | `session-log-reminder.ps1` | Automatic — `PostToolUse` hook fires after every Edit/Write |
+| **GitHub Copilot** | `session-log-update.ps1` | Manual — VS Code: `Ctrl+Shift+P → Tasks: Run Task → Close Session Log` |
+| **Cursor** | `session-log-update.ps1` | Manual — same VS Code task |
+| **Kiro** | `session-log-update.ps1` | Manual — same VS Code task |
+| **OpenAI Codex CLI** | `session-log-update.ps1` | Manual — terminal: `powershell.exe -NonInteractive -File "c:\DevWork\.claude\scripts\session-log-update.ps1"` |
+| **Google Antigravity** | `session-log-update.ps1` | Manual — same terminal command |
+| **Factory Droid** | `session-log-update.ps1` | Automatic — `post_task` hook in `.factory/config.yaml` |
+
+`session-log-reminder.ps1` is Claude Code-only — other providers have no equivalent mid-session hook.
+
+---
+
+#### Hook Registrations
+
+**Claude Code** — `.claude/settings.json`:
 
 ```json
 {
   "hooks": {
-    "Stop": [{ "hooks": [{ "type": "command", "command": "powershell.exe ... session-log-update.ps1", "timeout": 15 }] }],
-    "PostToolUse": [{ "matcher": "Edit|Write", "hooks": [{ "type": "command", "command": "powershell.exe ... session-log-reminder.ps1", "timeout": 10 }] }]
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NonInteractive -File \"c:\\DevWork\\.claude\\scripts\\session-log-update.ps1\"",
+            "timeout": 15,
+            "statusMessage": "Updating session log..."
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NonInteractive -File \"c:\\DevWork\\.claude\\scripts\\session-log-reminder.ps1\"",
+            "timeout": 10,
+            "statusMessage": "Checking session log..."
+          }
+        ]
+      }
+    ]
   }
 }
 ```
 
-Scripts live in `{workspace}/.claude/scripts/`. Both are idempotent — running them multiple times against the same log is safe.
+**Factory Droid** — `.factory/config.yaml`:
+
+```yaml
+hooks:
+  post_task:
+    - name: session-close
+      command: "powershell.exe -NonInteractive -File \"c:\\DevWork\\.claude\\scripts\\session-log-update.ps1\""
+      timeout: 15
+```
+
+**All VS Code providers** — `.vscode/tasks.json`:
+
+```json
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Close Session Log",
+      "type": "shell",
+      "command": "powershell.exe",
+      "args": ["-NonInteractive", "-File", "${workspaceFolder}\\.claude\\scripts\\session-log-update.ps1"],
+      "detail": "Run at end of every session. Writes accountability signature when Goal Status = ACHIEVED."
+    }
+  ]
+}
+```
 
 ---
 
@@ -1613,10 +1727,14 @@ Use this checklist when deploying the workforce in a new environment.
 - [ ] `sessions/` folder created with a `_template.md`
 - [ ] `memory/MEMORY.md` index created
 - [ ] `temp/` folder created and gitignored
-- [ ] Claude Code environments: `.claude/scripts/session-log-update.ps1` deployed (Stop hook — checks Learnings + Decisions + Work Done)
-- [ ] Claude Code environments: `.claude/scripts/session-log-reminder.ps1` deployed (PostToolUse hook — point-of-change reminder)
-- [ ] Claude Code environments: `.claude/settings.json` registers both hooks (Stop + PostToolUse `Edit|Write` matcher) — see §6.3
-- [ ] Non-Claude providers: native hook, wrapper script, CI/pre-commit check, or manual provider-mirror checklist enforces the same session-log outcome
+- [ ] `.claude/scripts/session-log-update.ps1` deployed — session close script (see §6.3 for full behavior)
+- [ ] `.claude/scripts/session-log-reminder.ps1` deployed — point-of-change reminder (Claude Code only)
+- [ ] `.claude/settings.json` registers both hooks: Stop → `session-log-update.ps1`, PostToolUse(Edit|Write) → `session-log-reminder.ps1`
+- [ ] `.vscode/tasks.json` contains `Close Session Log` task pointing to `session-log-update.ps1` (universal manual trigger for all VS Code providers)
+- [ ] `.factory/config.yaml` contains `post_task` hook pointing to `session-log-update.ps1` (Factory Droid auto-trigger)
+- [ ] All other provider mirror files instruct the agent to run `Close Session Log` VS Code task at session end
+- [ ] Session log template (`sessions/_template.md`) includes `## Goal Status: PENDING` field
+- [ ] All agents know: closing signature is written ONLY when user sets Goal Status = ACHIEVED; auto-signs after 30min
 
 ### Documentation Repository
 - [ ] `docs/multi-agent-workforce-architecture.md` copied from the current architecture guide when the repo must be portable
@@ -1863,6 +1981,194 @@ These guidelines are working when you observe:
 - Clarifying questions from agents before implementation, not during or after
 - Multi-step tasks delivered with a stated plan and a per-step verify check
 - No silent assumption-making in agent responses
+
+---
+
+---
+
+## 16. Local Agent Runtime — PowerShell Implementation
+
+This workspace contains a working local autonomous agent runtime implemented in PowerShell. Two generations exist: an early pair (`orchestrator.ps1` + `worker-umakhi.ps1`) and the current unified implementation (`agent-v3.ps1`) which closes all gaps from the earlier version.
+
+---
+
+### 16.1 Script Inventory
+
+| File | Maps to | Role | Status |
+|------|---------|------|--------|
+| `agent-v3.ps1` | **Mlawuli + Umakhi + Mvavanyi + Umlindi + Sibali** | Unified autonomous agent loop | **Current — primary** |
+| `orchestrator.ps1` | **Mlawuli** | Earlier watcher/dispatcher (15s loop, git change detection) | Legacy — superseded |
+| `worker-umakhi.ps1` | **Umakhi** | Earlier build worker (10s loop, Ollama patch apply) | Legacy — superseded |
+| `task-queue.json` | **§5 JSON Protocol** | Unified inter-agent message bus (used by agent-v3) | Active |
+| `queue/tasks.json` | §5 JSON Protocol | Legacy queue used by orchestrator + worker pair | Legacy |
+
+> **Queue note:** `agent-v3.ps1` uses `task-queue.json` at the workspace root. The legacy pair uses `queue/tasks.json`. Do not mix — run only one runtime at a time.
+
+---
+
+### 16.2 `agent-v3.ps1` — Unified Implementation
+
+`agent-v3.ps1` is a single script that implements the full §3 agent pipeline in one continuous loop. It is the production runtime for autonomous background work in this workspace.
+
+#### How to run
+
+```powershell
+# Run in a dedicated terminal — leave it running in the background
+powershell.exe -File "c:\DevWork\agent-v3.ps1"
+```
+
+Ensure Ollama is running first: `ollama serve`
+
+#### Main loop (every 20 seconds)
+
+```
+loop every 20s:
+  Invoke-AutoQueue     ← detect uncommitted git changes → add commit task
+  Process-Tasks        ← Mlawuli dispatcher: pick pending tasks, run pipeline
+  every 20 min:
+    Invoke-SessionLogCheck  ← run session-log-update.ps1 heartbeat (see §16.5)
+```
+
+#### Task pipeline (per commit task)
+
+```
+task: commit
+  │
+  ├─ Invoke-Umakhi (Builder)
+  │   git add . → git diff --cached → Invoke-Model(prompt, tier=1) → commit msg
+  │   returns: { status, commit, changes }
+  │
+  ├─ Invoke-Umlindi (Security)
+  │   check changed files for hardcoded secret values (regex: key = "value-8+chars")
+  │   returns: { status: PASS | BLOCK, reason }
+  │   BLOCK → mark task blocked, write session log, stop
+  │
+  ├─ Invoke-Mvavanyi (QA)
+  │   npm run build + pytest (if files exist)
+  │   returns: { status: PASS | FAIL, error }
+  │   FAIL → Invoke-SelfHeal → write session log, mark retry, stop
+  │
+  └─ git commit + git push
+      Complete-SessionLog → session-log-update.ps1
+```
+
+---
+
+### 16.3 Sibali — Multi-Model Cost Router
+
+`agent-v3.ps1` implements Sibali's cost-tier routing via `Invoke-Model`:
+
+| Tier | Label | Model used | Cost |
+|------|-------|-----------|------|
+| 1 | Fast/Cheap | Ollama `deepseek-coder` (local) | ~$0 |
+| 2 | Medium | Claude API `claude-haiku-4-5-20251001` | Low |
+| 3 | Complex | Claude API `claude-sonnet-4-6` | Medium |
+
+**Routing logic:**
+- Commit message generation → Tier 1 (Ollama, fast, free)
+- QA failure analysis (`Invoke-SelfHeal`) → Tier 2 (Claude Haiku, better reasoning)
+- If `ANTHROPIC_API_KEY` is not set in `.env`, all tiers fall back to Ollama
+
+**API key requirement:** Set `ANTHROPIC_API_KEY` in `c:\DevWork\.env` to enable Tier 2/3 Claude routing. Without it, all tasks use Ollama only.
+
+---
+
+### 16.4 Session Log Integration
+
+`agent-v3.ps1` writes session logs for every task it processes, implementing §6 from within the autonomous loop.
+
+#### On task start — `New-SessionLog`
+
+Creates a new session log in `c:\DevWork\sessions\` with all mandatory sections pre-filled:
+- Filename: `agent_{taskType}_{date}_{time}.md`
+- `## Goal Status: PENDING` (updated by `Complete-SessionLog` on task end)
+- `## Agent Accountability` table (row added by `Complete-SessionLog`)
+- All other mandatory sections (Goal, Decisions, Work Done, Blockers, Learnings)
+
+#### On task end — `Complete-SessionLog`
+
+Updates the session log with task outcome, then calls `session-log-update.ps1`:
+- Sets `## Goal Status` to `ACHIEVED` (task completed) or `FAILED`
+- Adds a row to `## Agent Accountability` table: task ID, assigned agent, status, note
+- Updates `## Work Done` with the outcome note
+- Calls `.claude\scripts\session-log-update.ps1` — which writes the closing accountability signature (§14.2)
+
+---
+
+### 16.5 Session Log Heartbeat (Cross-Provider)
+
+Every 20 minutes, `agent-v3.ps1` runs `Invoke-SessionLogCheck`, which calls `session-log-update.ps1` independently of any task completion.
+
+**Why:** `session-log-update.ps1` finds the most recent session log from *any* provider and applies the 30-minute auto-confirm rule (§14.2). This means `agent-v3.ps1` acts as a background enforcer for sessions created by Claude Code, Copilot, Cursor, Kiro, or any other provider — not just its own tasks.
+
+```
+every 20 minutes (every 60 ticks of the 20s loop):
+  run session-log-update.ps1
+    └─ finds latest sessions/*.md
+    └─ if Goal Status = ACHIEVED → write signature (if not already signed)
+    └─ if inactive 30+ min + sections filled → auto-sign [AUTOMATED]
+    └─ if already signed → timestamp only and exit
+```
+
+---
+
+### 16.6 Security Check — Umlindi
+
+`Invoke-Umlindi` checks all files changed in the current git diff for hardcoded secret values before any commit is allowed. It looks for assignment patterns like:
+
+```
+password = "some-real-value"
+api_key: "sk-abc123..."
+```
+
+Pattern used:
+```
+(?im)^[^#/]\S*(password|api_key|secret|token)\s*[=:]\s*['"][^'"]{8,}
+```
+
+This matches:
+- Non-comment lines only (excludes `#` and `//` prefixes)
+- Assignment or colon notation
+- Quoted values of 8 or more characters (to exclude empty or placeholder values)
+
+If matched: task is set to `blocked` and a session log entry records which file triggered the block.
+
+---
+
+### 16.7 Architecture Coverage
+
+`agent-v3.ps1` closes all gaps from the earlier orchestrator/worker implementation:
+
+| Gap (from earlier version) | Now closed by agent-v3? |
+|---------------------------|------------------------|
+| No Sibali cost check | Yes — `Invoke-Model` routes by tier |
+| No session log written | Yes — `New-SessionLog` on every task start |
+| No Goal Status / signature | Yes — `Complete-SessionLog` + `session-log-update.ps1` |
+| No Umlindi pre-commit audit | Yes — `Invoke-Umlindi` blocks on hardcoded secrets |
+| No Mvavanyi QA pass | Yes — `Invoke-Mvavanyi` runs build + tests before push |
+| Cross-provider log enforcement | Yes — 20-min `Invoke-SessionLogCheck` heartbeat |
+
+**Remaining gaps (not yet in agent-v3):**
+
+| Gap | Architecture rule | Priority |
+|-----|------------------|----------|
+| No Sibali JSON payload response | §3.1 — Sibali should return structured JSON | Low |
+| Single task type (`commit`) | §5.1 — full schema includes content, research, design tasks | Medium |
+| No Mlawuli fault tolerance retry | §3.2 STEP 3 — retry up to 3 times on worker failure | Medium |
+| No Mbhali post-production trigger | §12 — docs update after QA PASS + production stage | Low |
+
+---
+
+### 16.8 Local AI Model
+
+`agent-v3.ps1` uses Ollama with `deepseek-coder` for all Tier 1 tasks.
+
+- Ollama must be installed and running: `ollama serve`
+- Model must be pulled: `ollama pull deepseek-coder`
+- No API cost for Tier 1 tasks — local inference only
+- Tier 2/3 tasks use Claude API if `ANTHROPIC_API_KEY` is set in `.env`
+
+See `memory/project_local_ai_models.md` for installed models and smoke-test status.
 
 ---
 

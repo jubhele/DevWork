@@ -57,6 +57,9 @@ async function apiFetch<T>(endpoint: string, options: FetchOptions = {}): Promis
 // ─── Auth ────────────────────────────────────────────────────────────────────
 
 export const auth = {
+  captcha: () =>
+    apiFetch<ApiResponse<{ question: string }>>('auth.php?action=captcha'),
+
   me: (token?: string) =>
     apiFetch<ApiResponse<User>>('auth.php?action=me', { token }),
 

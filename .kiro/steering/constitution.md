@@ -6,6 +6,21 @@ inclusion: always
 
 This mirrors CLAUDE.md for Kiro. Full authoritative constitution in `CLAUDE.md`.
 
+## Session Close Hook (MANDATORY)
+
+At the end of every session, run:
+
+```
+VS Code: Ctrl+Shift+P → Tasks: Run Task → Close Session Log
+```
+
+Or in terminal:
+```powershell
+powershell.exe -NonInteractive -File "c:\DevWork\.claude\scripts\session-log-update.ps1"
+```
+
+Writes the accountability signature once when Goal Status = ACHIEVED. Auto-signs after 30min inactivity with `[AUTOMATED]` flag. Never repeats. Claude Code runs this automatically — Kiro must trigger it manually at session end.
+
 ## Mandatory: Session Logging
 
 Create or update a log in `c:\DevWork\sessions\` at session start and end.

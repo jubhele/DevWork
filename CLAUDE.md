@@ -10,6 +10,17 @@
 
 Every session **must** create or update a session log. This is non-negotiable.
 
+### Session Close Hook
+
+The session close script **`.claude/scripts/session-log-update.ps1`** must run at the end of every session across all providers. It checks mandatory sections, writes the one-time accountability signature when Goal Status = ACHIEVED, and auto-signs after 30min inactivity with `[AUTOMATED]` flag.
+
+| Provider | How it runs |
+|----------|-------------|
+| **Claude Code** | Automatic — Stop hook registered in `.claude/settings.json` |
+| **GitHub Copilot / Cursor / Kiro** | Manual — VS Code: `Ctrl+Shift+P → Tasks: Run Task → Close Session Log` |
+| **OpenAI Codex / Google Antigravity** | Manual — terminal: `powershell.exe -NonInteractive -File "c:\DevWork\.claude\scripts\session-log-update.ps1"` |
+| **Factory Droid** | Automatic — `post_task` hook in `.factory/config.yaml` |
+
 **Log location**: `c:\DevWork\sessions\`
 **Format**: `<chat-name>_YYYYMMDD_HHmmss.md` — one file per session, named after the chat topic with a timestamp suffix.
 
