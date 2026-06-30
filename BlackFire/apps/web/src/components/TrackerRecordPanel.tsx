@@ -3,7 +3,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import type { Attachment, TrackerUpdate } from '@blackfire/types'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://blackfiresolutions.co.za/api'
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? (process.env.NODE_ENV === 'production' ? 'https://blackfiresolutions.co.za/api' : 'http://localhost:8080/api')
 
 type EntityType = 'task' | 'callout'
 

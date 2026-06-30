@@ -81,7 +81,6 @@ function LoginForm() {
             <input
               id="username"
               type="text"
-              autoFocus
               ref={usernameRef}
               autoComplete="username"
               required

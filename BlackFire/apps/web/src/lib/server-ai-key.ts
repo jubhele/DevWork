@@ -97,3 +97,21 @@ export function getServerGoogleKeys(): string[] {
 
   return keys
 }
+
+export function getServerKimiKeys(): string[] {
+  const workspaceEnv = readWorkspaceEnv()
+  const keys: string[] = []
+
+  const appKey = process.env.GBL_KIMI_AI_API_KEY ?? process.env.MOONSHOT_API_KEY
+  if (appKey) keys.push(appKey)
+
+  const primaryKey = workspaceEnv.GBL_KIMI_AI_API_KEY ?? workspaceEnv.MOONSHOT_API_KEY
+  if (primaryKey && !keys.includes(primaryKey)) keys.push(primaryKey)
+
+  for (let i = 2; i <= 3; i++) {
+    const fallbackKey = workspaceEnv[`GBL_KIMI_AI_API_KEY_${i}`] ?? workspaceEnv[`MOONSHOT_API_KEY_${i}`]
+    if (fallbackKey && !keys.includes(fallbackKey)) keys.push(fallbackKey)
+  }
+
+  return keys
+}

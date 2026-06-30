@@ -12,7 +12,6 @@ const PRIMARY = [
   { href: '/finance', label: 'Finance', group: 'finance', matches: ['/finance', '/invoices'] },
   { href: '/secure', label: 'Secure', group: 'secure', matches: ['/secure'], roles: ['sysadmin', 'admin', 'manager'] },
   { href: '/ops', label: 'Ops', group: 'ops', matches: ['/ops'], roles: ['sysadmin', 'admin', 'manager'] },
-  { href: '/hub', label: 'Hub', group: 'hub', matches: ['/hub'] },
   { href: '/support', label: 'Support', group: 'support', matches: ['/support', '/safety', '/admin'] },
 ]
 
@@ -64,19 +63,19 @@ export default function PortalShell({ children }: { children: React.ReactNode })
   const pathname = usePathname()
   const router = useRouter()
   const user = useUser()
-  const [theme, setTheme] = useState<'light' | 'dark'>('light')
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    if (typeof window === 'undefined') return 'light'
+    return (localStorage.getItem('bf-theme') as 'light' | 'dark') ?? 'light'
+  })
 
   useEffect(() => {
-    const saved = (localStorage.getItem('bf-theme') as 'light' | 'dark') ?? 'light'
-    setTheme(saved)
-    document.documentElement.dataset.theme = saved
-  }, [])
+    document.documentElement.dataset.theme = theme
+    localStorage.setItem('bf-theme', theme)
+  }, [theme])
 
   function toggleTheme() {
     const next = theme === 'dark' ? 'light' : 'dark'
     setTheme(next)
-    document.documentElement.dataset.theme = next
-    localStorage.setItem('bf-theme', next)
   }
 
   const visiblePrimary = PRIMARY.filter(item => isVisible(user.role, user.permissions, item))
@@ -95,20 +94,20 @@ export default function PortalShell({ children }: { children: React.ReactNode })
 
   return (
     <div className="min-h-screen bg-bone-paper text-ink-text">
-      <header className="sticky top-0 z-50 border-b border-steel-dark/80 bg-white/95 backdrop-blur">
+      <header className="sticky top-0 z-50 border-b border-steel-dark/80 bg-bone-paper/95 backdrop-blur">
         <div className="h-20 px-6 sm:px-8 flex items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-4">
             <Image src="/blackfire_logo_transparent.png" alt="BlackFire Solutions" width={150} height={50} priority className="h-12 w-auto" />
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
             <span className="hidden sm:block text-sm text-ink-text/80 truncate max-w-[200px]">{user.name}</span>
-            <button onClick={toggleTheme} className="grid h-12 w-12 place-items-center rounded border border-steel-dark bg-bone-paper text-ink-text hover:bg-charcoal/20 transition-colors" aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'} title={theme === 'dark' ? 'Light mode' : 'Dark mode'}>{theme === 'dark' ? '☀' : '☾'}</button>
-            <button onClick={() => router.refresh()} className="h-12 w-12 rounded border border-steel-dark bg-[#eee] text-ash" aria-label="Refresh page">↻</button>
-            <Link href="/help" className="grid h-12 w-12 place-items-center rounded border border-steel-dark bg-[#eee] text-ash" aria-label="Help and guide">?</Link>
-            <button onClick={signOut} className="h-12 rounded border border-steel-dark bg-white px-4 text-[11px] uppercase tracking-[0.22em] text-ash">Sign Out</button>
+            <button onClick={toggleTheme} className="grid h-12 w-12 place-items-center rounded border border-steel-dark bg-charcoal text-ink-text hover:bg-charcoal/80 transition-colors" aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'} title={theme === 'dark' ? 'Light mode' : 'Dark mode'}>{theme === 'dark' ? '☀' : '☾'}</button>
+            <button onClick={() => router.refresh()} className="h-12 w-12 rounded border border-steel-dark bg-charcoal text-ash hover:text-ink-text transition-colors" aria-label="Refresh page">↻</button>
+            <Link href="/help" className="grid h-12 w-12 place-items-center rounded border border-steel-dark bg-charcoal text-ash hover:text-ink-text transition-colors" aria-label="Help and guide">?</Link>
+            <button onClick={signOut} className="h-12 rounded border border-steel-dark bg-charcoal px-4 text-[11px] uppercase tracking-[0.22em] text-ash hover:text-ink-text transition-colors">Sign Out</button>
           </div>
         </div>
-        <nav className="border-t border-steel-dark/60 bg-white">
+        <nav className="border-t border-steel-dark/60 bg-charcoal">
           <div className="px-6 sm:px-8 flex items-center gap-6 justify-center overflow-x-auto">
             {visiblePrimary.map(item => {
               const active = item.matches.some(prefix => pathname.startsWith(prefix))
@@ -127,7 +126,7 @@ export default function PortalShell({ children }: { children: React.ReactNode })
             })}
           </div>
         </nav>
-        <div className="border-t border-steel-dark/60 bg-[#efefef]">
+        <div className="border-t border-steel-dark/60 bg-coal">
           <div className="px-6 sm:px-8 flex items-center gap-6 justify-center overflow-x-auto">
             {secondary.map(item => {
               const active = pathname === item.href || pathname.startsWith(item.href + '/')

@@ -23,7 +23,7 @@ $auth_ok  = $is_local || ($user !== null) || ($_SESSION['bhk_ok'] ?? false);
 $login_err = '';
 if (!$auth_ok && $_SERVER['REQUEST_METHOD'] === 'POST') {
     if (hash_equals(BHK_KEY, $_POST['k'] ?? '')) {
-        session_start(); // reopen after current_user() called session_write_close()
+        bf_session_start(); // reopen after current_user() closes the session
         $_SESSION['bhk_ok'] = true;
         header('Location: ' . strtok($_SERVER['REQUEST_URI'], '?'));
         exit;
@@ -933,8 +933,8 @@ html[data-theme="dark"] .hchk-detail{color:#f87171}
           style="background:var(--bg);border:1px solid var(--ctrl-border);color:var(--text);
                  padding:8px 10px;border-radius:4px;font-family:inherit;font-size:12px;width:100%">
         <div style="display:flex;gap:8px">
-          <button class="btn-pdf" style="flex:1" onclick="pwGenHash()">Generate Hash</button>
-          <button class="btn-theme" onclick="pwToggleVis('pw-gen-input',this)" title="Show/hide">&#128065;</button>
+          <button type="button" class="btn-pdf" style="flex:1" onclick="pwGenHash()">Generate Hash</button>
+          <button type="button" class="btn-theme" onclick="pwToggleVis('pw-gen-input',this)" title="Show/hide">&#128065;</button>
         </div>
         <div id="pw-gen-result" style="display:none;margin-top:4px">
           <div style="font-size:10px;color:var(--muted);margin-bottom:4px">Bcrypt hash (copy into SQL or user record):</div>
@@ -943,7 +943,7 @@ html[data-theme="dark"] .hchk-detail{color:#f87171}
               style="width:100%;background:var(--bg);border:1px solid var(--ctrl-border);color:#6366f1;
                      padding:8px 36px 8px 10px;border-radius:4px;font-family:inherit;font-size:11px;
                      resize:none;word-break:break-all"></textarea>
-            <button onclick="pwCopy('pw-gen-hash',this)" title="Copy"
+            <button type="button" onclick="pwCopy('pw-gen-hash',this)" title="Copy"
               style="position:absolute;top:6px;right:6px;background:none;border:none;
                      cursor:pointer;color:var(--muted);font-size:14px;padding:0">&#8227;</button>
           </div>
@@ -965,10 +965,10 @@ html[data-theme="dark"] .hchk-detail{color:#f87171}
           <input type="password" id="pw-ver-input" placeholder="e.g. BlackFire@2026!"
             style="background:var(--bg);border:1px solid var(--ctrl-border);color:var(--text);
                    padding:8px 10px;border-radius:4px;font-family:inherit;font-size:12px;flex:1">
-          <button class="btn-theme" onclick="pwToggleVis('pw-ver-input',this)" title="Show/hide">&#128065;</button>
+          <button type="button" class="btn-theme" onclick="pwToggleVis('pw-ver-input',this)" title="Show/hide">&#128065;</button>
         </div>
         <div style="font-size:10px;color:#64748b;font-style:italic">bcrypt is one-way — enter the candidate password above, not a hash</div>
-        <button class="btn-pdf" onclick="pwVerify()">Verify</button>
+        <button type="button" class="btn-pdf" onclick="pwVerify()">Verify</button>
         <div id="pw-ver-result" style="display:none;padding:8px 12px;border-radius:4px;font-size:12px;font-weight:600;text-align:center"></div>
         <div id="pw-ver-err" style="display:none;font-size:11px;color:#dc2626"></div>
       </div>
@@ -1345,6 +1345,98 @@ async function pwCopy(id, btn) {
   const orig = btn.textContent; btn.textContent = '✓';
   setTimeout(() => btn.textContent = orig, 1500);
 }
+
+function scrollToHashTarget() {
+  const id = (location.hash || '').replace(/^#/, '');
+  if (!id) return;
+  const target = document.getElementById(id);
+  if (!target) return;
+  requestAnimationFrame(() => {
+    target.scrollIntoView({block: 'start', behavior: 'auto'});
+  });
+}
+
+function pwUtilPost(fields) {
+  const url = window.location.pathname + '?action=pw_util';
+  const body = new URLSearchParams(fields).toString();
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', url, true);
+    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
+    xhr.onload = function() {
+      if (xhr.status < 200 || xhr.status >= 300) {
+        reject(new Error('HTTP ' + xhr.status));
+        return;
+      }
+      try {
+        resolve(JSON.parse(xhr.responseText));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    xhr.onerror = function() {
+      reject(new Error('Network error'));
+    };
+    xhr.send(body);
+  });
+}
+
+async function pwGenHash() {
+  const plain = document.getElementById('pw-gen-input').value;
+  const resEl = document.getElementById('pw-gen-result');
+  const errEl = document.getElementById('pw-gen-err');
+  const hashEl = document.getElementById('pw-gen-hash');
+  resEl.style.display = 'none';
+  errEl.style.display = 'none';
+  try {
+    const d = await pwUtilPost({mode: 'hash', plaintext: plain});
+    if (d.error) {
+      errEl.textContent = d.error;
+      errEl.style.display = 'block';
+      return;
+    }
+    hashEl.value = d.hash;
+    resEl.style.display = 'block';
+  } catch (e) {
+    errEl.textContent = 'Request failed: ' + e;
+    errEl.style.display = 'block';
+  }
+}
+
+async function pwVerify() {
+  const plain = document.getElementById('pw-ver-input').value;
+  const hash = document.getElementById('pw-ver-hash').value.trim();
+  const resEl = document.getElementById('pw-ver-result');
+  const errEl = document.getElementById('pw-ver-err');
+  resEl.style.display = 'none';
+  errEl.style.display = 'none';
+  try {
+    const d = await pwUtilPost({mode: 'verify', plaintext: plain, hash: hash});
+    if (d.error) {
+      errEl.textContent = d.error;
+      errEl.style.display = 'block';
+      return;
+    }
+    resEl.style.display = 'block';
+    if (d.match) {
+      resEl.style.background = 'rgba(22,163,74,.15)';
+      resEl.style.color = '#16a34a';
+      resEl.style.border = '1px solid #16a34a';
+      resEl.textContent = 'âœ“ Password matches the hash';
+    } else {
+      resEl.style.background = 'rgba(220,38,38,.1)';
+      resEl.style.color = '#dc2626';
+      resEl.style.border = '1px solid #dc2626';
+      resEl.textContent = 'âœ— Password does NOT match the hash';
+    }
+  } catch (e) {
+    errEl.textContent = 'Request failed: ' + e;
+    errEl.style.display = 'block';
+  }
+}
+
+window.addEventListener('load', scrollToHashTarget);
+window.addEventListener('hashchange', scrollToHashTarget);
 
 const obs = new IntersectionObserver(entries => {
   entries.forEach(e => {

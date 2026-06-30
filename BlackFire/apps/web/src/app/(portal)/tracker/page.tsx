@@ -1,7 +1,8 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { cookies } from 'next/headers'
 import type { Callout, Task, TaskCategory } from '@blackfire/types'
-import { getCurrentUser, can } from '@/lib/server-auth'
+import { can, getServerUser } from '@/lib/auth'
 import { streamLabel, visibleTrackerStreams, type TrackerStream } from '@/lib/tracker'
 import { getTasks } from '@/lib/data/tasks'
 import { getCallouts } from '@/lib/data/callouts'
@@ -24,7 +25,8 @@ export default async function TrackerPage({
 }: {
   searchParams: Promise<{ stream?: string }>
 }) {
-  const user = await getCurrentUser()
+  const cookieHeader = (await cookies()).toString()
+  const user = await getServerUser(cookieHeader)
   if (!user) notFound()
 
   const streams = visibleTrackerStreams(user)

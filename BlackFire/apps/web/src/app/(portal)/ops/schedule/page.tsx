@@ -1,5 +1,6 @@
 import Link from 'next/link'
-import { getCurrentUser } from '@/lib/server-auth'
+import { cookies } from 'next/headers'
+import { getServerUser } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import type { Task } from '@blackfire/types'
 import { getTasks } from '@/lib/data/tasks'
@@ -12,7 +13,8 @@ const STATUS_STYLE: Record<string, string> = {
 }
 
 export default async function SchedulePage() {
-  const user = await getCurrentUser()
+  const cookieHeader = (await cookies()).toString()
+  const user = await getServerUser(cookieHeader)
   if (!user) redirect('/login')
 
   const todayStr = new Date().toISOString().slice(0, 10)

@@ -2,13 +2,13 @@ import { cookies } from 'next/headers'
 import Link from 'next/link'
 import { getServerUser } from '@/lib/auth'
 import { getDashboardData } from '@/lib/data/dashboard'
-import type { DashboardResponse, TaskCategory } from '@blackfire/types'
+import type { TaskCategory } from '@blackfire/types'
 import AnomalyWidget from '@/components/AnomalyWidget'
 import ReportTrigger from '@/components/ReportTrigger'
 
 function KPICard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
   return (
-    <div className="bg-white border border-steel-dark rounded-md p-5 shadow-[0_1px_0_rgba(0,0,0,.02)]">
+    <div className="bg-bone-paper border border-steel-dark rounded-md p-5 shadow-[0_1px_0_rgba(0,0,0,.02)]">
       <p className="text-[11px] tracking-[0.28em] uppercase text-ash mb-2">{label}</p>
       <p className="text-[44px] leading-none font-display text-ink-text">{value}</p>
       {sub && <p className="text-xs text-ash mt-2">{sub}</p>}
@@ -35,12 +35,12 @@ export default async function DashboardPage() {
       {kpis && dashboard ? (
         <>
           <div className="mb-5 grid gap-4 md:grid-cols-2">
-            <Link href="/tracker" className="border-l-2 border-fire-orange bg-[#fff3e8] p-6">
+            <Link href="/tracker" className="border-l-2 border-fire-orange bg-bone-paper p-6">
               <p className="text-[11px] uppercase tracking-[0.28em] text-fire-orange">Urgent Tracker Tasks</p>
               <p className="mt-2 font-display text-4xl text-fire-orange">{kpis.urgent_tasks}</p>
               <p className="mt-1 text-sm text-fire-orange">Internal work requiring attention</p>
             </Link>
-            <Link href="/quotes" className="border-l-2 border-info bg-[#eef5ff] p-6">
+            <Link href="/quotes" className="border-l-2 border-info bg-bone-paper p-6">
               <p className="text-[11px] uppercase tracking-[0.28em] text-info">Quotes Pending Approval</p>
               <p className="mt-2 font-display text-4xl text-info">{kpis.pending_quotes}</p>
               <p className="mt-1 text-sm text-info">Submitted and awaiting review</p>
@@ -59,7 +59,7 @@ export default async function DashboardPage() {
             <ReportTrigger clientName="AECI Chempark" />
           </div>
           <div className="mt-6 grid gap-5 xl:grid-cols-[1.4fr_1fr]">
-            <section className="overflow-hidden rounded border border-steel-dark bg-white shadow-sm">
+            <section className="overflow-hidden rounded border border-steel-dark bg-bone-paper shadow-sm">
               <div className="flex items-center justify-between border-b border-steel-dark bg-charcoal px-5 py-4">
                 <h2 className="font-display text-xl text-ink-text">Recent Tracker Activity</h2>
                 <Link href="/tracker" className="text-xs uppercase tracking-[0.16em] text-fire-orange">View all</Link>
@@ -74,7 +74,7 @@ export default async function DashboardPage() {
                 )) : <p className="px-5 py-12 text-center text-sm text-ash">No tracker activity yet.</p>}
               </div>
             </section>
-            <section className="rounded border border-steel-dark bg-white p-5 shadow-sm">
+            <section className="rounded border border-steel-dark bg-bone-paper p-5 shadow-sm">
               <h2 className="font-display text-xl text-ink-text">Open Work by Stream</h2>
               <div className="mt-5 space-y-4">
                 {(Object.entries(dashboard.task_streams) as [TaskCategory, number][]).map(([stream, count]) => (

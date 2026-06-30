@@ -1,11 +1,12 @@
 import { cookies } from 'next/headers'
-import { getServerUser, hasRole } from '@/lib/auth'
+import { getServerUser } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 
 export default async function VaultPage() {
   const cookieHeader = (await cookies()).toString()
   const user = await getServerUser(cookieHeader)
-  if (!user || !hasRole(user, 'sysadmin', 'admin')) redirect('/dashboard')
+  const roles = user ? [user.role, ...(user.roles ?? [])].map((r) => String(r).toLowerCase()) : []
+  if (!user || !roles.some((role) => ['sysadmin', 'admin'].includes(role))) redirect('/forbidden')
 
   return (
     <div className="max-w-3xl">

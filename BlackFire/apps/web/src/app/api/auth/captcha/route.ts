@@ -1,6 +1,14 @@
 import { NextResponse } from 'next/server'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://blackfiresolutions.co.za/api'
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? (process.env.NODE_ENV === 'production' ? 'https://blackfiresolutions.co.za/api' : 'http://localhost:8080/api')
+
+function normalizeCookieForDev(request: Request, cookie: string) {
+  if (process.env.NODE_ENV === 'production') return cookie
+  const protoHeader = request.headers.get('x-forwarded-proto')
+  const proto = protoHeader || new URL(request.url).protocol.replace(':', '')
+  if (proto === 'https') return cookie
+  return cookie.replace(/;\s*secure/ig, '')
+}
 
 function mirrorUpstreamCookies(response: NextResponse, upstream: Response) {
   const setCookies = typeof upstream.headers.getSetCookie === 'function'
@@ -35,7 +43,13 @@ export async function GET(request: Request) {
       : { success: false, message: payload.error ?? payload.message ?? 'Could not load security check' },
     { status: upstream.status },
   )
-
   mirrorUpstreamCookies(response, upstream)
+  const merged = response.headers.getSetCookie?.() ?? []
+  if (merged.length) {
+    response.headers.delete('set-cookie')
+    for (const cookie of merged) {
+      response.headers.append('set-cookie', normalizeCookieForDev(request, cookie))
+    }
+  }
   return response
 }

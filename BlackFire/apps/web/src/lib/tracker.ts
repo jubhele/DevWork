@@ -23,7 +23,7 @@ export function visibleTaskCategories(user: User): TaskCategory[] {
 
 export function visibleTrackerStreams(user: User): TrackerStream[] {
   const streams: TrackerStream[] = visibleTaskCategories(user)
-  if (user.role === 'sysadmin' || user.permissions.includes('callout.view')) streams.push('call-log')
+  if (user.role === 'sysadmin' || (user.permissions ?? []).includes('callout.view')) streams.push('call-log')
   return streams
 }
 

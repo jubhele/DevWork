@@ -1,7 +1,7 @@
 'use client'
 
+import Link from 'next/link'
 import { useState } from 'react'
-import { notFound } from 'next/navigation'
 import { useUser } from '@/context/UserContext'
 
 const STATUS_DEFINITIONS: Array<{ key: string; label: string; entity: string; colour: string }> = [
@@ -28,8 +28,20 @@ export default function StatusesPage() {
   const [newKey, setNewKey] = useState('')
   const [newEntity, setNewEntity] = useState('')
   const [notice, setNotice] = useState<string | null>(null)
+  const roles = user ? [user.role, ...(user.roles ?? [])].map((r) => String(r).toLowerCase()) : []
 
-  if (!user || !['sysadmin', 'admin'].includes(user.role)) notFound()
+  if (!user || (!roles.includes('sysadmin') && !roles.includes('admin'))) {
+    return (
+      <div className="mx-auto max-w-3xl rounded border border-steel-dark bg-white p-8 shadow-sm">
+        <p className="text-xs uppercase tracking-[0.2em] text-ash">403 Access Denied</p>
+        <h1 className="mt-2 font-display text-4xl tracking-tight text-ink-text">You do not have permission to manage status values.</h1>
+        <p className="mt-4 text-sm text-ash">This section is restricted to Admin and Sysadmin accounts.</p>
+        <div className="mt-6">
+          <Link href="/dashboard" className="rounded border border-fire-orange bg-fire-orange px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white">Go To Dashboard</Link>
+        </div>
+      </div>
+    )
+  }
 
   function handleAdd() {
     if (!newKey.trim()) return

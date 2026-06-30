@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerAnthropicKey } from '@/lib/server-ai-key'
+import { getServerAnthropicKey, getServerGoogleKeys, getServerKimiKeys, getServerOpenAIKeys } from '@/lib/server-ai-key'
 import { callLLMWithFallback, createRouteLogger, mapAIServiceError } from '@/lib/ai-retry-handler'
 
 const logger = createRouteLogger('api/ai/voice-to-callout')
@@ -10,7 +10,7 @@ const logger = createRouteLogger('api/ai/voice-to-callout')
 // 2. Extracts structured callout fields via Claude (or fallback providers)
 // Returns: { transcript, callout: { service, location, priority, description, actions_taken } }
 
-async function transcribeWithWhisper(audioBlob: Blob, filename: string, openaiKey: string): Promise<string> {
+async function transcribeWithWhisper(audioBlob: Blob, filename: string, openaiKey: string | undefined): Promise<string> {
   if (!openaiKey) throw new Error('GBL_OPENAI_API_KEY not configured')
 
   const form = new FormData()
@@ -33,8 +33,9 @@ async function transcribeWithWhisper(audioBlob: Blob, filename: string, openaiKe
 
 export async function POST(req: NextRequest) {
   const anthropicKey = getServerAnthropicKey() ?? process.env.GBL_ANTHROPIC_API_KEY
-  const openaiKey = process.env.GBL_OPENAI_API_KEY
-  const googleKey = process.env.GBL_GOOGLE_AI_API_KEY
+  const openaiKey = getServerOpenAIKeys()[0]
+  const kimiKey = getServerKimiKeys()[0]
+  const googleKey = getServerGoogleKeys()[0]
 
   if (!openaiKey) {
     return NextResponse.json(
@@ -43,7 +44,7 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  if (!anthropicKey && !openaiKey && !googleKey) {
+  if (!anthropicKey && !openaiKey && !googleKey && !kimiKey) {
     return NextResponse.json(
       { success: false, message: 'No AI providers configured for extraction' },
       { status: 503 }
@@ -73,6 +74,7 @@ export async function POST(req: NextRequest) {
     anthropicKey,
     openaiKey,
     googleKey,
+    kimiKey,
     [{
       role: 'user',
       content: `Extract structured fields from this spoken field incident report from a BlackFire Solutions security officer at AECI Chempark, South Africa.

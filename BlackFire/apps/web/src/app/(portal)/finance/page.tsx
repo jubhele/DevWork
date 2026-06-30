@@ -36,10 +36,10 @@ export default async function FinancePage() {
             <section className="mb-8 rounded border border-steel-dark bg-white p-6 shadow-sm">
               <h2 className="font-display text-xl text-ink-text mb-4">Invoice Aging</h2>
               <div className="space-y-3">
-                {summary.aging.map(a => {
+                {summary.aging.map((a, i) => {
                   const pct = summary.outstanding_balance > 0 ? Math.round((a.amount / summary.outstanding_balance) * 100) : 0
                   return (
-                    <div key={a.band}>
+                    <div key={`${a.band}-${i}`}>
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-sm text-ash">{a.band}</span>
                         <span className="text-sm font-medium text-ink-text">{rnd(a.amount)}</span>

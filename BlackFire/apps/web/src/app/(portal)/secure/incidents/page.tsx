@@ -1,5 +1,6 @@
 import Link from 'next/link'
-import { getCurrentUser } from '@/lib/server-auth'
+import { cookies } from 'next/headers'
+import { getServerUser } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import type { Callout } from '@blackfire/types'
 import { getCallouts } from '@/lib/data/callouts'
@@ -11,8 +12,10 @@ const PRIORITY_STYLE: Record<string, string> = {
 }
 
 export default async function IncidentsPage() {
-  const user = await getCurrentUser()
-  if (!user || !['sysadmin', 'admin', 'manager'].includes(user.role)) redirect('/dashboard')
+  const cookieHeader = (await cookies()).toString()
+  const user = await getServerUser(cookieHeader)
+  const roles = user ? [user.role, ...(user.roles ?? [])].map((r) => String(r).toLowerCase()) : []
+  if (!user || !roles.some((role) => ['sysadmin', 'admin', 'manager'].includes(role))) redirect('/forbidden')
 
   const { data: incidents } = await getCallouts({ priorities: ['Urgent', 'Emergency'], limit: 200 })
   const open = incidents.filter(c => c.status === 'Open' || c.status === 'In Progress')

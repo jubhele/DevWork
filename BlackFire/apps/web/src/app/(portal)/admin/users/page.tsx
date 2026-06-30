@@ -1,6 +1,7 @@
 import Link from 'next/link'
-import { getCurrentUser } from '@/lib/server-auth'
-import { notFound } from 'next/navigation'
+import { cookies } from 'next/headers'
+import { can, getServerUser } from '@/lib/auth'
+import { redirect } from 'next/navigation'
 import { getPortalUsers, type PortalUser } from '@/lib/data/users'
 
 const ROLE_LABELS: Record<string, string> = {
@@ -17,9 +18,11 @@ const ROLE_LABELS: Record<string, string> = {
 }
 
 export default async function UsersPage() {
-  const user = await getCurrentUser()
+  const cookieHeader = (await cookies()).toString()
+  const user = await getServerUser(cookieHeader)
+  const roles = user ? [user.role, ...(user.roles ?? [])].map((r) => String(r).toLowerCase()) : []
 
-  if (!user || !['sysadmin', 'admin'].includes(user.role)) notFound()
+  if (!user || (!roles.includes('sysadmin') && !roles.includes('admin') && !can(user, 'user.view'))) redirect('/forbidden')
 
   const users = await getPortalUsers()
 

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerAnthropicKey } from '@/lib/server-ai-key'
+import { getServerAnthropicKey, getServerGoogleKeys, getServerKimiKeys, getServerOpenAIKeys } from '@/lib/server-ai-key'
 import { callLLMWithFallback, createRouteLogger, mapAIServiceError } from '@/lib/ai-retry-handler'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://blackfiresolutions.co.za/api'
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? (process.env.NODE_ENV === 'production' ? 'https://blackfiresolutions.co.za/api' : 'http://localhost:8080/api')
 const logger = createRouteLogger('api/ai/reports')
 
 async function fetchAll(cookieHeader: string) {
@@ -24,12 +24,13 @@ async function fetchAll(cookieHeader: string) {
 
 export async function POST(req: NextRequest) {
   const anthropicKey = getServerAnthropicKey() ?? process.env.GBL_ANTHROPIC_API_KEY
-  const openaiKey = process.env.GBL_OPENAI_API_KEY
-  const googleKey = process.env.GBL_GOOGLE_AI_API_KEY
+  const openaiKey = getServerOpenAIKeys()[0]
+  const googleKey = getServerGoogleKeys()[0]
+  const kimiKey = getServerKimiKeys()[0]
 
-  if (!anthropicKey && !openaiKey && !googleKey) {
+  if (!anthropicKey && !openaiKey && !googleKey && !kimiKey) {
     return NextResponse.json(
-      { success: false, message: 'No AI providers configured — set GBL_ANTHROPIC_API_KEY, GBL_OPENAI_API_KEY, or GBL_GOOGLE_AI_API_KEY' },
+      { success: false, message: 'No AI providers configured — set GBL_ANTHROPIC_API_KEY, GBL_OPENAI_API_KEY, GBL_GOOGLE_AI_API_KEY, or GBL_KIMI_AI_API_KEY' },
       { status: 503 }
     )
   }
@@ -75,6 +76,7 @@ export async function POST(req: NextRequest) {
     anthropicKey,
     openaiKey,
     googleKey,
+    kimiKey,
     [{
       role: 'user',
       content: `You are a senior security analyst writing a monthly client intelligence report for BlackFire Solutions — a professional security services company operating at ${client_name} in Modderfontein, Johannesburg, South Africa.

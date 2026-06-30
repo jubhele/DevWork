@@ -1,5 +1,6 @@
-import { getCurrentUser } from '@/lib/server-auth'
-import { notFound } from 'next/navigation'
+import { cookies } from 'next/headers'
+import { can, getServerUser } from '@/lib/auth'
+import { redirect } from 'next/navigation'
 import { getAuditLog, type AuditEntry } from '@/lib/data/audit'
 
 export default async function AuditPage({
@@ -7,9 +8,11 @@ export default async function AuditPage({
 }: {
   searchParams: Promise<{ page?: string }>
 }) {
-  const user = await getCurrentUser()
+  const cookieHeader = (await cookies()).toString()
+  const user = await getServerUser(cookieHeader)
+  const roles = user ? [user.role, ...(user.roles ?? [])].map((r) => String(r).toLowerCase()) : []
 
-  if (!user || !['sysadmin', 'admin'].includes(user.role)) notFound()
+  if (!user || (!roles.includes('sysadmin') && !roles.includes('admin') && !can(user, 'security.audit'))) redirect('/forbidden')
 
   const page = Math.max(1, parseInt((await searchParams).page ?? '1'))
   const { data: entries, total } = await getAuditLog(page)

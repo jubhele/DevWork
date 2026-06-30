@@ -43,12 +43,71 @@
   color-scheme: light;
 }
 
+html[data-theme='dark'] {
+  color-scheme: dark;
+
+  --color-coal:         #1a1712;
+  --color-navy:         #12100d;
+  --color-charcoal:     #1f1b15;
+  --color-steel-dark:   #3a3328;
+  --color-ash:          #b9af9f;
+  --color-bone-paper:   #181510;
+  --color-ink-text:     #f2ede4;
+}
+
 body {
   background:
     radial-gradient(circle at top, rgba(233, 226, 215, 0.8), transparent 46%),
     linear-gradient(180deg, #ffffff 0%, #f5f1ea 100%);
   color: var(--color-ink-text);
   font-family: var(--font-body);
+}
+
+html[data-theme='dark'] body {
+  background:
+    radial-gradient(circle at top, rgba(64, 54, 43, 0.5), transparent 48%),
+    linear-gradient(180deg, #14120e 0%, #1a1712 100%);
+}
+
+/* Compatibility layer for existing hardcoded light utility classes. */
+html[data-theme='dark'] .bg-white {
+  background-color: #1f1b15 !important;
+}
+
+html[data-theme='dark'] .bg-white\/95 {
+  background-color: rgba(31, 27, 21, 0.95) !important;
+}
+
+html[data-theme='dark'] .bg-\[\#eee\],
+html[data-theme='dark'] .bg-\[\#efefef\] {
+  background-color: #252017 !important;
+}
+
+html[data-theme='dark'] .bg-\[\#fff3e8\] {
+  background-color: #241d16 !important;
+}
+
+html[data-theme='dark'] .bg-\[\#eef5ff\] {
+  background-color: #171f2b !important;
+}
+
+html[data-theme='dark'] .text-ink-text {
+  color: #f2ede4 !important;
+}
+
+html[data-theme='dark'] .text-ash {
+  color: #c8bfb0 !important;
+}
+
+html[data-theme='dark'] .border-steel-dark,
+html[data-theme='dark'] .border-steel-dark\/60,
+html[data-theme='dark'] .border-steel-dark\/80 {
+  border-color: #4a4133 !important;
+}
+
+html[data-theme='dark'] .bg-charcoal,
+html[data-theme='dark'] .bg-charcoal\/60 {
+  background-color: #2a241c !important;
 }
 
 * {

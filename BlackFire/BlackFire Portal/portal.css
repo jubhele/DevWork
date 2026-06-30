@@ -1173,6 +1173,7 @@ textarea.saf-cmt { resize:vertical; min-height:28px; width:100% }
 #info-overlay{
   position:fixed;inset:0;
   background:rgba(0,0,0,.25);z-index:499;display:none;
+  pointer-events:none;
 }
 [data-state="portal"][data-info="on"] #info-overlay{display:block}
 
