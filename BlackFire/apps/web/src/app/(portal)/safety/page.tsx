@@ -1,5 +1,6 @@
 import Link from 'next/link'
-import { getCurrentUser, can } from '@/lib/server-auth'
+import { cookies } from 'next/headers'
+import { can, getServerUser } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import type { SafetyFile } from '@blackfire/types'
 import { getSafetyFiles } from '@/lib/data/safety'
@@ -25,7 +26,7 @@ export default async function SafetyPage({
 }: {
   searchParams: Promise<{ filter?: string }>
 }) {
-  const user = await getCurrentUser()
+  const user = await getServerUser((await cookies()).toString())
   if (!user) redirect('/login')
   const filter = (await searchParams).filter ?? 'all'
   const files = await getSafetyFiles({ filter })

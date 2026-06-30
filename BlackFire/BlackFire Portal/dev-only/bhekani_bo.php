@@ -10,6 +10,7 @@ define('BHK_KEY', 'Bhekani2026!@@');
 // Works whether deployed to portal root OR run from dev-only/ subdirectory
 $_bhk_root = is_dir(__DIR__ . '/includes') ? __DIR__ : dirname(__DIR__);
 require_once $_bhk_root . '/includes/auth.php';
+require_once $_bhk_root . '/includes/helpers.php';
 
 // Start session so we can store bhk_ok flag independently of portal session
 bf_session_start();
@@ -295,6 +296,37 @@ if (($_GET['action'] ?? '') === 'pw_util') {
             echo json_encode(['error' => 'Enter both password and hash']); exit;
         }
         echo json_encode(['match' => password_verify($plaintext, $stored_hash)]);
+    } elseif ($mode === 'reset') {
+        $username         = strtolower(clean($_POST['username'] ?? '', 50));
+        $new_password     = (string)($_POST['password'] ?? '');
+
+        if ($username === '') {
+            echo json_encode(['error' => 'Enter a username']); exit;
+        }
+        if ($new_password === '') {
+            echo json_encode(['error' => 'Enter the new password']); exit;
+        }
+        if (!password_valid($new_password)) {
+            echo json_encode(['error' => PASSWORD_COMPLEXITY_MSG]); exit;
+        }
+
+        $row = db_row(
+            "SELECT id, username, active FROM bf_users WHERE username = ? LIMIT 1",
+            [$username]
+        );
+        if (!$row) {
+            echo json_encode(['error' => 'No user found for that username']); exit;
+        }
+        if (!(int)($row['active'] ?? 0)) {
+            echo json_encode(['error' => 'That user is inactive']); exit;
+        }
+
+        db_exec(
+            "UPDATE bf_users SET password_hash = ? WHERE id = ?",
+            [password_hash($new_password, PASSWORD_BCRYPT), (int)$row['id']]
+        );
+        audit($row['username'], 'RESET_PASSWORD', 'Password reset via bhekani_bo');
+        echo json_encode(['ok' => true, 'message' => 'Password updated for ' . $row['username']]);
     } else {
         echo json_encode(['error' => 'Unknown mode']);
     }
@@ -921,7 +953,7 @@ html[data-theme="dark"] .hchk-detail{color:#f87171}
 <div class="sgen" id="pw-util">
   <div class="sgen-hdr">
     <h2>&#128273; Password Hash Utility</h2>
-    <span class="sgen-hint">Generate a bcrypt hash or verify a password against an existing hash</span>
+    <span class="sgen-hint">Generate a bcrypt hash, verify a password, or reset a user password locally</span>
   </div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--probe-grid-gap)">
 
@@ -976,7 +1008,36 @@ html[data-theme="dark"] .hchk-detail{color:#f87171}
 
   </div>
 </div>
-<!-- /Password Hash Utility ──────────────────────────────── -->
+<!-- Password Reset -->
+<div class="sgen" id="pw-reset" style="margin-top:12px">
+  <div class="sgen-hdr">
+    <h2>&#128274; Password Reset</h2>
+    <span class="sgen-hint">Reset a user password immediately by username. No email is sent.</span>
+  </div>
+  <div style="background:var(--probe-cell-bg);padding:14px 16px;border-top:1px solid var(--probe-border)">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div style="grid-column:1 / -1">
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Username</div>
+        <input type="text" id="pw-rst-user" placeholder="e.g. j.shange"
+          style="width:100%;background:var(--bg);border:1px solid var(--ctrl-border);color:var(--text);
+                 padding:8px 10px;border-radius:4px;font-family:inherit;font-size:12px">
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">New Password</div>
+        <input type="password" id="pw-rst-pass" placeholder="Enter new password"
+          style="width:100%;background:var(--bg);border:1px solid var(--ctrl-border);color:var(--text);
+                 padding:8px 10px;border-radius:4px;font-family:inherit;font-size:12px">
+      </div>
+      <div style="grid-column:1 / -1;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <button type="button" class="btn-pdf" onclick="pwResetUser()">Reset Password</button>
+        <button type="button" class="btn-theme" onclick="pwToggleVis('pw-rst-pass',this)" title="Show/hide">&#128065;</button>
+      </div>
+      <div id="pw-rst-result" style="display:none;grid-column:1 / -1;padding:8px 12px;border-radius:4px;font-size:12px;font-weight:600;text-align:center"></div>
+      <div id="pw-rst-err" style="display:none;grid-column:1 / -1;font-size:11px;color:#dc2626"></div>
+    </div>
+  </div>
+</div>
+<!-- /Password Hash Utility â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
 
 <!-- ── Code Health ───────────────────────────────────────── -->
 <div class="hchk">
@@ -1429,6 +1490,44 @@ async function pwVerify() {
       resEl.style.border = '1px solid #dc2626';
       resEl.textContent = 'âœ— Password does NOT match the hash';
     }
+  } catch (e) {
+    errEl.textContent = 'Request failed: ' + e;
+    errEl.style.display = 'block';
+  }
+}
+
+async function pwResetUser() {
+  const username = document.getElementById('pw-rst-user').value.trim();
+  const password = document.getElementById('pw-rst-pass').value;
+  const resEl = document.getElementById('pw-rst-result');
+  const errEl = document.getElementById('pw-rst-err');
+  resEl.style.display = 'none';
+  errEl.style.display = 'none';
+
+  if (!username) {
+    errEl.textContent = 'Enter a username';
+    errEl.style.display = 'block';
+    return;
+  }
+  if (!password) {
+    errEl.textContent = 'Enter the new password';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  try {
+    const d = await pwUtilPost({mode: 'reset', username: username, password: password});
+    if (d.error) {
+      errEl.textContent = d.error;
+      errEl.style.display = 'block';
+      return;
+    }
+    resEl.style.display = 'block';
+    resEl.style.background = 'rgba(22,163,74,.15)';
+    resEl.style.color = '#16a34a';
+    resEl.style.border = '1px solid #16a34a';
+    resEl.textContent = d.message || 'Password updated locally';
+    document.getElementById('pw-rst-pass').value = '';
   } catch (e) {
     errEl.textContent = 'Request failed: ' + e;
     errEl.style.display = 'block';

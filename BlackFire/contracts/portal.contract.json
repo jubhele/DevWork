@@ -2,6 +2,7 @@
   "name": "Umlilo Portal Contract",
   "version": "0.1.0",
   "source": "BlackFire PHP portal",
+  "generated_at": "2026-06-30T20:45:00+02:00",
   "enums": {
     "Role": [
       "sysadmin",
@@ -10,6 +11,8 @@
       "finance",
       "safety_officer",
       "viewer",
+      "client",
+      "inspector",
       "client_support",
       "junior_tech",
       "senior_tech",
@@ -36,6 +39,7 @@
       "Expired"
     ],
     "InvoiceStatus": [
+      "Unpaid",
       "Draft",
       "Sent",
       "Paid",
@@ -44,11 +48,13 @@
     ],
     "SafetyFileStatus": [
       "Draft",
+      "In Progress",
       "Submitted",
       "Approved",
       "Rejected"
     ],
     "SafetyItemStatus": [
+      "To Standard",
       "Pass",
       "Fail",
       "Not to Standard",

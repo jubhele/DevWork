@@ -9,6 +9,8 @@ export type Role =
   | 'finance'
   | 'safety_officer'
   | 'viewer'
+  | 'client'
+  | 'inspector'
   | 'client_support'
   | 'junior_tech'
   | 'senior_tech'
@@ -35,6 +37,7 @@ export type QuoteStatus =
   | 'Expired'
 
 export type InvoiceStatus =
+  | 'Unpaid'
   | 'Draft'
   | 'Sent'
   | 'Paid'
@@ -43,11 +46,13 @@ export type InvoiceStatus =
 
 export type SafetyFileStatus =
   | 'Draft'
+  | 'In Progress'
   | 'Submitted'
   | 'Approved'
   | 'Rejected'
 
 export type SafetyItemStatus =
+  | 'To Standard'
   | 'Pass'
   | 'Fail'
   | 'Not to Standard'

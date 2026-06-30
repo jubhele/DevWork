@@ -32,6 +32,28 @@ pnpm --filter mobile start
 Submit tasks via Mlawuli. See `agents/mlawuli_system_prompt.md` for routing.
 Umlindi audits all Umakhi changes before production deploy.
 
+## Role Surface
+
+The current portal user-management surface accepts the following roles:
+
+| Role |
+|------|
+| sysadmin |
+| admin |
+| manager |
+| admin_clerk |
+| call_logger |
+| junior_tech |
+| senior_tech |
+| client_support |
+| viewer |
+| client |
+| finance |
+| safety_officer |
+| inspector |
+
+When adding or updating RBAC behavior, keep `api/users.php`, `bf_users.role`, and the shared contract/types in sync.
+
 ## Session Logging
 
 All sessions logged to `sessions/`. Use template at `sessions/_template.md`.

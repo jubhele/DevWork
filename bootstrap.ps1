@@ -64,58 +64,8 @@ if (-not (Test-Path "$Queue\tasks.json")) {
 }
 
 # ============================================
-# WRITE ORCHESTRATOR
+# LEGACY DISTRIBUTED RUNTIME (DISABLED)
 # ============================================
-@"
-while (\$true) {
-    \$tasks = Get-Content queue\tasks.json | ConvertFrom-Json
-    if (git status --porcelain) {
-        \$tasks += @{ id=(Get-Date -Format 'yyyyMMddHHmmss'); type='build'; status='pending' }
-        \$tasks | ConvertTo-Json -Depth 5 | Out-File queue\tasks.json
-    }
-    Start-Sleep 15
-}
-"@ | Out-File orchestrator.ps1 -Force
-
-# ============================================
-# WRITE UMAKHI (PATCH APPLY)
-# ============================================
-@"
-while (\$true) {
-    \$tasks = Get-Content queue\tasks.json | ConvertFrom-Json
-    \$t = \$tasks | Where-Object { \$_['type'] -eq 'build' -and \$_['status'] -eq 'pending' } | Select-Object -First 1
-
-    if (\$t) {
-        \$t['status'] = 'running'
-        \$tasks | ConvertTo-Json -Depth 5 | Out-File queue\tasks.json
-
-        git add .
-        \$diff = git diff --cached
-
-        if (\$diff) {
-            \$patch = ollama run deepseek-coder "Return ONLY a valid git patch:`n\$diff"
-            \$patch | Out-File fix.patch
-            git apply fix.patch
-            git add .
-            git commit -m "AI auto-fix"
-            git push
-        }
-
-        \$t['status'] = 'done'
-        \$tasks | ConvertTo-Json -Depth 5 | Out-File queue\tasks.json
-    }
-
-    Start-Sleep 10
-}
-"@ | Out-File worker-umakhi.ps1 -Force
-
-# ============================================
-# REGISTER SERVICES
-# ============================================
-nssm install AI-Orchestrator powershell.exe "-ExecutionPolicy Bypass -File `"$Root\orchestrator.ps1`""
-nssm install AI-Umakhi powershell.exe "-ExecutionPolicy Bypass -File `"$Root\worker-umakhi.ps1`""
-
-nssm start AI-Orchestrator
-nssm start AI-Umakhi
-
-Write-Host "Distributed AI agents installed and running."
+Write-Warning "Legacy orchestrator/worker runtime is disabled by Phase 0 hardening."
+Write-Host "Use unified runtime instead: powershell.exe -File 'c:\DevWork\agent-v3.ps1'"
+Write-Host "No NSSM services are installed from this bootstrap script."

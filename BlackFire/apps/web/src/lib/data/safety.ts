@@ -5,7 +5,16 @@ import { nextRefId } from './counters'
 
 const { bfSafetyFiles } = schema
 
-type DbSafetyFile = typeof bfSafetyFiles.$inferSelect
+type DbSafetyFile = {
+  id: number
+  refId: string
+  contractor: string
+  region: string
+  status: string
+  score: string | number | null
+  signOffDate: Date | string | null
+  createdAt: Date | string | null
+}
 
 function d(v: Date | string | null | undefined): string | null {
   if (!v) return null
@@ -55,7 +64,16 @@ export async function getSafetyFiles(params?: {
   const where = conditions.length === 1 ? conditions[0] : and(...conditions)
 
   const rows = await db
-    .select()
+    .select({
+      id: bfSafetyFiles.id,
+      refId: bfSafetyFiles.refId,
+      contractor: bfSafetyFiles.contractor,
+      region: bfSafetyFiles.region,
+      status: bfSafetyFiles.status,
+      score: bfSafetyFiles.score,
+      signOffDate: bfSafetyFiles.signOffDate,
+      createdAt: bfSafetyFiles.createdAt,
+    })
     .from(bfSafetyFiles)
     .where(where)
     .orderBy(desc(bfSafetyFiles.createdAt))

@@ -1,0 +1,304 @@
+{
+    "task":  "SYNC-P1-01-Mhloli",
+    "generatedAt":  "2026-06-30T20:42:16+02:00",
+    "source":  {
+                   "rbacSql":  "BlackFire/BlackFire Portal/install/rbac_full_migration.sql",
+                   "blackfireTypes":  "BlackFire/packages/types/index.ts",
+                   "umliloTypes":  "umlilo-portal/packages/types/index.ts",
+                   "blackfireCan":  "BlackFire/apps/web/src/context/UserContext.tsx",
+                   "umliloCan":  "umlilo-portal/apps/web/src/lib/auth.ts"
+               },
+    "canonicalRoleCount":  11,
+    "canonicalRoles":  [
+                           "sysadmin",
+                           "admin",
+                           "manager",
+                           "admin_clerk",
+                           "call_logger",
+                           "junior_tech",
+                           "senior_tech",
+                           "client_support",
+                           "viewer",
+                           "safety_officer",
+                           "inspector"
+                       ],
+    "permissionsByRole":  {
+                              "sysadmin":  {
+                                               "permissionCount":  36,
+                                               "permissions":  [
+                                                                   "callout.assign_po",
+                                                                   "callout.assign_tech",
+                                                                   "callout.confirm_closure",
+                                                                   "callout.create",
+                                                                   "callout.delete",
+                                                                   "callout.update",
+                                                                   "callout.update_status",
+                                                                   "callout.view",
+                                                                   "capture.log_payment",
+                                                                   "capture.new_callout",
+                                                                   "capture.new_invoice",
+                                                                   "capture.new_quote",
+                                                                   "finance.income",
+                                                                   "finance.statement",
+                                                                   "finance.statement.generate",
+                                                                   "finance.statement.release",
+                                                                   "finance.transactions",
+                                                                   "invoice.create",
+                                                                   "invoice.delete",
+                                                                   "invoice.mark_paid",
+                                                                   "invoice.send",
+                                                                   "invoice.view",
+                                                                   "quote.approve",
+                                                                   "quote.convert",
+                                                                   "quote.create",
+                                                                   "quote.delete",
+                                                                   "quote.view",
+                                                                   "safety.approve",
+                                                                   "safety.create",
+                                                                   "safety.delete",
+                                                                   "safety.update",
+                                                                   "safety.view",
+                                                                   "security.audit",
+                                                                   "security.users",
+                                                                   "user.create",
+                                                                   "user.update"
+                                                               ]
+                                           },
+                              "admin":  {
+                                            "permissionCount":  36,
+                                            "permissions":  [
+                                                                "callout.assign_po",
+                                                                "callout.assign_tech",
+                                                                "callout.confirm_closure",
+                                                                "callout.create",
+                                                                "callout.delete",
+                                                                "callout.update",
+                                                                "callout.update_status",
+                                                                "callout.view",
+                                                                "capture.log_payment",
+                                                                "capture.new_callout",
+                                                                "capture.new_invoice",
+                                                                "capture.new_quote",
+                                                                "finance.income",
+                                                                "finance.statement",
+                                                                "finance.statement.generate",
+                                                                "finance.statement.release",
+                                                                "finance.transactions",
+                                                                "invoice.create",
+                                                                "invoice.delete",
+                                                                "invoice.mark_paid",
+                                                                "invoice.send",
+                                                                "invoice.view",
+                                                                "quote.approve",
+                                                                "quote.convert",
+                                                                "quote.create",
+                                                                "quote.delete",
+                                                                "quote.view",
+                                                                "safety.approve",
+                                                                "safety.create",
+                                                                "safety.delete",
+                                                                "safety.update",
+                                                                "safety.view",
+                                                                "security.audit",
+                                                                "security.users",
+                                                                "user.create",
+                                                                "user.update"
+                                                            ]
+                                        },
+                              "manager":  {
+                                              "permissionCount":  33,
+                                              "permissions":  [
+                                                                  "callout.assign_po",
+                                                                  "callout.assign_tech",
+                                                                  "callout.confirm_closure",
+                                                                  "callout.create",
+                                                                  "callout.delete",
+                                                                  "callout.update",
+                                                                  "callout.update_status",
+                                                                  "callout.view",
+                                                                  "capture.log_payment",
+                                                                  "capture.new_callout",
+                                                                  "capture.new_invoice",
+                                                                  "capture.new_quote",
+                                                                  "finance.income",
+                                                                  "finance.statement",
+                                                                  "finance.statement.release",
+                                                                  "finance.transactions",
+                                                                  "invoice.create",
+                                                                  "invoice.delete",
+                                                                  "invoice.mark_paid",
+                                                                  "invoice.send",
+                                                                  "invoice.view",
+                                                                  "quote.approve",
+                                                                  "quote.convert",
+                                                                  "quote.create",
+                                                                  "quote.delete",
+                                                                  "quote.view",
+                                                                  "safety.approve",
+                                                                  "safety.create",
+                                                                  "safety.delete",
+                                                                  "safety.update",
+                                                                  "safety.view",
+                                                                  "security.users",
+                                                                  "user.create"
+                                                              ]
+                                          },
+                              "admin_clerk":  {
+                                                  "permissionCount":  22,
+                                                  "permissions":  [
+                                                                      "callout.assign_po",
+                                                                      "callout.assign_tech",
+                                                                      "callout.update",
+                                                                      "callout.update_status",
+                                                                      "callout.view",
+                                                                      "capture.log_payment",
+                                                                      "capture.new_invoice",
+                                                                      "finance.income",
+                                                                      "finance.statement",
+                                                                      "finance.statement.release",
+                                                                      "finance.transactions",
+                                                                      "invoice.create",
+                                                                      "invoice.mark_paid",
+                                                                      "invoice.send",
+                                                                      "invoice.view",
+                                                                      "quote.convert",
+                                                                      "quote.view",
+                                                                      "safety.create",
+                                                                      "safety.update",
+                                                                      "safety.view",
+                                                                      "security.users",
+                                                                      "user.create"
+                                                                  ]
+                                              },
+                              "call_logger":  {
+                                                  "permissionCount":  6,
+                                                  "permissions":  [
+                                                                      "callout.create",
+                                                                      "callout.update",
+                                                                      "callout.update_status",
+                                                                      "callout.view",
+                                                                      "capture.new_callout",
+                                                                      "safety.view"
+                                                                  ]
+                                              },
+                              "junior_tech":  {
+                                                  "permissionCount":  4,
+                                                  "permissions":  [
+                                                                      "callout.update",
+                                                                      "callout.update_status",
+                                                                      "callout.view",
+                                                                      "safety.view"
+                                                                  ]
+                                              },
+                              "senior_tech":  {
+                                                  "permissionCount":  9,
+                                                  "permissions":  [
+                                                                      "callout.update",
+                                                                      "callout.update_status",
+                                                                      "callout.view",
+                                                                      "capture.new_quote",
+                                                                      "quote.create",
+                                                                      "quote.view",
+                                                                      "safety.create",
+                                                                      "safety.update",
+                                                                      "safety.view"
+                                                                  ]
+                                              },
+                              "client_support":  {
+                                                     "permissionCount":  6,
+                                                     "permissions":  [
+                                                                         "callout.create",
+                                                                         "callout.view",
+                                                                         "capture.new_callout",
+                                                                         "finance.statement",
+                                                                         "invoice.view",
+                                                                         "safety.view"
+                                                                     ]
+                                                 },
+                              "viewer":  {
+                                             "permissionCount":  5,
+                                             "permissions":  [
+                                                                 "callout.view",
+                                                                 "finance.statement",
+                                                                 "invoice.view",
+                                                                 "quote.view",
+                                                                 "safety.view"
+                                                             ]
+                                         },
+                              "safety_officer":  {
+                                                     "permissionCount":  3,
+                                                     "permissions":  [
+                                                                         "safety.create",
+                                                                         "safety.update",
+                                                                         "safety.view"
+                                                                     ]
+                                                 },
+                              "inspector":  {
+                                                "permissionCount":  4,
+                                                "permissions":  [
+                                                                    "callout.view",
+                                                                    "invoice.view",
+                                                                    "quote.view",
+                                                                    "safety.view"
+                                                                ]
+                                            }
+                          },
+    "appRoleUnion":  {
+                         "blackfire":  [
+                                           "sysadmin",
+                                           "admin",
+                                           "manager",
+                                           "finance",
+                                           "safety_officer",
+                                           "viewer",
+                                           "client",
+                                           "inspector",
+                                           "client_support",
+                                           "junior_tech",
+                                           "senior_tech",
+                                           "call_logger",
+                                           "admin_clerk"
+                                       ],
+                         "umliloPortal":  [
+                                              "sysadmin",
+                                              "admin",
+                                              "manager",
+                                              "finance",
+                                              "safety_officer",
+                                              "viewer",
+                                              "client_support",
+                                              "junior_tech",
+                                              "senior_tech",
+                                              "call_logger",
+                                              "admin_clerk"
+                                          ],
+                         "union":  [
+                                       "admin",
+                                       "admin_clerk",
+                                       "call_logger",
+                                       "client",
+                                       "client_support",
+                                       "finance",
+                                       "inspector",
+                                       "junior_tech",
+                                       "manager",
+                                       "safety_officer",
+                                       "senior_tech",
+                                       "sysadmin",
+                                       "viewer"
+                                   ]
+                     },
+    "appCanSemantics":  {
+                            "blackfire":  "sysadmin bypass only; otherwise requires permission membership",
+                            "umliloPortal":  "sysadmin and admin bypass; otherwise requires permission membership"
+                        },
+    "driftFlags":  {
+                       "rolesInAppsNotInCanonical":  [
+                                                         "client",
+                                                         "finance"
+                                                     ],
+                       "rolesInCanonicalMissingFromApps":  [
+
+                                                           ]
+                   }
+}

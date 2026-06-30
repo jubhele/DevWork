@@ -9,6 +9,7 @@
 - [ ] `api_headers()` called before `require_auth()` on every endpoint
 - [ ] CSP: no inline onclick/onkeydown handlers
 - [ ] RBAC: roles match confirmed user permissions
+- [ ] RBAC migration applied and `api/users.php` role whitelist matches shared contract/types
 - [ ] DEBUG_MODE=false in production `.env`
 - [ ] All new tables have `host_company_id DEFAULT 1`
 

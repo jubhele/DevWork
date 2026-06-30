@@ -15,7 +15,7 @@ $cfg = require __DIR__ . '/../config/config.php';
 date_default_timezone_set($cfg['timezone'] ?? 'Africa/Johannesburg');
 api_headers();
 
-const VALID_ROLES = ['sysadmin','admin','manager','call_logger','junior_tech','senior_tech','client_support','admin_clerk','viewer','safety_officer'];
+const VALID_ROLES = ['sysadmin','admin','manager','call_logger','junior_tech','senior_tech','client_support','admin_clerk','viewer','client','finance','safety_officer','inspector'];
 
 function sanitise_roles(mixed $raw): array {
     if (!is_array($raw)) $raw = [$raw];

@@ -36,4 +36,26 @@ sequenceDiagram
 | `api/dashboard.php` | Dashboard aggregates |
 | `api/finance.php` | Financial reporting |
 
+## RBAC Surface
+
+The current portal role surface accepted by the user admin flow includes:
+
+| Role |
+|------|
+| sysadmin |
+| admin |
+| manager |
+| admin_clerk |
+| call_logger |
+| junior_tech |
+| senior_tech |
+| client_support |
+| viewer |
+| client |
+| finance |
+| safety_officer |
+| inspector |
+
+`api/users.php` and the shared contract/types should stay aligned with this list while the RBAC migration work continues.
+
 _Update this file when new endpoints or database schemas are added._

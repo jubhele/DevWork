@@ -4,7 +4,7 @@
 #
 # Agents:   Mlawuli (orchestrator) + Umakhi (builder) + Umlindi (security)
 #           + Mvavanyi (QA) + Sibali (cost routing) + Agent-SelfHeal
-# Queue:    task-queue.json (root)  <-- unified; orchestrator/worker also use this file
+# Queue:    task-queue.json (root)  <-- unified active queue for agent-v3 only
 # Sessions: c:\DevWork\sessions\
 # Models:   Tier 1 -> Ollama deepseek-coder (local, free)
 #           Tier 2/3 -> Claude API (ANTHROPIC_API_KEY in .env)
@@ -203,7 +203,7 @@ function Complete-SessionLog {
 }
 
 # -----------------------------------------------------------------------
-# TASK QUEUE  (unified at task-queue.json root -- matches orchestrator/worker)
+# TASK QUEUE  (unified at task-queue.json root for agent-v3 runtime)
 # -----------------------------------------------------------------------
 $QueueFile = "c:\DevWork\task-queue.json"
 
@@ -224,6 +224,8 @@ function Save-Queue($q) {
 function Add-Task {
     param($type, $payload)
     $q    = Get-Queue
+    $hasPending = $q | Where-Object { $_.type -eq $type -and ($_.status -eq "pending" -or $_.status -eq "running" -or $_.status -eq "retry") } | Select-Object -First 1
+    if ($hasPending) { return }
     $task = @{ id = (Get-Date -Format "yyyyMMddHHmmss"); type = $type; payload = $payload; status = "pending" }
     $q   += $task
     Save-Queue $q
@@ -364,6 +366,24 @@ function Invoke-SessionLogCheck {
     }
 }
 
+function Assert-NoLegacyServiceConflict {
+    $legacyServices = @("AI-Orchestrator", "AI-Umakhi", "AI-QA", "AI-Security", "AI-PR")
+    $active = @()
+
+    foreach ($name in $legacyServices) {
+        $svc = Get-Service -Name $name -ErrorAction SilentlyContinue
+        if (-not $svc) { continue }
+        if ($svc.Status -ne "Stopped") {
+            $active += ("{0}({1})" -f $name, $svc.Status)
+        }
+    }
+
+    if ($active.Count -gt 0) {
+        Write-Error ("Legacy runtime conflict detected: {0}. Stop legacy services before running agent-v3." -f ($active -join ", "))
+        exit 1
+    }
+}
+
 # -----------------------------------------------------------------------
 # MAIN LOOP
 # -----------------------------------------------------------------------
@@ -371,6 +391,7 @@ $delay       = 20
 $logInterval = 1200  # run session log check every 20 minutes
 $tickCount   = 0
 
+Assert-NoLegacyServiceConflict
 Write-Host "AI Workforce v3 running (Tier 1=Ollama local, Tier 2/3=Claude API if key present)"
 
 while ($true) {
