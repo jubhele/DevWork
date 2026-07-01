@@ -35,6 +35,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, message: 'Validation failed', errors: parsed.error.flatten() }, { status: 400 })
   }
 
-  const refId = await createSafetyFile(parsed.data, user.username)
+  const refId = await createSafetyFile(parsed.data, user.id)
   return NextResponse.json({ success: true, message: 'Safety audit created', data: { ref_id: refId } }, { status: 201 })
 }

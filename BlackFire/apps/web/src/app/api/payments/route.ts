@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
     amount:          String(amount),
     paymentDate:     new Date(payment_date),
     paymentRef:      reference ?? '',
-    notes:           fullNotes,
+    notes:           fullNotes ?? '',
     loggedByUserId:  user.id,
   })
 

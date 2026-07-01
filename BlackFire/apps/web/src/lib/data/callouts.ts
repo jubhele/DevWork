@@ -1,6 +1,6 @@
 import { db, schema } from '@/db/client'
 import { eq, and, like, desc, or } from 'drizzle-orm'
-import type { Callout } from '@blackfire/types'
+import type { Callout, CalloutPriority, CalloutStatus } from '@blackfire/types'
 import { nextRefId } from './counters'
 
 const { bfCallouts } = schema
@@ -16,6 +16,7 @@ type CalloutRow = Pick<
   | 'location'
   | 'priority'
   | 'status'
+  | 'approvalStatus'
   | 'assignedTo'
   | 'calloutDate'
   | 'calloutTime'
@@ -43,6 +44,7 @@ function toCalloutType(row: CalloutRow): Callout {
     location: row.location,
     priority: row.priority as Callout['priority'],
     status: row.status as Callout['status'],
+    approval_status: row.approvalStatus as Callout['approval_status'],
     assigned_to: row.assignedTo || null,
     callout_date: d(row.calloutDate) ?? '',
     callout_time: row.calloutTime || null,
@@ -58,7 +60,7 @@ function toCalloutType(row: CalloutRow): Callout {
 
 export async function getCallouts(params?: {
   search?: string
-  status?: string
+  status?: CalloutStatus
   priorities?: string[]
   clientId?: number
   limit?: number
@@ -67,11 +69,8 @@ export async function getCallouts(params?: {
   const { search, status, priorities, clientId, limit = 500, offset = 0 } = params ?? {}
   const priorityLike = priorities?.map((p) => `%${p}%`) ?? []
 
-  const buildWhere = (includeIsActive: boolean) => {
+  const buildWhere = () => {
     const conditions = []
-    if (includeIsActive) {
-      conditions.push(eq(bfCallouts.isActive, 1))
-    }
     if (status) conditions.push(eq(bfCallouts.status, status))
     if (priorityLike.length) {
       const priorityConditions = priorityLike.map((pattern) => like(bfCallouts.priority, pattern))
@@ -94,8 +93,8 @@ export async function getCallouts(params?: {
     return conditions.length === 1 ? conditions[0] : and(...conditions)
   }
 
-  const runQuery = async (includeIsActive: boolean) => {
-    const where = buildWhere(includeIsActive)
+  const runQuery = async () => {
+    const where = buildWhere()
     const selectColumns = {
       id: bfCallouts.id,
       refId: bfCallouts.refId,
@@ -105,6 +104,7 @@ export async function getCallouts(params?: {
       location: bfCallouts.location,
       priority: bfCallouts.priority,
       status: bfCallouts.status,
+      approvalStatus: bfCallouts.approvalStatus,
       assignedTo: bfCallouts.assignedTo,
       calloutDate: bfCallouts.calloutDate,
       calloutTime: bfCallouts.calloutTime,
@@ -131,14 +131,7 @@ export async function getCallouts(params?: {
     return { data: rows.map(toCalloutType), total: Number(count) }
   }
 
-  try {
-    return await runQuery(true)
-  } catch (error) {
-    if (error instanceof Error) {
-      return runQuery(false)
-    }
-    throw error
-  }
+  return await runQuery()
 }
 
 export async function getCallout(id: number): Promise<Callout | null> {
@@ -158,7 +151,7 @@ export async function createCallout(
     service: string
     location: string
     tech?: string
-    priority?: string
+    priority?: CalloutPriority
     calloutDate?: string
     calloutTime?: string
     notes?: string
@@ -176,19 +169,20 @@ export async function createCallout(
     location: data.location,
     tech: data.tech ?? '',
     assignedTo: '',
-    priority: (data.priority ?? 'Normal') as 'Low' | 'Normal' | 'High' | 'Critical',
+    priority: data.priority ?? 'Normal',
     calloutDate: data.calloutDate ? new Date(data.calloutDate) : new Date(),
     calloutTime: data.calloutTime ?? '',
     notes: data.notes ?? '',
     po: data.po ?? '',
     loggedByUserId,
+    createdAt: new Date(),
   })
   return (result as unknown as [{ insertId: number }])[0].insertId
 }
 
 export async function updateCalloutStatus(
   id: number,
-  status: string,
+  status: CalloutStatus,
 ): Promise<void> {
   await db
     .update(bfCallouts)

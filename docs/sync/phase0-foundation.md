@@ -150,3 +150,144 @@ Decision:
     "SYNC-P0-06-Umlindi": "COMPLIANT"
   }
 }
+
+---
+
+## Reopened (2026-06-30, later same session) — SYNC-P0-05-Mbhali / SYNC-P0-06-Umlindi
+
+The "Remediation Update" verdict above (COMPLIANT/GO) is **invalidated**. It was based on a
+table-name/enum-name presence check, not a value-level diff. Two independent deeper audits run
+immediately afterward proved the underlying claims false:
+
+- **SYNC-P0-02-Mhloli (column-level diff, `docs/sync/phase0-task02-column-diff.md`):** live DB
+  has 39 non-backup `bf_*` tables; Drizzle has 31. **8 tables still missing entirely**
+  (`bf_error_log`, `bf_password_resets`, `bf_safety_file_users`, `bf_service_categories`,
+  `bf_services`, `bf_sessions`, `bf_settings`, `bf_supplier_invoices` — confirmed absent from
+  `apps/web/src/db/schema.ts` on re-check just now) and **20 phantom Drizzle columns** that don't
+  exist live (e.g. `bf_attachments.uploaded_by`, confirmed still present in `schema.ts:515`),
+  plus 116 HIGH type/width mismatches. The "Remediation Update" only touched the 7 tables named
+  in the original shallow P0-02 finding — it never addressed the full set found by the deeper diff.
+- **SYNC-P0-03-Mhloli (contract re-verify, `docs/sync/phase0-task03-contract-verify.md`):** found
+  4 of 9 contract enums still wrong (`QuoteStatus`, `InvoiceStatus`, `SafetyFileStatus`,
+  `SafetyItemStatus`) plus two missing interface fields and a missing `DigitalSignature`
+  interface. The remediation only fixed the `Role` enum.
+
+### Action taken this session (Umakhi, contract only)
+`BlackFire/contracts/portal.contract.json` has now been **genuinely fixed** (v0.1.0 → v0.2.0):
+- `QuoteStatus`: `Accepted` → `Approved`; added `Pending Approval`, `Converted`.
+- `InvoiceStatus`: removed `Unpaid` (confirmed display-only, not a stored/API value).
+- `SafetyFileStatus`: removed `Rejected`.
+- `SafetyItemStatus` split into `SafetyItemResult` + `SafetyItemApStatus` (two live columns); `SafetyItem` interface updated to `result` + `ap_status`.
+- Added `approval_status: ApprovalStatus` to `Callout` and `Quote`.
+- Added missing `DigitalSignature` interface.
+- Regenerated `BlackFire/packages/types/index.ts`, `BlackFire/packages/ui-tokens/index.ts` via `scripts/sync-umlilo-contracts.ps1`, and synced the stale duplicate `umlilo-portal/packages/types/index.ts`.
+- Grepped all call sites in `apps/web/src` and `umlilo-portal` for removed/renamed enum values — none found; non-breaking.
+- Backups: `BlackFire/contracts/_backups/portal.contract_backup_20260630_215817.json`, `umlilo-portal/packages/types/_backups/index_backup_20260630_215949.ts`.
+
+**This resolves SYNC-P0-03 for real.** SYNC-P0-02 (Drizzle schema drift — the 8 missing tables
+and 20 phantom columns) is **untouched** and remains FAIL; it requires a separate, larger Umakhi
+task (schema regen from live DDL), not a contract edit.
+
+### SYNC-P0-05-Mbhali — synthesis (reopened)
+Go/No-Go recommendation: **NO-GO**, narrowed scope.
+- Contract layer (P0-03): unblocked — safe to build against `portal.contract.json` now.
+- Schema layer (P0-02): still blocking. Drizzle cannot serve 8 live tables and will throw
+  `Unknown column` on any of the 20 phantom-column reads (e.g. `bf_attachments.uploaded_by`).
+- Required before Phase 1: **SYNC-P0-07-Umakhi** — regenerate `schema.ts` from live DDL
+  (`drizzle-kit introspect:mysql` or full hand rebuild), verified against `temp/bf_columns.tsv`
+  (all 39 tables present, zero phantom columns), then re-run SYNC-P0-02-style column diff to confirm.
+
+### SYNC-P0-06-Umlindi — governance audit (reopened)
+Decision: **POLICY_BLOCK** (reverted from the unsupportable COMPLIANT verdict).
+- Reason: CRITICAL schema/live drift in `apps/web/src/db/schema.ts` remains unremediated
+  (8 missing tables, 20 phantom columns) even though the contract layer is now genuinely compliant.
+- Phase 1 must not start until SYNC-P0-07-Umakhi completes and is re-verified by Mhloli.
+
+### Reopened JSON Summary
+```json
+{
+  "phase": "P0",
+  "result": "POLICY_BLOCK",
+  "go_no_go": "NO_GO",
+  "tasks": {
+    "SYNC-P0-01-Mhloli": "PASS",
+    "SYNC-P0-02-Mhloli": "FAIL_CRITICAL",
+    "SYNC-P0-03-Mhloli": "PASS_VERIFIED",
+    "SYNC-P0-04-Mhloli": "PASS",
+    "SYNC-P0-05-Mbhali": "COMPLETE_NO_GO_NARROWED",
+    "SYNC-P0-06-Umlindi": "POLICY_BLOCK"
+  },
+  "new_task": "SYNC-P0-07-Umakhi (Drizzle schema regen from live DDL)"
+}
+```
+
+---
+
+## SYNC-P0-07-Umakhi — Schema Regeneration COMPLETE (2026-06-30)
+
+**Exit criterion**: Re-run SYNC-P0-02-style column diff against regenerated schema.ts vs
+`temp/bf_columns.tsv` (all 39 tables, zero phantom columns, zero missing columns).
+
+### Work done
+
+Ground truth: `temp/bf_columns.tsv` — 435 rows, 39 live `bf_*` tables from `information_schema.COLUMNS`.
+
+All 39 tables reconciled against live DDL in `BlackFire/apps/web/src/db/schema.ts`:
+
+**8 tables added** (were entirely absent):
+- `bf_error_log`, `bf_password_resets`, `bf_safety_file_users`, `bf_service_categories`,
+  `bf_services`, `bf_sessions`, `bf_settings` (composite PK), `bf_supplier_invoices`
+
+**22+ existing tables corrected** — phantom columns removed, missing columns added, type/width
+  mismatches fixed (varchar lengths, `datetime` vs `timestamp`, nullable vs `notNull`, enum values
+  tightened to exact live DDL values). Notable fixes:
+- `bf_mobile_rate_limits`: phantom `updated_at` removed; `lastAttemptAt` datetime bug fixed
+  (was `defaultNow()` on a `datetime` builder — not supported; corrected to `sql\`CURRENT_TIMESTAMP\``).
+- `bf_clients`, `bf_quotes`, `bf_invoices`, `bf_payments`, `bf_transactions`, `bf_statements`:
+  column widths, nullability, defaults, and `datetime`/`timestamp` distinctions reconciled.
+- `bf_safety_files`, `bf_safety_items`, `bf_safety_personnel`, `bf_safety_compliance`,
+  `bf_digital_signatures`, `bf_external_upload_tokens`: phantom string FK columns removed,
+  real int FK columns added.
+- Consumer files fixed to match: `callouts.ts`, `quotes.ts`, `invoices.ts`, `finance.ts`,
+  `safety.ts`, `app/api/callouts/route.ts`, `app/api/quotes/route.ts`,
+  `app/api/invoices/route.ts`, `app/api/payments/route.ts`, `app/api/safety/route.ts`.
+
+### Verification results
+
+| Gate | Result |
+|------|--------|
+| Column diff (`temp/sync_p0_drift_check.py` vs `temp/bf_columns.tsv`) | **PASS** — 39/39 tables, zero missing tables, zero phantom tables, zero column drift |
+| TypeScript compile (`npx tsc --noEmit -p tsconfig.json`) | **PASS** — no output (clean) |
+
+### Side effects (genuine bugs surfaced and fixed)
+
+- `finance.ts`: referenced 4 nonexistent invoice statuses (`Unpaid`, `Partial`, `Written Off`).
+  Fixed to use real enum values only (`Draft`, `Sent`, `Overdue`, `Paid`, `Cancelled`).
+- `safety.ts`: `createSafetyFile` was writing to nonexistent string columns `created_by`/`updated_by`;
+  real columns are int FKs `created_by_id`/`updated_by_id`. Fixed call signature and call site.
+- Contract: `Quote.approval_status` incorrectly shared `ApprovalStatus` with `Callout`. Separated
+  into `QuoteApprovalStatus: ["pending","approved","rejected"]` (nullable, no `not_required`).
+
+### Updated governance verdict
+
+**SYNC-P0-02-Mhloli**: PASS (after full regen)
+**SYNC-P0-06-Umlindi**: COMPLIANT
+**Gate**: Phase 1 may now proceed.
+
+```json
+{
+  "phase": "P0",
+  "result": "COMPLIANT",
+  "go_no_go": "GO",
+  "verified_at": "2026-06-30",
+  "tasks": {
+    "SYNC-P0-01-Mhloli": "PASS",
+    "SYNC-P0-02-Mhloli": "PASS_VERIFIED",
+    "SYNC-P0-03-Mhloli": "PASS_VERIFIED",
+    "SYNC-P0-04-Mhloli": "PASS",
+    "SYNC-P0-05-Mbhali": "COMPLETE",
+    "SYNC-P0-06-Umlindi": "COMPLIANT",
+    "SYNC-P0-07-Umakhi": "COMPLETE"
+  }
+}
+```

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getCurrentUser, can } from '@/lib/server-auth'
 import { getCallouts, getCallout, createCallout } from '@/lib/data/callouts'
+import type { CalloutStatus } from '@blackfire/types'
 import { z } from 'zod'
 
 // GET /api/callouts[?id=…&status=…&clientId=…&search=…&limit=…&offset=…]
@@ -20,7 +21,7 @@ export async function GET(request: Request) {
 
   const result = await getCallouts({
     search: searchParams.get('search') ?? undefined,
-    status: searchParams.get('status') ?? undefined,
+    status: (searchParams.get('status') ?? undefined) as CalloutStatus | undefined,
     clientId: searchParams.get('clientId') ? Number(searchParams.get('clientId')) : undefined,
     limit: searchParams.get('limit') ? Number(searchParams.get('limit')) : undefined,
     offset: searchParams.get('offset') ? Number(searchParams.get('offset')) : undefined,
@@ -36,7 +37,7 @@ const createSchema = z.object({
   service: z.string().min(1).max(255),
   location: z.string().min(1).max(255),
   tech: z.string().max(100).optional().default(''),
-  priority: z.enum(['Low', 'Normal', 'High', 'Critical']).optional().default('Normal'),
+  priority: z.enum(['Normal', 'Urgent', 'Emergency']).optional().default('Normal'),
   calloutDate: z.string().optional(),
   calloutTime: z.string().max(10).optional().default(''),
   notes: z.string().optional(),

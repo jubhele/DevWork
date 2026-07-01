@@ -40,7 +40,7 @@ export async function getFinanceSummary(): Promise<FinanceSummary | null> {
     const [outstandingRow] = await db
       .select({ total: sql<string>`COALESCE(SUM(amount), 0)` })
       .from(bfInvoices)
-      .where(inArray(bfInvoices.status, ['Unpaid', 'Sent', 'Overdue', 'Partial']))
+      .where(inArray(bfInvoices.status, ['Draft', 'Sent', 'Overdue']))
 
     const overdueRows = await db
       .select({
@@ -51,7 +51,7 @@ export async function getFinanceSummary(): Promise<FinanceSummary | null> {
       .where(
         and(
           sql`${bfInvoices.dueDate} < ${todayStr}`,
-          notInArray(bfInvoices.status, ['Paid', 'Cancelled', 'Written Off']),
+          notInArray(bfInvoices.status, ['Paid', 'Cancelled']),
         ),
       )
 

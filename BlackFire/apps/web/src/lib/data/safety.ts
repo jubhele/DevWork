@@ -91,7 +91,7 @@ export async function createSafetyFile(
     auditorName?: string | null
     notes?: string | null
   },
-  createdByUsername: string,
+  createdByUserId: number,
 ): Promise<string> {
   const refId = await nextRefId('saf')
   await db.insert(bfSafetyFiles).values({
@@ -102,8 +102,8 @@ export async function createSafetyFile(
     auditorName:  data.auditorName ?? '',
     scopeOfWork:  data.notes ?? undefined,
     status:       'Draft',
-    createdBy:    createdByUsername,
-    updatedBy:    createdByUsername,
+    createdById:  createdByUserId,
+    updatedById:  createdByUserId,
   })
   return refId
 }

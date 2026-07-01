@@ -9,6 +9,8 @@ export type Role =
   | 'finance'
   | 'safety_officer'
   | 'viewer'
+  | 'client'
+  | 'inspector'
   | 'client_support'
   | 'junior_tech'
   | 'senior_tech'
@@ -30,9 +32,11 @@ export type CalloutStatus =
 export type QuoteStatus =
   | 'Draft'
   | 'Sent'
-  | 'Accepted'
+  | 'Pending Approval'
+  | 'Approved'
   | 'Rejected'
   | 'Expired'
+  | 'Converted'
 
 export type InvoiceStatus =
   | 'Draft'
@@ -43,16 +47,30 @@ export type InvoiceStatus =
 
 export type SafetyFileStatus =
   | 'Draft'
+  | 'In Progress'
   | 'Submitted'
   | 'Approved'
-  | 'Rejected'
 
-export type SafetyItemStatus =
-  | 'Pass'
-  | 'Fail'
-  | 'Not to Standard'
+export type SafetyItemResult =
   | 'N/A'
-  | 'Pending'
+  | 'Not to Standard'
+  | 'To Standard'
+
+export type SafetyItemApStatus =
+  | 'Open'
+  | 'In Progress'
+  | 'Resolved'
+
+export type ApprovalStatus =
+  | 'not_required'
+  | 'pending'
+  | 'approved'
+  | 'rejected'
+
+export type QuoteApprovalStatus =
+  | 'pending'
+  | 'approved'
+  | 'rejected'
 
 export type ComplianceLevel =
   | 'RED'
@@ -87,7 +105,7 @@ export interface User {
   name: string
   email: string
   role: Role
-  roles?: Role[]
+  roles: Role[]
   permissions: string[]
   client_id: number | null
   active: boolean
@@ -111,6 +129,7 @@ export interface Callout {
   location: string
   priority: CalloutPriority
   status: CalloutStatus
+  approval_status: ApprovalStatus
   assigned_to: string | null
   callout_date: string
   callout_time: string | null
@@ -139,6 +158,7 @@ export interface Quote {
   client_name: string
   callout_id: number | null
   status: QuoteStatus
+  approval_status: QuoteApprovalStatus | null
   subtotal: number
   tax: number
   total: number
@@ -184,7 +204,8 @@ export interface SafetyItem {
   section: string
   item_number: number
   description: string
-  status: SafetyItemStatus
+  result: SafetyItemResult
+  ap_status: SafetyItemApStatus
   comment: string | null
   evidence_path: string | null
   updated_at: string
@@ -243,6 +264,9 @@ export interface Statement {
 }
 
 export interface DashboardKPIs {
+  open_tasks: number
+  urgent_tasks: number
+  tasks_due_today: number
   open_callouts: number
   overdue_invoices: number
   mtd_revenue: number
@@ -307,6 +331,17 @@ export interface TaskListResponse extends ApiResponse<Task[]> {
   categories: TaskCategory[]
 }
 
+export interface TaskStreamCounts {
+  admin: number
+  sales: number
+  general: number
+}
+
+export interface DashboardResponse extends ApiResponse<DashboardKPIs> {
+  recent_tasks: Task[]
+  task_streams: TaskStreamCounts
+}
+
 export interface TrackerUpdate {
   id: number
   label: string
@@ -336,4 +371,29 @@ export interface Attachment {
   mime_type: string
   uploaded_by: string
   created_at: string
+}
+
+export interface DigitalSignature {
+  id: number
+  document_label: string
+  document_hash: string
+  signed_document_ref: string | null
+  token: string
+  token_expires_at: string
+  status: string
+  signer_role: string
+  signer_company: string | null
+  signer_email: string
+  signer_ip: string | null
+  signature_method: string | null
+  signature_image: string | null
+  certificate_subject: string | null
+  certificate_issuer: string | null
+  certificate_serial: string | null
+  sent_at: string | null
+  signed_at: string | null
+  declined_at: string | null
+  declined_reason: string | null
+  created_at: string
+  updated_at: string
 }

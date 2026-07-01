@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getCurrentUser, can } from '@/lib/server-auth'
 import { getQuotes, getQuote, createQuote } from '@/lib/data/quotes'
+import type { QuoteStatus } from '@blackfire/types'
 import { z } from 'zod'
 
 // GET /api/quotes[?id=…&status=…&clientId=…&search=…&limit=…&offset=…]
@@ -20,7 +21,7 @@ export async function GET(request: Request) {
 
   const result = await getQuotes({
     search: searchParams.get('search') ?? undefined,
-    status: searchParams.get('status') ?? undefined,
+    status: (searchParams.get('status') ?? undefined) as QuoteStatus | undefined,
     clientId: searchParams.get('clientId') ? Number(searchParams.get('clientId')) : undefined,
     limit: searchParams.get('limit') ? Number(searchParams.get('limit')) : undefined,
     offset: searchParams.get('offset') ? Number(searchParams.get('offset')) : undefined,

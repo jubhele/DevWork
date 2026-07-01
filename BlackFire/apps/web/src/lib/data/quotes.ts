@@ -1,6 +1,6 @@
 import { db, schema } from '@/db/client'
 import { eq, and, like, desc, or } from 'drizzle-orm'
-import type { Quote, QuoteItem } from '@blackfire/types'
+import type { Quote, QuoteItem, QuoteStatus } from '@blackfire/types'
 import { nextRefId } from './counters'
 
 const { bfQuotes, bfQuoteItems } = schema
@@ -35,6 +35,7 @@ function toQuoteType(row: DbQuote, items: QuoteItem[] = []): Quote {
     client_name: row.clientName,
     callout_id: row.calloutId ?? null,
     status: row.status as Quote['status'],
+    approval_status: (row.approvalStatus?.toLowerCase() as Quote['approval_status']) ?? null,
     subtotal: total,
     tax: 0,
     total,
@@ -48,7 +49,7 @@ function toQuoteType(row: DbQuote, items: QuoteItem[] = []): Quote {
 
 export async function getQuotes(params?: {
   search?: string
-  status?: string
+  status?: QuoteStatus
   clientId?: number
   limit?: number
   offset?: number
@@ -128,6 +129,7 @@ export async function createQuote(
     calloutRef: data.calloutRef ?? '',
     notes: data.notes ?? '',
     validUntil: data.validUntil ? new Date(data.validUntil) : null,
+    quoteDate: new Date(),
     totalAmount: String(totalAmount),
     submittedByUserId,
   })

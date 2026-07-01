@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getCurrentUser, can } from '@/lib/server-auth'
 import { getInvoices, getInvoice, createInvoice, markInvoicePaid } from '@/lib/data/invoices'
+import type { InvoiceStatus } from '@blackfire/types'
 import { z } from 'zod'
 
 // GET /api/invoices[?id=…&status=…&clientId=…&search=…&limit=…&offset=…]
@@ -20,7 +21,7 @@ export async function GET(request: Request) {
 
   const result = await getInvoices({
     search: searchParams.get('search') ?? undefined,
-    status: searchParams.get('status') ?? undefined,
+    status: (searchParams.get('status') ?? undefined) as InvoiceStatus | undefined,
     clientId: searchParams.get('clientId') ? Number(searchParams.get('clientId')) : undefined,
     limit: searchParams.get('limit') ? Number(searchParams.get('limit')) : undefined,
     offset: searchParams.get('offset') ? Number(searchParams.get('offset')) : undefined,

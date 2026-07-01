@@ -1,6 +1,6 @@
 import { db, schema } from '@/db/client'
 import { eq, and, like, desc, or } from 'drizzle-orm'
-import type { Invoice } from '@blackfire/types'
+import type { Invoice, InvoiceStatus } from '@blackfire/types'
 import { nextRefId } from './counters'
 
 const { bfInvoices } = schema
@@ -34,7 +34,7 @@ function toInvoiceType(row: DbInvoice): Invoice {
 
 export async function getInvoices(params?: {
   search?: string
-  status?: string
+  status?: InvoiceStatus
   clientId?: number
   limit?: number
   offset?: number
@@ -105,7 +105,7 @@ export async function createInvoice(
     clientName: data.clientName,
     clientEmail: data.clientEmail ?? '',
     amount: String(data.amount),
-    dueDate: data.dueDate ? new Date(data.dueDate) : null,
+    dueDate: data.dueDate ? new Date(data.dueDate) : new Date(),
     quoteId: data.quoteId,
     quoteRef: data.quoteRef ?? '',
     calloutId: data.calloutId,
@@ -113,6 +113,7 @@ export async function createInvoice(
     po: data.po ?? '',
     invoiceDate: data.invoiceDate ? new Date(data.invoiceDate) : new Date(),
     sentByUserId,
+    createdAt: new Date(),
   })
   return (result as unknown as [{ insertId: number }])[0].insertId
 }

@@ -1,8 +1,8 @@
 {
   "name": "Umlilo Portal Contract",
-  "version": "0.1.0",
+  "version": "0.2.1",
   "source": "BlackFire PHP portal",
-  "generated_at": "2026-06-30T20:45:00+02:00",
+  "generated_at": "2026-06-30T22:30:00+02:00",
   "enums": {
     "Role": [
       "sysadmin",
@@ -34,12 +34,13 @@
     "QuoteStatus": [
       "Draft",
       "Sent",
-      "Accepted",
+      "Pending Approval",
+      "Approved",
       "Rejected",
-      "Expired"
+      "Expired",
+      "Converted"
     ],
     "InvoiceStatus": [
-      "Unpaid",
       "Draft",
       "Sent",
       "Paid",
@@ -50,16 +51,28 @@
       "Draft",
       "In Progress",
       "Submitted",
-      "Approved",
-      "Rejected"
+      "Approved"
     ],
-    "SafetyItemStatus": [
-      "To Standard",
-      "Pass",
-      "Fail",
-      "Not to Standard",
+    "SafetyItemResult": [
       "N/A",
-      "Pending"
+      "Not to Standard",
+      "To Standard"
+    ],
+    "SafetyItemApStatus": [
+      "Open",
+      "In Progress",
+      "Resolved"
+    ],
+    "ApprovalStatus": [
+      "not_required",
+      "pending",
+      "approved",
+      "rejected"
+    ],
+    "QuoteApprovalStatus": [
+      "pending",
+      "approved",
+      "rejected"
     ],
     "ComplianceLevel": [
       "RED",
@@ -118,6 +131,7 @@
       "location": "string",
       "priority": "CalloutPriority",
       "status": "CalloutStatus",
+      "approval_status": "ApprovalStatus",
       "assigned_to": "string | null",
       "callout_date": "string",
       "callout_time": "string | null",
@@ -144,6 +158,7 @@
       "client_name": "string",
       "callout_id": "number | null",
       "status": "QuoteStatus",
+      "approval_status": "QuoteApprovalStatus | null",
       "subtotal": "number",
       "tax": "number",
       "total": "number",
@@ -186,7 +201,8 @@
       "section": "string",
       "item_number": "number",
       "description": "string",
-      "status": "SafetyItemStatus",
+      "result": "SafetyItemResult",
+      "ap_status": "SafetyItemApStatus",
       "comment": "string | null",
       "evidence_path": "string | null",
       "updated_at": "string"
@@ -337,6 +353,30 @@
       "mime_type": "string",
       "uploaded_by": "string",
       "created_at": "string"
+    },
+    "DigitalSignature": {
+      "id": "number",
+      "document_label": "string",
+      "document_hash": "string",
+      "signed_document_ref": "string | null",
+      "token": "string",
+      "token_expires_at": "string",
+      "status": "string",
+      "signer_role": "string",
+      "signer_company": "string | null",
+      "signer_email": "string",
+      "signer_ip": "string | null",
+      "signature_method": "string | null",
+      "signature_image": "string | null",
+      "certificate_subject": "string | null",
+      "certificate_issuer": "string | null",
+      "certificate_serial": "string | null",
+      "sent_at": "string | null",
+      "signed_at": "string | null",
+      "declined_at": "string | null",
+      "declined_reason": "string | null",
+      "created_at": "string",
+      "updated_at": "string"
     }
   }
 }
