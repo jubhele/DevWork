@@ -22,7 +22,7 @@ export default async function UsersPage() {
   const user = await getServerUser(cookieHeader)
   const roles = user ? [user.role, ...(user.roles ?? [])].map((r) => String(r).toLowerCase()) : []
 
-  if (!user || (!roles.includes('sysadmin') && !roles.includes('admin') && !can(user, 'user.view'))) redirect('/forbidden')
+  if (!user || (!roles.includes('sysadmin') && !roles.includes('admin') && !can(user, 'security.users'))) redirect('/forbidden')
 
   const users = await getPortalUsers()
 

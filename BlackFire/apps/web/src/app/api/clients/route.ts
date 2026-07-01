@@ -7,7 +7,7 @@ import { z } from 'zod'
 export async function GET(request: Request) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ success: false, message: 'Unauthenticated' }, { status: 401 })
-  if (!can(user, 'clients.view')) return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 })
+  if (!can(user, 'callout.view')) return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 })
 
   const { searchParams } = new URL(request.url)
   const id = searchParams.get('id')
@@ -37,7 +37,7 @@ const createSchema = z.object({
 export async function POST(request: Request) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ success: false, message: 'Unauthenticated' }, { status: 401 })
-  if (!can(user, 'clients.create')) return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 })
+  if (!can(user, 'user.create')) return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 })
 
   const body = await request.json().catch(() => null)
   const parsed = createSchema.safeParse(body)

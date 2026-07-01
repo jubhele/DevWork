@@ -18,7 +18,7 @@ const PaymentBody = z.object({
 export async function POST(req: NextRequest) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ success: false, message: 'Unauthenticated' }, { status: 401 })
-  if (!can(user, 'invoices.update')) return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 })
+  if (!can(user, 'invoice.mark_paid')) return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 })
 
   const raw = await req.json().catch(() => null)
   const parsed = PaymentBody.safeParse(raw)

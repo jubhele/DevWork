@@ -17,9 +17,9 @@ const NAV: NavItem[] = [
   { href: '/quotes',            label: 'Quotes',         permission: 'quote.view' },
   { href: '/invoices',          label: 'Invoices',       permission: 'invoice.view' },
   { href: '/safety',            label: 'Safety Files',   permission: 'safety.view' },
-  { href: '/clients',           label: 'Clients',        permission: 'client.view' },
-  { href: '/finance',           label: 'Finance',        permission: 'finance.view' },
-  { href: '/admin/users',       label: 'Users',          permission: 'user.view' },
+  { href: '/clients',           label: 'Clients',        permission: 'callout.view' },
+  { href: '/finance',           label: 'Finance',        permission: 'finance.income' },
+  { href: '/admin/users',       label: 'Users',          permission: 'security.users' },
   { href: '/admin/audit',       label: 'Audit Log',      roles: ['sysadmin', 'admin'] },
 ]
 

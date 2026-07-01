@@ -13,13 +13,13 @@ const VALID_ENTITY_TYPES = ['callout', 'quote', 'invoice', 'task', 'safety'] as 
 
 function permFor(entityType: string): string {
   const map: Record<string, string> = {
-    callout: 'callouts.view',
-    quote: 'quotes.view',
-    invoice: 'invoices.view',
-    task: 'tasks.view',
+    callout: 'callout.view',
+    quote: 'quote.view',
+    invoice: 'invoice.view',
+    task: 'task.view',
     safety: 'safety.view',
   }
-  return map[entityType] ?? 'callouts.view'
+  return map[entityType] ?? 'callout.view'
 }
 
 // GET /api/tracker-updates?entity_type=callout&entity_ref=CO-001
@@ -129,7 +129,7 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ success: false, message: 'Unauthenticated' }, { status: 401 })
-  if (!can(user, 'callouts.update')) {
+  if (!can(user, 'callout.update')) {
     return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 })
   }
 

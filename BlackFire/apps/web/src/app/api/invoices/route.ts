@@ -8,7 +8,7 @@ import { z } from 'zod'
 export async function GET(request: Request) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ success: false, message: 'Unauthenticated' }, { status: 401 })
-  if (!can(user, 'invoices.view')) return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 })
+  if (!can(user, 'invoice.view')) return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 })
 
   const { searchParams } = new URL(request.url)
   const id = searchParams.get('id')
@@ -48,7 +48,7 @@ const createSchema = z.object({
 export async function POST(request: Request) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ success: false, message: 'Unauthenticated' }, { status: 401 })
-  if (!can(user, 'invoices.create')) return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 })
+  if (!can(user, 'invoice.create')) return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 })
 
   const body = await request.json().catch(() => null)
   const parsed = createSchema.safeParse(body)
@@ -70,7 +70,7 @@ const paidSchema = z.object({
 export async function PATCH(request: Request) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ success: false, message: 'Unauthenticated' }, { status: 401 })
-  if (!can(user, 'invoices.update')) return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 })
+  if (!can(user, 'invoice.mark_paid')) return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 })
 
   const body = await request.json().catch(() => null)
   const parsed = paidSchema.safeParse(body)

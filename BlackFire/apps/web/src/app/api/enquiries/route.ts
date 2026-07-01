@@ -45,11 +45,11 @@ export async function POST(request: NextRequest) {
   )
 }
 
-// GET /api/enquiries — list enquiries (requires clients.view)
+// GET /api/enquiries — list enquiries (requires callout.view)
 export async function GET() {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ success: false, message: 'Unauthenticated' }, { status: 401 })
-  if (!can(user, 'clients.view')) {
+  if (!can(user, 'callout.view')) {
     return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 })
   }
 

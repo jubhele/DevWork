@@ -291,3 +291,60 @@ All 39 tables reconciled against live DDL in `BlackFire/apps/web/src/db/schema.t
   }
 }
 ```
+
+---
+
+## SYNC-P0-08 — Enum-Case Unification (2026-07-01)
+
+**Status: CLOSED (subsumed by SYNC-P0-07)**
+
+SYNC-P0-08 was raised because the original hand-authored schema.ts used TitleCase enum values
+while the live DB used a mix. SYNC-P0-07 rebuilt schema.ts entirely from live DDL
+(`temp/bf_columns.tsv` / `information_schema.COLUMNS`) — enum values now exactly match the live DB
+by construction. No residual casing drift remains.
+
+PHP constants created the live enum values in the first place, so PHP ↔ live DB casing is
+aligned by definition. TypeScript contract types were regenerated (v0.2.1) in P0-07 and
+match the schema enum literals. tsc --noEmit: PASS.
+
+**Verdict: CLOSED — no action required.**
+
+---
+
+## SYNC-P0-09 — Null-Write Audit (2026-07-01)
+
+**Status: PASS — no null-write risk found**
+
+Audit of the 4 originally flagged insertion-risk columns:
+
+| Column | schema.ts nullability | Write path | Risk |
+|--------|----------------------|------------|------|
+| `bf_callouts.job_no` | nullable | `createCallout()` omits it | SAFE |
+| `bf_quotes.quote_no` | nullable (P0-07 fixed `.notNull()` → nullable) | `createQuote()` omits it | SAFE |
+| `bf_invoices.invoice_no` | nullable | `createInvoice()` omits it | SAFE |
+| `bf_digital_signatures.signed_at` | nullable (P0-07 fixed `.notNull()` → nullable) | No INSERT path exists in apps/web yet (PHP-only flow) | SAFE |
+
+All 4 columns are nullable in schema.ts (matching live DDL), and active write paths either
+omit them or the flow doesn't exist yet. No nullable/NOT NULL tension remains.
+
+**Verdict: PASS — Phase 0 fully closed. Gate to Phase 1: OPEN.**
+
+```json
+{
+  "phase": "P0",
+  "result": "COMPLIANT",
+  "go_no_go": "GO",
+  "verified_at": "2026-07-01",
+  "tasks": {
+    "SYNC-P0-01-Mhloli": "PASS",
+    "SYNC-P0-02-Mhloli": "PASS_VERIFIED",
+    "SYNC-P0-03-Mhloli": "PASS_VERIFIED",
+    "SYNC-P0-04-Mhloli": "PASS",
+    "SYNC-P0-05-Mbhali": "COMPLETE",
+    "SYNC-P0-06-Umlindi": "COMPLIANT",
+    "SYNC-P0-07-Umakhi": "COMPLETE",
+    "SYNC-P0-08-Umakhi": "CLOSED_SUBSUMED",
+    "SYNC-P0-09-Mhloli": "PASS"
+  }
+}
+```

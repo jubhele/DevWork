@@ -17,7 +17,7 @@ export default async function QuotesPage() {
   const result = await getQuotes()
   const quotes: Quote[] = result.data
 
-  const canCreate = user != null && can(user, 'quotes.create')
+  const canCreate = user != null && can(user, 'quote.create')
 
   return (
     <div>

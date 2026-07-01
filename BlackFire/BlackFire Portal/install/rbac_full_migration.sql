@@ -243,7 +243,37 @@ INSERT INTO bf_role_permissions (role, permission) VALUES
   ('inspector', 'callout.view'),
   ('inspector', 'quote.view'),
   ('inspector', 'invoice.view'),
-  ('inspector', 'safety.view');
+  ('inspector', 'safety.view'),
+  ('inspector', 'task.view');
+
+-- ============================================================
+-- task.* permissions (added SYNC-P1-02, 2026-07-01)
+-- Gates the tracker (admin/sales/general task streams) in apps/web.
+-- safety_officer is excluded — safety module only, no tracker access.
+-- ============================================================
+INSERT INTO bf_role_permissions (role, permission) VALUES
+  ('sysadmin',      'task.view'),
+  ('sysadmin',      'task.create'),
+  ('sysadmin',      'task.update'),
+  ('admin',         'task.view'),
+  ('admin',         'task.create'),
+  ('admin',         'task.update'),
+  ('manager',       'task.view'),
+  ('manager',       'task.create'),
+  ('manager',       'task.update'),
+  ('admin_clerk',   'task.view'),
+  ('admin_clerk',   'task.create'),
+  ('admin_clerk',   'task.update'),
+  ('call_logger',   'task.view'),
+  ('call_logger',   'task.create'),
+  ('call_logger',   'task.update'),
+  ('junior_tech',   'task.view'),
+  ('junior_tech',   'task.update'),
+  ('senior_tech',   'task.view'),
+  ('senior_tech',   'task.create'),
+  ('senior_tech',   'task.update'),
+  ('client_support','task.view'),
+  ('viewer',        'task.view');
 
 COMMIT;
 
@@ -287,3 +317,6 @@ COMMIT;
 -- safety.update           |    ✓     |   ✓   |    ✓    |      ✓      |      -      |      -      |      ✓      |       -        |   -    |      ✓       |     -
 -- safety.delete           |    ✓     |   ✓   |    ✓    |      -      |      -      |      -      |      -      |       -        |   -    |      -       |     -
 -- safety.approve          |    ✓     |   ✓   |    ✓    |      -      |      -      |      -      |      -      |       -        |   -    |      -       |     -
+-- task.view               |    ✓     |   ✓   |    ✓    |      ✓      |      ✓      |      ✓      |      ✓      |       ✓        |   ✓    |      -       |     ✓
+-- task.create             |    ✓     |   ✓   |    ✓    |      ✓      |      ✓      |      -      |      ✓      |       -        |   -    |      -       |     -
+-- task.update             |    ✓     |   ✓   |    ✓    |      ✓      |      ✓      |      ✓      |      ✓      |       -        |   -    |      -       |     -

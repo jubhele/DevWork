@@ -25,11 +25,11 @@ const SECONDARY: Record<string, Array<{ href: string; label: string; permission?
   operations: [
     { href: '/tracker', label: 'Tracker', permission: 'task.view' },
     { href: '/quotes', label: 'Quotes', permission: 'quote.view' },
-    { href: '/clients', label: 'Clients', permission: 'client.view' },
+    { href: '/clients', label: 'Clients', permission: 'callout.view' },
   ],
   finance: [
     { href: '/invoices', label: 'Invoices', permission: 'invoice.view' },
-    { href: '/finance', label: 'Finance Overview', permission: 'finance.view' },
+    { href: '/finance', label: 'Finance Overview', permission: 'finance.income' },
   ],
   secure: [
     { href: '/secure/incidents', label: 'Incidents', roles: ['sysadmin', 'admin', 'manager'] },

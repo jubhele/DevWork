@@ -17,7 +17,7 @@ export default async function InvoicesPage() {
   const result = await getInvoices()
   const invoices: Invoice[] = result.data
 
-  const canCreate = user != null && can(user, 'invoices.create')
+  const canCreate = user != null && can(user, 'invoice.create')
 
   return (
     <div>

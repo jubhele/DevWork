@@ -193,7 +193,7 @@ const SECTIONS = [
     ],
     faqs: [
       { q: 'What is the difference between Invoiced and Collected?', a: 'Invoiced is the total amount billed to clients this period. Collected is what has actually been received and logged as a payment.' },
-      { q: 'Who can see the Finance section?', a: 'Users with the finance.view permission — typically Managers, Admins, and Finance staff.' },
+      { q: 'Who can see the Finance section?', a: 'Users with the finance.income permission — typically Managers, Admins, and Finance staff.' },
     ],
   },
   {

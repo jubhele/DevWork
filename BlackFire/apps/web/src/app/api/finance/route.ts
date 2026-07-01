@@ -6,7 +6,7 @@ import { getFinanceSummary } from '@/lib/data/finance'
 export async function GET() {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ success: false, message: 'Unauthenticated' }, { status: 401 })
-  if (!can(user, 'finance.view')) return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 })
+  if (!can(user, 'finance.income')) return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 })
 
   const summary = await getFinanceSummary()
   if (!summary) return NextResponse.json({ success: false, message: 'Failed to load finance summary' }, { status: 500 })
