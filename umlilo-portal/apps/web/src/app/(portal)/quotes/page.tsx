@@ -75,8 +75,8 @@ export default async function QuotesPage() {
       {quotes.length === 0 ? (
         <p className="text-ash text-sm">No quotes found.</p>
       ) : (
-        <div className="bg-navy border border-steel-dark rounded-lg overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="bg-navy border border-steel-dark rounded-lg overflow-x-auto">
+          <table className="w-full min-w-[980px] text-sm">
             <thead>
               <tr className="border-b border-steel-dark text-xs text-ash uppercase tracking-wider">
                 <th className="text-left px-4 py-3">Quote #</th>

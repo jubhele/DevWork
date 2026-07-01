@@ -148,6 +148,19 @@ if ($method === 'POST') {
     $invoice_no = clean($b['invoice_no'] ?? '', 50);
     if (!$invoice_no) $invoice_no = $ref;
 
+    // Workflow rule (mirrors DB trigger trg_invoice_require_chain):
+    // no invoice without a linked callout and an Approved/Converted quote.
+    if (!$callout_id_fk) {
+        json_err('Cannot create invoice: a linked callout is required (callout_ref).');
+    }
+    if (!$quote_id_fk) {
+        json_err('Cannot create invoice: a linked quote is required (quote_ref).');
+    }
+    $qstat = db_row("SELECT status FROM bf_quotes WHERE id = ? LIMIT 1", [$quote_id_fk]);
+    if (!$qstat || !in_array($qstat['status'], ['Approved', 'Converted'], true)) {
+        json_err('Cannot create invoice: the linked quote must be Approved before invoicing.');
+    }
+
     $invoice_date = date('Y-m-d');
     try {
         db_begin();

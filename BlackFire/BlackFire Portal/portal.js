@@ -96,7 +96,63 @@ async function apiUpload(entityType, entityRef, fileInput) {
 }
 
 /* ── Table column sort ─────────────────────────────────────────────── */
+function isSortableHeader(th) {
+  if (!th) return false;
+  if (th.dataset.nosort === '1' || th.dataset.sortable === '0') return false;
+  const text = (th.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
+  if (!text || text === 'actions' || text === 'action' || text === '—') return false;
+  if (th.querySelector('button,a,input,select,textarea,svg')) return false;
+  return true;
+}
+
+function refreshSortableHeaders(root = document) {
+  root.querySelectorAll('table thead th').forEach(th => {
+    const sortable = isSortableHeader(th);
+    th.dataset.sortable = sortable ? '1' : '0';
+    if (sortable) {
+      if (!th.dataset.sortState) th.setAttribute('aria-sort', 'none');
+    } else {
+      delete th.dataset.sortState;
+      th.setAttribute('aria-sort', 'none');
+    }
+  });
+}
+
+function tableSortValue(cell) {
+  if (!cell) return '';
+  return (cell.dataset.sortVal || cell.textContent || '').replace(/\s+/g, ' ').trim();
+}
+
+function sortRowGroups(tbody) {
+  const groups = [];
+  let activeGroup = null;
+  Array.from(tbody.querySelectorAll('tr')).forEach(row => {
+    const cells = row.querySelectorAll('td');
+    const isChildRow = row.classList.contains('inv-detail') || row.classList.contains('detail') || (cells.length === 1 && cells[0]?.colSpan > 1);
+    if (isChildRow && activeGroup) {
+      activeGroup.children.push(row);
+      return;
+    }
+    activeGroup = { row, children: [] };
+    groups.push(activeGroup);
+  });
+  return groups;
+}
+
+function setSortState(table, activeTh, asc) {
+  table.querySelectorAll('thead th').forEach(th => {
+    if (th === activeTh) {
+      th.dataset.sortState = asc ? 'asc' : 'desc';
+      th.setAttribute('aria-sort', asc ? 'ascending' : 'descending');
+    } else {
+      delete th.dataset.sortState;
+      if (th.dataset.sortable === '1') th.setAttribute('aria-sort', 'none');
+    }
+  });
+}
+
 function sortTableByCol(th) {
+  if (!isSortableHeader(th)) return;
   const table = th.closest('table');
   if (!table) return;
   const tbody = table.querySelector('tbody');
@@ -106,18 +162,25 @@ function sortTableByCol(th) {
   const asc = th.dataset.sort !== 'asc';
   ths.forEach(h => delete h.dataset.sort);
   th.dataset.sort = asc ? 'asc' : 'desc';
-  const rows = Array.from(tbody.querySelectorAll('tr'));
+  setSortState(table, th, asc);
+  const rows = sortRowGroups(tbody);
   rows.sort((a, b) => {
-    const ac = a.querySelectorAll('td')[col];
-    const bc = b.querySelectorAll('td')[col];
-    const at = ac ? (ac.dataset.sortVal || ac.textContent.trim()) : '';
-    const bt = bc ? (bc.dataset.sortVal || bc.textContent.trim()) : '';
+    const ac = a.row.querySelectorAll('td')[col];
+    const bc = b.row.querySelectorAll('td')[col];
+    const at = tableSortValue(ac);
+    const bt = tableSortValue(bc);
     const an = parseFloat(at.replace(/[^0-9.\-]/g, ''));
     const bn = parseFloat(bt.replace(/[^0-9.\-]/g, ''));
-    if (!isNaN(an) && !isNaN(bn)) return asc ? an - bn : bn - an;
+    if (!Number.isNaN(an) && !Number.isNaN(bn)) return asc ? an - bn : bn - an;
+    const ad = Date.parse(at);
+    const bd = Date.parse(bt);
+    if (!Number.isNaN(ad) && !Number.isNaN(bd)) return asc ? ad - bd : bd - ad;
     return asc ? at.localeCompare(bt) : bt.localeCompare(at);
   });
-  rows.forEach(r => tbody.appendChild(r));
+  rows.forEach(group => {
+    tbody.appendChild(group.row);
+    group.children.forEach(child => tbody.appendChild(child));
+  });
 }
 
 /* ── data-action click dispatcher ──────────────────────────────────── */
@@ -130,7 +193,7 @@ document.addEventListener('click', function(e) {
     }
   }
   const sortTh = e.target.closest('thead th');
-  if (sortTh && !('nosort' in sortTh.dataset)) { sortTableByCol(sortTh); return; }
+  if (sortTh && isSortableHeader(sortTh)) { sortTableByCol(sortTh); return; }
   const el = e.target.closest('[data-action]');
   if (!el) return;
   const action = el.dataset.action;
@@ -361,6 +424,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const el = document.getElementById(id);
     if (el) el.addEventListener('keydown', resetEnter);
   });
+  refreshSortableHeaders();
 });
 
 /* ── Attachments modal / panel ─────────────────────────────────────── */
@@ -976,6 +1040,7 @@ const NAV_CONFIG = [
     items: [
       { id:'p-ops-dashboard', label:'Overview',  perm: null },
       { id:'p-timeline',      label:'Timeline',  perm: null },
+      { id:'p-reports',       label:'Reports',   perm: null },
       { id:'p-quotes',        label:'Quote Log', perm:'quote.view',   badge:'nb-qte' },
       { id:'p-tracker',       label:'Tracker',   perm:'task.view',    badge:'nb-co' },
     ],
@@ -1220,6 +1285,12 @@ function rolePill(role){
   return`<span class="pill ${cls}">${esc(lbl)}</span>`;
 }
 function qtot(items){const s=(items||[]).reduce((a,i)=>a+(+i.qty||0)*(+i.unit||0),0);return{sub:s,vat:s*.15,total:s*1.15};}
+function quoteTotals(q){
+  const items = q?.items || [];
+  if (items.length) return qtot(items);
+  const base = parseFloat(q?.total_amount ?? q?.amount ?? 0) || 0;
+  return { sub: base, vat: base * 0.15, total: base * 1.15 };
+}
 
 function toast(msg,type=''){
   const c=document.getElementById('toaster');
@@ -1374,6 +1445,21 @@ const PAGE_INFO = {
     ],
     linked: 'Callouts, Quotes, Timeline.',
     access: ['admin','sysadmin','manager','call_logger','senior_tech','junior_tech','client_support','admin_clerk','viewer'],
+  },
+  'p-reports': {
+    title: 'Operations Reports',
+    sub: 'Structured reporting for operations workflows',
+    purpose: 'A consolidated reporting surface for operations. It keeps the reporting view inside the portal so teams can move between live work, tracker activity, and formal reports without leaving the Operations area.',
+    steps: [
+      'Review the report tabs to switch between safety, business activity, finance, workforce, and document upload views.',
+      'Use the report filters and exports to drill into the data you need for a meeting or audit.',
+      'Return to Operations Overview when you need to jump back into live workflow pages.',
+    ],
+    tips: [
+      'This view embeds the standalone reports page so the navigation stays inside the Operations workspace.',
+    ],
+    linked: 'Operations Overview, Tracker, Safety Files.',
+    access: ['admin','sysadmin','manager','client_support','admin_clerk','viewer'],
   },
   'p-timeline': {
     title: 'Timeline',
@@ -2082,7 +2168,7 @@ const PAGE_PERMS = {
 /* Per-page quick navigation actions (filtered to user's permissions at render time) */
 const PAGE_ACTIONS = {
   'p-dashboard':         [{ label:'Operations', page:'p-ops-dashboard' }, { label:'Finance', page:'p-finance-dashboard' }, { label:'Support', page:'p-support-dashboard' }],
-  'p-ops-dashboard':     [{ label:'Tracker', page:'p-tracker', perm:'task.view' }, { label:'Quotes', page:'p-quotes', perm:'quote.view' }, { label:'Timeline', page:'p-timeline' }],
+  'p-ops-dashboard':     [{ label:'Tracker', page:'p-tracker', perm:'task.view' }, { label:'Quotes', page:'p-quotes', perm:'quote.view' }, { label:'Reports', page:'p-reports' }, { label:'Timeline', page:'p-timeline' }],
   'p-timeline':          [{ label:'Tracker', page:'p-tracker', perm:'task.view' }, { label:'Quotes', page:'p-quotes', perm:'quote.view' }],
   'p-callouts':          [{ label:'Tracker', page:'p-tracker', perm:'task.view' }, { label:'+ Log Call', page:'p-new-callout', perm:'capture.new_callout' }],
   'p-tracker':           [{ label:'+ New Task', page:'p-new-task', perm:'task.create' }],
@@ -2470,6 +2556,7 @@ function showPortalPage(id, el){
   const renders={
     'p-dashboard':         async()=>{ renderDashboard(); await refreshAll(); renderDashboard(); updateBadges(); safLoadDashCompliance(); },
     'p-ops-dashboard':     async()=>{ renderOpsDashboard(); await Promise.all([refreshTasks(),refreshCallouts(),refreshQuotes()]); renderOpsDashboard(); updateBadges(); },
+    'p-reports':          async()=>{},
     'p-finance-dashboard': async()=>{ await Promise.all([refreshInvoices(),refreshTransactions()]); await renderFinDashboard(); updateBadges(); },
     'p-support-dashboard': async()=>{ renderSupDashboard(); await Promise.all([refreshUsers(),refreshSafetyFiles()]); renderSupDashboard(); updateBadges(); },
     'p-transactions': async()=>{ renderTransactions(''); await refreshTransactions(); renderTransactions(''); },
@@ -2599,7 +2686,6 @@ function _dashBlockOps(d){
     can('task.view') ? `<div class="kcard k1"><div class="klbl">Open Tasks</div><div class="kval${kv(openTasks)}">${openTasks}</div><div class="ksub">Admin, Sales & General</div></div>` : '',
     can('task.view') ? `<div class="kcard k2"><div class="klbl">Urgent Tasks</div><div class="kval${kv(urgentTasks)}">${urgentTasks}</div><div class="ksub">Immediate attention</div></div>` : '',
     can('callout.view') ? `<div class="kcard k4"><div class="klbl">Open Callouts</div><div class="kval${kv(open)}">${open}</div><div class="ksub">Operational jobs only</div></div>` : '',
-    can('task.view') ? `<div class="kcard k3"><div class="klbl">Due Today</div><div class="kval${kv(tasksDueToday)}">${tasksDueToday}</div><div class="ksub">Tracker deadlines</div></div>` : '',
     can('quote.view') ? `<div class="kcard k3"><div class="klbl">Pending Quotes</div><div class="kval${kv(pq)}">${pq}</div><div class="ksub">Awaiting approval</div></div>` : '',
   ].filter(Boolean).join('');
 
@@ -3667,7 +3753,7 @@ function renderQuotes(search='',filter=''){
   if(btn){ can('capture.new_quote')?$show(btn):$hide(btn); }
 
   document.getElementById('qte-table').innerHTML=items.length?items.map(q=>{
-    const{total}=qtot(q.items);
+    const{total}=quoteTotals(q);
     const submitter=proxyDB.users.find(u=>u.username===q.submittedBy);
     const submitterCell=submitter?`${esc(submitter.name)}<div class="mlbl-9 mt-2">${esc(ROLE_LABELS[submitter.role]||submitter.role)}</div>`:'<span class="text-muted">-</span>';
     const actions=[];
@@ -3706,7 +3792,8 @@ function declineQuote(id){
 
 function previewQuote(id){
   const q=proxyDB.quotes.find(x=>x.id===id);if(!q)return;
-  const{sub,vat,total}=qtot(q.items);
+  const{sub,vat,total}=quoteTotals(q);
+  const hasItems=(q.items||[]).length>0;
   const co = (typeof COMPANY !== 'undefined') ? COMPANY : {};
   openModal(`Quote - ${q.quoteNo}`,`
     <div class="doc-preview">
@@ -3724,7 +3811,7 @@ function previewQuote(id){
       ${q.approvalStatus==='pending'?'<div class="qte-pending-warn">⚠ Pending Manager Approval - not yet issued to client</div>':''}
       <table class="doc-t">
         <thead><tr><th>Description</th><th>Qty</th><th>Unit Price</th><th>Total</th></tr></thead>
-        <tbody>${(q.items||[]).map(i=>`<tr><td>${esc(i.desc)}</td><td>${i.qty}</td><td>${fmt(i.unit)}</td><td>${fmt(i.qty*i.unit)}</td></tr>`).join('')}</tbody>
+        <tbody>${hasItems?(q.items||[]).map(i=>`<tr><td>${esc(i.desc)}</td><td>${i.qty}</td><td>${fmt(i.unit)}</td><td>${fmt(i.qty*i.unit)}</td></tr>`).join(''):`<tr><td colspan="4" class="text-muted">No line items are attached to this reconstructed quote. Totals use the stored quote amount.</td></tr>`}</tbody>
       </table>
       <div class="doc-tots">
         <div class="doc-tot-row"><span>Subtotal</span><span>${fmt(sub)}</span></div>
@@ -3739,7 +3826,7 @@ function previewQuote(id){
 
 function convertQtoInv(id){
   const q=proxyDB.quotes.find(x=>x.id===id);if(!q)return;
-  const{total}=qtot(q.items);
+  const{total}=quoteTotals(q);
   const invId=nextId('inv');
   const due=new Date();due.setDate(due.getDate()+30);
   proxyDB.invoices.unshift({id:invId,client:q.client,amount:total,dueDate:localDateStr(due),status:'Draft',ref:q.id,po:'',date:localDateStr()});
@@ -3942,7 +4029,7 @@ function initNewInvoice() {
       const linkedCo = proxyDB.callouts.find(c => c.id === q.calloutRef && c.status === 'Completed');
       if (linkedCo) document.getElementById('ni-callout-ref').value = linkedCo.id;
     }
-    const total = q.items.reduce((a, i) => a + (i.qty * i.unit), 0) * 1.15;
+    const total = quoteTotals(q).total;
     if (total) document.getElementById('ni-amount').value = (Math.round(total * 100) / 100).toFixed(2);
   }, sig);
 }
@@ -3956,7 +4043,7 @@ function _applyInvoiceCalloutCtx(calloutId) {
   const linkedQ = proxyDB.quotes.find(q => q.calloutRef === calloutId);
   if (linkedQ) {
     document.getElementById('ni-quote-ref').value = linkedQ.id;
-    const total = linkedQ.items.reduce((a, i) => a + (i.qty * i.unit), 0) * 1.15;
+    const total = quoteTotals(linkedQ).total;
     if (total) document.getElementById('ni-amount').value = (Math.round(total * 100) / 100).toFixed(2);
   }
 }
@@ -3970,7 +4057,7 @@ function _applyInvoiceQuoteCtx(quoteId) {
   }
   populateLinkedDropdowns(); // rebuild after client + callout are set
   document.getElementById('ni-quote-ref').value = quoteId;
-  const total = q.items.reduce((a, i) => a + (i.qty * i.unit), 0) * 1.15;
+  const total = quoteTotals(q).total;
   if (total) document.getElementById('ni-amount').value = (Math.round(total * 100) / 100).toFixed(2);
 }
 function saveInvoice(){
@@ -6861,13 +6948,17 @@ async function safGenerateTracker(id) {
 
   const PRI = { A:'high', B:'high', C:'med', D:'high', E:'high', F:'med', G:'high', H:'med' };
   const sections = [];
+  const initialState = {};
   let origPass = 0, origApplicable = 0;
+
+  const mapApStatus = v => v === 'Resolved' ? 'done' : v === 'In Progress' ? 'wip' : 'open';
 
   SAFETY_SECTIONS.filter(s => !s.bonus).forEach(sec => {
     const saved = file.sections[sec.key] || [];
     const failItems = [];
     sec.items.forEach((item, idx) => {
       const sv = saved[idx] || {};
+      initialState[sec.key + item.no] = { status: mapApStatus(sv.ap_status || sv.apStatus) };
       if (sv.result === 'N/A') return;
       origApplicable++;
       if (sv.result === 'To Standard') { origPass++; return; }
@@ -6877,6 +6968,7 @@ async function safGenerateTracker(id) {
           ref:      item.ref || '—',
           criteria: item.criteria,
           comment:  sv.comments || 'Not to Standard — action required',
+          status:   mapApStatus(sv.ap_status || sv.apStatus),
           priority: PRI[sec.key] || 'med',
         });
       }
@@ -6899,6 +6991,7 @@ async function safGenerateTracker(id) {
     totalApplicable: sections.reduce((t, s) => t + s.items.length, 0),
     origPass,
     origApplicable,
+    initialState,
   });
 
   const genIssues = _validateTrackerHTML(html);
@@ -6942,6 +7035,7 @@ function _buildTrackerHTML(o) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23C94A10' d='M8 0 5 6H0l4 4-2 6 6-3 6 3-2-6 4-4H11z'/%3E%3C/svg%3E">
 <title>BF-SHE-FRM-010 · Action Tracker — ${esc(o.contractor)}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -7008,8 +7102,8 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;bac
 .section-head .chevron{font-size:11px;color:var(--muted);transition:transform .2s}
 .section-head.collapsed .chevron{transform:rotate(-90deg)}
 .section-head.collapsed{border-radius:6px}
-.tbl-wrap{overflow-x:auto;border:1px solid var(--border);border-top:none;border-radius:0 0 6px 6px;margin-bottom:6px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
-table{border-collapse:collapse;width:100%;min-width:720px}
+.tbl-wrap{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;border:1px solid var(--border);border-top:none;border-radius:0 0 6px 6px;margin-bottom:6px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+table{border-collapse:collapse;width:max-content;min-width:100%;table-layout:auto}
 thead th{background:var(--surface2);color:var(--text2);padding:8px 14px;text-align:left;border-right:1px solid var(--border);border-bottom:1px solid var(--border);white-space:nowrap;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;user-select:none;position:relative}
 thead th::after{content:'⇅';display:inline-block;margin-left:5px;opacity:.2;font-size:9px;vertical-align:middle}
 thead th[data-sort="asc"]::after{content:'↑';opacity:.85;color:var(--accent)}
@@ -7017,7 +7111,7 @@ thead th[data-sort="desc"]::after{content:'↓';opacity:.85;color:var(--accent)}
 thead th[data-sort="asc"],thead th[data-sort="desc"]{color:var(--accent)}
 thead th[data-nosort]{cursor:default}
 thead th[data-nosort]::after{display:none}
-tbody td{padding:8px 14px;border-right:1px solid var(--surface3);border-bottom:1px solid var(--surface3);vertical-align:top;color:var(--text2);font-size:12px}
+tbody td{padding:8px 14px;border-right:1px solid var(--surface3);border-bottom:1px solid var(--surface3);vertical-align:top;color:var(--text2);font-size:12px;white-space:nowrap}
 tbody tr:nth-child(odd) td{background:var(--row-odd)}
 tbody tr:nth-child(even) td{background:var(--row-even)}
 tbody tr:hover td{background:var(--row-hover)}
@@ -7202,6 +7296,7 @@ td.notes-cell{min-width:160px}
 </div>
 <script>
 const SECTIONS = ${sectionsJson};
+const INITIAL_STATE = ${JSON.stringify(o.initialState || {})};
 const TOTAL_APPLICABLE = ${totalApplicable};
 const ORIG_PASS = ${origPass};
 const ORIG_APPLICABLE = ${origApplicable};
@@ -7210,7 +7305,8 @@ const KEY = '${storageKey}';
 
 function loadState(){ try{ return JSON.parse(localStorage.getItem(KEY)||'{}'); } catch{ return {}; } }
 function saveState(s){ localStorage.setItem(KEY, JSON.stringify(s)); }
-let state = loadState();
+let state = { ...INITIAL_STATE, ...loadState() };
+saveState(state);
 function getStatus(id)     { return state[id]?.status     ||'open'; }
 function getNotes(id)      { return state[id]?.notes      ||''; }
 function getRejection(id)  { return state[id]?.rejection  ||''; }
@@ -7400,11 +7496,15 @@ function _validateTrackerHTML(html) {
 
 function openTrackerPreview() {
   if (!_trackerHtml) { toast('Tracker not ready', 'err'); return; }
-  const w = window.open('', '_blank', 'noopener');
-  if (!w) { toast('Popup blocked', 'err'); return; }
-  w.document.open();
-  w.document.write(_trackerHtml);
-  w.document.close();
+  const blob = new Blob([_trackerHtml], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const w = window.open(url, '_blank', 'noopener');
+  if (!w) {
+    URL.revokeObjectURL(url);
+    toast('Popup blocked', 'err');
+    return;
+  }
+  setTimeout(() => URL.revokeObjectURL(url), 15000);
 }
 
 function downloadTrackerFile() {

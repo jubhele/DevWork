@@ -88,8 +88,8 @@ export default async function TrackerPage({
       {tasks.length === 0 ? (
         <p className="text-ash text-sm">No tasks in this category.</p>
       ) : (
-        <div className="bg-navy border border-steel-dark rounded-lg overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="bg-navy border border-steel-dark rounded-lg overflow-x-auto">
+          <table className="w-full min-w-[1080px] text-sm">
             <thead>
               <tr className="border-b border-steel-dark text-xs text-ash uppercase tracking-wider">
                 <th className="text-left px-4 py-3">Ref</th>

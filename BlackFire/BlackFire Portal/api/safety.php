@@ -185,6 +185,14 @@ function sf_fetch(string $ref_id): ?array {
     );
 }
 
+function capture_user_id(array $fallbackUser): int {
+    $clerk = db_row(
+        "SELECT id FROM bf_users WHERE username = ? OR name = ? LIMIT 1",
+        ['bf_clerk', 'Nontokozo Clerk']
+    );
+    return (int)($clerk['id'] ?? $fallbackUser['id']);
+}
+
 /* ── GET list ──────────────────────────────────────── */
 if ($method === 'GET' && !$ref_id) {
     $pg = get_pagination();
@@ -255,6 +263,8 @@ if ($method === 'POST') {
     $rep_id  = !empty($b['contractor_rep_id']) ? (int)$b['contractor_rep_id'] : null;
     $appt_id = !empty($b['appointee162_id'])   ? (int)$b['appointee162_id']   : null;
 
+    $capture_user_id = capture_user_id($user);
+
     db_insert(
         "INSERT INTO bf_safety_files
          (ref_id, contractor, contractor_rep_id,
@@ -278,7 +288,7 @@ if ($method === 'POST') {
             clean($b['auditor_name']    ?? ''),
             ($b['sign_off_date'] && valid_date($b['sign_off_date'])) ? $b['sign_off_date'] : null,
             clean($b['status'] ?? 'Draft'),
-            $user['id'],
+            $capture_user_id,
             $user['id'],
         ]
     );

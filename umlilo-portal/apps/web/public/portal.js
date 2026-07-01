@@ -6094,8 +6094,8 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;bac
 .section-head .chevron{font-size:11px;color:var(--muted);transition:transform .2s}
 .section-head.collapsed .chevron{transform:rotate(-90deg)}
 .section-head.collapsed{border-radius:6px}
-.tbl-wrap{overflow-x:auto;border:1px solid var(--border);border-top:none;border-radius:0 0 6px 6px;margin-bottom:6px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
-table{border-collapse:collapse;width:100%;min-width:720px}
+.tbl-wrap{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;border:1px solid var(--border);border-top:none;border-radius:0 0 6px 6px;margin-bottom:6px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+table{border-collapse:collapse;width:max-content;min-width:100%;table-layout:auto}
 thead th{background:var(--surface2);color:var(--text2);padding:8px 14px;text-align:left;border-right:1px solid var(--border);border-bottom:1px solid var(--border);white-space:nowrap;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;user-select:none;position:relative}
 thead th::after{content:'⇅';display:inline-block;margin-left:5px;opacity:.2;font-size:9px;vertical-align:middle}
 thead th[data-sort="asc"]::after{content:'↑';opacity:.85;color:var(--accent)}
@@ -6103,7 +6103,7 @@ thead th[data-sort="desc"]::after{content:'↓';opacity:.85;color:var(--accent)}
 thead th[data-sort="asc"],thead th[data-sort="desc"]{color:var(--accent)}
 thead th[data-nosort]{cursor:default}
 thead th[data-nosort]::after{display:none}
-tbody td{padding:8px 14px;border-right:1px solid var(--surface3);border-bottom:1px solid var(--surface3);vertical-align:top;color:var(--text2);font-size:12px}
+tbody td{padding:8px 14px;border-right:1px solid var(--surface3);border-bottom:1px solid var(--surface3);vertical-align:top;color:var(--text2);font-size:12px;white-space:nowrap}
 tbody tr:nth-child(odd) td{background:var(--row-odd)}
 tbody tr:nth-child(even) td{background:var(--row-even)}
 tbody tr:hover td{background:var(--row-hover)}

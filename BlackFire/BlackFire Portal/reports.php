@@ -433,14 +433,18 @@ a{color:inherit;text-decoration:none}
 .chart-box{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:20px;overflow-x:auto}
 .chart-box h3{font-size:.8rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:16px}
 
-.tbl-wrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:20px}
+.tbl-wrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;margin-bottom:20px}
 .tbl-label{padding:12px 16px 0;font-size:.75rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
-table{width:100%;border-collapse:collapse;font-size:.82rem}
-thead th{background:var(--th-bg);padding:8px 12px;text-align:left;font-weight:600;font-size:.73rem;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);white-space:nowrap;border-bottom:1px solid var(--border)}
+table{width:max-content;min-width:100%;border-collapse:collapse;font-size:.82rem;table-layout:auto}
+thead th{background:var(--th-bg);padding:8px 24px 8px 12px;text-align:left;font-weight:600;font-size:.73rem;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow-wrap:normal;word-break:normal;border-bottom:1px solid var(--border);position:relative;cursor:pointer}
+thead th[data-sortable="0"],thead th[data-nosort="1"]{cursor:default;padding-right:12px}
+thead th[data-sortable="1"]::after{content:'↕';position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:.6rem;opacity:.45;color:var(--muted)}
+thead th[data-sort-state="asc"]::after{content:'↑';opacity:1;color:var(--accent)}
+thead th[data-sort-state="desc"]::after{content:'↓';opacity:1;color:var(--accent)}
 tbody tr{border-bottom:1px solid var(--border)}
 tbody tr:last-child{border-bottom:none}
 tbody tr:hover{background:var(--row-hover)}
-td{padding:8px 12px;vertical-align:middle;color:var(--text2)}
+td{padding:8px 12px;vertical-align:middle;color:var(--text2);white-space:nowrap;overflow-wrap:normal;word-break:normal}
 td.mono{font-family:'IBM Plex Mono',monospace;font-size:.78rem}
 td.hi{color:var(--text);font-weight:600}
 
@@ -950,6 +954,87 @@ td.hi{color:var(--text);font-weight:600}
 
 <script>
 (function(){
+  function isSortableHeader(th) {
+    if (!th) return false;
+    if (th.dataset.nosort === '1' || th.dataset.sortable === '0') return false;
+    const text = (th.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
+    if (!text || text === 'actions' || text === 'action' || text === '—') return false;
+    if (th.querySelector('button,a,input,select,textarea,svg')) return false;
+    return true;
+  }
+
+  function refreshSortableHeaders(root = document) {
+    root.querySelectorAll('table thead th').forEach(th => {
+      const sortable = isSortableHeader(th);
+      th.dataset.sortable = sortable ? '1' : '0';
+      if (sortable) {
+        if (!th.dataset.sortState) th.setAttribute('aria-sort', 'none');
+      } else {
+        delete th.dataset.sortState;
+        th.setAttribute('aria-sort', 'none');
+      }
+    });
+  }
+
+  function tableSortValue(cell) {
+    if (!cell) return '';
+    return (cell.dataset.sortVal || cell.textContent || '').replace(/\s+/g, ' ').trim();
+  }
+
+  function sortTableByCol(th) {
+    if (!isSortableHeader(th)) return;
+    const table = th.closest('table');
+    if (!table) return;
+    const tbody = table.querySelector('tbody');
+    if (!tbody) return;
+    const ths = Array.from(th.closest('tr').querySelectorAll('th'));
+    const col = ths.indexOf(th);
+    const asc = th.dataset.sort !== 'asc';
+    ths.forEach(h => delete h.dataset.sort);
+    th.dataset.sort = asc ? 'asc' : 'desc';
+    table.querySelectorAll('thead th').forEach(head => {
+      if (head === th) {
+        head.dataset.sortState = asc ? 'asc' : 'desc';
+        head.setAttribute('aria-sort', asc ? 'ascending' : 'descending');
+      } else {
+        delete head.dataset.sortState;
+        if (head.dataset.sortable === '1') head.setAttribute('aria-sort', 'none');
+      }
+    });
+
+    const groups = [];
+    let activeGroup = null;
+    Array.from(tbody.querySelectorAll('tr')).forEach(row => {
+      const cells = row.querySelectorAll('td');
+      const isChildRow = row.classList.contains('inv-detail') || row.classList.contains('detail') || (cells.length === 1 && cells[0]?.colSpan > 1);
+      if (isChildRow && activeGroup) {
+        activeGroup.children.push(row);
+        return;
+      }
+      activeGroup = { row, children: [] };
+      groups.push(activeGroup);
+    });
+
+    groups.sort((a, b) => {
+      const ac = a.row.querySelectorAll('td')[col];
+      const bc = b.row.querySelectorAll('td')[col];
+      const at = tableSortValue(ac);
+      const bt = tableSortValue(bc);
+      const an = parseFloat(at.replace(/[^0-9.\-]/g, ''));
+      const bn = parseFloat(bt.replace(/[^0-9.\-]/g, ''));
+      if (!Number.isNaN(an) && !Number.isNaN(bn)) return asc ? an - bn : bn - an;
+      const ad = Date.parse(at);
+      const bd = Date.parse(bt);
+      if (!Number.isNaN(ad) && !Number.isNaN(bd)) return asc ? ad - bd : bd - ad;
+      return asc ? at.localeCompare(bt) : bt.localeCompare(at);
+    });
+
+    groups.forEach(group => {
+      tbody.appendChild(group.row);
+      group.children.forEach(child => tbody.appendChild(child));
+    });
+  }
+
   const btns   = document.querySelectorAll('.tab-btn');
   const panels = document.querySelectorAll('.tab-panel');
   btns.forEach(btn => {
@@ -959,6 +1044,13 @@ td.hi{color:var(--text);font-weight:600}
       panels.forEach(p => p.classList.toggle('active', p.id === 'panel-' + t));
       history.replaceState(null, '', '?tab=' + t);
     });
+  });
+
+  document.addEventListener('click', function(e) {
+    const sortTh = e.target.closest('thead th');
+    if (sortTh && isSortableHeader(sortTh)) {
+      sortTableByCol(sortTh);
+    }
   });
 
   function toggleInv(uid) {
@@ -982,6 +1074,8 @@ td.hi{color:var(--text);font-weight:600}
     themeBtn.textContent = next === 'dark' ? '☀' : '🌙';
     localStorage.setItem('bf_theme', next);
   });
+
+  refreshSortableHeaders();
 })();
 </script>
 </body>

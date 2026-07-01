@@ -1130,6 +1130,14 @@ $companyLogoUrl = rtrim($cfg['base_url'] ?? '', '/') . '/' . ltrim($cfg['company
       <div id="ops-dash-content"></div>
     </div>
 
+    <div id="p-reports" class="ppage">
+      <div class="ptitle">Reports</div>
+      <div class="psub">OPERATIONS  ·  REPORTING</div>
+      <div class="panel" style="padding:0;overflow:hidden">
+        <iframe src="reports.php" title="Reports" style="display:block;width:100%;height:calc(100vh - 220px);min-height:760px;border:0;background:#fff"></iframe>
+      </div>
+    </div>
+
     <!-- FINANCE LANDING DASHBOARD -->
     <div id="p-finance-dashboard" class="ppage">
       <div class="ptitle">Finance</div>

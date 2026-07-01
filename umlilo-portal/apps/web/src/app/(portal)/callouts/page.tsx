@@ -46,8 +46,8 @@ export default async function CalloutsPage() {
       {callouts.length === 0 ? (
         <p className="text-ash text-sm">No callouts found.</p>
       ) : (
-        <div className="bg-navy border border-steel-dark rounded-lg overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="bg-navy border border-steel-dark rounded-lg overflow-x-auto">
+          <table className="w-full min-w-[960px] text-sm">
             <thead>
               <tr className="border-b border-steel-dark text-xs text-ash uppercase tracking-wider">
                 <th className="text-left px-4 py-3">Ref</th>

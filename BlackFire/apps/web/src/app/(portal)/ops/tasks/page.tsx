@@ -49,8 +49,8 @@ export default async function OpsTasksPage() {
           {Object.entries(byStream).map(([stream, tasks]) => (
             <section key={stream}>
               <h2 className="font-display text-lg uppercase tracking-widest text-ink-text mb-3 capitalize">{stream} — {tasks.length}</h2>
-              <div className="overflow-hidden rounded border border-steel-dark bg-white shadow-sm">
-                <table className="w-full text-sm">
+              <div className="overflow-x-auto rounded border border-steel-dark bg-white shadow-sm">
+                <table className="w-full min-w-[980px] text-sm">
                   <thead className="border-b border-steel-dark bg-charcoal text-[11px] uppercase tracking-[0.18em] text-ash">
                     <tr>
                       <th className="px-4 py-3 text-left">Ref</th>

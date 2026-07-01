@@ -1,8 +1,8 @@
 # BlackFire - Full-stack dev environment
-# Starts: PHP portal (:8080) + Next.js web app (:3000) + Expo mobile (optional)
+# Starts: PHP portal (:8080) + Next.js web app (:3000) + Expo mobile (default)
 # Usage:
-#   .\start-dev.ps1         # PHP + Next.js only
-#   .\start-dev.ps1 -Mobile # PHP + Next.js + Expo
+#   .\start-dev.ps1            # PHP + Next.js + Expo
+#   .\start-dev.ps1 -NoMobile  # PHP + Next.js only
 #
 # Prereqs:
 #   php.exe on PATH (PHP 8.x)
@@ -10,7 +10,7 @@
 #   npx/expo-cli available
 #   .env in BlackFire Portal\ (copy from .env.example if missing)
 
-param([switch]$Mobile)
+param([switch]$NoMobile)
 
 $ErrorActionPreference = 'Stop'
 
@@ -68,7 +68,7 @@ $nextJob = Start-Job -ScriptBlock {
 Write-Host "[next]   Job ID $($nextJob.Id)" -ForegroundColor DarkGray
 
 $expoJob = $null
-if ($Mobile) {
+if (-not $NoMobile) {
   Write-Host 'Starting Expo mobile app ...' -ForegroundColor Cyan
   $expoJob = Start-Job -ScriptBlock {
     param($path)
@@ -82,7 +82,7 @@ Write-Host ''
 Write-Host '----------------------------------------' -ForegroundColor DarkGray
 Write-Host ' PHP portal   -> http://localhost:8080' -ForegroundColor White
 Write-Host ' Web app      -> http://localhost:3000' -ForegroundColor White
-if ($Mobile) {
+if (-not $NoMobile) {
   Write-Host ' Expo         -> see Expo DevTools (QR in terminal)' -ForegroundColor White
 }
 Write-Host '----------------------------------------' -ForegroundColor DarkGray
