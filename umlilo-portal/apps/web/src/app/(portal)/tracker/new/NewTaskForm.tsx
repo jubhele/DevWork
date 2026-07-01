@@ -34,11 +34,9 @@ export default function NewTaskForm({ visibleCategories, categoryLabels, default
 
     start(async () => {
       try {
-        const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://blackfiresolutions.co.za/api'
-        const res = await fetch(`${API_BASE}/tasks.php`, {
-          method:      'POST',
-          credentials: 'include',
-          headers:     { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        const res = await fetch('/api/tasks.php', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
           body:        JSON.stringify({
             category:    form.category,
             title:       form.title.trim(),

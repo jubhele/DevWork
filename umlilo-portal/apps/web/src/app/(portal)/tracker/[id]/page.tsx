@@ -9,7 +9,8 @@ async function getTask(
   id: string,
   headers: Record<string, string> | null,
 ): Promise<Task | null> {
-  const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://blackfiresolutions.co.za/api'
+  const API_BASE = process.env.NEXT_PUBLIC_API_BASE
+    ?? `http://localhost:${process.env.PORT ?? '3000'}/api`
   if (!headers) return null
   try {
     const res = await fetch(`${API_BASE}/tasks.php?id=${encodeURIComponent(id)}`, {

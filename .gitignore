@@ -70,7 +70,7 @@ BlackFire/BlackFire Portal/router.php
 BlackFire/BlackFire Portal/encrypt_secrets.php
 BlackFire/BlackFire Portal/DEPLOY_CHECKLIST.md
 BlackFire/BlackFire Portal/dev-only/
-BlackFire/BlackFire Portal/api/_archive/
+BlackFire/BlackFire Portal/api/_archive/ 
 
 # Test data and destructive/utility SQL — not for production
 BlackFire/BlackFire Portal/install/blackfire_testdata_part1.sql

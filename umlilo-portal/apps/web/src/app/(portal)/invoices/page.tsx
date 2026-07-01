@@ -35,7 +35,8 @@ function formatDate(value: string | null | undefined) {
 }
 
 async function getInvoices(headers: Record<string, string> | null): Promise<PaginatedResponse<Invoice> | null> {
-  const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://blackfiresolutions.co.za/api'
+  const API_BASE = process.env.NEXT_PUBLIC_API_BASE
+    ?? `http://localhost:${process.env.PORT ?? '3000'}/api`
   if (!headers) return null
   try {
     const res = await fetch(`${API_BASE}/invoices.php`, {
@@ -57,6 +58,9 @@ export default async function InvoicesPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="font-display text-2xl tracking-wider text-bone-paper uppercase">Invoices</h1>
+        <a href="/invoices/new" className="h-9 px-4 inline-flex items-center rounded-[3px] border border-steel-dark bg-navy font-mono text-[10px] uppercase tracking-[0.16em] text-fire-orange hover:border-fire-orange transition-colors">
+          + Draft New
+        </a>
       </div>
 
       {invoices.length === 0 ? (

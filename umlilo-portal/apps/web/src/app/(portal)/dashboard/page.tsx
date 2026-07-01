@@ -21,6 +21,9 @@ function normalizeKPIs(body: unknown): DashboardKPIs | null {
   const source = kpi ?? (nestedData && nestedData.open_callouts != null ? nestedData : data)
   if (source.open_callouts == null && source.pending_quotes == null && source.active_clients == null) return null
   return {
+    open_tasks: asNumber(source.open_tasks),
+    urgent_tasks: asNumber(source.urgent_tasks),
+    tasks_due_today: asNumber(source.tasks_due_today),
     open_callouts: asNumber(source.open_callouts),
     overdue_invoices: asNumber(source.overdue_invoices ?? source.overdue_inv),
     mtd_revenue: asNumber(source.mtd_revenue),
@@ -35,7 +38,8 @@ function formatCurrency(value: unknown) {
 }
 
 async function getKPIs(headers: Record<string, string> | null): Promise<DashboardKPIs | null> {
-  const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://blackfiresolutions.co.za/api'
+  const API_BASE = process.env.NEXT_PUBLIC_API_BASE
+    ?? `http://localhost:${process.env.PORT ?? '3000'}/api`
   if (!headers) return null
   try {
     const response = await fetch(`${API_BASE}/dashboard.php`, { headers, cache: 'no-store' })
@@ -73,7 +77,7 @@ export default async function DashboardPage() {
   const portalCookie = cookieStore.get('bf_portal')?.value
   const user = getUserFromPortalCookie(portalCookie)
   const kpis = await getKPIs(getApiAuthHeaders(portalCookie))
-  const workloadMax = kpis ? Math.max(kpis.open_callouts, kpis.pending_quotes, kpis.overdue_invoices, 1) : 1
+  const workloadMax = kpis ? Math.max(kpis.open_callouts, kpis.pending_quotes, kpis.overdue_invoices, kpis.open_tasks, 1) : 1
 
   return (
     <div>
@@ -107,10 +111,29 @@ export default async function DashboardPage() {
             <KPICard label="Active Clients" value={kpis.active_clients} sub="Current accounts" />
           </div>
 
+          <div className="mt-4 grid gap-4 sm:grid-cols-3">
+            <Link href="/tracker" className="border border-steel-dark bg-navy p-5 hover:border-fire-orange transition-colors">
+              <p className="mb-2 font-mono text-[11px] uppercase tracking-[0.18em] text-ash">Open Tasks</p>
+              <p className="font-display text-4xl font-bold leading-none text-bone-paper">{kpis.open_tasks}</p>
+              <p className="mt-2 text-xs text-ash">Across all streams</p>
+            </Link>
+            <Link href="/tracker" className="border border-steel-dark bg-navy p-5 hover:border-fire-orange transition-colors">
+              <p className="mb-2 font-mono text-[11px] uppercase tracking-[0.18em] text-ash">Urgent Tasks</p>
+              <p className={`font-display text-4xl font-bold leading-none ${kpis.urgent_tasks > 0 ? 'text-fire-orange' : 'text-bone-paper'}`}>{kpis.urgent_tasks}</p>
+              <p className="mt-2 text-xs text-ash">Flagged high priority</p>
+            </Link>
+            <Link href="/tracker" className="border border-steel-dark bg-navy p-5 hover:border-fire-orange transition-colors">
+              <p className="mb-2 font-mono text-[11px] uppercase tracking-[0.18em] text-ash">Due Today</p>
+              <p className={`font-display text-4xl font-bold leading-none ${kpis.tasks_due_today > 0 ? 'text-info' : 'text-bone-paper'}`}>{kpis.tasks_due_today}</p>
+              <p className="mt-2 text-xs text-ash">Tasks due by end of day</p>
+            </Link>
+          </div>
+
           <div className="mt-6 grid gap-5 lg:grid-cols-[1.25fr_.85fr]">
             <section className="border border-steel-dark bg-navy">
               <div className="border-b border-steel-dark bg-charcoal px-5 py-4"><h2 className="font-display text-2xl font-bold text-bone-paper">Current Workload</h2></div>
               <div className="space-y-6 p-6">
+                <WorkloadRow label="Open Tasks" value={kpis.open_tasks} max={workloadMax} />
                 <WorkloadRow label="Open Callouts" value={kpis.open_callouts} max={workloadMax} />
                 <WorkloadRow label="Pending Quotes" value={kpis.pending_quotes} max={workloadMax} />
                 <WorkloadRow label="Overdue Invoices" value={kpis.overdue_invoices} max={workloadMax} />

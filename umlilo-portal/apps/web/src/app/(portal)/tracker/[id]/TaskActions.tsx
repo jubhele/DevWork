@@ -18,18 +18,15 @@ export default function TaskActions({ task, canUpdate, canDelete }: Props) {
   const [error, setError]   = useState<string | null>(null)
   const [status, setStatus] = useState<TaskStatus>(task.status)
 
-  const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://blackfiresolutions.co.za/api'
-
   async function updateStatus(newStatus: TaskStatus) {
     if (newStatus === status) return
     setError(null)
     start(async () => {
       try {
-        const res = await fetch(`${API_BASE}/tasks.php?id=${encodeURIComponent(task.ref_id)}`, {
-          method:      'PUT',
-          credentials: 'include',
-          headers:     { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-          body:        JSON.stringify({ status: newStatus }),
+        const res = await fetch(`/api/tasks.php?id=${encodeURIComponent(task.ref_id)}`, {
+          method:  'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ status: newStatus }),
         })
         const body = await res.json()
         if (!res.ok || !body.success) {
@@ -49,10 +46,8 @@ export default function TaskActions({ task, canUpdate, canDelete }: Props) {
     setError(null)
     start(async () => {
       try {
-        const res = await fetch(`${API_BASE}/tasks.php?id=${encodeURIComponent(task.ref_id)}`, {
-          method:      'DELETE',
-          credentials: 'include',
-          headers:     { 'X-Requested-With': 'XMLHttpRequest' },
+        const res = await fetch(`/api/tasks.php?id=${encodeURIComponent(task.ref_id)}`, {
+          method: 'DELETE',
         })
         const body = await res.json()
         if (!res.ok || !body.success) {

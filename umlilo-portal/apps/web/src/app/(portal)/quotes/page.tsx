@@ -3,14 +3,19 @@ import { getApiAuthHeaders } from '@/lib/auth'
 import type { Quote, PaginatedResponse } from '@blackfire/types'
 
 const STATUS_COLOUR: Record<string, string> = {
-  Draft:    'bg-ash/10 text-ash',
-  Sent:     'bg-info/10 text-info',
-  Accepted: 'bg-success/10 text-success',
-  Rejected: 'bg-danger/10 text-danger',
-  Expired:  'bg-ash/10 text-ash opacity-60',
+  Draft:             'bg-ash/10 text-ash',
+  Sent:              'bg-info/10 text-info',
+  'Pending Approval':'bg-flame-gold/10 text-flame-gold',
+  Approved:          'bg-success/10 text-success',
+  Converted:         'bg-info/10 text-info',
+  Accepted:          'bg-success/10 text-success',
+  Rejected:          'bg-danger/10 text-danger',
+  Declined:          'bg-danger/10 text-danger',
+  Expired:           'bg-ash/10 text-ash opacity-60',
 }
 
 type QuoteRow = Quote & {
+  total_amount?: number  // PHP DB column name
   amount?: number
   quote_no?: string
   ref_id?: string
@@ -23,6 +28,7 @@ function asNumber(value: unknown) {
 
 function quoteTotal(quote: QuoteRow) {
   if (quote.total != null) return asNumber(quote.total)
+  if (quote.total_amount != null) return asNumber(quote.total_amount) // PHP column name
   if (quote.amount != null) return asNumber(quote.amount)
   return (quote.items ?? []).reduce((sum, item) => sum + asNumber(item.total ?? item.qty * item.unit_price), 0)
 }
@@ -38,7 +44,8 @@ function formatDate(value: string | null | undefined) {
 }
 
 async function getQuotes(headers: Record<string, string> | null): Promise<PaginatedResponse<Quote> | null> {
-  const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://blackfiresolutions.co.za/api'
+  const API_BASE = process.env.NEXT_PUBLIC_API_BASE
+    ?? `http://localhost:${process.env.PORT ?? '3000'}/api`
   if (!headers) return null
   try {
     const res = await fetch(`${API_BASE}/quotes.php`, {
@@ -60,6 +67,9 @@ export default async function QuotesPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="font-display text-2xl tracking-wider text-bone-paper uppercase">Quotes</h1>
+        <a href="/quotes/new" className="h-9 px-4 inline-flex items-center rounded-[3px] border border-steel-dark bg-navy font-mono text-[10px] uppercase tracking-[0.16em] text-fire-orange hover:border-fire-orange transition-colors">
+          + Draft New
+        </a>
       </div>
 
       {quotes.length === 0 ? (

@@ -5,7 +5,8 @@ import { getApiAuthHeaders } from '@/lib/auth'
 import type { Callout } from '@blackfire/types'
 
 async function getCallout(id: string, headers: Record<string, string> | null): Promise<Callout | null> {
-  const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://blackfiresolutions.co.za/api'
+  const API_BASE = process.env.NEXT_PUBLIC_API_BASE
+    ?? `http://localhost:${process.env.PORT ?? '3000'}/api`
   if (!headers) return null
   try {
     const res = await fetch(`${API_BASE}/callouts.php?id=${id}`, {

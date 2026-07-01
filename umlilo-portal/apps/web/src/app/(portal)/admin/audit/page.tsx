@@ -11,7 +11,8 @@ type AuditRow = Partial<AuditEvent> & {
 }
 
 async function getAuditEvents(headers: Record<string, string> | null): Promise<AuditRow[] | null> {
-  const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://blackfiresolutions.co.za/api'
+  const API_BASE = process.env.NEXT_PUBLIC_API_BASE
+    ?? `http://localhost:${process.env.PORT ?? '3000'}/api`
   if (!headers) return null
   try {
     const res = await fetch(`${API_BASE}/audit.php`, {

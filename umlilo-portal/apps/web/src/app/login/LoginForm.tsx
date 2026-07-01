@@ -79,8 +79,7 @@ function LoginForm() {
     setFpMsg(null)
     setFpLoading(true)
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE ?? ''}/api/auth.php?action=reset_request`,
+      const res = await fetch('/api/auth.php?action=reset_request',
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

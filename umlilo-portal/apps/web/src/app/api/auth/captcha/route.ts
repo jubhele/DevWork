@@ -1,7 +1,13 @@
 import { NextResponse } from 'next/server'
 
 export async function GET() {
-  const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://blackfiresolutions.co.za/api'
+  const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? ''
+
+  // No PHP backend configured (local dev) — return a static captcha so the login
+  // form is usable without the production server.
+  if (!API_BASE) {
+    return NextResponse.json({ success: true, question: '5 + 3 = ?', answer_hint: 8 })
+  }
 
   let phpRes: Response
   try {

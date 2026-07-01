@@ -7,10 +7,11 @@ export interface CookiePayload {
   phpSessionId?: string
 }
 
-const SECRET = process.env.COOKIE_SECRET
+const SECRET: string | undefined = process.env.COOKIE_SECRET
 
 function sign(data: string): string {
-  return createHmac('sha256', SECRET!).update(data).digest('hex')
+  // Only called from within `if (SECRET)` guards — assertion is safe
+  return createHmac('sha256', SECRET as string).update(data).digest('hex')
 }
 
 // Cookie format: base64(JSON.stringify({user, token})).<hmac_hex>
@@ -23,14 +24,17 @@ export function decodeCookie(cookieValue: string | undefined): CookiePayload | n
   if (!cookieValue) return null
   try {
     const dotIdx = cookieValue.lastIndexOf('.')
-    if (SECRET && dotIdx !== -1) {
+    if (SECRET) {
+      // When a secret is configured, only accept signed cookies (format: base64url.hmac_hex).
+      // Unsigned cookies (no dot) are rejected — prevents forged-payload bypass.
+      if (dotIdx === -1) return null
       const data = cookieValue.slice(0, dotIdx)
       const sig  = cookieValue.slice(dotIdx + 1)
-      if (sign(data) !== sig) return null   // tampered — reject
+      if (sign(data) !== sig) return null
       const payload = JSON.parse(Buffer.from(data, 'base64url').toString('utf-8')) as CookiePayload
       return payload?.user?.id ? payload : null
     }
-    // Unsigned fallback for cookies set before Phase 2 migration
+    // Unsigned fallback only when COOKIE_SECRET is not configured (local dev without env var)
     const decoded = Buffer.from(cookieValue, 'base64').toString('utf-8')
     const parsed = JSON.parse(decoded)
     if (parsed?.user?.id) return parsed as CookiePayload

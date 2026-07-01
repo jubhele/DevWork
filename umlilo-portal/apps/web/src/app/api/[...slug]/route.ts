@@ -1,6 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
+import { getApiAuthHeaders } from '@/lib/auth';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -12,10 +14,14 @@ type User = {
   username: string;
   name: string;
   email: string;
-  title: string;
+  title?: string;
   role: string;
   roles: string[];
-  active: number;
+  permissions: string[];
+  client_id: number | null;
+  active: boolean;
+  created_at: string;
+  last_login: string | null;
   has_signature?: boolean;
   signature_image?: string;
   signature_updated_by?: string;
@@ -66,6 +72,15 @@ const addDays = (days: number) => {
   return date.toISOString().slice(0, 10);
 };
 
+const ALLOWED_UPLOAD_MIME = new Set([
+  'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+])
+
 const publicDirCandidates = [
   path.join(process.cwd(), 'public'),
   path.join(process.cwd(), 'apps', 'web', 'public'),
@@ -74,6 +89,51 @@ const publicDirCandidates = [
 const publicDir = publicDirCandidates.find((candidate) => fs.existsSync(candidate)) || publicDirCandidates[0];
 
 const json = (body: JsonRecord, status = 200) => NextResponse.json(body, { status });
+
+// Forward mutations to the PHP backend using auth from the httpOnly bf_portal cookie.
+// Returns null only when API_BASE is not configured — callers fall through to the in-memory mock.
+// skipAuthCheck=true forwards without requiring a bf_portal cookie (used for login).
+async function proxyMutation(
+  method: string,
+  phpPath: string,
+  searchParams: URLSearchParams,
+  rawBody: string,
+  contentType: string | null,
+  skipAuthCheck = false,
+): Promise<NextResponse | null> {
+  const API_BASE = (process.env.NEXT_PUBLIC_API_BASE ?? '').replace(/\/+$/, '');
+  if (!API_BASE) return null;
+  try {
+    const authHeaders: Record<string, string> = {};
+    if (!skipAuthCheck) {
+      const cookieStore = await cookies();
+      const h = getApiAuthHeaders(cookieStore.get('bf_portal')?.value);
+      if (!h) return json({ success: false, error: 'Not authenticated' }, 401);
+      Object.assign(authHeaders, h);
+    }
+    const qs = searchParams.toString();
+    const phpUrl = `${API_BASE}/${phpPath}${qs ? '?' + qs : ''}`;
+    const phpRes = await fetch(phpUrl, {
+      method,
+      headers: { 'Content-Type': contentType || 'application/json', 'X-Requested-With': 'XMLHttpRequest', ...authHeaders },
+      body: rawBody || undefined,
+    });
+    const data: JsonRecord = await phpRes.json().catch(() => ({ success: false, error: 'Invalid API response' }));
+    return json(data, phpRes.status);
+  } catch {
+    // API_BASE is configured but the backend is unreachable — surface the error rather than
+    // silently falling through to the in-memory mock (which would give a false success).
+    return json({ success: false, error: 'Backend unavailable' }, 502);
+  }
+}
+
+function parseBody(raw: string): JsonRecord {
+  if (!raw) return {};
+  try { return JSON.parse(raw) as JsonRecord; } catch { /* empty */ }
+  const body: JsonRecord = {};
+  new URLSearchParams(raw).forEach((value, key) => { body[key] = value; });
+  return body;
+}
 
 function routeName(req: Request) {
   const url = new URL(req.url);
@@ -87,27 +147,13 @@ function routeName(req: Request) {
   };
 }
 
-async function requestBody(req: Request) {
-  const contentType = req.headers.get('content-type') || '';
-  if (contentType.includes('application/json')) {
-    return (await req.json().catch(() => ({}))) as JsonRecord;
-  }
-  const raw = await req.text().catch(() => '');
-  const body: JsonRecord = {};
-  if (!raw) return body;
-  try {
-    return JSON.parse(raw) as JsonRecord;
-  } catch {
-    new URLSearchParams(raw).forEach((value, key) => {
-      body[key] = value;
-    });
-    return body;
-  }
-}
 
 function nextRef(prefix: string, rows: Array<{ ref_id?: string }>) {
-  const next = rows.length + 1;
-  return `${prefix}-${String(next).padStart(4, '0')}`;
+  const max = rows.reduce((m, r) => {
+    const n = parseInt(String(r.ref_id ?? '').split('-').pop() ?? '0', 10);
+    return Number.isFinite(n) && n > m ? n : m;
+  }, 0);
+  return `${prefix}-${String(max + 1).padStart(4, '0')}`;
 }
 
 function toNumber(value: unknown) {
@@ -117,6 +163,7 @@ function toNumber(value: unknown) {
 
 function quoteTotal(row: MutableRow) {
   if (row.total != null) return toNumber(row.total);
+  if (row.total_amount != null) return toNumber(row.total_amount); // PHP column name
   if (row.amount != null) return toNumber(row.amount);
   const items = Array.isArray(row.items) ? row.items : [];
   return items.reduce((sum, item) => {
@@ -162,7 +209,11 @@ function normalizeInvoice(row: MutableRow) {
 
 function dashboardKPIs() {
   const outstanding = invoices.filter((invoice) => invoice.status !== 'Paid');
+  const todayStr = today();
   return {
+    open_tasks: tasks.filter((t) => !['Done', 'Cancelled'].includes(String(t.status))).length,
+    urgent_tasks: tasks.filter((t) => t.priority === 'Urgent' && !['Done', 'Cancelled'].includes(String(t.status))).length,
+    tasks_due_today: tasks.filter((t) => String(t.due_date ?? '').slice(0, 10) === todayStr && !['Done', 'Cancelled'].includes(String(t.status))).length,
     open_callouts: callouts.filter((callout) => ['Open', 'In Progress'].includes(String(callout.status))).length,
     overdue_invoices: invoices.filter((invoice) => invoice.status === 'Overdue').length,
     mtd_revenue: invoices
@@ -175,6 +226,8 @@ function dashboardKPIs() {
   };
 }
 
+const MOCK_CREATED_AT = '2026-01-01T00:00:00.000Z';
+
 const users: User[] = [
   {
     id: 1,
@@ -184,7 +237,11 @@ const users: User[] = [
     title: 'Administrator',
     role: 'sysadmin',
     roles: ['sysadmin', 'admin', 'manager', 'safety_officer'],
-    active: 1,
+    permissions: [],
+    client_id: null,
+    active: true,
+    created_at: MOCK_CREATED_AT,
+    last_login: null,
   },
   {
     id: 2,
@@ -194,7 +251,11 @@ const users: User[] = [
     title: 'AECI Contact',
     role: 'client_support',
     roles: ['client_support', 'viewer'],
-    active: 1,
+    permissions: ['callout.view', 'quote.view', 'invoice.view'],
+    client_id: 1,
+    active: true,
+    created_at: MOCK_CREATED_AT,
+    last_login: null,
   },
   {
     id: 3,
@@ -204,7 +265,11 @@ const users: User[] = [
     title: 'AECI Contact',
     role: 'viewer',
     roles: ['viewer'],
-    active: 1,
+    permissions: ['callout.view', 'quote.view'],
+    client_id: 1,
+    active: true,
+    created_at: MOCK_CREATED_AT,
+    last_login: null,
   },
   {
     id: 4,
@@ -214,7 +279,11 @@ const users: User[] = [
     title: 'AECI Contact',
     role: 'viewer',
     roles: ['viewer'],
-    active: 1,
+    permissions: ['callout.view', 'quote.view'],
+    client_id: 1,
+    active: true,
+    created_at: MOCK_CREATED_AT,
+    last_login: null,
   },
   {
     id: 5,
@@ -224,7 +293,11 @@ const users: User[] = [
     title: 'Technician',
     role: 'senior_tech',
     roles: ['senior_tech'],
-    active: 1,
+    permissions: ['callout.view', 'callout.create', 'callout.update', 'quote.view', 'quote.create'],
+    client_id: null,
+    active: true,
+    created_at: MOCK_CREATED_AT,
+    last_login: null,
   },
 ];
 
@@ -384,6 +457,57 @@ let dashboardState: JsonRecord = {
 const auditLog: JsonRecord[] = [];
 const statements: JsonRecord[] = [];
 
+const tasks: MutableRow[] = [
+  {
+    id: 1,
+    ref_id: 'TASK-0001',
+    category: 'general',
+    title: 'Portal migration validation',
+    description: 'Verify all portal pages render correctly after the Umlilo migration.',
+    status: 'In Progress',
+    priority: 'High',
+    assigned_to: 'j.shange',
+    assignee_name: 'Jughele Shange',
+    created_by: 'j.shange',
+    creator_name: 'Jughele Shange',
+    created_by_user_id: 1,
+    assigned_to_user_id: 1,
+    source_callout_ref: null,
+    due_date: addDays(7),
+    start_at: null,
+    end_at: null,
+    due_at: null,
+    completed_at: null,
+    created_at: nowIso(),
+    updated_at: nowIso(),
+  },
+  {
+    id: 2,
+    ref_id: 'TASK-0002',
+    category: 'admin',
+    title: 'Review AECI contract terms',
+    description: null,
+    status: 'Open',
+    priority: 'Normal',
+    assigned_to: 'j.shange',
+    assignee_name: 'Jughele Shange',
+    created_by: 'j.shange',
+    creator_name: 'Jughele Shange',
+    created_by_user_id: 1,
+    assigned_to_user_id: 1,
+    source_callout_ref: null,
+    due_date: addDays(14),
+    start_at: null,
+    end_at: null,
+    due_at: null,
+    completed_at: null,
+    created_at: nowIso(),
+    updated_at: nowIso(),
+  },
+];
+
+const trackerUpdates: MutableRow[] = [];
+
 function listAttachments(searchParams: URLSearchParams) {
   const entityType = searchParams.get('entity_type') || '';
   const entityRef = searchParams.get('entity_ref') || '';
@@ -421,6 +545,10 @@ async function saveUpload(req: Request, entityType: string, entityRef: string) {
 
   const saved: Attachment[] = [];
   for (const file of files) {
+    const mimeType = file.type || 'application/octet-stream';
+    if (!ALLOWED_UPLOAD_MIME.has(mimeType)) {
+      return NextResponse.json({ success: false, error: `File type not allowed: ${mimeType}` }, { status: 415 });
+    }
     const bytes = Buffer.from(await file.arrayBuffer());
     const ext = path.extname(file.name);
     const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
@@ -464,7 +592,34 @@ export async function GET(req: Request) {
     }
 
     if (name === 'dashboard.php') return json({ success: true, data: dashboardKPIs() });
-    if (name === 'callouts.php') return json({ success: true, data: callouts });
+    if (name === 'callouts.php') {
+      const id = searchParams.get('id');
+      if (id) {
+        const callout = callouts.find((c) => String(c.ref_id) === id || String(c.id) === id);
+        return callout ? json({ success: true, data: callout }) : json({ success: false, error: 'Not found' }, 404);
+      }
+      return json({ success: true, data: callouts });
+    }
+    if (name === 'tasks.php') {
+      const id = searchParams.get('id');
+      if (id) {
+        const task = tasks.find((t) => String(t.ref_id) === id || String(t.id) === id);
+        return task ? json({ success: true, data: task }) : json({ success: false, error: 'Not found' }, 404);
+      }
+      const category = searchParams.get('category');
+      const filtered = category ? tasks.filter((t) => t.category === category) : tasks;
+      return json({ success: true, data: filtered, total: filtered.length, page: 1, limit: 50, categories: ['admin', 'sales', 'general'] });
+    }
+    if (name === 'tracker_updates.php') {
+      const entityType = searchParams.get('entity_type');
+      const entityRef  = searchParams.get('entity_ref');
+      const filtered = trackerUpdates.filter((u) => {
+        if (entityType && u.entity_type !== entityType) return false;
+        if (entityRef  && u.entity_ref  !== entityRef)  return false;
+        return true;
+      });
+      return json({ success: true, data: filtered });
+    }
     if (name === 'quotes.php') return json({ success: true, data: quotes.map(normalizeQuote) });
     if (name === 'invoices.php') return json({ success: true, data: invoices.map(normalizeInvoice) });
     if (name === 'transactions.php') return json({ success: true, data: transactions });
@@ -481,7 +636,7 @@ export async function GET(req: Request) {
       if (action === 'email_options') {
         return json({
           success: true,
-          from_options: users.filter((user) => user.email && user.active),
+          from_options: users.filter((user) => user.email && user.active === true),
           to_options: clients.flatMap((client) => client.contacts.map((contact) => ({ name: contact.contact_name, email: contact.email }))),
         });
       }
@@ -538,21 +693,33 @@ export async function POST(req: Request) {
         const entityType = String(formData.get('entity_type') || searchParams.get('entity_type') || 'general');
         const entityRef = String(formData.get('entity_ref') || searchParams.get('entity_ref') || '');
         const saved = await saveUpload(req, entityType, entityRef);
+        if (saved instanceof NextResponse) return saved;
         return json({ success: true, attachment: saved[0] || null, attachments: saved, uploaded: saved });
       }
       return json({ success: true });
     }
 
-    const body = await requestBody(req);
+    const rawBody = await req.text().catch(() => '');
+    const body = parseBody(rawBody);
 
+    // auth.php must be handled before proxyMutation — login has no bf_portal cookie yet
     if (name === 'auth.php') {
+      const API_BASE_AUTH = process.env.NEXT_PUBLIC_API_BASE ?? '';
+      if (API_BASE_AUTH) {
+        const authResult = await proxyMutation('POST', name, searchParams, rawBody, req.headers.get('content-type'), true);
+        if (authResult) return authResult;
+      }
       if (action === 'reset_request') return json({ success: true, message: 'Reset email sent if account exists.' });
       if (action === 'reset_password') return json({ success: true, message: 'Password updated. Please log in.' });
       if (action === 'logout') return json({ success: true });
-      const username = String(body.username || 'j.shange').toLowerCase();
-      const user = users.find((item) => item.username === username && item.active) || users[0];
+      const username = String(body.username || '').toLowerCase();
+      const user = users.find((item) => item.username === username && item.active === true);
+      if (!user) return json({ success: false, error: 'Invalid credentials' }, 401);
       return json({ success: true, user, session: { user_id: user.id, expires_at: addDays(1) } });
     }
+
+    const proxyResult = await proxyMutation('POST', name, searchParams, rawBody, req.headers.get('content-type'));
+    if (proxyResult) return proxyResult;
 
     if (name === 'callouts.php') {
       const client = clients.find((item) => item.id === Number(body.client_id || body.client)) || clients[0];
@@ -634,6 +801,55 @@ export async function POST(req: Request) {
       return json({ success: true, data: normalizeInvoice(row) });
     }
 
+    if (name === 'tasks.php') {
+      const ref_id = nextRef('TASK', tasks);
+      const assignedUser = users.find((u) => u.username === String(body.assigned_to || ''));
+      const task = {
+        id: tasks.length + 1,
+        ref_id,
+        category: String(body.category || 'general'),
+        title: String(body.title || ''),
+        description: body.description ? String(body.description) : null,
+        status: 'Open',
+        priority: String(body.priority || 'Normal'),
+        assigned_to: String(body.assigned_to || 'j.shange'),
+        assignee_name: assignedUser?.name ?? String(body.assigned_to || 'Jughele Shange'),
+        created_by: 'j.shange',
+        creator_name: 'Jughele Shange',
+        created_by_user_id: 1,
+        assigned_to_user_id: assignedUser?.id ?? 1,
+        source_callout_ref: null,
+        due_date: body.due_date ? String(body.due_date) : null,
+        start_at: null,
+        end_at: null,
+        due_at: null,
+        completed_at: null,
+        created_at: nowIso(),
+        updated_at: nowIso(),
+      };
+      tasks.unshift(task);
+      return json({ success: true, data: task });
+    }
+
+    if (name === 'tracker_updates.php') {
+      const update = {
+        id: trackerUpdates.length + 1,
+        ref_id: `UPD-${String(trackerUpdates.length + 1).padStart(4, '0')}`,
+        entity_type: String(body.entity_type || ''),
+        entity_ref: String(body.entity_ref || ''),
+        label: String(body.label || ''),
+        content: String(body.content || ''),
+        source_kind: 'manual',
+        created_by: 'j.shange',
+        updated_by: null,
+        created_at: nowIso(),
+        updated_at: nowIso(),
+        revision_count: 0,
+      };
+      trackerUpdates.unshift(update);
+      return json({ success: true, data: update });
+    }
+
     if (name === 'payments.php') return json({ success: true });
     if (name === 'transactions.php') {
       transactions.unshift({
@@ -674,7 +890,11 @@ export async function POST(req: Request) {
         title: String(body.title || ''),
         role: roles[0] || 'viewer',
         roles,
-        active: 1,
+        permissions: [],
+        client_id: null,
+        active: true,
+        created_at: nowIso(),
+        last_login: null,
       };
       users.push(row);
       return json({ success: true, data: row });
@@ -730,7 +950,10 @@ export async function PUT(req: Request) {
     const { name, searchParams } = routeName(req);
     const action = searchParams.get('action') || '';
     const id = searchParams.get('id');
-    const body = await requestBody(req);
+    const rawBody = await req.text().catch(() => '');
+    const proxyResult = await proxyMutation('PUT', name, searchParams, rawBody, req.headers.get('content-type'));
+    if (proxyResult) return proxyResult;
+    const body = parseBody(rawBody);
 
     if (name === 'dashboard_prefs.php') {
       if (action === 'reset_all') {
@@ -743,6 +966,29 @@ export async function PUT(req: Request) {
       }
       dashboardState = { ...dashboardState, ...body, success: true };
       return json(dashboardState);
+    }
+
+    if (name === 'tasks.php') {
+      const task = tasks.find((t) => String(t.ref_id) === id || String(t.id) === id);
+      if (!task) return json({ success: false, error: 'Not found' }, 404);
+      const allowed = ['status', 'priority', 'title', 'description', 'assigned_to', 'due_date', 'start_at', 'end_at', 'due_at'];
+      for (const f of allowed) {
+        if (f in body) Object.assign(task, { [f]: body[f] });
+      }
+      if (body.status === 'Done') task.completed_at = nowIso();
+      task.updated_at = nowIso();
+      return json({ success: true, data: task });
+    }
+
+    if (name === 'tracker_updates.php') {
+      const update = trackerUpdates.find((u) => String(u.id) === id);
+      if (!update) return json({ success: false, error: 'Not found' }, 404);
+      if (body.label  !== undefined) update.label   = String(body.label);
+      if (body.content !== undefined) update.content = String(body.content);
+      update.updated_by = 'j.shange';
+      update.updated_at = nowIso();
+      (update.revision_count as number)++;
+      return json({ success: true, data: update });
     }
 
     if (name === 'callouts.php') {
@@ -763,7 +1009,7 @@ export async function PUT(req: Request) {
     if (name === 'quotes.php') {
       const row = updateByRef(quotes, id, {});
       if (row && body.action === 'approve') Object.assign(row, { status: 'Approved', approval_status: null });
-      if (row && body.action === 'reject') Object.assign(row, { status: 'Declined', approval_status: 'declined' });
+      if (row && body.action === 'reject') Object.assign(row, { status: 'Rejected', approval_status: 'rejected' });
       return json({ success: true, data: row });
     }
 
@@ -812,10 +1058,18 @@ export async function PUT(req: Request) {
 export async function DELETE(req: Request) {
   try {
     const { name, searchParams } = routeName(req);
+    const proxyResult = await proxyMutation('DELETE', name, searchParams, '', null);
+    if (proxyResult) return proxyResult;
     const id = searchParams.get('id');
 
     if (name === 'files.php') {
       attachments = attachments.filter((attachment) => String(attachment.id) !== String(id));
+      return json({ success: true });
+    }
+    if (name === 'tasks.php') {
+      const idx = tasks.findIndex((t) => String(t.ref_id) === id || String(t.id) === id);
+      if (idx === -1) return json({ success: false, error: 'Task not found' }, 404);
+      tasks.splice(idx, 1);
       return json({ success: true });
     }
     if (name === 'callouts.php') return json({ success: deleteByRef(callouts, id) });

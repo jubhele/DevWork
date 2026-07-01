@@ -3,7 +3,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import type { Attachment, TrackerUpdate } from '@blackfire/types'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? '/api'
+const API_BASE = '/api'
 type EntityType = 'task' | 'callout'
 
 function inputDateTime(value: string | null) {
@@ -18,8 +18,8 @@ function displayDateTime(value: string | null) {
 async function fetchRecordData(entityType: EntityType, entityRef: string) {
   const query = `entity_type=${entityType}&entity_ref=${encodeURIComponent(entityRef)}`
   const [updateResponse, fileResponse] = await Promise.all([
-    fetch(`${API_BASE}/tracker_updates.php?${query}`, { credentials: 'include' }),
-    fetch(`${API_BASE}/files.php?action=list&${query}`, { credentials: 'include' }),
+    fetch(`${API_BASE}/tracker_updates.php?${query}`),
+    fetch(`${API_BASE}/files.php?action=list&${query}`),
   ])
   const updateBody = await updateResponse.json()
   const fileBody = await fileResponse.json()
@@ -71,8 +71,7 @@ export default function TrackerRecordPanel({ entityType, entityRef, createdAt, s
     const endpoint = entityType === 'task' ? 'tasks.php' : 'callouts.php'
     const response = await fetch(`${API_BASE}/${endpoint}?id=${encodeURIComponent(entityRef)}`, {
       method: 'PUT',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(schedule),
     })
     const body = await response.json()
@@ -85,8 +84,7 @@ export default function TrackerRecordPanel({ entityType, entityRef, createdAt, s
     const data = new FormData(form)
     const response = await fetch(`${API_BASE}/tracker_updates.php`, {
       method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ entity_type: entityType, entity_ref: entityRef, label: data.get('label'), content: data.get('content') }),
     })
     const body = await response.json()
@@ -102,8 +100,7 @@ export default function TrackerRecordPanel({ entityType, entityRef, createdAt, s
   async function saveUpdate(update: TrackerUpdate) {
     const response = await fetch(`${API_BASE}/tracker_updates.php?id=${update.id}`, {
       method: 'PUT',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ label: update.label, content: update.content }),
     })
     const body = await response.json()
@@ -117,7 +114,7 @@ export default function TrackerRecordPanel({ entityType, entityRef, createdAt, s
     const data = new FormData(form)
     data.set('entity_type', entityType)
     data.set('entity_ref', entityRef)
-    const response = await fetch(`${API_BASE}/files.php`, { method: 'POST', credentials: 'include', body: data })
+    const response = await fetch(`${API_BASE}/files.php`, { method: 'POST', body: data })
     const body = await response.json()
     if (response.ok && body.success) {
       form.reset()

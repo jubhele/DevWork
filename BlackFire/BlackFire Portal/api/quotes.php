@@ -152,7 +152,7 @@ if ($method === 'POST') {
         db_commit();
     } catch (Exception $e) {
         db_rollback();
-        json_err('Failed to create quote and line items securely: ' . $e->getMessage(), 500);
+        json_err('Quote creation failed — no changes saved', 500);
     }
 
     audit($usr['username'], 'CREATE', "Quote $ref created (R" . number_format($total, 2) . ", approval: $approval_status)");
@@ -234,7 +234,7 @@ if ($method === 'PUT') {
             db_commit();
         } catch (Exception $e) {
             db_rollback();
-            json_err('Conversion failed: ' . $e->getMessage(), 500);
+            json_err('Quote conversion failed — no changes saved', 500);
         }
 
         audit($usr['username'], 'CONVERT', "Quote $ref_id converted to Invoice $inv_ref");
