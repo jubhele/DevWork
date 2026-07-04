@@ -41,6 +41,7 @@ php_flag expose_php Off
     SetEnvIf Origin "^(https://umlilo-portal-web\.vercel\.app)$"         CORS_ORIGIN=$1
     SetEnvIf Origin "^(https://umlilo-portal-[a-z0-9-]+\.vercel\.app)$" CORS_ORIGIN=$1
     SetEnvIf Origin "^(http://localhost:3000)$"                           CORS_ORIGIN=$1
+    SetEnvIf Origin "^(http://localhost:8084)$"                           CORS_ORIGIN=$1
 
     Header always set Access-Control-Allow-Origin       "%{CORS_ORIGIN}e"                                        env=CORS_ORIGIN
     Header always set Access-Control-Allow-Credentials  "true"                                                   env=CORS_ORIGIN

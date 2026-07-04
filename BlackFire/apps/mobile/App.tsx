@@ -1,5 +1,5 @@
 import { StatusBar } from 'expo-status-bar'
-import { ActivityIndicator, View } from 'react-native'
+import { ActivityIndicator, View, Platform } from 'react-native'
 import { useFonts } from 'expo-font'
 import * as SplashScreen from 'expo-splash-screen'
 import { useEffect, useState } from 'react'
@@ -143,19 +143,43 @@ function AppNavigator() {
 SplashScreen.preventAutoHideAsync()
 
 export default function App() {
-  const [fontsLoaded] = useFonts({
-    'BigShouldersDisplay-Regular': require('./assets/fonts/BigShouldersDisplay-Regular.ttf'),
-    'BigShouldersDisplay-Bold':    require('./assets/fonts/BigShouldersDisplay-Bold.ttf'),
-    'InstrumentSans-Regular':      require('./assets/fonts/InstrumentSans-Regular.ttf'),
-    'InstrumentSans-SemiBold':     require('./assets/fonts/InstrumentSans-SemiBold.ttf'),
-    'IBMPlexMono-Regular':         require('./assets/fonts/IBMPlexMono-Regular.ttf'),
-  })
+  const nativeFontMap: Record<string, number> = Platform.OS === 'web'
+    ? {}
+    : {
+        'BigShouldersDisplay-Regular': require('./assets/fonts/BigShouldersDisplay-Regular.ttf'),
+        'BigShouldersDisplay-Bold':    require('./assets/fonts/BigShouldersDisplay-Bold.ttf'),
+        'InstrumentSans-Regular':      require('./assets/fonts/InstrumentSans-Regular.ttf'),
+        'InstrumentSans-SemiBold':     require('./assets/fonts/InstrumentSans-SemiBold.ttf'),
+        'IBMPlexMono-Regular':         require('./assets/fonts/IBMPlexMono-Regular.ttf'),
+      }
+  const [fontsLoaded, fontError] = useFonts(nativeFontMap)
 
   useEffect(() => {
-    if (fontsLoaded) SplashScreen.hideAsync()
-  }, [fontsLoaded])
+    if (fontsLoaded || fontError) {
+      SplashScreen.hideAsync()
+    }
+  }, [fontsLoaded, fontError])
 
-  if (!fontsLoaded) {
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') {
+      return
+    }
+
+    document.title = 'BlackFire Umlilo Portal'
+    const iconUri = '/assets/?unstable_path=.%2Fassets%2Fblackfire-favicon.png'
+    let link = document.querySelector("link[rel='icon']") as HTMLLinkElement | null
+
+    if (!link) {
+      link = document.createElement('link')
+      link.rel = 'icon'
+      document.head.appendChild(link)
+    }
+
+    link.type = 'image/png'
+    link.href = iconUri
+  }, [])
+
+  if (!fontsLoaded && !fontError) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.coal, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator color={colors.fireOrange} size="large" />
@@ -164,9 +188,13 @@ export default function App() {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer
+      documentTitle={{
+        formatter: () => 'BlackFire Umlilo Portal',
+      }}
+    >
       <AuthProvider>
-        <StatusBar style="light" backgroundColor={colors.coal} />
+        <StatusBar style="light" />
         <AppNavigator />
       </AuthProvider>
     </NavigationContainer>

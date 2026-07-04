@@ -1,0 +1,40 @@
+# Session: git diff docx unsupported filetype
+Date: 2026-07-04
+Provider: OpenAI Codex
+Model: GPT-5
+
+## Goal
+Investigate the `unsupported filetype ... .docx` / `fatal: unable to read files to diff` error and determine the likely source plus the smallest fix.
+
+## Goal Status
+PENDING
+
+## Decisions
+- Treated the error as a Git/diff pipeline issue, not a repository content problem.
+- Focused on local scripts and workspace helpers that read proposal or document files and may feed them into diff tooling.
+- Identified `scripts/agents/proposal_grader.py` as a nearby file-type gate, but the exact temp blob path from the error does not appear to be tracked in the repo.
+
+## Work Done
+- Checked workspace memory and recent session logs.
+- Searched the workspace for the exact error text and the temp blob path.
+- Inspected `scripts/agents/proposal_grader.py` to confirm how `.docx` files are handled.
+- Confirmed the exact temp file path in the error is not a tracked workspace file.
+
+## Agent Accountability
+
+| Task ID | Assigned Agent | Completed By | Status | Iterations | Note |
+|---------|---------------|--------------|--------|------------|------|
+
+## Blockers / Next Steps
+- Need the exact command, tool, or extension that produced the error if you want a precise fix.
+- If the goal is to compare `.docx` contents, convert the file to text first or use a Word-native compare workflow.
+- If the goal is only to inspect repository changes, exclude `.docx` files from the diff path.
+
+## Learnings
+- `git diff` cannot meaningfully text-diff a binary `.docx` file unless a custom text conversion step exists.
+- Errors mentioning `git-blob-...` in `%TEMP%` usually come from an editor/plugin staging a temporary copy of the file, not from the repo itself.
+
+## Warning: Session Log Incomplete
+Incomplete at this stop: ## Goal Status (still PENDING -- user must set to ACHIEVED)
+
+_Session ended: 2026-07-04 13:31:34 (Claude Code / claude-sonnet-4-6)_

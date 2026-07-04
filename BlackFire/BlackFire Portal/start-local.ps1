@@ -1,45 +1,28 @@
-# BlackFire Portal — local dev server
-# Run from this directory: .\start-local.ps1
-# Opens http://localhost:8080 in your browser
+# BlackFire Portal — full local dev launcher
+# Starts all three layers via ..\start-dev.ps1:
+#   1) PHP portal/API (:8080)
+#   2) Next.js web app (:3000)
+#   3) Expo mobile app
+#
+# Usage:
+#   .\start-local.ps1
+#   .\start-local.ps1 -NoMobile
 
-$port = 8080
+param([switch]$NoMobile)
+
 $workspaceRefresh = Join-Path $PSScriptRoot "..\..\scripts\refresh-workspace-secrets.ps1"
 if (Test-Path -LiteralPath $workspaceRefresh) {
     & $workspaceRefresh
 }
 
-$listener = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue |
-    Select-Object -First 1
-if ($listener) {
-    $process = Get-CimInstance Win32_Process -Filter "ProcessId=$($listener.OwningProcess)"
-    $isPortalServer = $process.Name -ieq 'php.exe' -and
-        $process.CommandLine -match "-S\s+localhost:$port\s+router\.php"
-
-    if (-not $isPortalServer) {
-        throw "Port $port is already used by another process (PID $($listener.OwningProcess))."
-    }
-
-    Write-Host "Restarting the existing PHP server to load refreshed local secrets..."
-    Stop-Process -Id $listener.OwningProcess -Force
-    Wait-Process -Id $listener.OwningProcess -ErrorAction SilentlyContinue
+$startDevScript = Join-Path (Split-Path -Parent $PSScriptRoot) "start-dev.ps1"
+if (-not (Test-Path -LiteralPath $startDevScript)) {
+    throw "Could not find full-stack launcher at '$startDevScript'."
 }
 
-Write-Host "Starting PHP built-in server on http://localhost:$port ..."
-$savedEnvironment = @{}
-Get-ChildItem Env: | Where-Object { $_.Name -like 'BF_*' } | ForEach-Object {
-    $savedEnvironment[$_.Name] = $_.Value
-    Remove-Item -LiteralPath ("Env:" + $_.Name)
+if ($NoMobile) {
+    & $startDevScript -NoMobile
 }
-
-try {
-    Start-Process -FilePath "php" -ArgumentList "-S localhost:$port router.php" -WorkingDirectory $PSScriptRoot -WindowStyle Hidden
+else {
+    & $startDevScript
 }
-finally {
-    foreach ($name in $savedEnvironment.Keys) {
-        Set-Item -LiteralPath ("Env:" + $name) -Value $savedEnvironment[$name]
-    }
-}
-
-Start-Sleep -Seconds 1
-Start-Process "http://localhost:$port"
-Write-Host "Server started."

@@ -102,6 +102,32 @@ function record_invoice_cost_of_sales(array $invoice): void {
     );
 }
 
+function cors_origin(): ?string {
+    $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+    if ($origin === '') {
+        return null;
+    }
+
+    $allowed = [
+        'https://blackfire-solutions.vercel.app',
+        'https://blackfire-*.vercel.app',
+        'https://umlilo-portal-web.vercel.app',
+        'https://umlilo-portal-*.vercel.app',
+        'http://localhost:3000',
+        'http://localhost:8084',
+    ];
+
+    foreach ($allowed as $pattern) {
+        $quoted = preg_quote($pattern, '/');
+        $quoted = str_replace('\\*', '[a-z0-9-]+', $quoted);
+        if (preg_match('/^' . $quoted . '$/i', $origin)) {
+            return $origin;
+        }
+    }
+
+    return null;
+}
+
 /**
  * Set CORS + JSON headers (call before output)
  */
@@ -113,7 +139,16 @@ function api_headers(): void {
     header('X-Permitted-Cross-Domain-Policies: none');
     header("Content-Security-Policy: default-src 'none'");
 
-    // CORS preflight — Apache's rewrite-based 204 is unreliable on shared hosting
+    $origin = cors_origin();
+    if ($origin !== null) {
+        header('Access-Control-Allow-Origin: ' . $origin);
+        header('Access-Control-Allow-Credentials: true');
+        header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+        header('Access-Control-Allow-Headers: Content-Type, X-Requested-With, X-CSRF-Token, Authorization');
+        header('Access-Control-Max-Age: 86400');
+        header('Vary: Origin');
+    }
+
     if (($_SERVER['REQUEST_METHOD'] ?? '') === 'OPTIONS') {
         http_response_code(204);
         exit;

@@ -229,7 +229,7 @@ if ($action === 'mobile_login' && $method === 'POST') {
         db_exec(
             "INSERT INTO bf_mobile_rate_limits (ip_address, device_id, fail_count, locked_until)
              VALUES (?, ?, 1, NULL)
-             ON DUPLICATE KEY SET
+             ON DUPLICATE KEY UPDATE
                fail_count   = fail_count + 1,
                locked_until = IF(fail_count + 1 >= 5, DATE_ADD(NOW(), INTERVAL 15 MINUTE), NULL)",
             [$ip, $device_id]

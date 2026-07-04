@@ -17,7 +17,10 @@ import type {
 } from '@blackfire/types'
 
 // Injected at build time — web uses session cookie, mobile passes Bearer token
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://blackfiresolutions.co.za/api'
+const API_BASE =
+  process.env.EXPO_PUBLIC_API_BASE ??
+  process.env.NEXT_PUBLIC_API_BASE ??
+  'http://localhost:8080/api'
 
 export class AuthError extends Error {
   constructor() { super('Unauthenticated') }
@@ -69,10 +72,12 @@ export const auth = {
     return res.json() as Promise<{ success: boolean; message?: string; question?: string }>
   },
 
-  me: async () => {
+  me: async (token?: string) => {
+    const headers: Record<string, string> = { 'X-Requested-With': 'XMLHttpRequest' }
+    if (token) headers.Authorization = `Bearer ${token}`
     const res = await fetch('/api/auth/me', {
       credentials: 'include',
-      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      headers,
     })
     if (res.status === 401) throw new AuthError()
     if (!res.ok) {

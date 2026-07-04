@@ -14,6 +14,13 @@ Senior data engineer and consultant with 14+ years across data engineering, busi
 - **Governance and security:** Microsoft Purview, data classification, lineage, sensitivity labels, DLP, information protection, audit controls and regulated-data handling.
 - **Consulting delivery:** stakeholder discovery, pragmatic solution design, production support, documentation, mentoring, distributed collaboration and continuous improvement.
 
+## Recruiter Skills Snapshot (Years of Experience)
+
+- **Lead the Data Engineering function:** 8+ years.
+- **Leading as a Senior Engineer:** 6+ years.
+- **Build scalable data pipelines:** 10+ years.
+- **Data Engineering leadership with Spark (PySpark in Azure Synapse):** 3+ years.
+
 ## Professional Experience
 
 ### Senior Consultant - Data Governance and Engineering | Sambe Consulting

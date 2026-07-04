@@ -40,16 +40,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   async function login(username: string, password: string): Promise<string | null> {
-    const device_id = await getDeviceId()
-    const device_name = getDeviceName()
-    const res = await auth.mobileLogin(username, password, device_id, device_name)
-    if (res.success && res.token && res.user) {
-      await saveToken(res.token)
-      setToken(res.token)
-      setUser(res.user)
-      return null
+    try {
+      const device_id = await getDeviceId()
+      const device_name = getDeviceName()
+      const res = await auth.mobileLogin(username, password, device_id, device_name)
+      if (res.success && res.token && res.user) {
+        await saveToken(res.token)
+        setToken(res.token)
+        setUser(res.user)
+        return null
+      }
+      return res.message ?? 'Login failed'
+    } catch (err) {
+      return err instanceof Error ? err.message : 'Login failed'
     }
-    return res.message ?? 'Login failed'
   }
 
   async function logout(): Promise<void> {

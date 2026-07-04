@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity,
-  StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform,
+  StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, Image,
 } from 'react-native'
 import { colors, fonts } from '@blackfire/ui-tokens'
 import { useAuth } from '../context/AuthContext'
@@ -28,7 +28,11 @@ export default function LoginScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={styles.inner}>
-        <Text style={styles.wordmark}>BLACKFIRE</Text>
+        <Image
+          source={require('../../assets/blackfire-logo-transparent.png')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
         <Text style={styles.sub}>Umlilo Portal</Text>
 
         <View style={styles.card}>
@@ -75,12 +79,11 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.coal },
   inner: { flex: 1, justifyContent: 'center', paddingHorizontal: 24 },
-  wordmark: {
-    fontFamily: fonts.display,
-    fontSize: 32,
-    letterSpacing: 8,
-    color: colors.flameGold,
-    textAlign: 'center',
+  logo: {
+    width: 260,
+    height: 90,
+    alignSelf: 'center',
+    marginBottom: 4,
   },
   sub: {
     fontFamily: fonts.body,
