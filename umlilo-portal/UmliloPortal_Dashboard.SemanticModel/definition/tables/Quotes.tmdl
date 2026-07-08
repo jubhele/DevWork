@@ -1,0 +1,75 @@
+table Quotes
+	lineageTag: b4000000-0000-4000-8000-000000000001
+
+	column id
+		dataType: int64
+		formatString: 0
+		lineageTag: b4000000-0000-4000-8000-000000000002
+		summarizeBy: none
+		sourceColumn: id
+
+	column ref_id
+		dataType: string
+		lineageTag: b4000000-0000-4000-8000-000000000003
+		summarizeBy: none
+		sourceColumn: ref_id
+
+	column client_id
+		dataType: int64
+		formatString: 0
+		lineageTag: b4000000-0000-4000-8000-000000000004
+		summarizeBy: none
+		sourceColumn: client_id
+
+	column status
+		dataType: string
+		lineageTag: b4000000-0000-4000-8000-000000000005
+		summarizeBy: none
+		sourceColumn: status
+
+	column total_amount
+		dataType: double
+		formatString: \R#,0.00
+		lineageTag: b4000000-0000-4000-8000-000000000008
+		summarizeBy: sum
+		sourceColumn: total_amount
+
+	column created_at
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: b4000000-0000-4000-8000-000000000009
+		summarizeBy: none
+		sourceColumn: created_at
+
+	column quote_no
+		dataType: string
+		lineageTag: b4000000-0000-4000-8000-00000000000a
+		summarizeBy: none
+		sourceColumn: quote_no
+
+	column client_name
+		dataType: string
+		lineageTag: b4000000-0000-4000-8000-00000000000b
+		summarizeBy: none
+		sourceColumn: client_name
+
+	column quote_date
+		dataType: dateTime
+		formatString: Short Date
+		lineageTag: b4000000-0000-4000-8000-00000000000c
+		summarizeBy: none
+		sourceColumn: quote_date
+
+	partition Quotes = m
+		mode: import
+		source =
+				let
+					Source = MySQL.Database(#"Database Server", #"Database Name", [ReturnSingleDatabase=true]),
+					Data = Source{[Schema=#"Database Name",Item="bf_quotes"]}[Data],
+					Selected = Table.SelectColumns(Data, {"id", "ref_id", "quote_no", "client_id", "client_name", "status", "total_amount", "quote_date", "created_at"}, MissingField.UseNull),
+					Typed = Table.TransformColumnTypes(Selected, {{"total_amount", type number}, {"quote_date", type datetime}})
+				in
+					Typed
+
+	annotation PBI_ResultType = Table
+

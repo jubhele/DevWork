@@ -34,7 +34,9 @@ This project uses the full multi-agent workforce from `agents/`.
 | Client proposals, security narratives | Nkanyezi |
 | Word/PDF document generation, reporting scripts | Usiba |
 | Brand identity, UI/UX (BlackFire brand) | Umdwebi |
-| QA, regression, functional verification | Mvavanyi |
+| Functional QA, regression, integration/E2E verification | Mvavanyi |
+| Code QA, static review, test coverage | Umcwaningi |
+| UX/UI QA, visual regression, accessibility | Umbheki |
 | Governance, RBAC audit, pre-deploy compliance | Umlindi |
 | Docs, architecture maps, release notes | Mbhali |
 

@@ -1,0 +1,5 @@
+role Portal_Admin
+	modelPermission: read
+
+	annotation PBI_Id = 0c8da24b41a640a4ae21cccde50dd846
+

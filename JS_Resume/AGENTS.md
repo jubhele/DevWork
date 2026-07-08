@@ -16,7 +16,7 @@ Stack: Python 3.11+ (FastAPI, Celery, Playwright, SQLAlchemy) + Next.js 15 + Pos
 4. **Pattern 21 debug hook** â€” every Python module imports `from api.debug import log_debug` and logs all critical state transitions. `DEBUG_MODE=false` in production.
 5. **Modular & dynamic** â€” no hardcoded values. All modules accept config objects or parameters.
 6. **Agent routing** â€” see CLAUDE.md Â§3 for the full workforce routing table.
-7. **Definition of done** â€” Umakhi builds â†’ Mvavanyi tests â†’ Umlindi audits â†’ Mbhali documents. All four must pass.
+7. **Definition of done** â€” Umakhi builds â†’ Mvavanyi/Umcwaningi/Umbheki test (functional/code/UX) â†’ Umlindi audits â†’ Mbhali documents. All must pass.
 
 ## Key Files
 

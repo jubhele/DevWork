@@ -34,7 +34,9 @@ This project uses the full multi-agent workforce from `agents/`.
 | Content, proposals, copy | Nkanyezi |
 | Document generation, automation | Usiba |
 | UI/UX design specs, brand | Umdwebi |
-| QA and functional testing | Mvavanyi |
+| Functional QA, regression, integration testing | Mvavanyi |
+| Code QA, static review, test coverage | Umcwaningi |
+| UX/UI QA, visual regression, accessibility | Umbheki |
 | Governance, secrets audit, pre-deploy | Umlindi |
 | Docs, architecture maps, release notes | Mbhali |
 

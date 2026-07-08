@@ -26,3 +26,7 @@ The Next.js portal theme relies on `html[data-theme='dark']` overrides for hardc
 ## Local DB Quirk
 
 On the Windows local PHP server, `PDO` can throw `SQLSTATE[HY000] [2019] Unknown character set` when `utf8mb4` is placed directly in the MySQL DSN. The working pattern is to connect without the charset parameter and then run `SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci` after the connection succeeds.
+
+## Secret Loading Quirk
+
+If `blackfire_secrets.php` exists only as a placeholder with empty values, it must not block `.env` fallback. Local dev should keep `.env` authoritative unless a real production secret file is present one level above `public_html`.

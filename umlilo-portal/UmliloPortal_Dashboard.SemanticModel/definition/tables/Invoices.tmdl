@@ -1,0 +1,96 @@
+table Invoices
+	lineageTag: b5000000-0000-4000-8000-000000000001
+
+	column id
+		dataType: int64
+		formatString: 0
+		lineageTag: b5000000-0000-4000-8000-000000000002
+		summarizeBy: none
+		sourceColumn: id
+
+	column invoice_no
+		dataType: string
+		lineageTag: b5000000-0000-4000-8000-000000000003
+		summarizeBy: none
+		sourceColumn: invoice_no
+
+	column client_id
+		dataType: int64
+		formatString: 0
+		lineageTag: b5000000-0000-4000-8000-000000000004
+		summarizeBy: none
+		sourceColumn: client_id
+
+	column quote_id
+		dataType: int64
+		formatString: 0
+		lineageTag: b5000000-0000-4000-8000-000000000005
+		summarizeBy: none
+		sourceColumn: quote_id
+
+	column amount
+		dataType: double
+		formatString: \R#,0.00
+		lineageTag: b5000000-0000-4000-8000-000000000006
+		summarizeBy: sum
+		sourceColumn: amount
+
+	column status
+		dataType: string
+		lineageTag: b5000000-0000-4000-8000-000000000009
+		summarizeBy: none
+		sourceColumn: status
+
+	column due_date
+		dataType: dateTime
+		formatString: Short Date
+		lineageTag: b5000000-0000-4000-8000-00000000000a
+		summarizeBy: none
+		sourceColumn: due_date
+
+	column paid_date
+		dataType: dateTime
+		formatString: Short Date
+		lineageTag: b5000000-0000-4000-8000-00000000000b
+		summarizeBy: none
+		sourceColumn: paid_date
+
+	column created_at
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: b5000000-0000-4000-8000-00000000000c
+		summarizeBy: none
+		sourceColumn: created_at
+
+	column ref_id
+		dataType: string
+		lineageTag: b5000000-0000-4000-8000-00000000000d
+		summarizeBy: none
+		sourceColumn: ref_id
+
+	column client_name
+		dataType: string
+		lineageTag: b5000000-0000-4000-8000-00000000000e
+		summarizeBy: none
+		sourceColumn: client_name
+
+	column invoice_date
+		dataType: dateTime
+		formatString: Short Date
+		lineageTag: b5000000-0000-4000-8000-00000000000f
+		summarizeBy: none
+		sourceColumn: invoice_date
+
+	partition Invoices = m
+		mode: import
+		source =
+				let
+					Source = MySQL.Database(#"Database Server", #"Database Name", [ReturnSingleDatabase=true]),
+					Data = Source{[Schema=#"Database Name",Item="bf_invoices"]}[Data],
+					Selected = Table.SelectColumns(Data, {"id", "ref_id", "invoice_no", "client_id", "client_name", "quote_id", "amount", "status", "invoice_date", "due_date", "paid_date", "created_at"}, MissingField.UseNull),
+					Typed = Table.TransformColumnTypes(Selected, {{"amount", type number}, {"invoice_date", type datetime}, {"due_date", type datetime}, {"paid_date", type datetime}})
+				in
+					Typed
+
+	annotation PBI_ResultType = Table
+

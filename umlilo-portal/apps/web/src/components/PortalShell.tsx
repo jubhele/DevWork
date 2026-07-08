@@ -41,16 +41,18 @@ export default function PortalShell({ children }: { children: React.ReactNode })
   const pathname = usePathname()
   const router = useRouter()
   const user = useUser()
-  const [theme, setTheme] = useState<'light' | 'dark'>('light')
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    if (typeof window === 'undefined') return 'light'
+    return window.localStorage.getItem('bf-portal-theme') === 'dark' ? 'dark' : 'light'
+  })
 
   const currentPrimary = PRIMARY.find(item => item.matches.some(prefix => pathname.startsWith(prefix))) ?? PRIMARY[0]
   const secondary = SECONDARY[currentPrimary.group].filter(item => canSee(user.role, user.permissions ?? [], item))
 
   useEffect(() => {
-    const nextTheme = window.localStorage.getItem('bf-portal-theme') === 'dark' ? 'dark' : 'light'
-    document.documentElement.dataset.theme = nextTheme
-    setTheme(nextTheme)
-  }, [])
+    document.documentElement.dataset.theme = theme
+    window.localStorage.setItem('bf-portal-theme', theme)
+  }, [theme])
 
   function toggleTheme() {
     const nextTheme = theme === 'light' ? 'dark' : 'light'

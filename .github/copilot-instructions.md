@@ -138,12 +138,15 @@ All agent system prompts live in `agents/`. Full definitions in `CLAUDE.md` §12
 | **Mhloli** | Explorer / Inspector | Research, intel, security audits |
 | **Umakhi** | The Builder | Code & portal development |
 | **Umdwebi** | The Artist | Brand identity, UI/UX design, design system governance |
-| **Mvavanyi** | The Evaluator/Tester | QA, testing, regression, functional verification |
+| **Mvavanyi** | The Evaluator/Tester | Functional QA, regression, integration/E2E verification |
+| **Umcwaningi** | The Auditor/Examiner | Code QA — correctness, coverage, efficiency |
+| **Umbheki** | The Watcher/Observer | UX/UI QA — visual regression, accessibility |
 | **Umlindi** | The Guardian/Watchman | Governance, compliance, policy enforcement |
 
 These are **Sebenza agents** — full definitions in `agents/sebenza_agents.md`.
+QA is split three ways: Mvavanyi (behavior), Umcwaningi (code quality), Umbheki (visual/UX).
 
-Routing: Content → Nkanyezi | Docs → Usiba | Research → Mhloli | Code → Umakhi | Design → Umdwebi | QA → Mvavanyi | Governance → Umlindi.
+Routing: Content → Nkanyezi | Docs → Usiba | Research → Mhloli | Code → Umakhi | Design → Umdwebi | Functional QA → Mvavanyi | Code QA → Umcwaningi | UX/UI QA → Umbheki | Governance → Umlindi.
 All payloads pass through Sibali before reaching any Sebenza agent.
 Umdwebi brand source: `design/blackfire/brand_tokens.md`
 

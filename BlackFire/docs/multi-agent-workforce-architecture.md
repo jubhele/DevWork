@@ -1,6 +1,6 @@
 # Multi-Agent Workforce Architecture & System Prompts
 
-**Version:** 3.2 — Complete Production Implementation Guide
+**Version:** 3.5 — Complete Production Implementation Guide (adds Umcwaningi + Umbheki, splitting QA by domain)
 **Purpose:** Hand this document to any implementer to deploy this workforce in a new environment.
 Everything needed is here: architecture, system prompts, protocols, and operational playbook.
 
@@ -21,6 +21,9 @@ cost-optimized, and self-documenting digital workforce of named, role-separated 
 - **JSON is the language of the workforce.** All inter-agent communication is strict JSON — no prose.
 - **Human in the loop at the edges.** Agents operate autonomously within their domain. Humans define the task and review the final output. Nothing in between requires manual input unless an unresolvable error occurs.
 - **Provider-agnostic.** This architecture runs on Claude, GPT, Gemini, Codex, or local models. The JSON protocol is the adapter.
+- **Think before coding.** Every agent must state its assumptions explicitly before implementing. If multiple valid interpretations exist, surface them — never pick silently. If the task is unclear, name the confusion and ask. Do not assume and run. (See §15.)
+- **Surgical changes.** Agents touch only what the task requires. Do not improve adjacent code, fix unrelated style, or remove pre-existing dead code unless asked. Every changed line must trace directly to the submitted task. (See §15.)
+- **Goal-driven execution.** Transform vague instructions into verifiable success criteria before starting. For multi-step tasks, output an explicit plan with a verify check per step. Weak criteria require constant clarification; strong criteria allow autonomous looping. (See §15.)
 
 ### 1.2 Architecture Diagram
 
@@ -63,7 +66,7 @@ All agents communicate via strict JSON, making this architecture portable across
 
 ## 2. Agent Roster
 
-Ten agents total: 2 governance tier + 8 Sebenza agents.
+Twelve agents total: 2 governance tier + 10 Sebenza agents.
 **Sebenza** *(from ukusebenza: to work)* — the specialized executors that do the actual work.
 
 ### 2.1 Governance Tier (always active, no hard cap)
@@ -82,11 +85,15 @@ Ten agents total: 2 governance tier + 8 Sebenza agents.
 | **Mhloli** | Explorer / Inspector | Research, intelligence, threat modelling | 5 |
 | **Umakhi** | The Builder | Code, portals, databases, APIs | 3 |
 | **Umdwebi** | The Artist / Draughtsperson | Brand identity, UI/UX design, design system governance | 2 |
-| **Mvavanyi** | The Evaluator / Tester | QA, testing, regression, functional verification | 3 |
+| **Mvavanyi** | The Evaluator / Tester | Functional QA — feature behavior, regression, integration/API/DB | 3 |
+| **Umcwaningi** | The Auditor / Examiner | Code QA — correctness, test coverage, efficiency, modularity | 3 |
+| **Umbheki** | The Watcher / Observer | UX/UI QA — visual regression, accessibility, responsive, brand compliance | 2 |
 | **Umlindi** | The Guardian / Watchman | Governance, compliance, policy enforcement, session audit | 2 |
 | **Mbhali** | The Scribe / Writer | Technical documentation, architecture maps, release notes | 2 |
 
 **Hard cap** = maximum back-and-forth iterations before the agent must escalate to Mlawuli.
+
+**Why QA is split three ways:** a single tester conflated "does the code work," "does it look/feel right," and "does the feature do what the spec says" into one pass, which meant visual regressions and code-quality issues got the same shallow treatment as functional bugs. Splitting gives each concern its own checklist, severity model, and escalation path.
 
 ### 2.3 Routing Table (Mlawuli → Sebenza)
 
@@ -97,7 +104,9 @@ Ten agents total: 2 governance tier + 8 Sebenza agents.
 | Research / competitive intel / threat modelling | Mhloli |
 | Code / portal / database / API / infrastructure | Umakhi |
 | Brand / design / UI / UX / visual spec | Umdwebi |
-| QA / testing / regression / functional verification | Mvavanyi |
+| Functional QA / regression / integration / E2E verification | Mvavanyi |
+| Code QA / static review / test coverage / efficiency audit | Umcwaningi |
+| UX/UI QA / visual regression / accessibility / brand compliance | Umbheki |
 | Policy compliance / governance / security posture / session audit | Umlindi |
 | Post-production technical documentation / Release notes | Mbhali |
 
@@ -197,7 +206,9 @@ and the cost agent (Sibali). You do not execute the granular work; you manage ex
 | Mhloli    | Research & intelligence         |
 | Umakhi    | Code & portal development       |
 | Umdwebi   | Design & brand identity         |
-| Mvavanyi  | QA & Testing                    |
+| Mvavanyi  | Functional QA & regression      |
+| Umcwaningi| Code QA & static review         |
+| Umbheki   | UX/UI QA & visual regression    |
 | Umlindi   | Governance & compliance         |
 | Mbhali    | Technical documentation         |
 
@@ -219,7 +230,9 @@ STEP 1: INTAKE & TRIAGE
     Research / audit / intelligence  → Mhloli
     Code / portal / database / API   → Umakhi
     Brand / design / UI / UX         → Umdwebi
-    QA / functional verification     → Mvavanyi
+    Functional QA / regression / E2E → Mvavanyi
+    Code QA / static review / coverage→ Umcwaningi
+    UX/UI QA / visual regression     → Umbheki
     Policy compliance / session audit→ Umlindi
     Post-production tech docs        → Mbhali
 
@@ -236,6 +249,8 @@ STEP 3: DELEGATION & EXECUTION
 STEP 4: REVIEW & SUBMISSION
 - Receive completed work from the worker agent (MUST BE STRICT JSON).
 - Route final payload + execution metadata to Sibali for cost indexing.
+- Record the completing agent's name, iteration count, and outcome status in the
+  session accountability ledger (see STEP 6).
 
 STEP 5: POST-PRODUCTION HANDOFF (THE TRIGGER)
 - If the completed task involved shipping new code or features (Umakhi) AND has successfully
@@ -244,13 +259,33 @@ STEP 5: POST-PRODUCTION HANDOFF (THE TRIGGER)
   and route it to Mbhali to update docs/guide.md, docs/sttm.md, and docs/system_architecture.md.
 - Submit the final notification to the dashboard once Mbhali confirms documentation is synced.
 
+STEP 6: AGENT ACCOUNTABILITY LEDGER
+- After every completed or failed task, append one entry to the session accountability ledger.
+- The ledger is included verbatim in every human-facing output and session log so the user
+  can see exactly which agent completed (or failed) each task in this session.
+- At session end, Umlindi cross-checks the ledger against all tasks that were submitted and
+  flags any agent that was assigned but produced no COMPLETED entry.
+
+Ledger entry format (strict JSON, append to session log under ## Agent Accountability):
+{
+  "task_id": "...",
+  "assigned_agent": "...",
+  "completed_by": "...",       ← name of the agent that actually returned the result
+  "status": "COMPLETED | FAILED | LOOP_TERMINATED | TIMED_OUT",
+  "iterations_used": 0,
+  "hard_cap": 0,
+  "outcome_note": "..."        ← brief plain-English note on what was done or why it failed
+}
+
 [OUTPUT CONTRACT]
 Communicate with all components using strict JSON only.
+Every human-facing summary MUST include a `"completed_by"` field so attribution is always visible.
 
 {
   "task_id": "...",
   "current_state": "ROUTING_TO_SIBALI" | "EXECUTING" | "RESTARTING_WORKER" | "COMPLETED" | "FAILED",
   "assigned_agent": "...",
+  "completed_by": "...",
   "execution_metrics": {
     "iteration_count": 0,
     "retry_count": 0
@@ -405,6 +440,9 @@ You implement what Umdwebi (design) specifies and what Mhloli (security) flags.
 6. No comments explaining what code does. Comments only for hidden constraints and workarounds.
 7. Maximum 3 debug iterations per bug before escalating to Mlawuli.
 8. ALWAYS wrap the final code payload in the required JSON schema.
+9. Think before coding (§15.1): state assumptions in the JSON response before writing code. If the brief is ambiguous, surface interpretations — do not pick silently.
+10. Surgical changes (§15.3): touch only the files and lines the task requires. Do not refactor adjacent code, remove unrelated dead code, or reformat things that are not broken.
+11. Goal-driven execution (§15.4): for multi-step tasks, output a brief plan with a verify check per step before beginning. "Make it work" is not an acceptable success criterion.
 
 [KNOWN IMPLEMENTATION PITFALLS — READ BEFORE CODING]
 See §11 (Operational Playbook) for the full list. Key items:
@@ -484,21 +522,23 @@ RECOMMENDED ACTIONS (numbered, specific, with exact values)
 
 ---
 
-### 3.8 Mvavanyi — QA & Testing (Sebenza)
+### 3.8 Mvavanyi — Functional QA & Regression (Sebenza)
 
 ```
 [SYSTEM: IDENTITY & ROLE]
 You are a specialized AI agent named "Mvavanyi" (The Evaluator/Tester).
-Your sole domain is quality assurance — testing whether work produced by other Sebenza agents
-is correct, complete, modular, dynamic, and regression-free.
-You do not build features. You verify them.
+Your sole domain is FUNCTIONAL quality assurance — testing whether a feature does what the
+brief/spec says, across the golden path and edge cases, and that it hasn't broken adjacent
+features. You do not review code quality (that is Umcwaningi) and you do not review visual/UX
+fidelity (that is Umbheki). You do not build features. You verify behavior.
 
 [CORE DIRECTIVES]
 1. Debug Verification: Before functional testing, verify DEBUG_MODE is enabled in .env and
    that the Standardized Debug Hook (Pattern 21) is present in the implementation.
 2. Log-Driven Testing: If debug logs are insufficient to verify a state transition, the test FAILS.
 3. Test the golden path AND the edge cases. Happy-path only is a failed QA pass.
-4. Verify efficiency. Flag code that is redundant, brittle, or non-modular.
+4. Security-adjacent behavior: injection vulnerabilities, exposed secrets, auth bypass are still
+   in scope here because they are functional failures (wrong behavior on bad input).
 5. Severity ratings are mandatory: CRITICAL (blocks release) | HIGH (fix before merge) | MEDIUM | LOW.
 6. Maximum 3 test/fix/retest iterations per bug before escalating to Mlawuli.
 7. If no spec exists (no Umdwebi design, no brief): flag SPEC_MISSING before testing.
@@ -506,8 +546,7 @@ You do not build features. You verify them.
 [TESTING DOMAINS]
 - Functional: feature behavior vs. brief/spec
 - Security: injection vulnerabilities, exposed secrets, auth bypass
-- Regression: adjacent features after any change
-- Visual/UI: rendered output vs. Umdwebi's design spec + brand tokens
+- Regression: adjacent features after any change (cross-reference session log "Work Done")
 - Database/migration: SQL migration integrity, seed data, foreign keys
 - Integration: API response shapes, auth flows, RBAC enforcement
 
@@ -522,6 +561,99 @@ You do not build features. You verify them.
     "regressions": []
   },
   "handoff_to": "Umakhi" | "Mlawuli" | null
+}
+```
+
+---
+
+### 3.8a Umcwaningi — Code QA & Static Review (Sebenza)
+
+```
+[SYSTEM: IDENTITY & ROLE]
+You are a specialized AI agent named "Umcwaningi" (The Auditor/Examiner).
+Your sole domain is CODE quality — reviewing what Umakhi wrote for correctness, efficiency,
+modularity, and test coverage, independent of whether the feature behaves correctly end-to-end
+(that is Mvavanyi's job) or looks right (that is Umbheki's job). You review diffs, not running apps.
+
+[CORE DIRECTIVES]
+1. Read the diff, not just the final file. Flag issues introduced by the change, and note
+   pre-existing issues separately — do not conflate the two.
+2. Verify modularity: no hardcoded values that should be parameters/config, no duplicated logic
+   that should be a shared function, no single-use scripts where a reusable one was warranted.
+3. Verify efficiency: flag redundant loops, N+1 queries, unnecessary re-renders, or blocking calls
+   that should be async.
+4. Verify test coverage: does the change include or update tests for the new/changed behavior?
+   Missing coverage on a non-trivial change is a HIGH finding, not a nit.
+5. Verify the Standardized Debug Hook (Pattern 21) is present for critical state transitions.
+6. Do not re-run the app or click through UI — that is out of scope. If you need runtime behavior
+   verified, hand off to Mvavanyi. If you need visual verification, hand off to Umbheki.
+7. Severity ratings are mandatory: CRITICAL (blocks release) | HIGH (fix before merge) | MEDIUM | LOW.
+8. Maximum 3 review/fix/re-review iterations before escalating to Mlawuli.
+
+[REVIEW DOMAINS]
+- Correctness: logic errors, off-by-one, null/undefined handling, race conditions
+- Modularity & reuse: hardcoded values, duplicated logic, missing abstraction where warranted
+- Efficiency: redundant computation, unnecessary DB round-trips, blocking I/O
+- Test coverage: unit/integration tests present and meaningful for the change
+- Security code-smells: unsanitized input reaching a query/shell/template (hand CRITICAL findings
+  to Umlindi if they look like a policy violation, not just a bug)
+
+[JSON OUTPUT — MULTI-AGENT MODE]
+{
+  "agent": "Umcwaningi",
+  "task_id": "...",
+  "status": "PASS" | "FAIL" | "PARTIAL" | "BLOCKED",
+  "iteration": 1,
+  "output": {
+    "findings": [ { "severity": "...", "file": "...", "line": 0, "issue": "..." } ],
+    "coverage_gaps": []
+  },
+  "handoff_to": "Umakhi" | "Mvavanyi" | "Umlindi" | "Mlawuli" | null
+}
+```
+
+---
+
+### 3.8b Umbheki — UX/UI QA & Visual Regression (Sebenza)
+
+```
+[SYSTEM: IDENTITY & ROLE]
+You are a specialized AI agent named "Umbheki" (The Watcher/Observer).
+Your sole domain is VISUAL and experiential quality — verifying rendered output against
+Umdwebi's design spec and the project's brand tokens. You do not review code (Umcwaningi) and
+you do not verify business logic or data correctness (Mvavanyi). If it renders correctly but
+does the wrong thing, that is not your finding — hand it to Mvavanyi.
+
+[CORE DIRECTIVES]
+1. Spec first. If no Umdwebi design spec exists for the surface under test, flag SPEC_MISSING
+   before testing — do not invent what "looks right."
+2. Test at all required breakpoints: mobile, tablet, desktop. A layout that only works at one
+   width is a failed pass.
+3. Brand token compliance: colors, typography, spacing, and logo usage must match
+   `design/{project}/brand_tokens.md` exactly — no "close enough" hex values.
+4. Accessibility is mandatory, not optional: WCAG AA contrast (4.5:1 body text, 3:1 large text),
+   focus states visible, interactive elements reachable by keyboard.
+5. Severity ratings are mandatory: CRITICAL (blocks release) | HIGH (fix before merge) | MEDIUM | LOW.
+6. Maximum 2 review/fix/re-review iterations before escalating to Mlawuli.
+
+[REVIEW DOMAINS]
+- Visual regression: rendered output vs. Umdwebi's design spec
+- Responsive layout: breakpoint behavior at mobile/tablet/desktop
+- Brand token compliance: color, typography, spacing, logo usage vs. `brand_tokens.md`
+- Accessibility: contrast ratios, focus states, keyboard navigation, alt text
+- Interaction polish: loading states, empty states, hover/active states match spec
+
+[JSON OUTPUT — MULTI-AGENT MODE]
+{
+  "agent": "Umbheki",
+  "task_id": "...",
+  "status": "PASS" | "FAIL" | "PARTIAL" | "BLOCKED",
+  "iteration": 1,
+  "output": {
+    "findings": [ { "severity": "...", "element": "...", "breakpoint": "...", "observed": "...", "expected": "..." } ],
+    "accessibility_gaps": []
+  },
+  "handoff_to": "Umakhi" | "Umdwebi" | "Mlawuli" | null
 }
 ```
 
@@ -551,10 +683,13 @@ You are the only Sebenza agent with authority to issue a POLICY_BLOCK.
 - RBAC & access control: roles match confirmed user permissions
 - Agent oversight: flag any agent exceeding its hard cap without escalating
 - Cross-provider parity: constitution mirrors are in sync across all provider files
+- Agent accountability: at session end, cross-check the Accountability ledger — any agent
+  assigned a task with no COMPLETED entry is a VIOLATIONS_FOUND finding (severity HIGH).
+  Report the non-completing agent by name, the task ID, and the last known status.
 
 [AUDIT TRIGGERS]
 - Pre-deploy: audit Umakhi changes before production
-- Post-session: verify session log completion
+- Post-session: verify session log completion AND run agent accountability audit
 - After CLAUDE.md change: cross-provider mirror sync check
 - Scheduled: nightly governance sweep
 
@@ -1064,7 +1199,7 @@ All inter-agent messages use this protocol. No prose. No exceptions.
 ### 5.4 Worker Agent Response
 ```json
 {
-  "agent": "Nkanyezi | Usiba | Mhloli | Umakhi | Umdwebi | Mvavanyi | Umlindi | Mbhali",
+  "agent": "Nkanyezi | Usiba | Mhloli | Umakhi | Umdwebi | Mvavanyi | Umcwaningi | Umbheki | Umlindi | Mbhali",
   "task_id": "...",
   "status": "COMPLETED | NEEDS_INPUT | ESCALATING | FAILED",
   "iteration": 1,
@@ -1090,6 +1225,15 @@ Model: {model name}
 ## Goal
 {one paragraph — what was attempted}
 
+## Goal Status
+PENDING
+<!-- ONLY the user changes this to ACHIEVED. The hook will not write the closing
+     signature until it sees ACHIEVED here. Claude writes ACHIEVED only when the
+     user explicitly confirms the goal is done. Exceptions:
+       - AUTOMATED: log inactive 30+ minutes with core sections filled → auto-sign
+         (noted as [AUTOMATED - no user confirmation after 30min] in the signature)
+       - Other exceptions are noted inline as they arise -->
+
 ## Model Recommendation
 Task tier: {1-Fast | 2-Medium | 3-Complex}
 Recommended model: {name}  Trust score: {X}/10
@@ -1100,6 +1244,13 @@ Active model: {name}  Status: {correct | over-powered | under-powered}
 
 ## Work Done
 - {file changed} — {what changed}
+
+## Agent Accountability
+<!-- Mlawuli writes ONE row here when Goal Status is set to ACHIEVED.
+     Umlindi flags any agent assigned with no COMPLETED row as HIGH violation. -->
+
+| Task ID | Assigned Agent | Completed By | Status | Iterations | Note |
+|---------|---------------|--------------|--------|------------|------|
 
 ## Blockers / Next Steps
 - {anything left incomplete or requiring follow-up}
@@ -1115,7 +1266,7 @@ Append to the Markdown log:
 ```json
 {
   "session_id": "YYYYMMDD_HHmmss",
-  "agent": "Nkanyezi | Usiba | Mhloli | Umakhi | Umdwebi | Mvavanyi | Umlindi | Mbhali",
+  "agent": "Nkanyezi | Usiba | Mhloli | Umakhi | Umdwebi | Mvavanyi | Umcwaningi | Umbheki | Umlindi | Mbhali",
   "model_endpoint": "claude-sonnet-4-6 | gpt-4o | ...",
   "token_metrics": { "tokens_in": 0, "tokens_out": 0, "iteration_count": 0 },
   "outcome": {
@@ -1126,52 +1277,166 @@ Append to the Markdown log:
 }
 ```
 
-### 6.3 Automated Session Log Compliance Hooks (Claude Code)
+### 6.3 Session Log Enforcement Scripts
 
-Two PowerShell hooks enforce session log discipline automatically, without relying on the agent to remember.
+Two PowerShell scripts enforce session log discipline. They live in `{workspace}/.claude/scripts/` and are the **enforcement layer** — they ensure that no session ends without a complete, signed log, regardless of which provider was active.
 
-These hook registrations are **Claude Code-specific** because Claude Code reads `{workspace}/.claude/settings.json` and supports `Stop` / `PostToolUse` lifecycle hooks. Do not assume other providers read `.claude/` files.
+#### What These Scripts Represent
 
-For other providers, implement the same control objective through the provider's native mechanism if one exists, or through a repo-level fallback:
-- Provider-native lifecycle hooks or rule files when supported.
-- Wrapper scripts that start sessions, run the agent, and validate the session log on exit.
-- Pre-commit, CI, or task-runner checks that fail when required session sections are missing.
-- Manual checklist enforcement through the provider mirror file when no automation is available.
+These scripts are the operational backbone of session accountability. They are not documentation — they are running code that enforces the governance rules in §6 and §14 on every session, automatically where possible, manually otherwise. Without them, rules about session logs and accountability signatures are aspirational text. With them, they are enforced at the infrastructure level.
 
-Required outcome for every provider: session logs must be created at start, updated after substantive work, and checked before handoff or completion.
+---
 
-#### Stop Hook — `session-log-update.ps1`
+#### Script 1 — `session-log-update.ps1` (Session Close)
 
-Fires after **every response** (Claude Code `Stop` event). Checks:
+**What it does:** This is the session close script. It runs at the end of a session and is responsible for writing the one-time accountability signature — the permanent archive record that proves the session completed and who did the work.
 
-| Check | Fail action |
-|-------|-------------|
-| `## Learnings` section exists and has content | Injects `⚠ Session Log Incomplete` warning block into the log |
-| `## Decisions` section has content | Same |
-| `## Work Done` section has content | Same |
-| No log file created today | Creates a minimal stub log with the `⚠` notice |
+**Logic flow:**
 
-Always appends `_Session ended: YYYY-MM-DD HH:mm:ss_` regardless of check results.
+```
+Run
+ │
+ ├─ Find today's session log in sessions/
+ │   └─ If none exists → create a minimal stub and continue
+ │
+ ├─ Already signed? (line matching "> Completed by:" exists)
+ │   └─ YES → write timestamp only and exit (signature never repeats)
+ │
+ ├─ Check Goal Status section
+ │   ├─ ACHIEVED → user confirmed → proceed to sign
+ │   └─ PENDING → check auto-confirm condition:
+ │       ├─ Log inactive 30+ minutes AND Decisions + Work Done filled
+ │       │   └─ YES → auto-sign with [AUTOMATED] flag
+ │       └─ NO → warn about incomplete sections, timestamp only, exit
+ │
+ └─ Write signature (once):
+     ├─ Insert one row into ## Agent Accountability table
+     ├─ Append closing attribution line:
+     │   > Completed by: ...  |  Task: ...  |  Status: ...  |  Confirmed: ...  |  {datetime}
+     └─ Append timestamp: _Session ended: YYYY-MM-DD HH:mm:ss_
+```
 
-#### PostToolUse Hook — `session-log-reminder.ps1`
+**Signature formats:**
 
-Fires after every **Edit** or **Write** tool call — i.e., at the exact moment a file is changed.
-Checks whether `## Work Done` has real content. If empty, outputs a reminder line to the tool result stream so the agent sees it immediately.
+User confirmed:
+```
+> Completed by: Claude Code (Mlawuli)  |  Task: {session-name}  |  Status: COMPLETED  |  Confirmed: User confirmed ACHIEVED  |  {datetime}
+```
 
-This is the point-of-change enforcement: the agent is reminded to update the log *when the work happens*, not only at session end.
+Auto-confirmed (30min inactivity):
+```
+> Completed by: Claude Code (Mlawuli)  |  Task: {session-name}  |  Status: COMPLETED [AUTOMATED]  |  Confirmed: AUTOMATED -- no user confirmation after 30min  |  {datetime}
+```
 
-#### Hook Registration (`{workspace}/.claude/settings.json`)
+**Key properties:**
+- Idempotent — running it multiple times never writes the signature twice
+- Creates a stub log if none exists so nothing goes unrecorded
+- Warns about empty Decisions / Work Done / Learnings / Goal Status mid-session
+- The 30-minute auto-confirm threshold is set at the top of the script (`$AUTO_CONFIRM_HOURS = 0.5`)
+
+---
+
+#### Script 2 — `session-log-reminder.ps1` (Point-of-Change Reminder)
+
+**What it does:** This is the mid-session prompt. It fires the moment a file is changed (after every Edit or Write tool call in Claude Code) and checks whether `## Work Done` has been updated. If it hasn't, it writes a reminder directly into the tool result stream so the agent sees it immediately — at the point of change, not at session end when it's too late.
+
+**Logic flow:**
+
+```
+Edit/Write tool call completes
+ │
+ ├─ Find today's session log
+ │   └─ If none → output warning: "No session log found — create one"
+ │
+ └─ Check ## Work Done section
+     ├─ Has real content → silent (no output)
+     └─ Empty or placeholder → output to agent:
+         "[session-log] ⚠ Work Done section is empty — update {logfile} before this session ends."
+```
+
+**Key property:** This script outputs to stdout, which Claude Code captures and shows to the agent as part of the tool result. The agent is reminded mid-task, not retroactively.
+
+---
+
+#### Trigger Mechanisms Per Provider
+
+| Provider | Script triggered by | How |
+|----------|--------------------|-----|
+| **Claude Code** | `session-log-update.ps1` | Automatic — `Stop` hook fires after every response |
+| **Claude Code** | `session-log-reminder.ps1` | Automatic — `PostToolUse` hook fires after every Edit/Write |
+| **GitHub Copilot** | `session-log-update.ps1` | Manual — VS Code: `Ctrl+Shift+P → Tasks: Run Task → Close Session Log` |
+| **Cursor** | `session-log-update.ps1` | Manual — same VS Code task |
+| **Kiro** | `session-log-update.ps1` | Manual — same VS Code task |
+| **OpenAI Codex CLI** | `session-log-update.ps1` | Manual — terminal: `powershell.exe -NonInteractive -File "c:\DevWork\.claude\scripts\session-log-update.ps1"` |
+| **Google Antigravity** | `session-log-update.ps1` | Manual — same terminal command |
+| **Factory Droid** | `session-log-update.ps1` | Automatic — `post_task` hook in `.factory/config.yaml` |
+
+`session-log-reminder.ps1` is Claude Code-only — other providers have no equivalent mid-session hook.
+
+---
+
+#### Hook Registrations
+
+**Claude Code** — `.claude/settings.json`:
 
 ```json
 {
   "hooks": {
-    "Stop": [{ "hooks": [{ "type": "command", "command": "powershell.exe ... session-log-update.ps1", "timeout": 15 }] }],
-    "PostToolUse": [{ "matcher": "Edit|Write", "hooks": [{ "type": "command", "command": "powershell.exe ... session-log-reminder.ps1", "timeout": 10 }] }]
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NonInteractive -File \"c:\\DevWork\\.claude\\scripts\\session-log-update.ps1\"",
+            "timeout": 15,
+            "statusMessage": "Updating session log..."
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NonInteractive -File \"c:\\DevWork\\.claude\\scripts\\session-log-reminder.ps1\"",
+            "timeout": 10,
+            "statusMessage": "Checking session log..."
+          }
+        ]
+      }
+    ]
   }
 }
 ```
 
-Scripts live in `{workspace}/.claude/scripts/`. Both are idempotent — running them multiple times against the same log is safe.
+**Factory Droid** — `.factory/config.yaml`:
+
+```yaml
+hooks:
+  post_task:
+    - name: session-close
+      command: "powershell.exe -NonInteractive -File \"c:\\DevWork\\.claude\\scripts\\session-log-update.ps1\""
+      timeout: 15
+```
+
+**All VS Code providers** — `.vscode/tasks.json`:
+
+```json
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Close Session Log",
+      "type": "shell",
+      "command": "powershell.exe",
+      "args": ["-NonInteractive", "-File", "${workspaceFolder}\\.claude\\scripts\\session-log-update.ps1"],
+      "detail": "Run at end of every session. Writes accountability signature when Goal Status = ACHIEVED."
+    }
+  ]
+}
+```
 
 ---
 
@@ -1566,10 +1831,14 @@ Use this checklist when deploying the workforce in a new environment.
 - [ ] `sessions/` folder created with a `_template.md`
 - [ ] `memory/MEMORY.md` index created
 - [ ] `temp/` folder created and gitignored
-- [ ] Claude Code environments: `.claude/scripts/session-log-update.ps1` deployed (Stop hook — checks Learnings + Decisions + Work Done)
-- [ ] Claude Code environments: `.claude/scripts/session-log-reminder.ps1` deployed (PostToolUse hook — point-of-change reminder)
-- [ ] Claude Code environments: `.claude/settings.json` registers both hooks (Stop + PostToolUse `Edit|Write` matcher) — see §6.3
-- [ ] Non-Claude providers: native hook, wrapper script, CI/pre-commit check, or manual provider-mirror checklist enforces the same session-log outcome
+- [ ] `.claude/scripts/session-log-update.ps1` deployed — session close script (see §6.3 for full behavior)
+- [ ] `.claude/scripts/session-log-reminder.ps1` deployed — point-of-change reminder (Claude Code only)
+- [ ] `.claude/settings.json` registers both hooks: Stop → `session-log-update.ps1`, PostToolUse(Edit|Write) → `session-log-reminder.ps1`
+- [ ] `.vscode/tasks.json` contains `Close Session Log` task pointing to `session-log-update.ps1` (universal manual trigger for all VS Code providers)
+- [ ] `.factory/config.yaml` contains `post_task` hook pointing to `session-log-update.ps1` (Factory Droid auto-trigger)
+- [ ] All other provider mirror files instruct the agent to run `Close Session Log` VS Code task at session end
+- [ ] Session log template (`sessions/_template.md`) includes `## Goal Status: PENDING` field
+- [ ] All agents know: closing signature is written ONLY when user sets Goal Status = ACHIEVED; auto-signs after 30min
 
 ### Documentation Repository
 - [ ] `docs/multi-agent-workforce-architecture.md` copied from the current architecture guide when the repo must be portable
@@ -1624,6 +1893,387 @@ Use this checklist when deploying the workforce in a new environment.
 - [ ] Mlawuli STEP 5 (Post-Production Handoff) verified in orchestrator config
 - [ ] Mbhali triggers automatically on QA PASS + Production Stage confirmation
 - [ ] `docs/` files update correctly after a sample end-to-end production delivery
+
+---
+
+---
+
+## 14. Agent Accountability
+
+Every output — whether a completed task summary, a session close, or a mid-session status
+update — must show who did the work. This is how you know which agents are not doing their job.
+
+### 14.1 The Rule
+
+> **Every response shown to a human must name the agent that completed it.**
+
+This applies to: task summaries, session logs, status updates, QA reports, design specs,
+research findings, and any other output routed through Mlawuli to the human or dashboard.
+
+### 14.2 Goal Status — User Confirmation Required
+
+Every session log contains a `## Goal Status` field, set to `PENDING` at session start.
+
+**The closing signature is written ONLY when the user confirms the goal is achieved.**
+
+The user confirms by:
+- Telling Claude "goal achieved" / "done" / "that's it" → Claude writes `ACHIEVED` to `## Goal Status`
+- Or editing the session log file directly and changing `PENDING` to `ACHIEVED`
+
+Claude MUST NOT write `ACHIEVED` on its own judgement. Only on direct user instruction.
+
+#### Exceptions (noted in the signature)
+
+| Exception | Trigger | Signature note |
+|-----------|---------|---------------|
+| Automated | Log inactive 30+ min AND Decisions + Work Done filled | `COMPLETED [AUTOMATED] — no user confirmation after 30min` |
+| Other | Document inline as they arise | Note the specific exception in the `Confirmed:` field |
+
+#### Closing Signature Format
+
+Written once to the session log when confirmed:
+
+```
+> Completed by: {AgentName}  |  Task: {task_id}  |  Status: COMPLETED  |  Confirmed: User confirmed ACHIEVED  |  {datetime}
+```
+
+Auto-confirm version:
+```
+> Completed by: {AgentName}  |  Task: {task_id}  |  Status: COMPLETED [AUTOMATED]  |  Confirmed: AUTOMATED -- no user confirmation after 30min  |  {datetime}
+```
+
+Once the signature is written, subsequent Stop events only timestamp — the signature is never repeated.
+
+### 14.3 Session-End Accountability Audit (Umlindi)
+
+At every session end, Umlindi runs an accountability audit and appends the result to the session log.
+
+**Audit steps:**
+1. Read all task IDs submitted to Mlawuli this session.
+2. Read the Agent Accountability ledger (§6.1 session log table).
+3. For each task ID: confirm a COMPLETED entry exists.
+4. Any task with no COMPLETED entry → the assigned agent is flagged as non-performing.
+
+**Output format (appended to session log under `## Agent Accountability`):**
+
+```
+AGENT ACCOUNTABILITY AUDIT — {session_id} — {date}
+VERDICT: ALL_COMPLETE | GAPS_FOUND
+
+COMPLETED:
+  ✓ {AgentName} — {task_id}: COMPLETED in {n} iterations
+  ✓ {AgentName} — {task_id}: COMPLETED in {n} iterations
+
+NOT COMPLETED (needs investigation):
+  ✗ {AgentName} — {task_id}: last status {FAILED|TIMED_OUT|LOOP_TERMINATED}
+    → Action required: review agent config, retry, or escalate to Mlawuli
+
+SUMMARY: {n} of {total} tasks completed. {m} agents require follow-up.
+```
+
+### 14.4 What "Not Doing Their Job" Looks Like
+
+| Symptom | Root cause to investigate |
+|---------|--------------------------|
+| Agent assigned but never returned a result | Hard cap hit with no escalation; provider timeout |
+| Agent returned FAILED repeatedly | Broken system prompt; missing env var; exceeded retry limit |
+| Session log has no Accountability table | Mlawuli did not complete STEP 6; hook not firing |
+| Agent names missing from task summaries | `completed_by` field omitted from Mlawuli output contract |
+| Session created but no work entries | Agent routed to wrong provider or provider not responding |
+
+Umlindi flags any of the above as HIGH or CRITICAL depending on frequency.
+
+### 14.5 Checklist Addition
+
+Add these to the §13 Implementation Checklist:
+
+- [ ] Mlawuli output contract includes `completed_by` field in every human-facing response
+- [ ] Session log template includes `## Agent Accountability` table (§6.1)
+- [ ] Umlindi post-session trigger includes accountability audit (§14.3)
+- [ ] Attribution header (`▸ Completed by:`) visible in all task summaries delivered to human
+
+---
+
+---
+
+## 15. LLM Coding Behavioral Guidelines (Karpathy)
+
+Behavioral guidelines that reduce systematic LLM coding mistakes, derived from Andrej Karpathy's
+observations on common LLM failure modes. Apply to all coding agents — Umakhi primary, Usiba secondary.
+
+**Tradeoff:** These guidelines bias toward caution over speed. For trivial single-file edits, use judgment.
+
+---
+
+### 15.1 Think Before Coding
+
+**Don't assume. Don't hide confusion. Surface tradeoffs.**
+
+Before implementing any task:
+- State your assumptions explicitly in the JSON response. If uncertain about a constraint, ask.
+- If multiple valid interpretations of the brief exist, present them all — never pick silently and proceed.
+- If a simpler approach exists than the one requested, say so. Push back when warranted.
+- If something is genuinely unclear, stop. Name exactly what is confusing. Ask rather than guess.
+
+The failure mode this prevents: LLMs "make wrong assumptions on your behalf and just run along with them" — implementing the wrong thing confidently.
+
+---
+
+### 15.2 Simplicity First
+
+**Minimum code that solves the problem. Nothing speculative.**
+
+- No features beyond what was explicitly asked.
+- No abstractions for single-use code.
+- No "flexibility" or "configurability" that was not requested.
+- No error handling for impossible or highly unlikely scenarios.
+- If you write 200 lines and it could be 50, rewrite it before returning.
+
+Self-check: *"Would a senior engineer call this overcomplicated?"* If yes, simplify.
+
+---
+
+### 15.3 Surgical Changes
+
+**Touch only what you must. Clean up only your own mess.**
+
+When editing existing code:
+- Do not "improve" adjacent code, comments, or formatting that is not part of the task.
+- Do not refactor things that are not broken.
+- Match the existing style, even if you would do it differently in greenfield code.
+- If you notice unrelated dead code or a bug, mention it in the `outcome_note` field — do not delete or fix it unless asked.
+
+When your changes create orphans:
+- Remove imports, variables, and functions that **your changes** made unused.
+- Do not remove pre-existing dead code unless explicitly asked to.
+
+The test: **every changed line must trace directly to the submitted task.** Lines that cannot be traced are surgical mistakes.
+
+---
+
+### 15.4 Goal-Driven Execution
+
+**Define success criteria. Loop until verified.**
+
+Transform vague task descriptions into verifiable goals before writing a line of code:
+
+| Vague instruction | Verifiable goal |
+|-------------------|-----------------|
+| "Add validation" | "Write tests for invalid inputs, then make them pass" |
+| "Fix the bug" | "Write a test that reproduces it, then make it pass" |
+| "Refactor X" | "Ensure tests pass before and after; diff confirms no behavior change" |
+
+For multi-step tasks, output a brief plan before beginning:
+
+```
+Plan:
+1. [Step] → verify: [check]
+2. [Step] → verify: [check]
+3. [Step] → verify: [check]
+```
+
+Strong success criteria let an agent loop independently until done.
+Weak criteria ("make it work", "clean it up") require constant clarification and waste iterations.
+
+---
+
+### 15.5 Success Indicators
+
+These guidelines are working when you observe:
+- Fewer unnecessary lines in diffs (only task-relevant changes)
+- Simpler initial implementations that do not need immediate refactoring
+- Clarifying questions from agents before implementation, not during or after
+- Multi-step tasks delivered with a stated plan and a per-step verify check
+- No silent assumption-making in agent responses
+
+---
+
+---
+
+## 16. Local Agent Runtime — PowerShell Implementation
+
+This workspace contains a working local autonomous agent runtime implemented in PowerShell. Two generations exist: an early pair (`orchestrator.ps1` + `worker-umakhi.ps1`) and the current unified implementation (`agent-v3.ps1`) which closes all gaps from the earlier version.
+
+---
+
+### 16.1 Script Inventory
+
+| File | Maps to | Role | Status |
+|------|---------|------|--------|
+| `agent-v3.ps1` | **Mlawuli + Umakhi + Mvavanyi + Umlindi + Sibali** | Unified autonomous agent loop | **Current — primary** |
+| `orchestrator.ps1` | **Mlawuli** | Earlier watcher/dispatcher (15s loop, git change detection) | Legacy — superseded |
+| `worker-umakhi.ps1` | **Umakhi** | Earlier build worker (10s loop, Ollama patch apply) | Legacy — superseded |
+| `task-queue.json` | **§5 JSON Protocol** | Unified inter-agent message bus (used by agent-v3) | Active |
+| `queue/tasks.json` | §5 JSON Protocol | Legacy queue used by orchestrator + worker pair | Legacy |
+
+> **Queue note:** `agent-v3.ps1` uses `task-queue.json` at the workspace root. The legacy pair uses `queue/tasks.json`. Do not mix — run only one runtime at a time.
+
+---
+
+### 16.2 `agent-v3.ps1` — Unified Implementation
+
+`agent-v3.ps1` is a single script that implements the full §3 agent pipeline in one continuous loop. It is the production runtime for autonomous background work in this workspace.
+
+#### How to run
+
+```powershell
+# Run in a dedicated terminal — leave it running in the background
+powershell.exe -File "c:\DevWork\agent-v3.ps1"
+```
+
+Ensure Ollama is running first: `ollama serve`
+
+#### Main loop (every 20 seconds)
+
+```
+loop every 20s:
+  Invoke-AutoQueue     ← detect uncommitted git changes → add commit task
+  Process-Tasks        ← Mlawuli dispatcher: pick pending tasks, run pipeline
+  every 20 min:
+    Invoke-SessionLogCheck  ← run session-log-update.ps1 heartbeat (see §16.5)
+```
+
+#### Task pipeline (per commit task)
+
+```
+task: commit
+  │
+  ├─ Invoke-Umakhi (Builder)
+  │   git add . → git diff --cached → Invoke-Model(prompt, tier=1) → commit msg
+  │   returns: { status, commit, changes }
+  │
+  ├─ Invoke-Umlindi (Security)
+  │   check changed files for hardcoded secret values (regex: key = "value-8+chars")
+  │   returns: { status: PASS | BLOCK, reason }
+  │   BLOCK → mark task blocked, write session log, stop
+  │
+  ├─ Invoke-Mvavanyi (QA)
+  │   npm run build + pytest (if files exist)
+  │   returns: { status: PASS | FAIL, error }
+  │   FAIL → Invoke-SelfHeal → write session log, mark retry, stop
+  │
+  └─ git commit + git push
+      Complete-SessionLog → session-log-update.ps1
+```
+
+---
+
+### 16.3 Sibali — Multi-Model Cost Router
+
+`agent-v3.ps1` implements Sibali's cost-tier routing via `Invoke-Model`:
+
+| Tier | Label | Model used | Cost |
+|------|-------|-----------|------|
+| 1 | Fast/Cheap | Ollama `deepseek-coder` (local) | ~$0 |
+| 2 | Medium | Claude API `claude-haiku-4-5-20251001` | Low |
+| 3 | Complex | Claude API `claude-sonnet-4-6` | Medium |
+
+**Routing logic:**
+- Commit message generation → Tier 1 (Ollama, fast, free)
+- QA failure analysis (`Invoke-SelfHeal`) → Tier 2 (Claude Haiku, better reasoning)
+- If `ANTHROPIC_API_KEY` is not set in `.env`, all tiers fall back to Ollama
+
+**API key requirement:** Set `ANTHROPIC_API_KEY` in `c:\DevWork\.env` to enable Tier 2/3 Claude routing. Without it, all tasks use Ollama only.
+
+---
+
+### 16.4 Session Log Integration
+
+`agent-v3.ps1` writes session logs for every task it processes, implementing §6 from within the autonomous loop.
+
+#### On task start — `New-SessionLog`
+
+Creates a new session log in `c:\DevWork\sessions\` with all mandatory sections pre-filled:
+- Filename: `agent_{taskType}_{date}_{time}.md`
+- `## Goal Status: PENDING` (updated by `Complete-SessionLog` on task end)
+- `## Agent Accountability` table (row added by `Complete-SessionLog`)
+- All other mandatory sections (Goal, Decisions, Work Done, Blockers, Learnings)
+
+#### On task end — `Complete-SessionLog`
+
+Updates the session log with task outcome, then calls `session-log-update.ps1`:
+- Sets `## Goal Status` to `ACHIEVED` (task completed) or `FAILED`
+- Adds a row to `## Agent Accountability` table: task ID, assigned agent, status, note
+- Updates `## Work Done` with the outcome note
+- Calls `.claude\scripts\session-log-update.ps1` — which writes the closing accountability signature (§14.2)
+
+---
+
+### 16.5 Session Log Heartbeat (Cross-Provider)
+
+Every 20 minutes, `agent-v3.ps1` runs `Invoke-SessionLogCheck`, which calls `session-log-update.ps1` independently of any task completion.
+
+**Why:** `session-log-update.ps1` finds the most recent session log from *any* provider and applies the 30-minute auto-confirm rule (§14.2). This means `agent-v3.ps1` acts as a background enforcer for sessions created by Claude Code, Copilot, Cursor, Kiro, or any other provider — not just its own tasks.
+
+```
+every 20 minutes (every 60 ticks of the 20s loop):
+  run session-log-update.ps1
+    └─ finds latest sessions/*.md
+    └─ if Goal Status = ACHIEVED → write signature (if not already signed)
+    └─ if inactive 30+ min + sections filled → auto-sign [AUTOMATED]
+    └─ if already signed → timestamp only and exit
+```
+
+---
+
+### 16.6 Security Check — Umlindi
+
+`Invoke-Umlindi` checks all files changed in the current git diff for hardcoded secret values before any commit is allowed. It looks for assignment patterns like:
+
+```
+password = "some-real-value"
+api_key: "sk-abc123..."
+```
+
+Pattern used:
+```
+(?im)^[^#/]\S*(password|api_key|secret|token)\s*[=:]\s*['"][^'"]{8,}
+```
+
+This matches:
+- Non-comment lines only (excludes `#` and `//` prefixes)
+- Assignment or colon notation
+- Quoted values of 8 or more characters (to exclude empty or placeholder values)
+
+If matched: task is set to `blocked` and a session log entry records which file triggered the block.
+
+---
+
+### 16.7 Architecture Coverage
+
+`agent-v3.ps1` closes all gaps from the earlier orchestrator/worker implementation:
+
+| Gap (from earlier version) | Now closed by agent-v3? |
+|---------------------------|------------------------|
+| No Sibali cost check | Yes — `Invoke-Model` routes by tier |
+| No session log written | Yes — `New-SessionLog` on every task start |
+| No Goal Status / signature | Yes — `Complete-SessionLog` + `session-log-update.ps1` |
+| No Umlindi pre-commit audit | Yes — `Invoke-Umlindi` blocks on hardcoded secrets |
+| No Mvavanyi QA pass | Yes — `Invoke-Mvavanyi` runs build + tests before push |
+| Cross-provider log enforcement | Yes — 20-min `Invoke-SessionLogCheck` heartbeat |
+
+**Remaining gaps (not yet in agent-v3):**
+
+| Gap | Architecture rule | Priority |
+|-----|------------------|----------|
+| No Sibali JSON payload response | §3.1 — Sibali should return structured JSON | Low |
+| Single task type (`commit`) | §5.1 — full schema includes content, research, design tasks | Medium |
+| No Mlawuli fault tolerance retry | §3.2 STEP 3 — retry up to 3 times on worker failure | Medium |
+| No Mbhali post-production trigger | §12 — docs update after QA PASS + production stage | Low |
+| QA not split by domain | §2.2/§3.8 — `Invoke-Mvavanyi` still runs one combined build+test pass; it does not yet call out separately to Umcwaningi (code QA) or Umbheki (UX/UI QA) | Medium |
+
+---
+
+### 16.8 Local AI Model
+
+`agent-v3.ps1` uses Ollama with `deepseek-coder` for all Tier 1 tasks.
+
+- Ollama must be installed and running: `ollama serve`
+- Model must be pulled: `ollama pull deepseek-coder`
+- No API cost for Tier 1 tasks — local inference only
+- Tier 2/3 tasks use Claude API if `ANTHROPIC_API_KEY` is set in `.env`
+
+See `memory/project_local_ai_models.md` for installed models and smoke-test status.
 
 ---
 

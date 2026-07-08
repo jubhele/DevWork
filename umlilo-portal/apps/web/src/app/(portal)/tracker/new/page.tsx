@@ -1,4 +1,5 @@
 import { cookies } from 'next/headers'
+import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { getUserFromPortalCookie, can } from '@/lib/auth'
 import { CATEGORY_LABELS, visibleCategoriesForRole } from '@/lib/tracker'
@@ -11,7 +12,7 @@ export default async function NewTaskPage({
   searchParams: Promise<{ category?: string }>
 }) {
   const cookieStore = await cookies()
-  const user        = getUserFromPortalCookie(cookieStore.get('bf_portal')?.value)
+  const user = getUserFromPortalCookie(cookieStore.get('bf_portal')?.value)
 
   if (!user || !can(user, 'task.create')) notFound()
 
@@ -25,10 +26,10 @@ export default async function NewTaskPage({
   return (
     <div className="max-w-xl">
       <div className="mb-6">
-        <a href="/tracker" className="text-xs text-ash hover:text-fire-orange uppercase tracking-wider">
-          ← Tracker
-        </a>
-        <h1 className="font-display text-2xl tracking-wider text-bone-paper uppercase mt-2">
+        <Link href="/tracker" className="text-xs uppercase tracking-wider text-ash hover:text-fire-orange">
+          {'<-'} Tracker
+        </Link>
+        <h1 className="mt-2 font-display text-2xl uppercase tracking-wider text-bone-paper">
           New Task
         </h1>
       </div>

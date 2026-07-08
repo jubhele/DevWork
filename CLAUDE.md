@@ -101,7 +101,9 @@ c:\DevWork\
 │   ├── sibali_system_prompt.md       ← Sibali (Accountant) — cost governance
 │   ├── mlawuli_system_prompt.md      ← Mlawuli (Controller) — supervisor
 │   ├── umdwebi_system_prompt.md      ← Umdwebi (Artist) — design & brand
-│   ├── mvavanyi_system_prompt.md     ← Mvavanyi (Tester) — QA & testing
+│   ├── mvavanyi_system_prompt.md     ← Mvavanyi (Tester) — functional QA & regression
+│   ├── umcwaningi_system_prompt.md   ← Umcwaningi (Auditor) — code QA & static review
+│   ├── umbheki_system_prompt.md      ← Umbheki (Watcher) — UX/UI QA & visual regression
 │   ├── umlindi_system_prompt.md      ← Umlindi (Guardian) — governance & compliance
 │   └── sebenza_agents.md             ← All 8 Sebenza agent definitions
 ├── design/                     ← Umdwebi's domain — brand tokens, design exports
@@ -513,7 +515,9 @@ This workspace runs a named, role-separated agent workforce. All agent system pr
 | **Mhloli** | Explorer / Inspector | Research, competitive intel, threat modelling | 5 |
 | **Umakhi** | The Builder | Code & portal development | 3 |
 | **Umdwebi** | The Artist / Draughtsperson | Brand identity, UI/UX design | 2 |
-| **Mvavanyi** | The Evaluator / Tester | QA, testing, regression | 3 |
+| **Mvavanyi** | The Evaluator / Tester | Functional QA, regression, integration testing | 3 |
+| **Umcwaningi** | The Auditor / Examiner | Code QA — correctness, coverage, efficiency | 3 |
+| **Umbheki** | The Watcher / Observer | UX/UI QA — visual regression, accessibility | 2 |
 | **Umlindi** | The Guardian / Watchman | Governance, compliance, policy enforcement | 2 |
 
 Full definitions: `agents/sebenza_agents.md`
@@ -531,11 +535,14 @@ When multiple AI providers are active simultaneously, Mlawuli is the designated 
 | Research / competitive intel / threat modelling | Mhloli |
 | Code / portal / database / API | Umakhi |
 | Brand / design / UI / UX | Umdwebi |
-| QA / testing / regression / functional verification | Mvavanyi |
+| Functional QA / regression / integration / E2E verification | Mvavanyi |
+| Code QA / static review / test coverage / efficiency audit | Umcwaningi |
+| UX/UI QA / visual regression / accessibility / brand compliance | Umbheki |
 | Policy compliance / governance / security posture | Umlindi |
 
 All payloads pass through Sibali (cost clearance) before reaching any Sebenza agent.
-Umlindi audits Umakhi's changes pre-deploy. Mvavanyi tests Umakhi's output before release.
+Umlindi audits Umakhi's changes pre-deploy. Mvavanyi, Umcwaningi, and Umbheki each test a
+different slice of Umakhi's output (behavior, code quality, visual/UX) before release.
 
 ### 12.3 Claude Code as Mlawuli
 
@@ -587,6 +594,8 @@ Each Sebenza agent has a maximum iteration budget before it must escalate to Mla
 | Umakhi | 3 |
 | Umdwebi | 2 |
 | Mvavanyi | 3 |
+| Umcwaningi | 3 |
+| Umbheki | 2 |
 | Umlindi | 2 |
 
 If an agent loop exceeds its cap, Mlawuli terminates the loop and logs `LOOP_TERMINATED`.
@@ -598,7 +607,7 @@ Append this block to any session log that involved multi-agent coordination or S
 ```json
 {
   "session_id": "<YYYYMMDD_HHmmss>",
-  "agent": "<Nkanyezi | Usiba | Mhloli | Umakhi | Umdwebi | Mvavanyi | Umlindi>",
+  "agent": "<Nkanyezi | Usiba | Mhloli | Umakhi | Umdwebi | Mvavanyi | Umcwaningi | Umbheki | Umlindi>",
   "model_endpoint": "<claude-sonnet-4-6 | gpt-4o | etc>",
   "token_metrics": {
     "tokens_in": 0,

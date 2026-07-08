@@ -1,0 +1,62 @@
+table Transactions
+	lineageTag: bc000000-0000-4000-8000-000000000001
+
+	column id
+		dataType: int64
+		formatString: 0
+		lineageTag: bc000000-0000-4000-8000-000000000002
+		summarizeBy: none
+		sourceColumn: id
+
+	column trans_date
+		dataType: dateTime
+		formatString: Short Date
+		lineageTag: bc000000-0000-4000-8000-000000000003
+		summarizeBy: none
+		sourceColumn: trans_date
+
+	column description
+		dataType: string
+		lineageTag: bc000000-0000-4000-8000-000000000004
+		summarizeBy: none
+		sourceColumn: description
+
+	column category
+		dataType: string
+		lineageTag: bc000000-0000-4000-8000-000000000005
+		summarizeBy: none
+		sourceColumn: category
+
+	column reference
+		dataType: string
+		lineageTag: bc000000-0000-4000-8000-000000000006
+		summarizeBy: none
+		sourceColumn: reference
+
+	column credit
+		dataType: double
+		formatString: \R#,0.00
+		lineageTag: bc000000-0000-4000-8000-000000000007
+		summarizeBy: sum
+		sourceColumn: credit
+
+	column debit
+		dataType: double
+		formatString: \R#,0.00
+		lineageTag: bc000000-0000-4000-8000-000000000008
+		summarizeBy: sum
+		sourceColumn: debit
+
+	partition Transactions = m
+		mode: import
+		source =
+				let
+					Source = MySQL.Database(#"Database Server", #"Database Name", [ReturnSingleDatabase=true]),
+					Data = Source{[Schema=#"Database Name",Item="bf_transactions"]}[Data],
+					Selected = Table.SelectColumns(Data, {"id", "trans_date", "description", "category", "reference", "credit", "debit"}, MissingField.UseNull),
+					Typed = Table.TransformColumnTypes(Selected, {{"credit", type number}, {"debit", type number}, {"trans_date", type datetime}})
+				in
+					Typed
+
+	annotation PBI_ResultType = Table
+

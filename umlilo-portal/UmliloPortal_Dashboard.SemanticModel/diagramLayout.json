@@ -1,0 +1,165 @@
+{
+  "version": "1.1.0",
+  "diagrams": [
+    {
+      "ordinal": 0,
+      "scrollPosition": {
+        "x": 0,
+        "y": 0
+      },
+      "nodes": [
+        {
+          "location": {
+            "x": 1463.0806690431154,
+            "y": 274.19158104927044
+          },
+          "nodeIndex": "Metrics",
+          "nodeLineageTag": "b9000000-0000-4000-8000-000000000001",
+          "size": {
+            "height": 300,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 591.82286125693224,
+            "y": 498.38316209854088
+          },
+          "nodeIndex": "Callouts",
+          "nodeLineageTag": "b3000000-0000-4000-8000-000000000001",
+          "size": {
+            "height": 300,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 334.23622512612258,
+            "y": 200.19492634128051
+          },
+          "nodeIndex": "Clients",
+          "nodeLineageTag": "b2000000-0000-4000-8000-000000000001",
+          "size": {
+            "height": 248,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 1011.1890447804658,
+            "y": 498.31174790444453
+          },
+          "nodeIndex": "Date",
+          "nodeLineageTag": "b8000000-0000-4000-8000-000000000001",
+          "size": {
+            "height": 200,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 807.72603433181143,
+            "y": 148.18111898448205
+          },
+          "nodeIndex": "Invoices",
+          "nodeLineageTag": "b5000000-0000-4000-8000-000000000001",
+          "size": {
+            "height": 300,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 1229.0806690431154,
+            "y": 248.17377734593174
+          },
+          "nodeIndex": "Payments",
+          "nodeLineageTag": "b6000000-0000-4000-8000-000000000001",
+          "size": {
+            "height": 200,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 50,
+            "y": 308.73224459982794
+          },
+          "nodeIndex": "Quotes",
+          "nodeLineageTag": "b4000000-0000-4000-8000-000000000001",
+          "size": {
+            "height": 272,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 123.37788429361535,
+            "y": -50
+          },
+          "nodeIndex": "Users",
+          "nodeLineageTag": "b7000000-0000-4000-8000-000000000001",
+          "size": {
+            "height": 200,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 1697.0806690431154,
+            "y": 276.19158104927044
+          },
+          "nodeIndex": "SafetyFiles",
+          "nodeLineageTag": "ba000000-0000-4000-8000-000000000001",
+          "size": {
+            "height": 296,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 1981.0806690431154,
+            "y": 276.19158104927044
+          },
+          "nodeIndex": "Tasks",
+          "nodeLineageTag": "bb000000-0000-4000-8000-000000000001",
+          "size": {
+            "height": 296,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 2265.0806690431154,
+            "y": 300.19158104927044
+          },
+          "nodeIndex": "Transactions",
+          "nodeLineageTag": "bc000000-0000-4000-8000-000000000001",
+          "size": {
+            "height": 248,
+            "width": 234
+          },
+          "zIndex": 0
+        }
+      ],
+      "name": "All tables",
+      "zoomValue": 100,
+      "pinKeyFieldsToTop": false,
+      "showExtraHeaderInfo": false,
+      "hideKeyFieldsWhenCollapsed": false,
+      "tablesLocked": false
+    }
+  ],
+  "selectedDiagram": "All tables",
+  "defaultDiagram": "All tables"
+}

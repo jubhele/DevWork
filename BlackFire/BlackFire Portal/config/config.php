@@ -12,9 +12,18 @@
 // ~/blackfire_secrets.php  — one level above public_html, never web-accessible,
 // never committed to git. Owns ALL secrets: DB, encryption key, SMTP password.
 // See blackfire_secrets.php.example in the portal root for the required template.
-$secretsFile = dirname(__DIR__, 2) . '/blackfire_secrets.php';
-if (file_exists($secretsFile)) {
-    require_once $secretsFile;
+$secretsFiles = [
+    dirname(__DIR__, 2) . '/blackfire_secrets.php',
+    dirname(__DIR__) . '/blackfire_secrets.php',
+];
+$hasProductionSecrets = false;
+foreach ($secretsFiles as $secretsFile) {
+    if (file_exists($secretsFile)) {
+        require_once $secretsFile;
+        if (realpath($secretsFile) === realpath(dirname(__DIR__, 2) . '/blackfire_secrets.php')) {
+            $hasProductionSecrets = true;
+        }
+    }
 }
 
 // ── Local dev fallback (.env) ──────────────────────────────────────
@@ -33,7 +42,26 @@ $portalMirrorKeys = [
     'BF_INVOICE_PREFIX', 'BF_QUOTE_PREFIX', 'BF_CALLOUT_PREFIX',
 ];
 
-if (!file_exists($secretsFile) && is_readable($portalMirrorFile)) {
+if (!function_exists('cfg_has_value')) {
+function cfg_has_value(string $key): bool {
+    $values = [
+        getenv($key),
+        $_ENV[$key] ?? null,
+        $_SERVER[$key] ?? null,
+        defined($key) ? constant($key) : null,
+    ];
+
+    foreach ($values as $value) {
+        if ($value !== null && trim((string)$value) !== '') {
+            return true;
+        }
+    }
+
+    return false;
+}
+}
+
+if (is_readable($portalMirrorFile)) {
     foreach (file($portalMirrorFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
         $line = preg_replace('/^\xEF\xBB\xBF/', '', trim($line));
         if ($line === '' || $line[0] === '#' || strpos($line, '=') === false) {
@@ -47,8 +75,8 @@ if (!file_exists($secretsFile) && is_readable($portalMirrorFile)) {
             continue;
         }
 
-        // Existing server values win if a mirror is accidentally present outside local development.
-        if (getenv($key) !== false || isset($_ENV[$key]) || isset($_SERVER[$key]) || defined($key)) {
+        // Production secrets win; local .env stays authoritative when no production secret file exists.
+        if ($hasProductionSecrets && cfg_has_value($key)) {
             continue;
         }
 
@@ -84,25 +112,50 @@ if (!function_exists('bf_decrypt')) {
 function bf_decrypt(string $encoded): string {
     // Check all possible sources — putenv() is disabled on some shared hosts
     $keyHex = cfg_env('BF_APP_KEY');
-    if (!$keyHex) {
+    $plainPass = cfg_env('BF_DB_PASS');
+
+    if ($plainPass && !$keyHex) {
         // Fallback for local development: try plaintext password from env
-        $plainPass = cfg_env('BF_DB_PASS');
-        if ($plainPass) {
-            error_log('[Portal] Using plaintext BF_DB_PASS (local dev mode)');
-            return $plainPass;
-        }
+        error_log('[Portal] Using plaintext BF_DB_PASS (local dev mode)');
+        return $plainPass;
+    }
+
+    if (!$keyHex) {
         error_log('[Portal] BF_APP_KEY is not set and BF_DB_PASS is missing — decryption failed');
         return '';
     }
-    $raw  = base64_decode($encoded);
+
+    if ($encoded === '') {
+        if ($plainPass) {
+            error_log('[Portal] Using plaintext BF_DB_PASS (empty encrypted value)');
+            return $plainPass;
+        }
+        error_log('[Portal] Invalid encrypted value format');
+        return '';
+    }
+
+    $raw  = base64_decode($encoded, true);
     if (!$raw || strlen($raw) < 17) {
+        if ($plainPass) {
+            error_log('[Portal] Using plaintext BF_DB_PASS (invalid encrypted value format)');
+            return $plainPass;
+        }
         error_log('[Portal] Invalid encrypted value format');
         return '';
     }
     $iv   = substr($raw, 0, 16);
     $data = substr($raw, 16);
     $decrypted = openssl_decrypt($data, 'AES-256-CBC', hex2bin($keyHex), OPENSSL_RAW_DATA, $iv);
-    return $decrypted ?: '';
+    if ($decrypted !== false && $decrypted !== '') {
+        return $decrypted;
+    }
+
+    if ($plainPass) {
+        error_log('[Portal] Using plaintext BF_DB_PASS (decryption failed)');
+        return $plainPass;
+    }
+
+    return '';
 }
 }
 

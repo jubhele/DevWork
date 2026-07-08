@@ -73,11 +73,15 @@ This repo uses the DevWork named workforce:
 | Mhloli | Research, intelligence, audits |
 | Umakhi | Code and portal development |
 | Umdwebi | Brand, design, UI/UX governance |
-| Mvavanyi | QA, testing, regression verification |
+| Mvavanyi | Functional QA, regression, integration/E2E verification |
+| Umcwaningi | Code QA — correctness, coverage, efficiency |
+| Umbheki | UX/UI QA — visual regression, accessibility |
 | Umlindi | Governance, compliance, security posture |
 | Mbhali | Technical documentation |
 
-Routing rule: Content → Nkanyezi; Docs → Usiba or Mbhali; Research → Mhloli; Code → Umakhi; Design → Umdwebi; QA → Mvavanyi; Governance/security → Umlindi.
+QA is split three ways: Mvavanyi (behavior), Umcwaningi (code quality), Umbheki (visual/UX).
+
+Routing rule: Content → Nkanyezi; Docs → Usiba or Mbhali; Research → Mhloli; Code → Umakhi; Design → Umdwebi; Functional QA → Mvavanyi; Code QA → Umcwaningi; UX/UI QA → Umbheki; Governance/security → Umlindi.
 
 All payloads pass through Sibali before reaching a worker. The active provider acts as Mlawuli when it is the sole active agent.
 

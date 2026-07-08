@@ -194,17 +194,23 @@ All agent system prompts live in `agents/`. Full definitions in `CLAUDE.md` §12
 | **Mhloli** | Explorer / Inspector | Research, competitive intel, security audits |
 | **Umakhi** | The Builder | Code & portal development (BlackFire Portal, Umlilo) |
 | **Umdwebi** | The Artist | Brand identity, UI/UX design, design system governance |
-| **Mvavanyi** | The Evaluator/Tester | QA, testing, regression, functional verification |
+| **Mvavanyi** | The Evaluator/Tester | Functional QA, regression, integration/E2E verification |
+| **Umcwaningi** | The Auditor/Examiner | Code QA — correctness, coverage, efficiency, modularity |
+| **Umbheki** | The Watcher/Observer | UX/UI QA — visual regression, accessibility, brand compliance |
 | **Umlindi** | The Guardian/Watchman | Governance, compliance, policy enforcement, session audit |
 
 These are **Sebenza agents** *(from ukusebenza: to work)* — full definitions in `agents/sebenza_agents.md`.
+QA is split three ways: Mvavanyi (behavior), Umcwaningi (code quality), Umbheki (visual/UX) —
+a single tester previously conflated all three, letting visual and code-quality issues slide
+through under a functional pass/fail label.
 
-**Routing rule:** Content → Nkanyezi | Docs → Usiba | Research → Mhloli | Code → Umakhi | Design → Umdwebi | QA → Mvavanyi | Governance → Umlindi.
+**Routing rule:** Content → Nkanyezi | Docs → Usiba | Research → Mhloli | Code → Umakhi | Design → Umdwebi | Functional QA → Mvavanyi | Code QA → Umcwaningi | UX/UI QA → Umbheki | Governance → Umlindi.
 All payloads pass through Sibali before reaching any Sebenza agent.
-Umlindi audits Umakhi pre-deploy. Mvavanyi tests Umakhi output before release.
+Umlindi audits Umakhi pre-deploy. Mvavanyi, Umcwaningi, and Umbheki each test a different slice
+of Umakhi's output before release.
 
 **Hard caps (max iterations before escalating to Mlawuli):**
-Nkanyezi=3 | Usiba=2 | Mhloli=5 | Umakhi=3 | Umdwebi=2 | Mvavanyi=3 | Umlindi=2
+Nkanyezi=3 | Usiba=2 | Mhloli=5 | Umakhi=3 | Umdwebi=2 | Mvavanyi=3 | Umcwaningi=3 | Umbheki=2 | Umlindi=2
 
 **Fault tolerance:** Mlawuli retries a failed worker agent up to 3 times before flagging a system error.
 **Memory compression:** Sibali triggers summarisation when a worker's context hits 70% capacity.

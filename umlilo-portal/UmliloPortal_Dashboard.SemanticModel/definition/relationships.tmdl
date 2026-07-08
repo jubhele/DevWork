@@ -1,0 +1,55 @@
+relationship c0000001-0000-4000-8000-000000000001
+	fromColumn: Callouts.client_id
+	toColumn: Clients.id
+
+relationship c0000001-0000-4000-8000-000000000002
+	fromColumn: Quotes.client_id
+	toColumn: Clients.id
+
+relationship c0000001-0000-4000-8000-000000000003
+	fromColumn: Invoices.client_id
+	toColumn: Clients.id
+
+relationship c0000001-0000-4000-8000-000000000004
+	fromColumn: Payments.invoice_id
+	toColumn: Invoices.id
+
+relationship c0000001-0000-4000-8000-000000000005
+	fromColumn: Users.client_id
+	toColumn: Clients.id
+
+relationship c0000001-0000-4000-8000-000000000006
+	fromColumn: Callouts.callout_date
+	toColumn: Date.Date
+
+relationship c0000001-0000-4000-8000-000000000007
+	fromColumn: Invoices.due_date
+	toColumn: Date.Date
+
+relationship c0000001-0000-4000-8000-000000000008
+	isActive: false
+	fromColumn: Invoices.paid_date
+	toColumn: Date.Date
+
+relationship c0000001-0000-4000-8000-000000000009
+	isActive: false
+	fromColumn: Payments.payment_date
+	toColumn: Date.Date
+
+relationship c0000001-0000-4000-8000-00000000000a
+	fromColumn: SafetyFiles.audit_date
+	toColumn: Date.Date
+
+relationship c0000001-0000-4000-8000-00000000000b
+	fromColumn: Tasks.due_date
+	toColumn: Date.Date
+
+relationship c0000001-0000-4000-8000-00000000000c
+	fromColumn: Transactions.trans_date
+	toColumn: Date.Date
+
+relationship c0000001-0000-4000-8000-00000000000d
+	isActive: false
+	fromColumn: Payments.client_id
+	toColumn: Clients.id
+

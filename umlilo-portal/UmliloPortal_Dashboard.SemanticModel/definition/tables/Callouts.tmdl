@@ -1,0 +1,81 @@
+table Callouts
+	lineageTag: b3000000-0000-4000-8000-000000000001
+
+	column id
+		dataType: int64
+		formatString: 0
+		lineageTag: b3000000-0000-4000-8000-000000000002
+		summarizeBy: none
+		sourceColumn: id
+
+	column ref_id
+		dataType: string
+		lineageTag: b3000000-0000-4000-8000-000000000003
+		summarizeBy: none
+		sourceColumn: ref_id
+
+	column client_id
+		dataType: int64
+		formatString: 0
+		lineageTag: b3000000-0000-4000-8000-000000000004
+		summarizeBy: none
+		sourceColumn: client_id
+
+	column service
+		dataType: string
+		lineageTag: b3000000-0000-4000-8000-000000000005
+		summarizeBy: none
+		sourceColumn: service
+
+	column location
+		dataType: string
+		lineageTag: b3000000-0000-4000-8000-000000000006
+		summarizeBy: none
+		sourceColumn: location
+
+	column priority
+		dataType: string
+		lineageTag: b3000000-0000-4000-8000-000000000007
+		summarizeBy: none
+		sourceColumn: priority
+
+	column status
+		dataType: string
+		lineageTag: b3000000-0000-4000-8000-000000000008
+		summarizeBy: none
+		sourceColumn: status
+
+	column assigned_to
+		dataType: string
+		lineageTag: b3000000-0000-4000-8000-000000000009
+		summarizeBy: none
+		sourceColumn: assigned_to
+
+	column callout_date
+		dataType: dateTime
+		formatString: Short Date
+		lineageTag: b3000000-0000-4000-8000-00000000000a
+		summarizeBy: none
+		sourceColumn: callout_date
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column created_at
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: b3000000-0000-4000-8000-00000000000b
+		summarizeBy: none
+		sourceColumn: created_at
+
+	partition Callouts = m
+		mode: import
+		source =
+				let
+					Source = MySQL.Database(#"Database Server", #"Database Name", [ReturnSingleDatabase=true]),
+					Data = Source{[Schema=#"Database Name",Item="bf_callouts"]}[Data],
+					Selected = Table.SelectColumns(Data, {"id", "ref_id", "client_id", "service", "location", "priority", "status", "assigned_to", "callout_date", "created_at"}, MissingField.UseNull)
+				in
+					Selected
+
+	annotation PBI_ResultType = Table
+

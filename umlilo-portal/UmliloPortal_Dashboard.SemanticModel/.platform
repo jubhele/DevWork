@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "SemanticModel",
+    "displayName": "UmliloPortal_Dashboard"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "2b982ead-6466-4f6e-a0e1-8fe94862b9b2"
+  }
+}

@@ -15,4 +15,4 @@ Python 3.11+ backend (FastAPI, Celery, Playwright) + Next.js 15 frontend + Postg
 - `DEBUG_MODE=false` in production `.env`; never `true` in `.env.example`
 
 ## Definition of Done
-Code → Mvavanyi (QA PASS) → Umlindi (COMPLIANT) → Mbhali (docs updated) → session log complete.
+Code → Mvavanyi/Umcwaningi/Umbheki (functional/code/UX QA PASS) → Umlindi (COMPLIANT) → Mbhali (docs updated) → session log complete.
