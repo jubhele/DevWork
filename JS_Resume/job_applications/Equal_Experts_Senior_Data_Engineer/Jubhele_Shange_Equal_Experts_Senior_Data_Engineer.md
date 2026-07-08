@@ -5,12 +5,12 @@ South Africa | jubhele@gmail.com | [LinkedIn](https://www.linkedin.com/in/jubhel
 
 ## Professional Profile
 
-Senior data engineer and consultant with 14+ years across data engineering, business intelligence and database delivery, including banking, insurance, investment, mining and enterprise consulting. Builds and supports production data pipelines, warehouses and analytical models using Azure, SQL and Python, with hands-on experience in data governance, security, quality and regulated delivery. Comfortable partnering with clients, mentoring teams and working remotely across distributed environments.
+Senior data engineer and consultant with 14+ years across BI, database delivery, and regulated enterprise environments. Specialises in Azure data platform delivery, data governance, and production support, with hands-on experience in Azure Data Factory, Azure Synapse, Azure Storage, PySpark, SQL, Python, and Power BI cloud migration. Delivered Azure-based ingestion, transformation, and reporting solutions for Standard Bank and Coca-Cola, including flat-file processing from Azure Storage in XML, Parquet, and CSV formats. Comfortable partnering with clients, mentoring teams and working remotely across distributed environments.
 
 ## Core Capabilities
 
-- **Data engineering:** Azure Synapse, Azure Data Factory, SQL Server, ETL/ELT, stored procedures, data warehouses, dimensional modelling, data quality and reconciliation.
-- **Programming and analytics:** SQL/T-SQL, Python, Pandas, Power BI, DAX, SSIS, SSRS, SSAS and Git-based delivery.
+- **Data engineering:** Azure Data Factory, Azure Synapse, Azure Storage, PySpark, SQL Server, ETL/ELT, stored procedures, data warehouses, dimensional modelling, data quality and reconciliation.
+- **Programming and analytics:** SQL/T-SQL, Python, Pandas, Power BI, DAX, SSIS, SSRS, SSAS, Power BI Service configuration and Git-based delivery.
 - **Governance and security:** Microsoft Purview, data classification, lineage, sensitivity labels, DLP, information protection, audit controls and regulated-data handling.
 - **Consulting delivery:** stakeholder discovery, pragmatic solution design, production support, documentation, mentoring, distributed collaboration and continuous improvement.
 
@@ -20,6 +20,11 @@ Senior data engineer and consultant with 14+ years across data engineering, busi
 - **Leading as a Senior Engineer:** 6+ years.
 - **Build scalable data pipelines:** 10+ years.
 - **Data Engineering leadership with Spark (PySpark in Azure Synapse):** 3+ years.
+
+## Selected Azure Data Platform Projects
+
+- **Standard Bank:** Led data migration from legacy sources into Azure, building cloud artefacts in Azure Data Factory, Azure Storage, and Azure Synapse; used Python and PySpark to transform data and configured Power BI Service workspaces, datasets, refresh schedules, gateway connections, and permissions for cloud reporting.
+- **Coca-Cola:** Automated operational data pipelines with Azure Data Factory, Python, and PySpark, staging flat files from Azure Storage into Synapse and supporting Power BI reporting with cleaner, more consistent curated data.
 
 ## Professional Experience
 

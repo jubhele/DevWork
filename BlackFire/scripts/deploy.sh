@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # BlackFire Solutions — Afrihost deploy script
-# Clones/pulls the repo into a staging folder, then rsyncs only PHP + config
-# files to the live web root. Git never runs inside public_html.
+# Clones/pulls the repo into a staging folder, then rsyncs only the portal
+# files the PHP site and website actually use. Git never runs inside public_html.
 #
 # First run:  bash ~/scripts/deploy.sh          (clones the repo)
 # Every run after: same command — it just pulls + syncs.
@@ -17,7 +17,11 @@ REPO_URL="https://github.com/jubhele/BlackFire.git"
 BRANCH="${BRANCH:-Emzumbe}"
 STAGING_DIR="$HOME/blackfire-staging"          # repo lives here — NOT in public_html
 WEB_ROOT="$HOME/public_html"                   # adjust if your web root differs
-PORTAL_SRC="$STAGING_DIR/BlackFire/BlackFire Portal"
+SPARSE_PATHS=(
+    "BlackFire Portal"
+    "BlackFire/BlackFire Portal"
+)
+PORTAL_SRC=""
 
 # ── Banner ────────────────────────────────────────────────────────────────────
 echo ""
@@ -37,17 +41,33 @@ if [ -d "$STAGING_DIR/.git" ]; then
     git -C "$STAGING_DIR" pull origin "$BRANCH"
 else
     echo "── Cloning repo (first run) ──────────────────────────────────────"
-    git clone --branch "$BRANCH" "$REPO_URL" "$STAGING_DIR"
+    git clone --depth=1 --single-branch --no-tags --filter=blob:none --sparse --branch "$BRANCH" "$REPO_URL" "$STAGING_DIR"
 fi
+
+git -C "$STAGING_DIR" sparse-checkout init --cone >/dev/null 2>&1 || true
+git -C "$STAGING_DIR" sparse-checkout set "${SPARSE_PATHS[@]}"
+
+for candidate in \
+    "$STAGING_DIR/BlackFire Portal" \
+    "$STAGING_DIR/BlackFire/BlackFire Portal"; do
+    if [ -d "$candidate" ]; then
+        PORTAL_SRC="$candidate"
+        break
+    fi
+done
+
+[[ -n "$PORTAL_SRC" ]] || fail "Portal source not found in staging repo."
 
 echo ""
 echo "── Syncing PHP + config to web root ─────────────────────────────"
-# rsync only .php, .htaccess, .css, .js, .json — skips .git, node_modules, etc.
+# rsync only the portal files the live site uses — skips install, docs,
+# dev-only sources, backup folders, and repo metadata.
 rsync -av --checksum \
     --include="*/" \
     --include="*.php" \
     --include="*.htaccess" \
     --include=".htaccess" \
+    --include="*.html" \
     --include="*.css" \
     --include="*.js" \
     --include="*.json" \
@@ -57,6 +77,8 @@ rsync -av --checksum \
     --include="*.svg" \
     --include="*.ico" \
     --include="*.pdf" \
+    --include="*.txt" \
+    --include="*.xml" \
     --exclude="*" \
     "$PORTAL_SRC/" "$WEB_ROOT/"
 

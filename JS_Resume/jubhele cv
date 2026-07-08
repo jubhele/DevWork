@@ -1,4 +1,4 @@
-# JUBHELE SHANGE
+﻿# JUBHELE SHANGE
 **Senior Data & Software Engineer | Data Governance Specialist**
 
 jubhele@gmail.com
@@ -7,20 +7,25 @@ jubhele@gmail.com
 
 ## PROFESSIONAL SUMMARY
 
-High-impact Engineer with dual specialisation in data engineering and full-stack software development. Expert in enterprise data governance using Microsoft Purview, SQL-based data warehouse engineering, SAP financial data pipelines, and AML/compliance delivery. Proven across banking, insurance, investment, and security sectors — consistently translating complex business requirements into scalable, production-ready solutions.
+Senior data engineer and consultant with 14+ years across BI, database delivery, and regulated enterprise environments. Specialises in Azure data platform delivery, data governance, and production support, with hands-on experience in Azure Data Factory, Azure Synapse, Azure Storage, PySpark, SQL, Python, and Power BI cloud migration. Delivered Azure-based ingestion, transformation, and reporting solutions for Standard Bank and Coca-Cola, including flat-file processing from Azure Storage in XML, Parquet, and CSV formats.
 
 ---
 
-## PROFESSIONAL EXPERIENCE
+## Selected Azure Data Platform Projects
+
+- **Standard Bank:** Led data migration from legacy sources into Azure, building cloud artefacts in Azure Data Factory, Azure Storage, and Azure Synapse; used Python and PySpark to transform data and configured Power BI Service workspaces, datasets, refresh schedules, gateway connections, and permissions for cloud reporting.
+- **Coca-Cola:** Automated operational data pipelines with Azure Data Factory, Python, and PySpark, staging flat files from Azure Storage into Synapse and supporting Power BI reporting with cleaner, more consistent curated data.
+
+## Professional Experience
 
 ### **Sambe Consulting | Senior Consultant**
-*January 2025 – Present*
+*January 2025 â€“ Present*
 
 Strategic technical consultant deployed across high-tier clients to solve critical business and data problems through governance implementation, data engineering, and full-stack development.
 
 ---
 
-#### **Current Engagement: Microsoft Purview Specialist — Data Security & Governance**
+#### **Current Engagement: Microsoft Purview Specialist â€” Data Security & Governance**
 **Industry:** Banking
 
 Lead Purview resource responsible for establishing enterprise-wide Data Security and Governance controls across Microsoft 365, including SharePoint Online.
@@ -38,7 +43,7 @@ Lead Purview resource responsible for establishing enterprise-wide Data Security
 Delivered SQL-based analytical engines and data solutions for Anti-Money Laundering (AML) and compliance programmes within the Corporate and Investment Banking (CIB) division.
 
 - Engineered transaction monitoring SQL delivery packs targeting suspicious behaviour detection patterns, deployed on Azure Synapse and SQL Server.
-- Conducted mandatory field remediation for Watch List Filtering (WLF) — analysed data gaps, authored SQL remediation scripts, and produced BA-ready validation documentation.
+- Conducted mandatory field remediation for Watch List Filtering (WLF) â€” analysed data gaps, authored SQL remediation scripts, and produced BA-ready validation documentation.
 - Delivered idempotent, auditable SQL scripts and test packs for compliance review across regulated production environments.
 
 ---
@@ -87,7 +92,7 @@ Contributed to a strategic on-premise data infrastructure modernisation programm
 ## TECHNICAL SKILLS
 
 - **Data Governance:** Microsoft Purview (Sensitivity Labels, DLP Policies, Information Protection, Compliance Portal), M365 Security, SharePoint Online Governance
-- **Data Engineering:** SQL (T-SQL, Azure Synapse, Stored Procedures, ETL), Python (Pandas, openpyxl), SAP GL Extract Processing, Power BI, Data Warehouse Design
+- **Data Engineering:** SQL (T-SQL, Azure Synapse, Stored Procedures, ETL), Python (Pandas, openpyxl), Azure Data Factory, PySpark, SAP GL Extract Processing, Power BI, Data Warehouse Design
 - **AML / Compliance:** Transaction Monitoring SQL Engines, Watch List Filtering (WLF), AML Delivery Packs, Compliance Documentation
 - **Software Engineering:** Next.js, TypeScript, React, Node.js, PHP, MySQL
 - **Architecture:** Multi-tenancy, Monorepo Management, REST APIs, ETL Pipelines
@@ -97,3 +102,4 @@ Contributed to a strategic on-premise data infrastructure modernisation programm
 
 ## EDUCATION
 *(Insert relevant degrees/certifications here)*
+

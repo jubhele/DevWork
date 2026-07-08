@@ -7,8 +7,9 @@
 $cfg = require __DIR__ . '/config/config.php';
 date_default_timezone_set($cfg['timezone'] ?? 'Africa/Johannesburg');
 $cspNonce = base64_encode(random_bytes(16));
+$baseUrl = rtrim($cfg['base_url'] ?? 'https://blackfiresolutions.co.za', '/');
 // Absolute URL for the logo — used in OG/Twitter/JSON-LD meta tags
-$companyLogoUrl = rtrim($cfg['base_url'] ?? '', '/') . '/' . ltrim($cfg['company_logo'] ?? 'blackfire_logo_transparent.png', './');
+$companyLogoUrl = $baseUrl . '/' . ltrim($cfg['company_logo'] ?? 'blackfire_logo_transparent.png', './');
 ?>
 <!DOCTYPE html>
 <html lang="en" data-theme="light" data-state="public">
@@ -22,10 +23,10 @@ $companyLogoUrl = rtrim($cfg['base_url'] ?? '', '/') . '/' . ltrim($cfg['company
 <meta name="keywords" content="security company South Africa, armed response Gauteng, drone security South Africa, drone surveillance Johannesburg, aerial security monitoring, CCTV installation South Africa, AI security systems, smart security Gauteng, access control nationwide, security guards South Africa, PSIRA registered security, integrated security solutions, remote monitoring South Africa, thermal imaging security, perimeter detection, electronic security Gauteng, event security South Africa, industrial security, commercial security Johannesburg, BlackFire Solutions">
 <meta name="robots" content="index, follow">
 <meta name="author" content="<?= htmlspecialchars($cfg['company_legal_name'] ?? $cfg['company_name'] ?? 'BlackFire Solutions') ?>">
-<link rel="canonical" href="https://blackfiresolutions.co.za/">
+<link rel="canonical" href="<?= htmlspecialchars($baseUrl) ?>/">
 <!-- Open Graph -->
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://blackfiresolutions.co.za/">
+<meta property="og:url" content="<?= htmlspecialchars($baseUrl) ?>/">
 <meta property="og:title" content="<?= htmlspecialchars($cfg['company_name'] ?? 'BlackFire Solutions') ?> — Security Engineered to Protect">
 <meta property="og:description" content="PSIRA registered security company headquartered in Gauteng, operating nationwide. Specialists in drone surveillance, AI-powered CCTV, access control, armed response and integrated security technology across South Africa. 500+ clients. 50+ services.">
 <meta property="og:image" content="<?= htmlspecialchars($companyLogoUrl) ?>">
@@ -43,10 +44,10 @@ $companyLogoUrl = rtrim($cfg['base_url'] ?? '', '/') . '/' . ltrim($cfg['company
 {
   "@context": "https://schema.org",
   "@type": "LocalBusiness",
-  "@id": "https://blackfiresolutions.co.za/",
+  "@id": "<?= htmlspecialchars($baseUrl) ?>/",
   "name": <?= json_encode($cfg['company_legal_name'] ?? 'BlackFire Solutions (Pty) Ltd') ?>,
   "alternateName": <?= json_encode($cfg['company_name'] ?? 'BlackFire Solutions') ?>,
-  "url": <?= json_encode($cfg['base_url'] ?? 'https://blackfiresolutions.co.za') ?>,
+  "url": <?= json_encode($baseUrl) ?>,
   "logo": "<?= htmlspecialchars($companyLogoUrl) ?>",
   "image": "<?= htmlspecialchars($companyLogoUrl) ?>",
   "description": "PSIRA registered security company headquartered in Gauteng, providing next-generation security solutions nationwide. Specialising in drone surveillance, AI-powered CCTV, access control, armed response, perimeter detection, thermal imaging and integrated security systems across South Africa.",

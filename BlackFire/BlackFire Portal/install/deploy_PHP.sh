@@ -8,7 +8,7 @@
 #
 # What it does:
 #   1. Clones the GitHub repo (ndlunkulu branch) to a temp dir
-#   2. Rsyncs BlackFire Portal/ → public_html/
+#   2. Rsyncs the portal source directory → public_html/
 #   3. Sets correct file permissions
 #   4. Cleans up the temp clone
 #
@@ -30,7 +30,7 @@ REPO_URL="https://${GITHUB_PAT}@github.com/jubhele/BlackFire.git"
 BRANCH="Emzumbe"
 REPO_SUBDIR="BlackFire/BlackFire Portal"   # path inside repo to deploy
 DEPLOY_TARGET="${HOME}/public_html"         # Afrihost web root
-TEMP_DIR="${HOME}/tmp_blackfire_deploy_$$"
+TEMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/blackfire_deploy.XXXXXX")"
 
 # ── Colours ───────────────────────────────────────────────────────
 RED='\033[0;31m'; GREEN='\033[0;32m'; AMBER='\033[0;33m'
@@ -67,12 +67,24 @@ fi
 # ── Clone ─────────────────────────────────────────────────────────
 log "Cloning branch '${BRANCH}' to temp dir..."
 mkdir -p "$TEMP_DIR"
-git clone --depth=1 --branch "$BRANCH" "$REPO_URL" "$TEMP_DIR/repo" \
+git clone --depth=1 --single-branch --no-tags --branch "$BRANCH" "$REPO_URL" "$TEMP_DIR/repo" \
   2>&1 | grep -v "Cloning\|remote:" || true
 ok "Clone complete"
 
-SOURCE="${TEMP_DIR}/repo/${REPO_SUBDIR}"
-[[ -d "$SOURCE" ]] || fail "Source dir not found in repo: ${REPO_SUBDIR}"
+SOURCE=""
+for CANDIDATE in \
+  "${TEMP_DIR}/repo/BlackFire Portal" \
+  "${TEMP_DIR}/repo/BlackFire/BlackFire Portal" \
+  "${TEMP_DIR}/repo/BlackFire-Portal" \
+  "${TEMP_DIR}/repo"; do
+  if [[ -d "$CANDIDATE" ]]; then
+    SOURCE="$CANDIDATE"
+    break
+  fi
+done
+
+[[ -n "$SOURCE" ]] || fail "Source dir not found in repo: BlackFire Portal / BlackFire/BlackFire Portal"
+log "Using source dir: ${SOURCE#${TEMP_DIR}/repo/}"
 
 # ── Backup current public_html (safety net) ───────────────────────
 BACKUP_TS=$(date '+%Y%m%d_%H%M%S')

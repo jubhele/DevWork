@@ -22,3 +22,7 @@ The AI dashboard widgets ("AI Intelligence" and "Client Intelligence Report") ar
 ## Dark Mode Surfaces
 
 The Next.js portal theme relies on `html[data-theme='dark']` overrides for hardcoded utility classes. When a new light surface appears in dark mode, check for fixed classes like `bg-white/95` or hex-coded accent backgrounds and add a shared override in `apps/web/src/app/globals.css` instead of patching each page ad hoc.
+
+## Local DB Quirk
+
+On the Windows local PHP server, `PDO` can throw `SQLSTATE[HY000] [2019] Unknown character set` when `utf8mb4` is placed directly in the MySQL DSN. The working pattern is to connect without the charset parameter and then run `SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci` after the connection succeeds.

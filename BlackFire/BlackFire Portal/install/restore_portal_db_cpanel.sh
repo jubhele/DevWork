@@ -8,7 +8,7 @@
 #   bash restore_portal_db_cpanel.sh /path/to/dump.sql.gz
 #
 # What it does:
-#   1. Finds a local portal_local_db*.sql.gz or .sql dump
+#   1. Finds a local portal dump by common backup naming patterns
 #   2. Reads DB password from ~/blackfire_secrets.php
 #   3. Backs up current cPanel tables/triggers before restore
 #   4. Imports the dump into the cPanel database
@@ -18,7 +18,9 @@
 #
 # Upload the dump to one of these locations:
 #   ~/portal_local_db_YYYYMMDD_HHMMSS.sql.gz
+#   ~/blackfm6w9f9_portal_backup_YYYYMMDD_HHMMSS.sql.gz
 #   ~/tmp/restore/portal_local_db_YYYYMMDD_HHMMSS.sql.gz
+#   ~/tmp/restore/blackfm6w9f9_portal_backup_YYYYMMDD_HHMMSS.sql.gz
 #   same folder as this script
 # ================================================================
 
@@ -65,28 +67,23 @@ command -v gunzip >/dev/null 2>&1 || fail "gunzip not found. Contact Afrihost su
 mkdir -p "${RESTORE_DIR}" "${SAFETY_BACKUP_DIR}" "${HOME}/tmp"
 
 if [[ -z "$DUMP_FILE" ]]; then
-  log "Looking for newest portal_local_db dump..."
+  log "Looking for the newest portal database dump..."
   DUMP_FILE=$(
     find "${SCRIPT_DIR}" "${HOME}" "${RESTORE_DIR}" -maxdepth 1 -type f \
-      -name 'portal_local_db*.sql.gz' \
+      \( \
+        -name 'portal_local_db*.sql.gz' -o \
+        -name 'portal_local_db*.sql' -o \
+        -name 'blackfm6w9f9_portal_backup_*.sql.gz' -o \
+        -name 'blackfm6w9f9_portal_backup_*.sql' \
+      \) \
       -printf '%T@ %p\n' 2>/dev/null |
     sort -nr |
     head -n 1 |
     cut -d' ' -f2-
   )
-  if [[ -z "$DUMP_FILE" ]]; then
-    DUMP_FILE=$(
-      find "${SCRIPT_DIR}" "${HOME}" "${RESTORE_DIR}" -maxdepth 1 -type f \
-        -name 'portal_local_db*.sql' \
-        -printf '%T@ %p\n' 2>/dev/null |
-      sort -nr |
-      head -n 1 |
-      cut -d' ' -f2-
-    )
-  fi
 fi
 
-[[ -n "$DUMP_FILE" ]] || fail "No dump found. Upload portal_local_db_*.sql.gz to ~ or ~/tmp/restore, then rerun."
+[[ -n "$DUMP_FILE" ]] || fail "No dump found. Upload portal_local_db_*.sql.gz or blackfm6w9f9_portal_backup_*.sql.gz to ~ or ~/tmp/restore, then rerun."
 [[ -f "$DUMP_FILE" ]] || fail "Dump file not found: $DUMP_FILE"
 
 case "$DUMP_FILE" in
@@ -169,6 +166,10 @@ fi
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 PRE_RESTORE_DUMP="${SAFETY_BACKUP_DIR}/portal_pre_restore_${TIMESTAMP}.sql.gz"
 
+sanitize_dump() {
+  sed -E 's#/\\*![0-9]+[[:space:]]+DEFINER=`[^`]+`@`[^`]+`[[:space:]]*\\*/##g; s#[[:space:]]+DEFINER=`[^`]+`@`[^`]+`##g'
+}
+
 log "Backing up current database..."
 mysqldump \
   --defaults-extra-file="${MYSQL_DEFAULTS}" \
@@ -183,10 +184,10 @@ ok "Safety backup created: ${PRE_RESTORE_DUMP}"
 log "Restoring database..."
 case "$DUMP_FILE" in
   *.sql.gz)
-    gunzip -c "$DUMP_FILE" | mysql --defaults-extra-file="${MYSQL_DEFAULTS}" "${DB_NAME}"
+    gunzip -c "$DUMP_FILE" | sanitize_dump | mysql --defaults-extra-file="${MYSQL_DEFAULTS}" "${DB_NAME}"
     ;;
   *.sql)
-    mysql --defaults-extra-file="${MYSQL_DEFAULTS}" "${DB_NAME}" < "$DUMP_FILE"
+    sanitize_dump < "$DUMP_FILE" | mysql --defaults-extra-file="${MYSQL_DEFAULTS}" "${DB_NAME}"
     ;;
 esac
 ok "Import complete"

@@ -27,10 +27,9 @@ function get_db(): PDO {
     $cfg = require __DIR__ . '/../config/config.php';
 
     $dsn = sprintf(
-        'mysql:host=%s;dbname=%s;charset=%s;port=%d',
+        'mysql:host=%s;dbname=%s;port=%d',
         $cfg['db_host'],
         $cfg['db_name'],
-        $cfg['db_charset'],
         $cfg['db_port']
     );
 
@@ -40,6 +39,8 @@ function get_db(): PDO {
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             PDO::ATTR_EMULATE_PREPARES   => false,
         ]);
+        // Some local Windows/MySQL builds reject utf8mb4 in the DSN even though
+        // the server accepts it once the connection is established.
         $pdo->exec("SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci");
     } catch (PDOException $e) {
         // Don't expose connection details in output
