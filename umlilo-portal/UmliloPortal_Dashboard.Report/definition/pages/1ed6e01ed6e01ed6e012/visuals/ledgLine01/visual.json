@@ -1,89 +1,88 @@
 {
-  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.10.0/schema.json",
-  "name": "ledgLine01",
-  "position": {
-    "x": 40,
-    "y": 240,
-    "z": 0,
-    "height": 240,
-    "width": 1200
-  },
-  "visual": {
-    "visualType": "lineChart",
-    "query": {
-      "queryState": {
-        "Category": {
-          "projections": [
-            {
-              "field": {
-                "Column": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "Date"
-                    }
-                  },
-                  "Property": "Month"
-                }
-              },
-              "queryRef": "Date.Month",
-              "active": true
-            }
-          ]
-        },
-        "Y": {
-          "projections": [
-            {
-              "field": {
-                "Measure": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "Metrics"
-                    }
-                  },
-                  "Property": "Total Credits"
-                }
-              },
-              "queryRef": "Metrics.Total Credits"
-            },
-            {
-              "field": {
-                "Measure": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "Metrics"
-                    }
-                  },
-                  "Property": "Total Debits"
-                }
-              },
-              "queryRef": "Metrics.Total Debits"
-            }
-          ]
-        }
-      }
-    },
-    "visualContainerObjects": {
-      "title": [
-        {
-          "properties": {
-            "text": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Credits vs Debits by Month'"
-                }
-              }
-            },
-            "show": {
-              "expr": {
-                "Literal": {
-                  "Value": "true"
-                }
-              }
-            }
-          }
-        }
-      ]
-    },
-    "drillFilterOtherVisuals": true
-  }
+    "$schema":  "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.4.0/schema.json",
+    "name":  "ledgLine01",
+    "position":  {
+                     "y":  240,
+                     "height":  240,
+                     "width":  1200,
+                     "z":  0,
+                     "x":  40
+                 },
+    "visual":  {
+                   "visualType":  "lineChart",
+                   "query":  {
+                                 "queryState":  {
+                                                    "Category":  {
+                                                                     "projections":  [
+                                                                                         {
+                                                                                             "queryRef":  "Date.Month",
+                                                                                             "field":  {
+                                                                                                           "Column":  {
+                                                                                                                          "Expression":  {
+                                                                                                                                             "SourceRef":  {
+                                                                                                                                                               "Entity":  "Date"
+                                                                                                                                                           }
+                                                                                                                                         },
+                                                                                                                          "Property":  "Month"
+                                                                                                                      }
+                                                                                                       }
+                                                                                         }
+                                                                                     ]
+                                                                 },
+                                                    "Y":  {
+                                                              "projections":  [
+                                                                                  {
+                                                                                      "queryRef":  "Metrics.Total Credits",
+                                                                                      "field":  {
+                                                                                                    "Measure":  {
+                                                                                                                    "Expression":  {
+                                                                                                                                       "SourceRef":  {
+                                                                                                                                                         "Entity":  "Metrics"
+                                                                                                                                                     }
+                                                                                                                                   },
+                                                                                                                    "Property":  "Total Credits"
+                                                                                                                }
+                                                                                                }
+                                                                                  },
+                                                                                  {
+                                                                                      "queryRef":  "Metrics.Total Debits",
+                                                                                      "field":  {
+                                                                                                    "Measure":  {
+                                                                                                                    "Expression":  {
+                                                                                                                                       "SourceRef":  {
+                                                                                                                                                         "Entity":  "Metrics"
+                                                                                                                                                     }
+                                                                                                                                   },
+                                                                                                                    "Property":  "Total Debits"
+                                                                                                                }
+                                                                                                }
+                                                                                  }
+                                                                              ]
+                                                          }
+                                                }
+                             },
+                   "visualContainerObjects":  {
+                                                  "title":  [
+                                                                {
+                                                                    "properties":  {
+                                                                                       "text":  {
+                                                                                                    "expr":  {
+                                                                                                                 "Literal":  {
+                                                                                                                                 "Value":  "\u0027Credits vs Debits by Month\u0027"
+                                                                                                                             }
+                                                                                                             }
+                                                                                                },
+                                                                                       "show":  {
+                                                                                                    "expr":  {
+                                                                                                                 "Literal":  {
+                                                                                                                                 "Value":  "true"
+                                                                                                                             }
+                                                                                                             }
+                                                                                                }
+                                                                                   }
+                                                                }
+                                                            ]
+                                              },
+                   "drillFilterOtherVisuals":  true
+               }
 }

@@ -1,76 +1,75 @@
 {
-  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.10.0/schema.json",
-  "name": "taskDonut01",
-  "position": {
-    "x": 660,
-    "y": 240,
-    "z": 0,
-    "height": 240,
-    "width": 580
-  },
-  "visual": {
-    "visualType": "donutChart",
-    "query": {
-      "queryState": {
-        "Category": {
-          "projections": [
-            {
-              "field": {
-                "Column": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "Tasks"
-                    }
-                  },
-                  "Property": "priority"
-                }
-              },
-              "queryRef": "Tasks.priority",
-              "active": true
-            }
-          ]
-        },
-        "Y": {
-          "projections": [
-            {
-              "field": {
-                "Measure": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "Metrics"
-                    }
-                  },
-                  "Property": "Open Tasks"
-                }
-              },
-              "queryRef": "Metrics.Open Tasks"
-            }
-          ]
-        }
-      }
-    },
-    "visualContainerObjects": {
-      "title": [
-        {
-          "properties": {
-            "text": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Open Tasks by Priority'"
-                }
-              }
-            },
-            "show": {
-              "expr": {
-                "Literal": {
-                  "Value": "true"
-                }
-              }
-            }
-          }
-        }
-      ]
-    },
-    "drillFilterOtherVisuals": true
-  }
+    "$schema":  "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.4.0/schema.json",
+    "name":  "taskDonut01",
+    "position":  {
+                     "y":  240,
+                     "height":  240,
+                     "width":  580,
+                     "z":  0,
+                     "x":  660
+                 },
+    "visual":  {
+                   "visualType":  "donutChart",
+                   "query":  {
+                                 "queryState":  {
+                                                    "Category":  {
+                                                                     "projections":  [
+                                                                                         {
+                                                                                             "queryRef":  "Tasks.priority",
+                                                                                             "field":  {
+                                                                                                           "Column":  {
+                                                                                                                          "Expression":  {
+                                                                                                                                             "SourceRef":  {
+                                                                                                                                                               "Entity":  "Tasks"
+                                                                                                                                                           }
+                                                                                                                                         },
+                                                                                                                          "Property":  "priority"
+                                                                                                                      }
+                                                                                                       }
+                                                                                         }
+                                                                                     ]
+                                                                 },
+                                                    "Y":  {
+                                                              "projections":  [
+                                                                                  {
+                                                                                      "queryRef":  "Metrics.Open Tasks",
+                                                                                      "field":  {
+                                                                                                    "Measure":  {
+                                                                                                                    "Expression":  {
+                                                                                                                                       "SourceRef":  {
+                                                                                                                                                         "Entity":  "Metrics"
+                                                                                                                                                     }
+                                                                                                                                   },
+                                                                                                                    "Property":  "Open Tasks"
+                                                                                                                }
+                                                                                                }
+                                                                                  }
+                                                                              ]
+                                                          }
+                                                }
+                             },
+                   "visualContainerObjects":  {
+                                                  "title":  [
+                                                                {
+                                                                    "properties":  {
+                                                                                       "text":  {
+                                                                                                    "expr":  {
+                                                                                                                 "Literal":  {
+                                                                                                                                 "Value":  "\u0027Open Tasks by Priority\u0027"
+                                                                                                                             }
+                                                                                                             }
+                                                                                                },
+                                                                                       "show":  {
+                                                                                                    "expr":  {
+                                                                                                                 "Literal":  {
+                                                                                                                                 "Value":  "true"
+                                                                                                                             }
+                                                                                                             }
+                                                                                                }
+                                                                                   }
+                                                                }
+                                                            ]
+                                              },
+                   "drillFilterOtherVisuals":  true
+               }
 }

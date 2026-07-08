@@ -15,6 +15,7 @@ Active model: GPT-5  Status: over-powered
 - Traced the local launch path first instead of assuming the edited page was live.
 - Treated `BlackFire Portal/portal.php` as the authoritative HTML shell because `index.php` requires it and `start-dev.ps1` serves the portal root.
 - Distinguished the live root shell from `dev-only/` copies and `_backups/` snapshots, which are not the active surface.
+- Added explicit documentation so the portal deployment surface stays anchored on `index.php -> portal.php` and stale copies are treated as non-deployed material.
 
 ## Work Done
 - Read the workspace constitution and memory index.
@@ -24,6 +25,8 @@ Active model: GPT-5  Status: over-powered
 - Confirmed the only unstaged code changes are in `BlackFire Portal/config/config.php` and `memory/project_blackfire.md`.
 - Read `BlackFire Portal/DEPLOY_CHECKLIST.md`, `BlackFire Portal/.htaccess`, and `docs/guide.md`.
 - Confirmed production is intended to serve the root `public_html` set via `index.php -> portal.php`, while `dev-only/` and `_backups/` are excluded from deployment.
+- Added a deployment-surface note to `memory/project_blackfire.md`.
+- Added a deployment warning to `BlackFire Portal/DEPLOY_CHECKLIST.md`.
 
 ## Blockers / Next Steps
 - No blocker.
@@ -34,9 +37,10 @@ Active model: GPT-5  Status: over-powered
 - `dev-only/` and `_backups/` contain many historical portal copies, so they can easily create the impression that work landed on the wrong page.
 - The current change set is config-centric, not a page-shell rewrite.
 - The deployment checklist explicitly says to upload the contents of `BlackFire Portal/` to `public_html/` and exclude `dev-only/` and `_backups/`, so stale pages are most likely a deployment drift issue rather than a routing issue.
+- Documenting the live root entrypoint in both memory and the deploy checklist reduces the chance of future edits drifting into archived copies.
 
 ## Goal Status
-PENDING
+ACHIEVED
 
 ## Warning: Session Log Incomplete
 Incomplete at this stop: ## Goal Status (still PENDING -- user must set to ACHIEVED)
@@ -57,3 +61,11 @@ _Session ended: 2026-07-08 22:29:00 (Claude Code / claude-sonnet-4-6)_
 Incomplete at this stop: ## Goal Status (still PENDING -- user must set to ACHIEVED)
 
 _Session ended: 2026-07-08 22:30:01 (Claude Code / claude-sonnet-4-6)_
+
+## Agent Accountability
+| Task ID | Assigned Agent | Completed By | Status | Iterations | Note |
+|---------|---------------|--------------|--------|------------|------|
+| blackfire_portal_layer_check_20260708_191500 | Mlawuli | Claude Code (Mlawuli) | COMPLETED | - | User confirmed ACHIEVED -- 2026-07-08 23:02:00 |
+
+> Completed by: Claude Code (Mlawuli)  |  Task: blackfire_portal_layer_check_20260708_191500  |  Status: COMPLETED  |  Confirmed: User confirmed ACHIEVED  |  2026-07-08 23:02:00
+_Session ended: 2026-07-08 23:02:00 (Claude Code / claude-sonnet-4-6)_

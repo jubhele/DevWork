@@ -1,58 +1,58 @@
 {
-  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.4.0/schema.json",
-  "name": "safeCard03",
-  "position": {
-    "y": 24,
-    "height": 200,
-    "width": 290,
-    "z": 0,
-    "x": 650
-  },
-  "visual": {
-    "visualType": "card",
-    "query": {
-      "queryState": {
-        "Values": {
-          "projections": [
-            {
-              "queryRef": "Metrics.Safety Files Count",
-              "field": {
-                "Measure": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "Metrics"
-                    }
-                  },
-                  "Property": "Safety Files Count"
-                }
-              }
-            }
-          ]
-        }
-      }
-    },
-    "visualContainerObjects": {
-      "title": [
-        {
-          "properties": {
-            "text": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Safety Files'"
-                }
-              }
-            },
-            "show": {
-              "expr": {
-                "Literal": {
-                  "Value": "true"
-                }
-              }
-            }
-          }
-        }
-      ]
-    },
-    "drillFilterOtherVisuals": true
-  }
+    "$schema":  "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.4.0/schema.json",
+    "name":  "safeCard03",
+    "position":  {
+                     "y":  24,
+                     "height":  200,
+                     "width":  290,
+                     "z":  0,
+                     "x":  650
+                 },
+    "visual":  {
+                   "visualType":  "card",
+                   "query":  {
+                                 "queryState":  {
+                                                    "Values":  {
+                                                                   "projections":  [
+                                                                                       {
+                                                                                           "queryRef":  "Metrics.Safety Files Count",
+                                                                                           "field":  {
+                                                                                                         "Measure":  {
+                                                                                                                         "Expression":  {
+                                                                                                                                            "SourceRef":  {
+                                                                                                                                                              "Entity":  "Metrics"
+                                                                                                                                                          }
+                                                                                                                                        },
+                                                                                                                         "Property":  "Safety Files Count"
+                                                                                                                     }
+                                                                                                     }
+                                                                                       }
+                                                                                   ]
+                                                               }
+                                                }
+                             },
+                   "visualContainerObjects":  {
+                                                  "title":  [
+                                                                {
+                                                                    "properties":  {
+                                                                                       "text":  {
+                                                                                                    "expr":  {
+                                                                                                                 "Literal":  {
+                                                                                                                                 "Value":  "\u0027Safety Files\u0027"
+                                                                                                                             }
+                                                                                                             }
+                                                                                                },
+                                                                                       "show":  {
+                                                                                                    "expr":  {
+                                                                                                                 "Literal":  {
+                                                                                                                                 "Value":  "true"
+                                                                                                                             }
+                                                                                                             }
+                                                                                                }
+                                                                                   }
+                                                                }
+                                                            ]
+                                              },
+                   "drillFilterOtherVisuals":  true
+               }
 }

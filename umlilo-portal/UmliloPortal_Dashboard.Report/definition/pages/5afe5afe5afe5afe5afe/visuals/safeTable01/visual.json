@@ -1,123 +1,123 @@
 {
-  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.4.0/schema.json",
-  "name": "safeTable01",
-  "position": {
-    "y": 496,
-    "height": 200,
-    "width": 1200,
-    "z": 0,
-    "x": 40
-  },
-  "visual": {
-    "visualType": "tableEx",
-    "query": {
-      "queryState": {
-        "Values": {
-          "projections": [
-            {
-              "queryRef": "SafetyFiles.ref_id",
-              "field": {
-                "Column": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "SafetyFiles"
-                    }
-                  },
-                  "Property": "ref_id"
-                }
-              }
-            },
-            {
-              "queryRef": "SafetyFiles.contractor",
-              "field": {
-                "Column": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "SafetyFiles"
-                    }
-                  },
-                  "Property": "contractor"
-                }
-              }
-            },
-            {
-              "queryRef": "SafetyFiles.region",
-              "field": {
-                "Column": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "SafetyFiles"
-                    }
-                  },
-                  "Property": "region"
-                }
-              }
-            },
-            {
-              "queryRef": "SafetyFiles.status",
-              "field": {
-                "Column": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "SafetyFiles"
-                    }
-                  },
-                  "Property": "status"
-                }
-              }
-            },
-            {
-              "queryRef": "SafetyFiles.band",
-              "field": {
-                "Column": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "SafetyFiles"
-                    }
-                  },
-                  "Property": "band"
-                }
-              }
-            },
-            {
-              "queryRef": "Metrics.Avg Safety Score",
-              "field": {
-                "Measure": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "Metrics"
-                    }
-                  },
-                  "Property": "Avg Safety Score"
-                }
-              }
-            }
-          ]
-        }
-      }
-    },
-    "visualContainerObjects": {
-      "title": [
-        {
-          "properties": {
-            "text": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Safety Audit Files'"
-                }
-              }
-            },
-            "show": {
-              "expr": {
-                "Literal": {
-                  "Value": "true"
-                }
-              }
-            }
-          }
-        }
-      ]
-    },
-    "drillFilterOtherVisuals": true
-  }
+    "$schema":  "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.4.0/schema.json",
+    "name":  "safeTable01",
+    "position":  {
+                     "y":  496,
+                     "height":  200,
+                     "width":  1200,
+                     "z":  0,
+                     "x":  40
+                 },
+    "visual":  {
+                   "visualType":  "tableEx",
+                   "query":  {
+                                 "queryState":  {
+                                                    "Values":  {
+                                                                   "projections":  [
+                                                                                       {
+                                                                                           "queryRef":  "SafetyFiles.ref_id",
+                                                                                           "field":  {
+                                                                                                         "Column":  {
+                                                                                                                        "Expression":  {
+                                                                                                                                           "SourceRef":  {
+                                                                                                                                                             "Entity":  "SafetyFiles"
+                                                                                                                                                         }
+                                                                                                                                       },
+                                                                                                                        "Property":  "ref_id"
+                                                                                                                    }
+                                                                                                     }
+                                                                                       },
+                                                                                       {
+                                                                                           "queryRef":  "SafetyFiles.contractor",
+                                                                                           "field":  {
+                                                                                                         "Column":  {
+                                                                                                                        "Expression":  {
+                                                                                                                                           "SourceRef":  {
+                                                                                                                                                             "Entity":  "SafetyFiles"
+                                                                                                                                                         }
+                                                                                                                                       },
+                                                                                                                        "Property":  "contractor"
+                                                                                                                    }
+                                                                                                     }
+                                                                                       },
+                                                                                       {
+                                                                                           "queryRef":  "SafetyFiles.region",
+                                                                                           "field":  {
+                                                                                                         "Column":  {
+                                                                                                                        "Expression":  {
+                                                                                                                                           "SourceRef":  {
+                                                                                                                                                             "Entity":  "SafetyFiles"
+                                                                                                                                                         }
+                                                                                                                                       },
+                                                                                                                        "Property":  "region"
+                                                                                                                    }
+                                                                                                     }
+                                                                                       },
+                                                                                       {
+                                                                                           "queryRef":  "SafetyFiles.status",
+                                                                                           "field":  {
+                                                                                                         "Column":  {
+                                                                                                                        "Expression":  {
+                                                                                                                                           "SourceRef":  {
+                                                                                                                                                             "Entity":  "SafetyFiles"
+                                                                                                                                                         }
+                                                                                                                                       },
+                                                                                                                        "Property":  "status"
+                                                                                                                    }
+                                                                                                     }
+                                                                                       },
+                                                                                       {
+                                                                                           "queryRef":  "SafetyFiles.band",
+                                                                                           "field":  {
+                                                                                                         "Column":  {
+                                                                                                                        "Expression":  {
+                                                                                                                                           "SourceRef":  {
+                                                                                                                                                             "Entity":  "SafetyFiles"
+                                                                                                                                                         }
+                                                                                                                                       },
+                                                                                                                        "Property":  "band"
+                                                                                                                    }
+                                                                                                     }
+                                                                                       },
+                                                                                       {
+                                                                                           "queryRef":  "Metrics.Avg Safety Score",
+                                                                                           "field":  {
+                                                                                                         "Measure":  {
+                                                                                                                         "Expression":  {
+                                                                                                                                            "SourceRef":  {
+                                                                                                                                                              "Entity":  "Metrics"
+                                                                                                                                                          }
+                                                                                                                                        },
+                                                                                                                         "Property":  "Avg Safety Score"
+                                                                                                                     }
+                                                                                                     }
+                                                                                       }
+                                                                                   ]
+                                                               }
+                                                }
+                             },
+                   "visualContainerObjects":  {
+                                                  "title":  [
+                                                                {
+                                                                    "properties":  {
+                                                                                       "text":  {
+                                                                                                    "expr":  {
+                                                                                                                 "Literal":  {
+                                                                                                                                 "Value":  "\u0027Safety Audit Files\u0027"
+                                                                                                                             }
+                                                                                                             }
+                                                                                                },
+                                                                                       "show":  {
+                                                                                                    "expr":  {
+                                                                                                                 "Literal":  {
+                                                                                                                                 "Value":  "true"
+                                                                                                                             }
+                                                                                                             }
+                                                                                                }
+                                                                                   }
+                                                                }
+                                                            ]
+                                              },
+                   "drillFilterOtherVisuals":  true
+               }
 }

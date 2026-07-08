@@ -1,76 +1,75 @@
 {
-  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.10.0/schema.json",
-  "name": "finDonut01",
-  "position": {
-    "x": 760,
-    "y": 496,
-    "z": 0,
-    "height": 200,
-    "width": 480
-  },
-  "visual": {
-    "visualType": "donutChart",
-    "query": {
-      "queryState": {
-        "Category": {
-          "projections": [
-            {
-              "field": {
-                "Column": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "Invoices"
-                    }
-                  },
-                  "Property": "status"
-                }
-              },
-              "queryRef": "Invoices.status",
-              "active": true
-            }
-          ]
-        },
-        "Y": {
-          "projections": [
-            {
-              "field": {
-                "Measure": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "Metrics"
-                    }
-                  },
-                  "Property": "Invoiced Total"
-                }
-              },
-              "queryRef": "Metrics.Invoiced Total"
-            }
-          ]
-        }
-      }
-    },
-    "visualContainerObjects": {
-      "title": [
-        {
-          "properties": {
-            "text": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Invoiced Amount by Status'"
-                }
-              }
-            },
-            "show": {
-              "expr": {
-                "Literal": {
-                  "Value": "true"
-                }
-              }
-            }
-          }
-        }
-      ]
-    },
-    "drillFilterOtherVisuals": true
-  }
+    "$schema":  "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.4.0/schema.json",
+    "name":  "finDonut01",
+    "position":  {
+                     "y":  496,
+                     "height":  200,
+                     "width":  480,
+                     "z":  0,
+                     "x":  760
+                 },
+    "visual":  {
+                   "visualType":  "donutChart",
+                   "query":  {
+                                 "queryState":  {
+                                                    "Category":  {
+                                                                     "projections":  [
+                                                                                         {
+                                                                                             "queryRef":  "Invoices.status",
+                                                                                             "field":  {
+                                                                                                           "Column":  {
+                                                                                                                          "Expression":  {
+                                                                                                                                             "SourceRef":  {
+                                                                                                                                                               "Entity":  "Invoices"
+                                                                                                                                                           }
+                                                                                                                                         },
+                                                                                                                          "Property":  "status"
+                                                                                                                      }
+                                                                                                       }
+                                                                                         }
+                                                                                     ]
+                                                                 },
+                                                    "Y":  {
+                                                              "projections":  [
+                                                                                  {
+                                                                                      "queryRef":  "Metrics.Invoiced Total",
+                                                                                      "field":  {
+                                                                                                    "Measure":  {
+                                                                                                                    "Expression":  {
+                                                                                                                                       "SourceRef":  {
+                                                                                                                                                         "Entity":  "Metrics"
+                                                                                                                                                     }
+                                                                                                                                   },
+                                                                                                                    "Property":  "Invoiced Total"
+                                                                                                                }
+                                                                                                }
+                                                                                  }
+                                                                              ]
+                                                          }
+                                                }
+                             },
+                   "visualContainerObjects":  {
+                                                  "title":  [
+                                                                {
+                                                                    "properties":  {
+                                                                                       "text":  {
+                                                                                                    "expr":  {
+                                                                                                                 "Literal":  {
+                                                                                                                                 "Value":  "\u0027Invoiced Amount by Status\u0027"
+                                                                                                                             }
+                                                                                                             }
+                                                                                                },
+                                                                                       "show":  {
+                                                                                                    "expr":  {
+                                                                                                                 "Literal":  {
+                                                                                                                                 "Value":  "true"
+                                                                                                                             }
+                                                                                                             }
+                                                                                                }
+                                                                                   }
+                                                                }
+                                                            ]
+                                              },
+                   "drillFilterOtherVisuals":  true
+               }
 }

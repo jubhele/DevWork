@@ -54,6 +54,12 @@ In FileZilla:
 
 Upload the contents of `BlackFire/BlackFire Portal/` to `public_html/`:
 
+The deployed PHP surface must stay on the root entrypoint:
+
+- `index.php` routes to `portal.php`
+- `dev-only/` is scratch/refactor material and is not deployed
+- `_backups/` is archival only and is not deployed
+
 ```
 public_html/
 ├── .htaccess
@@ -129,6 +135,8 @@ public_html/
 Open `https://blackfiresolutions.co.za` — should show the BlackFire public site.
 
 Click **Umlilo Portal** — should show the login screen.
+
+If the site appears to use an older page, verify the root `public_html/` files rather than any `dev-only/` copy or archived backup tree.
 
 Login with admin credentials (set in `rbac_full_migration.sql`).
 

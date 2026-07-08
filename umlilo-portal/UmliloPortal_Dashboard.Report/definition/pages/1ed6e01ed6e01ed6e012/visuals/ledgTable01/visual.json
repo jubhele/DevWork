@@ -1,123 +1,123 @@
 {
-  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.4.0/schema.json",
-  "name": "ledgTable01",
-  "position": {
-    "y": 496,
-    "height": 200,
-    "width": 700,
-    "z": 0,
-    "x": 40
-  },
-  "visual": {
-    "visualType": "tableEx",
-    "query": {
-      "queryState": {
-        "Values": {
-          "projections": [
-            {
-              "queryRef": "Transactions.trans_date",
-              "field": {
-                "Column": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "Transactions"
-                    }
-                  },
-                  "Property": "trans_date"
-                }
-              }
-            },
-            {
-              "queryRef": "Transactions.reference",
-              "field": {
-                "Column": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "Transactions"
-                    }
-                  },
-                  "Property": "reference"
-                }
-              }
-            },
-            {
-              "queryRef": "Transactions.description",
-              "field": {
-                "Column": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "Transactions"
-                    }
-                  },
-                  "Property": "description"
-                }
-              }
-            },
-            {
-              "queryRef": "Transactions.category",
-              "field": {
-                "Column": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "Transactions"
-                    }
-                  },
-                  "Property": "category"
-                }
-              }
-            },
-            {
-              "queryRef": "Metrics.Total Credits",
-              "field": {
-                "Measure": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "Metrics"
-                    }
-                  },
-                  "Property": "Total Credits"
-                }
-              }
-            },
-            {
-              "queryRef": "Metrics.Total Debits",
-              "field": {
-                "Measure": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "Metrics"
-                    }
-                  },
-                  "Property": "Total Debits"
-                }
-              }
-            }
-          ]
-        }
-      }
-    },
-    "visualContainerObjects": {
-      "title": [
-        {
-          "properties": {
-            "text": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Transaction Ledger'"
-                }
-              }
-            },
-            "show": {
-              "expr": {
-                "Literal": {
-                  "Value": "true"
-                }
-              }
-            }
-          }
-        }
-      ]
-    },
-    "drillFilterOtherVisuals": true
-  }
+    "$schema":  "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.4.0/schema.json",
+    "name":  "ledgTable01",
+    "position":  {
+                     "y":  496,
+                     "height":  200,
+                     "width":  700,
+                     "z":  0,
+                     "x":  40
+                 },
+    "visual":  {
+                   "visualType":  "tableEx",
+                   "query":  {
+                                 "queryState":  {
+                                                    "Values":  {
+                                                                   "projections":  [
+                                                                                       {
+                                                                                           "queryRef":  "Transactions.trans_date",
+                                                                                           "field":  {
+                                                                                                         "Column":  {
+                                                                                                                        "Expression":  {
+                                                                                                                                           "SourceRef":  {
+                                                                                                                                                             "Entity":  "Transactions"
+                                                                                                                                                         }
+                                                                                                                                       },
+                                                                                                                        "Property":  "trans_date"
+                                                                                                                    }
+                                                                                                     }
+                                                                                       },
+                                                                                       {
+                                                                                           "queryRef":  "Transactions.reference",
+                                                                                           "field":  {
+                                                                                                         "Column":  {
+                                                                                                                        "Expression":  {
+                                                                                                                                           "SourceRef":  {
+                                                                                                                                                             "Entity":  "Transactions"
+                                                                                                                                                         }
+                                                                                                                                       },
+                                                                                                                        "Property":  "reference"
+                                                                                                                    }
+                                                                                                     }
+                                                                                       },
+                                                                                       {
+                                                                                           "queryRef":  "Transactions.description",
+                                                                                           "field":  {
+                                                                                                         "Column":  {
+                                                                                                                        "Expression":  {
+                                                                                                                                           "SourceRef":  {
+                                                                                                                                                             "Entity":  "Transactions"
+                                                                                                                                                         }
+                                                                                                                                       },
+                                                                                                                        "Property":  "description"
+                                                                                                                    }
+                                                                                                     }
+                                                                                       },
+                                                                                       {
+                                                                                           "queryRef":  "Transactions.category",
+                                                                                           "field":  {
+                                                                                                         "Column":  {
+                                                                                                                        "Expression":  {
+                                                                                                                                           "SourceRef":  {
+                                                                                                                                                             "Entity":  "Transactions"
+                                                                                                                                                         }
+                                                                                                                                       },
+                                                                                                                        "Property":  "category"
+                                                                                                                    }
+                                                                                                     }
+                                                                                       },
+                                                                                       {
+                                                                                           "queryRef":  "Metrics.Total Credits",
+                                                                                           "field":  {
+                                                                                                         "Measure":  {
+                                                                                                                         "Expression":  {
+                                                                                                                                            "SourceRef":  {
+                                                                                                                                                              "Entity":  "Metrics"
+                                                                                                                                                          }
+                                                                                                                                        },
+                                                                                                                         "Property":  "Total Credits"
+                                                                                                                     }
+                                                                                                     }
+                                                                                       },
+                                                                                       {
+                                                                                           "queryRef":  "Metrics.Total Debits",
+                                                                                           "field":  {
+                                                                                                         "Measure":  {
+                                                                                                                         "Expression":  {
+                                                                                                                                            "SourceRef":  {
+                                                                                                                                                              "Entity":  "Metrics"
+                                                                                                                                                          }
+                                                                                                                                        },
+                                                                                                                         "Property":  "Total Debits"
+                                                                                                                     }
+                                                                                                     }
+                                                                                       }
+                                                                                   ]
+                                                               }
+                                                }
+                             },
+                   "visualContainerObjects":  {
+                                                  "title":  [
+                                                                {
+                                                                    "properties":  {
+                                                                                       "text":  {
+                                                                                                    "expr":  {
+                                                                                                                 "Literal":  {
+                                                                                                                                 "Value":  "\u0027Transaction Ledger\u0027"
+                                                                                                                             }
+                                                                                                             }
+                                                                                                },
+                                                                                       "show":  {
+                                                                                                    "expr":  {
+                                                                                                                 "Literal":  {
+                                                                                                                                 "Value":  "true"
+                                                                                                                             }
+                                                                                                             }
+                                                                                                }
+                                                                                   }
+                                                                }
+                                                            ]
+                                              },
+                   "drillFilterOtherVisuals":  true
+               }
 }

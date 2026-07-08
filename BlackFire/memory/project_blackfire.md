@@ -19,6 +19,10 @@ BlackFire Solutions is a security company portal managing callouts, invoices, cl
 
 The AI dashboard widgets ("AI Intelligence" and "Client Intelligence Report") are rendered in the authenticated Next.js dashboard at `apps/web/src/app/(portal)/dashboard/page.tsx`. The public PHP site at `BlackFire Portal/portal.php` is a separate surface and does not render those widgets on `http://localhost:8080/`.
 
+## Portal Deployment Surface
+
+The live PHP portal is the root `public_html` surface: `index.php -> portal.php`. `dev-only/` and `_backups/` contain historical or refactor copies and must not be treated as the deployed page set.
+
 ## Dark Mode Surfaces
 
 The Next.js portal theme relies on `html[data-theme='dark']` overrides for hardcoded utility classes. When a new light surface appears in dark mode, check for fixed classes like `bg-white/95` or hex-coded accent backgrounds and add a shared override in `apps/web/src/app/globals.css` instead of patching each page ad hoc.
