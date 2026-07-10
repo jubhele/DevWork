@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
 
 export default function SecurePage() {
-  redirect('/secure/incidents')
+  redirect('/tracker?stream=call-log')
 }

@@ -1,7 +1,7 @@
 import { db, schema } from '@/db/client'
-import { sql, like, or } from 'drizzle-orm'
+import { sql } from 'drizzle-orm'
 
-const { bfTransactions } = schema
+const { bfTransactions, bfCallouts } = schema
 
 export interface Transaction {
   id: number
@@ -9,6 +9,7 @@ export interface Transaction {
   description: string
   category: string
   reference: string
+  calloutRef: string
   credit: string
   debit: string
   createdAt: Date
@@ -31,7 +32,7 @@ export async function getTransactions(params?: {
   const search = params?.search?.trim()
 
   const whereClause = search
-    ? sql`WHERE (description LIKE ${`%${search}%`} OR category LIKE ${`%${search}%`} OR reference LIKE ${`%${search}%`})`
+    ? sql`WHERE (description LIKE ${`%${search}%`} OR category LIKE ${`%${search}%`} OR reference LIKE ${`%${search}%`} OR callout_ref LIKE ${`%${search}%`} OR trans_date LIKE ${`%${search}%`})`
     : sql``
 
   const [countRow] = await db.execute<{ n: number }>(
@@ -42,7 +43,7 @@ export async function getTransactions(params?: {
   )
 
   const rows = await db.execute<Transaction>(
-    sql`SELECT id, trans_date AS transDate, description, category, reference, credit, debit, created_at AS createdAt
+    sql`SELECT id, trans_date AS transDate, description, category, reference, callout_ref AS calloutRef, credit, debit, created_at AS createdAt
         FROM bf_transactions ${whereClause}
         ORDER BY trans_date DESC
         LIMIT ${limit} OFFSET ${offset}`,
@@ -61,14 +62,30 @@ export async function createTransaction(data: {
   description: string
   category: string
   reference?: string
+  calloutRef: string
   credit?: number
   debit?: number
 }): Promise<number> {
+  const calloutRef = data.calloutRef.trim()
+  if (!calloutRef) {
+    throw new Error('calloutRef is required')
+  }
+
+  const [callout] = await db
+    .select({ id: bfCallouts.id })
+    .from(bfCallouts)
+    .where(sql`${bfCallouts.refId} = ${calloutRef}`)
+    .limit(1)
+  if (!callout) {
+    throw new Error('Transaction must link to an existing call log')
+  }
+
   const result = await db.insert(bfTransactions).values({
     transDate: new Date(data.transDate),
     description: data.description,
     category: data.category,
     reference: data.reference ?? '',
+    calloutRef,
     credit: String(data.credit ?? 0),
     debit: String(data.debit ?? 0),
   })

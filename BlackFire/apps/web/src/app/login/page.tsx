@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import Image from 'next/image'
 import Link from 'next/link'
 import { ApiError, auth } from '@blackfire/api-client'
 
@@ -214,9 +215,9 @@ function LoginShell({ form }: { form?: ReactNode }) {
     <div className="min-h-screen bg-coal flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <div className="mb-4 flex justify-center">
-            <img src="/blackfire_logo_transparent.png" alt="BlackFire Solutions" className="h-[74px] w-auto" />
-          </div>
+            <div className="mb-4 flex justify-center">
+              <Image src="/blackfire_logo_transparent.png" alt="BlackFire Solutions" width={220} height={74} className="h-[74px] w-auto" priority />
+            </div>
           <span className="block font-display text-[28px] leading-none tracking-[0.3em] text-flame-gold uppercase">
             Umlilo Portal
           </span>

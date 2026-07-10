@@ -1,0 +1,14 @@
+# Power BI Portal Reporting
+
+- The Umlilo Portal dashboard and invoice reporting surfaces are being replaced with secure in-portal Power BI embeds.
+- Use backend-issued embed tokens from a service-principal flow.
+- Keep portal authentication as the outer gate; let Power BI enforce report access and any future RLS on top.
+- RLS is mandatory: embed tokens must include effective identity and role mapping for each portal user.
+- Power BI role names in this portal are `Portal_Admin`, `Portal_Manager`, `Portal_Operations`, and `Portal_Client`.
+- Env vars expected in `apps/web/.env`: `POWERBI_TENANT_ID`, `POWERBI_CLIENT_ID`, `POWERBI_CLIENT_SECRET`, `POWERBI_WORKSPACE_ID`, `POWERBI_DASHBOARD_REPORT_ID`, `POWERBI_INVOICES_REPORT_ID`, optional `POWERBI_AUTHORITY_HOST`.
+- The local PBIP project now lives in `powerbi/` as `powerbi/UmliloPortal_Dashboard.pbip` with sibling report and semantic model folders.
+- Executive Dashboard was implemented cross-layer on 2026-07-09: PHP `portal.js`/`portal.css`, Next.js `/dashboard`, and Expo `DashboardScreen` now follow the Power BI 4-card hero/KPI row, trend/status row, alert cards, and CTA hierarchy.
+- Finance Reporting was implemented cross-layer on 2026-07-09: PHP finance dashboard now has client breakdown and aging/status list fallback, Next.js `/finance` has KPI/trend/client/status/aging/list sections around the embed, and Expo `InvoicesScreen` uses summary cards, grouped breakdowns, filters, and stacked invoice cards. Remaining work: final browser/device screenshots and embed parity during integration QA.
+- Operations Tasks was implemented cross-layer on 2026-07-09: PHP operations dashboard/tracker now shows open-task, assignee-load, and due/overdue cards; Next.js `/ops/tasks` and `/tracker` use the same summary-first hierarchy; Expo `TrackerScreen` uses summary cards, assignee load, and urgent-first stacked task cards. Remaining work: final browser/device screenshots and visual parity during integration QA.
+- Ledger was implemented cross-layer on 2026-07-09: PHP `p-pl-ledger` now has native summary cards, credits/debits trend, category exposure, and transaction feed above the existing P&L tabs; Next.js `/finance#ledger` returns and renders ledger summary/trend/feed data; Expo `InvoicesScreen` fetches transactions and shows a vertical transaction feed. Keep ledger surfaces audit-friendly and avoid wide-table-only mobile layouts.
+- Integration And Release QA completed on 2026-07-09: `docs/pbi-integration-release-qa-report.md` records passing web typecheck, mobile TypeScript, recursive PHP syntax, Next route/API/asset parity, protected-route redirects, public responsive smoke screenshots, and brittle SVG dependency review. Remaining production cutover note: capture authenticated Power BI embed screenshots with a valid portal session and service-principal/RLS configuration.

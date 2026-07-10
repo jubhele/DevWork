@@ -83,8 +83,8 @@ if ($method === 'POST' && clean($_GET['action'] ?? '', 20) === 'payment') {
             [$pay_date, $invoice_id]
         );
         db_exec(
-            "INSERT INTO bf_transactions (trans_date, description, category, reference, credit, debit) VALUES (?,?,?,?,?,?)",
-            [$pay_date, "Payment received — {$inv['client_name']}", 'Invoice Payment', $inv['ref_id'], $amount, 0]
+            "INSERT INTO bf_transactions (trans_date, description, category, reference, callout_ref, credit, debit) VALUES (?,?,?,?,?,?,?)",
+            [$pay_date, "Payment received — {$inv['client_name']}", 'Invoice Payment', $inv['ref_id'], clean($inv['callout_ref'] ?? '', 30), $amount, 0]
         );
         db_exec(
             "INSERT INTO bf_payments (invoice_ref, client_name, amount, payment_date, notes, logged_by_user_id) VALUES (?,?,?,?,?,?)",
@@ -262,8 +262,8 @@ if ($method === 'PUT') {
                 [$pay_date, $ref_id]
             );
             db_exec(
-                "INSERT INTO bf_transactions (trans_date, description, category, reference, credit, debit) VALUES (?,?,?,?,?,?)",
-                [$pay_date, "Payment received — {$inv['client_name']}", 'Invoice Payment', $ref_id, $inv['amount'], 0]
+                "INSERT INTO bf_transactions (trans_date, description, category, reference, callout_ref, credit, debit) VALUES (?,?,?,?,?,?,?)",
+                [$pay_date, "Payment received — {$inv['client_name']}", 'Invoice Payment', $ref_id, clean($inv['callout_ref'] ?? '', 30), $inv['amount'], 0]
             );
             db_exec(
                 "INSERT INTO bf_payments (invoice_ref, client_name, amount, payment_date, notes, logged_by_user_id) VALUES (?,?,?,?,?,?)",
@@ -328,8 +328,14 @@ if ($method === 'DELETE') {
     try {
         db_begin();
         db_exec(
-            "DELETE FROM bf_transactions WHERE category = 'Cost of Sales' AND reference = ?",
-            [clean('COST-' . $basis_ref, 30)]
+            "DELETE FROM bf_transactions
+              WHERE category IN ('Cost of Sales', 'Admin Costs', 'Finance Costs')
+                AND reference IN (?, ?, ?)",
+            [
+                clean('COST-' . $basis_ref, 30),
+                clean('ADMIN-' . $basis_ref, 30),
+                clean('FIN-' . $basis_ref, 30),
+            ]
         );
         db_exec("DELETE FROM bf_invoices WHERE ref_id = ?", [$ref_id]);
         db_commit();

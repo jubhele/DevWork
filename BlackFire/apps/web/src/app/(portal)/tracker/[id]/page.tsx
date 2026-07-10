@@ -1,6 +1,5 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import type { Task } from '@blackfire/types'
 import { getCurrentUser, can } from '@/lib/server-auth'
 import { TASK_CATEGORY_LABELS } from '@/lib/tracker'
 import TaskActions from './TaskActions'

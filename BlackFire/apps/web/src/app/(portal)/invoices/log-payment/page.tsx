@@ -4,6 +4,10 @@ import { useState, useEffect, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Invoice } from '@blackfire/types'
 
+function getInvoiceLabel(inv: Invoice) {
+  return `${inv.invoice_number} - ${inv.client_name} - R ${Number(inv.total ?? inv.amount ?? 0).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`
+}
+
 export default function LogPaymentPage() {
   const router = useRouter()
   const [invoices, setInvoices] = useState<Invoice[]>([])
@@ -53,10 +57,10 @@ export default function LogPaymentPage() {
       <form onSubmit={submit} className="space-y-5 rounded border border-steel-dark bg-white p-6 shadow-sm">
         <label className="block text-xs uppercase tracking-[0.16em] text-ash">Invoice
           <select name="invoice_id" required className="mt-2 w-full rounded border border-steel-dark bg-white px-3 py-2.5 text-sm text-ink-text">
-            <option value="">Select invoice…</option>
+            <option value="">Select invoice...</option>
             {invoices.map(inv => (
               <option key={inv.id} value={inv.id}>
-                {(inv as any).invoice_no ?? (inv as any).invoice_number} — {inv.client_name} — R {Number((inv as any).amount ?? inv.total ?? 0).toLocaleString('en-ZA', { minimumFractionDigits: 2 })} ({inv.status})
+                {getInvoiceLabel(inv)} ({inv.status})
               </option>
             ))}
           </select>
@@ -85,7 +89,7 @@ export default function LogPaymentPage() {
         {error && <p className="text-sm text-danger">{error}</p>}
         <div className="flex justify-end gap-3">
           <button type="button" onClick={() => router.back()} className="rounded border border-steel-dark px-4 py-2 text-xs uppercase tracking-[0.16em] text-ash">Cancel</button>
-          <button disabled={saving} className="rounded bg-fire-orange px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white disabled:opacity-50">{saving ? 'Logging…' : 'Log Payment'}</button>
+          <button disabled={saving} className="rounded bg-fire-orange px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white disabled:opacity-50">{saving ? 'Logging...' : 'Log Payment'}</button>
         </div>
       </form>
     </div>

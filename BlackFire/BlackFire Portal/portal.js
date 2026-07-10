@@ -278,6 +278,7 @@ document.addEventListener('click', function(e) {
     case 'openResendStatementModal':  openResendStatementModal(el.dataset.id); break;
     case 'releaseStatement':     releaseStatement(el.dataset.id); break;
     case 'generateStatement':    generateStatement(); break;
+    case 'switchPLLedgerTab':    switchPLLedgerTab(el.dataset.pllTab); break;
     // Files
     case 'openAttachmentsModal': openAttachmentsModal(el.dataset.entityType, el.dataset.entityRef); break;
     case 'openDocViewer':        openDocViewer(+el.dataset.id, el.dataset.name, el.dataset.mime); break;
@@ -810,6 +811,7 @@ function normalizeBank(b) {
     desc:   b.description,
     cat:    b.category,
     ref:    b.reference,
+    calloutRef: b.callout_ref || '',
     credit: Number(b.credit),
     debit:  Number(b.debit),
   };
@@ -1043,6 +1045,7 @@ const NAV_CONFIG = [
       { id:'p-reports',       label:'Reports',   perm: null },
       { id:'p-quotes',        label:'Quote Log', perm:'quote.view',   badge:'nb-qte' },
       { id:'p-tracker',       label:'Tracker',   perm:'task.view',    badge:'nb-co' },
+      { id:'p-clients',       label:'Clients',   perm:'clients.view' },
     ],
   },
   {
@@ -1056,7 +1059,6 @@ const NAV_CONFIG = [
       { id:'p-pl-ledger',         label:'P&L Ledger',        perm:'finance.income' },
       { id:'p-income',            label:'Income Stmt',      perm:'finance.income' },
       { id:'p-reconcile',         label:'Reconciliation',   perm:'finance.transactions' },
-      { id:'p-clients',           label:'Clients',          perm:'clients.view' },
     ],
   },
   {
@@ -2644,7 +2646,7 @@ function renderDashboard(){
 
   const d = { now, openTasks, urgentTasks, tasksDueToday, open, pq, mtd, net, completedMTD, outstandingVal, ytd, quotePipeVal, overdue, urgent, pendingQA, months, revData };
 
-  let html = '';
+  let html = _dashExecutiveSummary(d);
   let hasContent = false;
   for(const wid of order){
     if(!isWidgetOn(wid, prefs)) continue;
@@ -2653,7 +2655,7 @@ function renderDashboard(){
   }
 
   if(!hasContent)
-    html=`<div class="dash-empty-state"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg><p>Your dashboard is empty.<br><button class="btn btn-g btn-s" data-action="showDashEditor">Edit Layout</button> to add widgets.</p></div>`;
+    html+=`<div class="dash-empty-state"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg><p>Your custom dashboard widgets are hidden.<br><button class="btn btn-g btn-s" data-action="showDashEditor">Edit Layout</button> to add widgets.</p></div>`;
 
   container.innerHTML = html;
   { let css=''; container.querySelectorAll('.cbar[data-h]').forEach((b,i)=>{ b.dataset.cbi=i; css+=`.cbar[data-cbi="${i}"]{height:${b.dataset.h}px;}`; }); if(css)_injectStyle('cbar-op-css',css); }
@@ -2666,6 +2668,58 @@ function renderDashboard(){
 }
 
 /* ── Per-widget block builders ─────────────────────── */
+function _dashExecutiveSummary(d){
+  const activeWork = d.openTasks + d.open;
+  const attention = d.urgentTasks + d.urgent + d.overdue + d.pendingQA;
+  const maxRev = Math.max(...d.revData, 1);
+  const revBars = d.revData.map((v,i)=>`<div class="exec-trend-bar-wrap"><div class="exec-trend-val">${v>0?'R'+Math.round(v/1000)+'K':''}</div><div class="exec-trend-bar" style="height:${Math.max(6,Math.round((v/maxRev)*100))}%"></div><div class="exec-trend-label">${d.months[i].lbl}</div></div>`).join('');
+  const streamTotal = Math.max(activeWork, 1);
+  const openTaskStreams = proxyDB.tasks.filter(t=>t.status==='Open'||t.status==='In Progress');
+  const streams = [
+    {label:'Admin', value:openTaskStreams.filter(t=>t.category==='admin').length},
+    {label:'Sales', value:openTaskStreams.filter(t=>t.category==='sales').length},
+    {label:'General', value:openTaskStreams.filter(t=>t.category==='general').length},
+    {label:'Call Log', value:d.open},
+  ].map(s=>`<div class="exec-status-row"><span>${s.label}</span><strong>${s.value}</strong><div class="exec-status-meter"><i style="width:${Math.round(s.value/streamTotal*100)}%"></i></div></div>`).join('');
+  const alertCards = [
+    {label:'Urgent Tasks', value:d.urgentTasks, sub:'Internal work', tone:d.urgentTasks>0?'warn':''},
+    {label:'Urgent Callouts', value:d.urgent, sub:'Priority dispatch', tone:d.urgent>0?'warn':''},
+    {label:'Overdue Invoices', value:d.overdue, sub:'Finance follow-up', tone:d.overdue>0?'danger':''},
+    {label:'Quote Approvals', value:d.pendingQA, sub:'Manager review', tone:d.pendingQA>0?'info':''},
+  ].map(a=>`<div class="exec-alert-card ${a.tone}"><div class="exec-alert-label">${a.label}</div><div class="exec-alert-value">${a.value}</div><div class="exec-alert-sub">${a.sub}</div></div>`).join('');
+
+  return `<section class="exec-dash">
+    <div class="exec-hero">
+      <div>
+        <div class="exec-eyebrow">Executive Dashboard</div>
+        <h2>AECI Chempark health check</h2>
+        <p>Leadership view of open work, finance pressure, urgent operations, and compliance attention points.</p>
+      </div>
+      <div class="exec-hero-actions">
+        <button class="btn btn-p" data-action="navPage" data-page="p-ops-dashboard">Open Operations</button>
+        <button class="btn btn-g" data-action="navPage" data-page="p-finance-dashboard">Review Finance</button>
+      </div>
+    </div>
+    <div class="exec-kpi-grid">
+      <div class="exec-kpi"><span>Active Work</span><strong>${activeWork}</strong><em>Tasks + callouts</em></div>
+      <div class="exec-kpi"><span>Attention Items</span><strong>${attention}</strong><em>Urgent, overdue, approvals</em></div>
+      <div class="exec-kpi"><span>MTD Revenue</span><strong>${fmt(d.mtd)}</strong><em>Invoiced this month</em></div>
+      <div class="exec-kpi"><span>Active Clients</span><strong>${proxyDB.clients.filter(c=>c.active!==false).length}</strong><em>Client accounts</em></div>
+    </div>
+    <div class="exec-trend-row">
+      <div class="panel exec-panel">
+        <div class="ph"><div class="ph-title">Revenue Trend</div><span class="ph-badge">6 Months</span></div>
+        <div class="exec-trend-chart">${revBars}</div>
+      </div>
+      <div class="panel exec-panel">
+        <div class="ph"><div class="ph-title">Open Work Status</div><span class="ph-badge">${activeWork} active</span></div>
+        <div class="pb">${streams}</div>
+      </div>
+    </div>
+    <div class="exec-alert-grid">${alertCards}</div>
+  </section>`;
+}
+
 function _buildDashBlock(wid, d){
   switch(wid){
     case 'w-ops':        return _dashBlockOps(d);
@@ -2899,13 +2953,15 @@ function renderOpsDashboard() {
   const el = document.getElementById('ops-dash-content');
   if (!el) return;
   const now = new Date();
-  const openTasks  = proxyDB.tasks.filter(t => t.status === 'Open' || t.status === 'In Progress').length;
-  const urgent     = proxyDB.tasks.filter(t => t.priority === 'Urgent' && (t.status === 'Open' || t.status === 'In Progress')).length;
+  const activeTasks = proxyDB.tasks.filter(isActiveTask);
+  const openTasks  = activeTasks.length;
+  const urgent     = activeTasks.filter(t => t.priority === 'Urgent').length;
+  const overdueTasks = activeTasks.filter(t => taskDueState(t) === 'Overdue');
+  const dueTodayTasks = activeTasks.filter(t => taskDueState(t) === 'Due today');
   const openCalls  = proxyDB.callouts.filter(c => c.status === 'Open' || c.status === 'In Progress').length;
   const pendingQA  = proxyDB.quotes.filter(q => q.approvalStatus === 'pending').length;
   const qMTD       = proxyDB.quotes.filter(q => { const d=new Date(q.date+'T00:00:00'); return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear(); }).length;
-  const recent     = [...proxyDB.tasks].sort((a,b)=>(b.created_at||'').localeCompare(a.created_at||'')).slice(0,6);
-  const activeTasks = proxyDB.tasks.filter(t => t.status === 'Open' || t.status === 'In Progress');
+  const priorityTasks = [...activeTasks].sort((a,b)=>taskUrgencyRank(a)-taskUrgencyRank(b)).slice(0,6);
   const total      = activeTasks.length + openCalls || 1;
 
   const statBars = [
@@ -2927,37 +2983,57 @@ function renderOpsDashboard() {
     </div>`;
   }).join('');
 
-  const recentRows = recent.length
-    ? recent.map(t=>`<tr>
-        <td class="mono tc-13">${esc(t.ref_id)}</td>
-        <td class="tc-trunc">${esc(t.title)}</td>
-        <td>${esc(TASK_CATEGORY_LABELS[t.category]||t.category)}</td>
-        <td><span class="badge ${TASK_STATUS_BADGE[t.status]||''}">${esc(t.status)}</span></td>
-      </tr>`).join('')
-    : `<tr><td colspan="4" class="tc-empty">No tracker activity yet</td></tr>`;
+  const assigneeCounts = {};
+  activeTasks.forEach(t => {
+    const names = taskAssigneeName(t).split(',').map(s => s.trim()).filter(Boolean);
+    (names.length ? names : ['Unassigned']).forEach(name => { assigneeCounts[name] = (assigneeCounts[name] || 0) + 1; });
+  });
+  const assigneeMax = Math.max(...Object.values(assigneeCounts), 1);
+  const assigneeRows = Object.entries(assigneeCounts).sort((a,b)=>b[1]-a[1]).slice(0,6).map(([name,count])=>`
+    <div class="ops-load-row">
+      <div><strong>${esc(name)}</strong><span>${count} active task${count===1?'':'s'}</span></div>
+      <div class="prog-bar"><div class="prog-fill" data-w="${Math.max(5,Math.round(count/assigneeMax*100))}" data-bg="var(--amber)"></div></div>
+    </div>`).join('') || `<div class="empty-note">No assignee load yet.</div>`;
+
+  const priorityCards = priorityTasks.length
+    ? priorityTasks.map(t=>{
+        const dueState = taskDueState(t);
+        const dueCls = dueState === 'Overdue' ? 'badge-ovr' : dueState === 'Due today' ? 'badge-warn' : 'badge-muted';
+        return `<div class="ops-task-card">
+          <div class="ops-task-head">
+            <span class="mono">${esc(t.ref_id)}</span>
+            <span class="${dueCls}">${esc(dueState)}</span>
+          </div>
+          <div class="ops-task-title">${esc(t.title)}</div>
+          <div class="ops-task-meta">${esc(taskAssigneeName(t))} - ${esc(TASK_CATEGORY_LABELS[t.category]||t.category)} - ${taskDueValue(t)?fmtDT(taskDueValue(t)):'No due date'}</div>
+        </div>`;
+      }).join('')
+    : `<div class="empty-note">No active tasks need attention.</div>`;
 
   const qas = can('task.create') || can('capture.new_callout') || can('capture.new_quote');
   el.innerHTML = `
     <div class="kgrid">
       <div class="kcard k1"><div class="klbl">Open Tasks</div><div class="kval">${openTasks}</div><div class="ksub">Admin, Sales & General</div></div>
       <div class="kcard kcard-ember"><div class="klbl">Urgent Tasks</div><div class="kval kval-ember">${urgent}</div><div class="ksub">Immediate attention</div></div>
-      <div class="kcard k2"><div class="klbl">Open Callouts</div><div class="kval">${openCalls}</div><div class="ksub">Operational jobs only</div></div>
-      <div class="kcard k3"><div class="klbl">Quotes This Month</div><div class="kval">${qMTD}</div><div class="ksub">${pendingQA} pending approval</div></div>
+      <div class="kcard k2"><div class="klbl">Due / Overdue</div><div class="kval">${dueTodayTasks.length + overdueTasks.length}</div><div class="ksub">${overdueTasks.length} overdue - ${dueTodayTasks.length} due today</div></div>
+      <div class="kcard k3"><div class="klbl">Open Callouts</div><div class="kval">${openCalls}</div><div class="ksub">${qMTD} quotes this month - ${pendingQA} pending</div></div>
     </div>
     <div class="twocol">
       <div class="panel">
         <div class="ph">
-          <div class="ph-title">Recent Tracker Activity</div>
+          <div class="ph-title">Due / Overdue Work</div>
           <button class="btn btn-g btn-s" data-action="navPage" data-page="p-tracker">View All →</button>
         </div>
-        <div class="tw"><table><thead><tr><th>Ref</th><th>Task</th><th>Stream</th><th>Status</th></tr></thead>
-          <tbody>${recentRows}</tbody>
-        </table></div>
+        <div class="pb ops-task-list">${priorityCards}</div>
       </div>
       <div class="panel">
-        <div class="ph"><div class="ph-title">Open Work by Stream</div></div>
-        <div class="pb">${statBars}</div>
+        <div class="ph"><div class="ph-title">Assignee Load</div></div>
+        <div class="pb">${assigneeRows}</div>
       </div>
+    </div>
+    <div class="panel mt2">
+      <div class="ph"><div class="ph-title">Open Work by Stream</div></div>
+      <div class="pb">${statBars}</div>
     </div>
     ${qas ? `<div class="panel mt2">
       <div class="ph"><div class="ph-title">Quick Actions</div></div>
@@ -3028,6 +3104,42 @@ async function renderFinDashboard() {
     </div>`;
   }).join('');
 
+  const clientMap = {};
+  proxyDB.invoices.forEach(inv => {
+    const key = inv.client || 'Unassigned';
+    if (!clientMap[key]) clientMap[key] = { client:key, amount:0, outstanding:0, count:0 };
+    clientMap[key].amount += Number(inv.amount)||0;
+    clientMap[key].count += 1;
+    if (['Draft','Sent','Overdue'].includes(inv.status)) clientMap[key].outstanding += Number(inv.amount)||0;
+  });
+  const clientRows = Object.values(clientMap).sort((a,b)=>b.amount-a.amount).slice(0,6);
+  const clientMax = Math.max(...clientRows.map(r=>r.amount),1);
+  const clientHtml = clientRows.length ? clientRows.map(r=>`
+    <div class="fin-break-row">
+      <div class="fin-break-main">
+        <div class="fin-break-title">${esc(r.client)}</div>
+        <div class="fin-break-meta">${r.count} invoices - ${fmt(r.outstanding)} outstanding</div>
+      </div>
+      <div class="fin-break-amt">${fmt(r.amount)}</div>
+      <div class="prog-bar fin-break-bar"><div class="prog-fill" data-w="${Math.max(4,Math.round(r.amount/clientMax*100))}" data-bg="var(--amber)"></div></div>
+    </div>`).join('') : `<div class="empty-note">No client finance data yet.</div>`;
+
+  const outstandingInvoices = proxyDB.invoices
+    .filter(inv=>['Draft','Sent','Overdue'].includes(inv.status))
+    .sort((a,b)=>String(a.dueDate||'').localeCompare(String(b.dueDate||'')))
+    .slice(0,8);
+  const invoiceList = outstandingInvoices.length ? outstandingInvoices.map(inv=>`
+    <div class="fin-invoice-card">
+      <div>
+        <div class="fin-break-title">${esc(inv.invoiceNo || inv.id)}</div>
+        <div class="fin-break-meta">${esc(inv.client)} - Due ${fmtD(inv.dueDate)}</div>
+      </div>
+      <div class="fin-invoice-side">
+        ${pillH(inv.status)}
+        <strong>${fmt(inv.amount)}</strong>
+      </div>
+    </div>`).join('') : `<div class="empty-note">No outstanding invoices.</div>`;
+
   const qas = can('capture.new_invoice') || can('capture.log_payment');
   const margPct = bankConf>0 ? Math.round((grossMargin/bankConf)*100) : 0;
 
@@ -3047,6 +3159,16 @@ async function renderFinDashboard() {
       <div class="panel">
         <div class="ph"><div class="ph-title">Invoice Status Breakdown</div><button class="btn btn-g btn-s" data-action="navPage" data-page="p-invoices">View All</button></div>
         <div class="pb">${statBars}</div>
+      </div>
+    </div>
+    <div class="twocol">
+      <div class="panel">
+        <div class="ph"><div class="ph-title">Client Breakdown</div></div>
+        <div class="pb fin-break-list">${clientHtml}</div>
+      </div>
+      <div class="panel">
+        <div class="ph"><div class="ph-title">Aging / Status List</div><button class="btn btn-g btn-s" data-action="navPage" data-page="p-invoices">Invoices</button></div>
+        <div class="pb fin-invoice-list">${invoiceList}</div>
       </div>
     </div>
     ${unrecon>0?`<div class="panel mt2 panel-warn-top">
@@ -3149,6 +3271,37 @@ const TASK_STATUS_BADGE    = {
   'Cancelled':   'badge-cancelled',
 };
 
+function isActiveTask(t) {
+  return t.status === 'Open' || t.status === 'In Progress';
+}
+
+function taskAssigneeName(t) {
+  return (t.assignees && t.assignees.length)
+    ? t.assignees.map(a => a.name).join(', ')
+    : (t.assignee_name || t.assigned_to || 'Unassigned');
+}
+
+function taskDueValue(t) {
+  return t.due_at || t.due_date || '';
+}
+
+function taskDueState(t) {
+  const due = taskDueValue(t);
+  if (!due || !isActiveTask(t)) return 'No date';
+  const day = String(due).slice(0, 10);
+  const today = localDateStr();
+  if (day < today) return 'Overdue';
+  if (day === today) return 'Due today';
+  return 'Upcoming';
+}
+
+function taskUrgencyRank(t) {
+  const dueState = taskDueState(t);
+  const pri = { Urgent: 0, High: 1, Normal: 2, Low: 3 }[t.priority] ?? 4;
+  const dueRank = dueState === 'Overdue' ? 0 : dueState === 'Due today' ? 1 : dueState === 'Upcoming' ? 2 : 3;
+  return dueRank * 10 + pri;
+}
+
 function visibleTaskCategories() {
   const roles = SESSION?.roles?.length ? SESSION.roles : [SESSION?.role || ''];
   return Object.keys(TASK_CATEGORY_ROLES).filter(cat => TASK_CATEGORY_ROLES[cat].some(role => roles.includes(role)));
@@ -3206,6 +3359,65 @@ function renderTracker(cat) {
   const items = proxyDB.tasks.filter(t => t.category === cat);
   const canUpdate = can('task.update');
   const canDelete = can('task.delete');
+
+  if (!taskView) return;
+  const activeItems = items.filter(isActiveTask);
+  const summaryCards = [
+    { label:'Open', value:items.filter(t=>t.status==='Open').length, sub:'Ready to start' },
+    { label:'In Progress', value:items.filter(t=>t.status==='In Progress').length, sub:'Being worked' },
+    { label:'Overdue', value:activeItems.filter(t=>taskDueState(t)==='Overdue').length, sub:'Needs attention' },
+    { label:'Due Today', value:activeItems.filter(t=>taskDueState(t)==='Due today').length, sub:'Same-day action' },
+  ].map(c=>`<div class="ops-mini-card"><span>${c.label}</span><strong>${c.value}</strong><em>${c.sub}</em></div>`).join('');
+
+  const assigneeCounts = {};
+  activeItems.forEach(t => {
+    const names = taskAssigneeName(t).split(',').map(s => s.trim()).filter(Boolean);
+    (names.length ? names : ['Unassigned']).forEach(name => { assigneeCounts[name] = (assigneeCounts[name] || 0) + 1; });
+  });
+  const assigneeMax = Math.max(...Object.values(assigneeCounts), 1);
+  const assigneeRows = Object.entries(assigneeCounts).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([name,count])=>`
+    <div class="ops-load-row">
+      <div><strong>${esc(name)}</strong><span>${count} active</span></div>
+      <div class="prog-bar"><div class="prog-fill" data-w="${Math.max(5,Math.round(count/assigneeMax*100))}" data-bg="var(--blue)"></div></div>
+    </div>`).join('') || `<div class="empty-note">No active assignee load.</div>`;
+
+  const taskCards = items.length ? [...items].sort((a,b)=>taskUrgencyRank(a)-taskUrgencyRank(b)).map(t => {
+    const dotCls  = TASK_PRIORITY_DOT[t.priority]  || 'bg-muted';
+    const bdgCls  = TASK_STATUS_BADGE[t.status]    || '';
+    const assignee = taskAssigneeName(t);
+    const dueState = taskDueState(t);
+    const dueCls = dueState === 'Overdue' ? 'badge-ovr' : dueState === 'Due today' ? 'badge-warn' : 'badge-muted';
+    const actions = [];
+    actions.push(`<button class="btn btn-g btn-s" data-action="openTrackerRecord" data-entity-type="task" data-id="${esc(t.ref_id)}">Record</button>`);
+    actions.push(`<button class="btn btn-g btn-s" data-action="openAttachmentsModal" data-entity-type="task" data-entity-ref="${esc(t.ref_id)}">Files</button>`);
+    if (canUpdate) actions.push(`<button class="btn btn-g btn-s" data-action="openTaskStatus" data-id="${esc(t.ref_id)}">Status</button>`);
+    if (canDelete) actions.push(`<button class="btn btn-g btn-s btn-danger-soft" data-action="deleteTask" data-id="${esc(t.ref_id)}">Del</button>`);
+    return `<div class="ops-task-card ops-task-card--action">
+      <div class="ops-task-head">
+        <span class="mono">${esc(t.ref_id)}</span>
+        <span class="${dueCls}">${esc(dueState)}</span>
+      </div>
+      <div class="ops-task-title">${esc(t.title)}</div>
+      <div class="ops-task-meta">${esc(assignee)} - <span class="prio-dot ${dotCls}"></span>${esc(t.priority)} - <span class="badge ${bdgCls}">${esc(t.status)}</span></div>
+      <div class="ops-task-meta">Created ${fmtDT(t.created_at)} - Due ${taskDueValue(t)?fmtDT(taskDueValue(t)):'No due date'}</div>
+      <div class="ops-task-actions">${actions.join('')}</div>
+    </div>`;
+  }).join('') : `<div class="empty-note">No tasks in ${esc(TASK_CATEGORY_LABELS[cat])}.</div>`;
+
+  taskView.innerHTML = `
+    <div class="ops-summary-grid">${summaryCards}</div>
+    <div class="twocol">
+      <div class="panel">
+        <div class="ph"><div class="ph-title">${esc(TASK_CATEGORY_LABELS[cat])} Tasks</div></div>
+        <div class="pb ops-task-list">${taskCards}</div>
+      </div>
+      <div class="panel">
+        <div class="ph"><div class="ph-title">Assignee Load</div></div>
+        <div class="pb">${assigneeRows}</div>
+      </div>
+    </div>`;
+  applyProgFills(taskView);
+  return;
 
   const tbody = document.getElementById('tracker-table');
   if (!tbody) return;
@@ -4074,7 +4286,7 @@ function saveInvoice(){
 ═══════════════════════════════════════════════════════ */
 function renderTransactions(search=''){
   let items=[...proxyDB.bank].sort((a,b)=>b.date.localeCompare(a.date));
-  if(search) items=items.filter(b=>b.desc.toLowerCase().includes(search.toLowerCase())||b.cat.toLowerCase().includes(search.toLowerCase()));
+  if(search) items=items.filter(b=>b.desc.toLowerCase().includes(search.toLowerCase())||b.cat.toLowerCase().includes(search.toLowerCase())||String(b.ref||'').toLowerCase().includes(search.toLowerCase())||String(b.calloutRef||'').toLowerCase().includes(search.toLowerCase())||String(b.date||'').includes(search));
   const tc=proxyDB.bank.reduce((a,b)=>a+(b.credit||0),0);
   const td=proxyDB.bank.reduce((a,b)=>a+(b.debit||0),0);
   const tn=tc-td;
@@ -4082,9 +4294,9 @@ function renderTransactions(search=''){
   document.getElementById('tx-debits').textContent=fmt(td);
   const nel=document.getElementById('tx-net');nel.textContent=fmt(tn);nel.classList.toggle('net--pos',tn>=0);nel.classList.toggle('net--neg',tn<0);
   document.getElementById('tx-table').innerHTML=items.length?items.map(b=>`
-    <tr><td class="nowrap">${fmtD(b.date)}</td><td>${esc(b.desc)}</td><td><span class="mlbl-9">${esc(b.cat)}</span></td><td class="mono">${esc(b.ref||'-')}</td>
+    <tr><td class="nowrap">${fmtD(b.date)}</td><td>${esc(b.desc)}</td><td><span class="mlbl-9">${esc(b.cat)}</span></td><td class="mono">${esc(b.ref||'-')}</td><td class="mono">${esc(b.calloutRef||'-')}</td>
     <td class="amt text-ok">${b.credit>0?fmt(b.credit):'-'}</td>
-    <td class="amt text-ovr">${b.debit>0?fmt(b.debit):'-'}</td></tr>`).join(''):'<tr><td colspan="6" class="tc-empty">No transactions</td></tr>';
+    <td class="amt text-ovr">${b.debit>0?fmt(b.debit):'-'}</td></tr>`).join(''):'<tr><td colspan="7" class="tc-empty">No transactions</td></tr>';
 }
 
 function openTxModal(){
@@ -4096,17 +4308,13 @@ function openTxModal(){
       <div class="fgroup ffull"><label class="flbl">Description</label><input class="finput" id="bk-desc" placeholder="Description"></div>
       <div class="fgroup"><label class="flbl">Amount (R)</label><input type="number" class="finput" id="bk-amount" placeholder="0.00"></div>
       <div class="fgroup"><label class="flbl">Category</label><select class="finput" id="bk-cat">${cats.map(c=>`<option>${c}</option>`).join('')}</select></div>
-      <div class="fgroup ffull"><label class="flbl">Reference</label><input class="finput" id="bk-ref" placeholder="e.g. INV-001 or PO-2026-045"></div>
+      <div class="fgroup"><label class="flbl">Reference</label><input class="finput" id="bk-ref" placeholder="e.g. INV-001 or PO-2026-045"></div>
+      <div class="fgroup"><label class="flbl">Call Log Number <span class="text-ember">*</span></label><input class="finput" id="bk-callout-ref" placeholder="e.g. CO-BF-CP1723" required></div>
     </div>
     <div class="mt3 flex-end"><button class="btn btn-p" data-action="saveTx">Save</button></div>`);
 }
-function saveTx(){
-  const desc=document.getElementById('bk-desc').value.trim();
-  const amount=parseFloat(document.getElementById('bk-amount').value)||0;
-  if(!desc||!amount){toast('Description and amount required','err');return;}
-  const type=document.getElementById('bk-type').value;
-  proxyDB.bank.unshift({date:document.getElementById('bk-date').value,desc,cat:document.getElementById('bk-cat').value,ref:document.getElementById('bk-ref').value.trim(),credit:type==='Credit'?amount:0,debit:type==='Debit'?amount:0});
-  save();closeModalDirect();renderTransactions();toast('Transaction logged','ok');audit('CREATE','Bank transaction: '+desc);
+async function saveTx(){
+  await addTransaction();
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -4491,26 +4699,134 @@ const PLL_TABS = [
 let pllActiveTab = 'pll-remittances';
 let pllData = {};
 
+function switchPLLedgerTab(tab) {
+  if (!PLL_TABS.some(t => t.id === tab)) return;
+  pllActiveTab = tab;
+
+  const tabEl = document.getElementById('pl-ledger-tabs');
+  if (tabEl) {
+    tabEl.querySelectorAll('[data-pll-tab]').forEach(btn => {
+      const active = btn.dataset.pllTab === pllActiveTab;
+      btn.classList.toggle('active', active);
+      btn.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+  }
+
+  PLL_TABS.forEach(t => {
+    const el = document.getElementById(t.id);
+    if (el) el.hidden = (t.id !== pllActiveTab);
+  });
+
+  _pllRenderTab(pllActiveTab);
+}
+
+function renderLedgerSummary() {
+  const el = document.getElementById('pl-ledger-summary');
+  if (!el) return;
+
+  const tx = [...(proxyDB.bank || [])].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
+  const credits = tx.reduce((sum,row)=>sum + (Number(row.credit)||0), 0);
+  const debits = tx.reduce((sum,row)=>sum + (Number(row.debit)||0), 0);
+  const payments = tx.filter(row => row.cat === 'Invoice Payment' || Number(row.credit) > 0).reduce((sum,row)=>sum + (Number(row.credit)||0), 0);
+  const net = credits - debits;
+
+  const now = new Date();
+  const months = [];
+  for (let i=5;i>=0;i--) {
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    months.push({ lbl:d.toLocaleDateString('en-ZA',{month:'short'}), ym:`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}` });
+  }
+  const trend = months.map(m => {
+    const rows = tx.filter(row => String(row.date||'').slice(0,7) === m.ym);
+    return {
+      ...m,
+      credits: rows.reduce((sum,row)=>sum + (Number(row.credit)||0), 0),
+      debits: rows.reduce((sum,row)=>sum + (Number(row.debit)||0), 0),
+    };
+  });
+  const maxTrend = Math.max(...trend.flatMap(row => [row.credits,row.debits]), 1);
+  const trendHtml = trend.map((row,i) => {
+    const ch = Math.max(3, Math.round((row.credits/maxTrend)*100));
+    const dh = Math.max(3, Math.round((row.debits/maxTrend)*100));
+    return `<div class="ledger-trend-col">
+      <div class="ledger-trend-bars">
+        <div class="ledger-bar ledger-bar-credit" data-h="${ch}" data-lbi="c${i}" title="Credits: ${fmt(row.credits)}"></div>
+        <div class="ledger-bar ledger-bar-debit" data-h="${dh}" data-lbi="d${i}" title="Debits: ${fmt(row.debits)}"></div>
+      </div>
+      <div class="ledger-trend-label">${esc(row.lbl)}</div>
+    </div>`;
+  }).join('');
+
+  const catMap = {};
+  tx.forEach(row => {
+    const key = row.cat || 'Uncategorised';
+    if (!catMap[key]) catMap[key] = { category:key, credits:0, debits:0, count:0 };
+    catMap[key].credits += Number(row.credit)||0;
+    catMap[key].debits += Number(row.debit)||0;
+    catMap[key].count += 1;
+  });
+  const cats = Object.values(catMap).sort((a,b)=>Math.max(b.credits,b.debits)-Math.max(a.credits,a.debits)).slice(0,6);
+  const catMax = Math.max(...cats.map(row=>Math.max(row.credits,row.debits)), 1);
+  const catHtml = cats.length ? cats.map((row,i) => {
+    const amount = Math.max(row.credits,row.debits);
+    return `<div class="fin-break-row">
+      <div class="fin-break-main">
+        <div class="fin-break-title">${esc(row.category)}</div>
+        <div class="fin-break-meta">${row.count} transactions - CR ${fmt(row.credits)} - DR ${fmt(row.debits)}</div>
+      </div>
+      <div class="fin-break-amt">${fmt(amount)}</div>
+      <div class="prog-bar fin-break-bar"><div class="prog-fill" data-w="${Math.max(4,Math.round(amount/catMax*100))}" data-bg="var(--amber)"></div></div>
+    </div>`;
+  }).join('') : `<div class="empty-note">No ledger categories yet.</div>`;
+
+  const feedHtml = tx.slice(0,10).map(row => `
+    <div class="ledger-feed-card">
+      <div class="ledger-feed-date">${fmtD(row.date)}</div>
+      <div class="ledger-feed-main">
+        <div class="fin-break-title">${esc(row.desc)}</div>
+        <div class="fin-break-meta">${esc(row.cat || 'Uncategorised')} - ${esc(row.ref || 'No reference')}</div>
+      </div>
+      <div class="ledger-feed-amounts">
+        <span class="text-ok">CR ${Number(row.credit)>0?fmt(row.credit):'-'}</span>
+        <span class="text-ovr">DR ${Number(row.debit)>0?fmt(row.debit):'-'}</span>
+      </div>
+    </div>`).join('') || `<div class="empty-note">No posted transactions yet.</div>`;
+
+  el.innerHTML = `
+    <div class="kgrid kgrid--4">
+      <div class="kcard k1"><div class="klbl">Net Balance</div><div class="kval${net>=0?' text-ok':' text-ovr'}">${fmt(net)}</div><div class="ksub">Credits less debits</div></div>
+      <div class="kcard k1"><div class="klbl">Total Credits</div><div class="kval text-ok">${fmt(credits)}</div><div class="ksub">${tx.filter(row=>Number(row.credit)>0).length} credit entries</div></div>
+      <div class="kcard k3"><div class="klbl">Total Debits</div><div class="kval text-ovr">${fmt(debits)}</div><div class="ksub">${tx.filter(row=>Number(row.debit)>0).length} debit entries</div></div>
+      <div class="kcard k2"><div class="klbl">Payments Received</div><div class="kval">${fmt(payments)}</div><div class="ksub">${tx.length} posted transactions</div></div>
+    </div>
+    <div class="twocol ledger-summary-grid">
+      <div class="panel">
+        <div class="ph"><div class="ph-title">Credits vs Debits by Month</div><div class="ph-sub"><span class="legend-dot legend-ok"></span>Credits <span class="legend-dot legend-cost ml-2"></span>Debits</div></div>
+        <div class="ledger-trend">${trendHtml}</div>
+      </div>
+      <div class="panel">
+        <div class="ph"><div class="ph-title">Category Exposure</div></div>
+        <div class="pb fin-break-list">${catHtml}</div>
+      </div>
+    </div>
+    <div class="panel mt2">
+      <div class="ph"><div class="ph-title">Transaction Ledger Feed</div><button class="btn btn-g btn-s" data-action="navPage" data-page="p-transactions">Transactions</button></div>
+      <div class="pb ledger-feed">${feedHtml}</div>
+    </div>`;
+
+  let css = '';
+  el.querySelectorAll('.ledger-bar[data-h]').forEach(bar => { css += `.ledger-bar[data-lbi="${bar.dataset.lbi}"]{height:${bar.dataset.h}%;}`; });
+  if (css) _injectStyle('ledger-bars-css', css);
+  applyProgFills(el);
+}
+
 async function renderPLLedger() {
   // Build tab nav
   const tabEl = document.getElementById('pl-ledger-tabs');
-  if (tabEl && !tabEl.dataset.built) {
-    tabEl.dataset.built = '1';
+  if (tabEl) {
     tabEl.innerHTML = PLL_TABS.map(t =>
-      `<button class="pnav-btn${t.id===pllActiveTab?' active':''}" data-pll-tab="${t.id}">${t.lbl||t.label}</button>`
+      `<button type="button" class="pnav-btn${t.id===pllActiveTab?' active':''}" data-action="switchPLLedgerTab" data-pll-tab="${t.id}" role="tab" aria-selected="${t.id===pllActiveTab?'true':'false'}">${t.lbl||t.label}</button>`
     ).join('');
-    tabEl.querySelectorAll('[data-pll-tab]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        pllActiveTab = btn.dataset.pllTab;
-        tabEl.querySelectorAll('[data-pll-tab]').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        PLL_TABS.forEach(t => {
-          const el = document.getElementById(t.id);
-          if (el) el.hidden = (t.id !== pllActiveTab);
-        });
-        _pllRenderTab(pllActiveTab);
-      });
-    });
   }
 
   // Show active tab, hide others
@@ -4529,6 +4845,7 @@ async function renderPLLedger() {
       api('GET','pl_ledger.php?action=monthly_pl'),
     ]);
     pllData = { rem, bank, inv, costs, mpl };
+    renderLedgerSummary();
     _pllRenderTab(pllActiveTab);
   } catch(e) {
     console.error('PLL fetch error', e);
@@ -4741,7 +5058,7 @@ function renderAudit(filter=''){
   const items=filter?AUDIT_LOG.filter(e=>e.action.toLowerCase().includes(filter.toLowerCase())||e.user.toLowerCase().includes(filter.toLowerCase())||e.detail.toLowerCase().includes(filter.toLowerCase())):AUDIT_LOG;
   document.getElementById('audit-list').innerHTML=items.length?items.map(e=>`
     <div class="audit-row">
-      <div class="audit-ts">${fmtDT(e.ts)}</div>
+      <div class="audit-ts">${fmtDT(e.ts).replace(', ', '<br>')}</div>
       <div class="audit-user">${esc(e.user)}</div>
       <div class="audit-action"><strong>${esc(e.action)}</strong> - ${esc(e.detail)}</div>
       <div class="audit-lvl info">${esc(e.role||e.level)}</div>
@@ -5618,15 +5935,18 @@ async function addTransaction(){
   const type = document.getElementById('bk-type')?.value;
   const cat  = document.getElementById('bk-cat')?.value;
   const ref  = document.getElementById('bk-ref')?.value?.trim() || '';
+  const calloutRef = document.getElementById('bk-callout-ref')?.value?.trim() || '';
   const amount = parseFloat(document.getElementById('bk-amount')?.value) || 0;
   
   if (!desc || !amount) { toast('Fill in description and amount', 'err'); return; }
+  if (!calloutRef) { toast('Call log number required', 'err'); return; }
   
   const r = await api('POST', 'transactions.php', {
     trans_date: date || localDateStr(),
     description: desc,
     category: cat || 'General',
     reference: ref,
+    callout_ref: calloutRef,
     credit: type === 'Credit' ? amount : 0,
     debit:  type === 'Debit'  ? amount : 0,
   });
@@ -5634,6 +5954,7 @@ async function addTransaction(){
   
   await refreshTransactions();
   renderTransactions('');
+  closeModalDirect();
   toast('Transaction added', 'ok');
 }
 
@@ -6626,6 +6947,71 @@ function _safScore(f){
   return {score:s, std, notStd, na, total: std+notStd+na};
 }
 
+function renderSafetyComplianceSummary(allFiles){
+  const summaryEl=document.getElementById('safety-compliance-summary');
+  const regionEl=document.getElementById('safety-region-blocks');
+  if(!summaryEl&&!regionEl) return;
+
+  const files=Array.isArray(allFiles)?allFiles:[];
+  const scored=files.map(f=>({file:f, score:_safScore(f).score})).filter(x=>x.score!==null);
+  const avg=scored.length ? Math.round(scored.reduce((sum,x)=>sum+x.score,0)/scored.length) : null;
+  const approved=files.filter(f=>f.status==='Approved').length;
+  const submitted=files.filter(f=>f.status==='Submitted').length;
+  const atRisk=scored.filter(x=>x.score<75).length;
+  const openActions=files.reduce((sum,f)=>sum+(_safScore(f).notStd||0),0);
+  const avgBand=safBand(avg);
+
+  if(summaryEl){
+    summaryEl.innerHTML=`
+      <div class="saf-summary-card saf-summary-card--score">
+        <div class="klbl">Compliance Score</div>
+        <div class="saf-summary-value ${avgBand.cls}">${avg!==null?avg+' pts':'--'}</div>
+        <div class="ksub">${avgBand.label}</div>
+      </div>
+      <div class="saf-summary-card">
+        <div class="klbl">Approved Files</div>
+        <div class="saf-summary-value">${approved}</div>
+        <div class="ksub">${files.length} active safety files</div>
+      </div>
+      <div class="saf-summary-card">
+        <div class="klbl">Under Review</div>
+        <div class="saf-summary-value">${submitted}</div>
+        <div class="ksub">Submitted for approval</div>
+      </div>
+      <div class="saf-summary-card ${atRisk?'saf-summary-card--risk':''}">
+        <div class="klbl">Risk Signals</div>
+        <div class="saf-summary-value">${atRisk}</div>
+        <div class="ksub">${openActions} open non-standard items</div>
+      </div>
+    `;
+  }
+
+  if(regionEl){
+    const regions={};
+    files.forEach(f=>{
+      const key=(f.region||'Unassigned').trim()||'Unassigned';
+      if(!regions[key]) regions[key]={total:0, approved:0, submitted:0, risk:0, scoreTotal:0, scoreCount:0};
+      const r=regions[key];
+      const score=_safScore(f).score;
+      r.total += 1;
+      if(f.status==='Approved') r.approved += 1;
+      if(f.status==='Submitted') r.submitted += 1;
+      if(score!==null){ r.scoreTotal += score; r.scoreCount += 1; if(score<75) r.risk += 1; }
+    });
+    const cards=Object.entries(regions).sort((a,b)=>b[1].total-a[1].total).slice(0,4).map(([region,r])=>{
+      const score=r.scoreCount?Math.round(r.scoreTotal/r.scoreCount):null;
+      const band=safBand(score);
+      return `<div class="saf-region-card">
+        <div class="saf-region-head"><span>${esc(region)}</span><strong class="${band.cls}">${score!==null?score+' pts':'--'}</strong></div>
+        <div class="saf-region-meta">${r.total} files &middot; ${r.approved} approved &middot; ${r.submitted} review</div>
+        <div class="saf-region-bar"><span style="width:${r.total?Math.round((r.approved/r.total)*100):0}%"></span></div>
+        <div class="saf-region-risk">${r.risk ? r.risk+' low-score files need attention' : 'No low-score files flagged'}</div>
+      </div>`;
+    }).join('');
+    regionEl.innerHTML=cards || '<div class="saf-region-card saf-region-card--empty">No regional safety files loaded.</div>';
+  }
+}
+
 function renderSafetyFiles(search){
   if(search===undefined) search=(document.querySelector('#p-safety .sinput')||{}).value||'';
   // Populate contractor datalist from all known safety files
@@ -6655,6 +7041,8 @@ function renderSafetyFiles(search){
       ? `<div class="alert-strip alert-err">Action plan overdue for: ${overdue.map(f=>f.id).join(', ')}</div>`
       : '';
   }
+
+  renderSafetyComplianceSummary(proxyDB.safetyFiles);
 
   const grid=document.getElementById('safety-files-grid');
   if(!grid) return;

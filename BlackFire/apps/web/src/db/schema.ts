@@ -12,7 +12,6 @@ import {
   decimal,
   text,
   longtext,
-  json,
   mediumtext,
   bigint,
   uniqueIndex,
@@ -296,12 +295,14 @@ export const bfTransactions = mysqlTable('bf_transactions', {
   description: varchar('description', { length: 255 }).notNull(),
   category: varchar('category', { length: 100 }).default('General').notNull(),
   reference: varchar('reference', { length: 50 }).default('').notNull(),
+  calloutRef: varchar('callout_ref', { length: 30 }).default('').notNull(),
   credit: decimal('credit', { precision: 12, scale: 2 }).default('0.00').notNull(),
   debit: decimal('debit', { precision: 12, scale: 2 }).default('0.00').notNull(),
   createdAt: datetime('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
 }, (t) => [
   index('idx_tx_date').on(t.transDate),
   index('idx_tx_category').on(t.category),
+  index('idx_tx_callout_ref').on(t.calloutRef),
 ])
 
 export const bfStatements = mysqlTable('bf_statements', {

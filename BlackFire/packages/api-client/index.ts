@@ -215,7 +215,18 @@ export const safety = {
 
 export const finance = {
   summary: (token?: string) =>
-    apiFetch<{ success: boolean; data: { mtd_invoiced: number; mtd_collected: number; outstanding_balance: number; overdue_amount: number; overdue_count: number; aging: Array<{ band: string; amount: number }> } }>('/api/finance', { token }),
+    apiFetch<{ success: boolean; data: {
+      mtd_invoiced: number
+      mtd_collected: number
+      outstanding_balance: number
+      overdue_amount: number
+      overdue_count: number
+      aging: Array<{ band: string; amount: number }>
+      status_breakdown?: Array<{ status: string; count: number; amount: number }>
+      monthly_trend?: Array<{ month: string; invoiced: number; collected: number }>
+      client_breakdown?: Array<{ client: string; amount: number; outstanding: number; invoice_count: number }>
+      recent_invoices?: Array<{ invoice_no: string; ref_id: string; client_name: string; status: string; due_date: string; amount: number }>
+    } }>('/api/finance', { token }),
   statement: (client_id: number, from: string, to: string, token?: string) =>
     apiFetch<ApiResponse<Statement>>(
       `statements.php?client_id=${client_id}&from=${from}&to=${to}`,

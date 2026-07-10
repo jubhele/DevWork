@@ -3,11 +3,11 @@
 /* ── Umlilo design tokens ──────────────────────────────────────────────────── */
 @theme {
   /* Portal palette */
-  --color-coal:         #F5F1EA;
+  --color-coal:         #E6E6E6;
   --color-navy:         #FFFFFF;
-  --color-charcoal:     #F1ECE4;
-  --color-steel-dark:   #D1C7B7;
-  --color-ash:          #7A7566;
+  --color-charcoal:     #E4E4E4;
+  --color-steel-dark:   #CCCCCC;
+  --color-ash:          #777777;
 
   /* Fire palette */
   --color-ember-red:    #C0392B;
@@ -16,8 +16,8 @@
   --color-flame-gold:   #F5A623;
 
   /* Light palette */
-  --color-bone-paper:   #F5F1EA;
-  --color-ink-text:     #1A1814;
+  --color-bone-paper:   #EFEFEF;
+  --color-ink-text:     #151515;
 
   /* Status */
   --color-success:      #27AE60;
@@ -57,8 +57,7 @@ html[data-theme='dark'] {
 
 body {
   background:
-    radial-gradient(circle at top, rgba(233, 226, 215, 0.8), transparent 46%),
-    linear-gradient(180deg, #ffffff 0%, #f5f1ea 100%);
+    linear-gradient(180deg, #f7f7f7 0%, #eeeeee 100%);
   color: var(--color-ink-text);
   font-family: var(--font-body);
 }
@@ -112,6 +111,17 @@ html[data-theme='dark'] .bg-charcoal\/60 {
 
 * {
   box-sizing: border-box;
+}
+
+.rounded,
+.rounded-sm,
+.rounded-md,
+.rounded-lg {
+  border-radius: 2px !important;
+}
+
+.shadow-sm {
+  box-shadow: none !important;
 }
 
 a {

@@ -1,4 +1,5 @@
 import fs from 'node:fs/promises'
+import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 
 const ROUTES = ['/', '/login']
@@ -21,7 +22,8 @@ const API_EXPECTATIONS = [
   { path: '/api/audit', expected: [401] },
 ]
 
-const APP_ROOT = path.resolve(process.cwd(), 'src', 'app', '(portal)')
+const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url))
+const APP_ROOT = path.resolve(SCRIPT_DIR, '..', 'src', 'app', '(portal)')
 
 function routeFromFile(filePath) {
   const rel = path.relative(APP_ROOT, filePath).replace(/\\/g, '/')
@@ -55,10 +57,17 @@ function normalizeHtml(html) {
 }
 
 async function fetchText(url) {
-  const res = await fetch(url, {
-    headers: { 'X-Requested-With': 'XMLHttpRequest' },
-    redirect: 'follow',
-  })
+  let res
+  try {
+    res = await fetch(url, {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      redirect: 'follow',
+    })
+  } catch (error) {
+    throw new Error(
+      `Failed to reach ${url}. Start the Next.js app first (for example: pnpm -C C:\\DevWork\\BlackFire\\apps\\web dev).`
+    )
+  }
 
   if (!res.ok) {
     throw new Error(`${url} returned ${res.status}`)
@@ -68,11 +77,18 @@ async function fetchText(url) {
 }
 
 async function fetchStatus(url) {
-  const res = await fetch(url, {
-    method: 'HEAD',
-    headers: { 'X-Requested-With': 'XMLHttpRequest' },
-    redirect: 'manual',
-  })
+  let res
+  try {
+    res = await fetch(url, {
+      method: 'HEAD',
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      redirect: 'manual',
+    })
+  } catch (error) {
+    throw new Error(
+      `Failed to reach ${url}. Start the Next.js app first (for example: pnpm -C C:\\DevWork\\BlackFire\\apps\\web dev).`
+    )
+  }
 
   return {
     status: res.status,
@@ -81,11 +97,18 @@ async function fetchStatus(url) {
 }
 
 async function fetchApiStatus(url) {
-  const res = await fetch(url, {
-    method: 'HEAD',
-    headers: { 'X-Requested-With': 'XMLHttpRequest' },
-    redirect: 'manual',
-  })
+  let res
+  try {
+    res = await fetch(url, {
+      method: 'HEAD',
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      redirect: 'manual',
+    })
+  } catch (error) {
+    throw new Error(
+      `Failed to reach ${url}. Start the Next.js app first (for example: pnpm -C C:\\DevWork\\BlackFire\\apps\\web dev).`
+    )
+  }
   return res.status
 }
 
@@ -108,7 +131,6 @@ function requireNextMarkers(html, route) {
     'portal.css',
     'portal.js',
     'data-state="public"',
-    'Request a Security Assessment',
   ]
 
   for (const marker of mustHave) {

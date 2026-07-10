@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import { getCurrentUser } from '@/lib/server-auth'
 import { redirect } from 'next/navigation'
-import type { Client } from '@blackfire/types'
 import { getClients } from '@/lib/data/clients'
 
 export default async function ClientsPage() {

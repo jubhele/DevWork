@@ -1,5 +1,5 @@
 import { db, schema } from '@/db/client'
-import { eq, desc } from 'drizzle-orm'
+import { desc } from 'drizzle-orm'
 import bcrypt from 'bcryptjs'
 
 const { bfUsers } = schema

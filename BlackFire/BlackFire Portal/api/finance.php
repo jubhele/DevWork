@@ -49,15 +49,16 @@ $ytd_revenue = (float)(db_row(
     [$year]
 )['total'] ?? 0);
 
-// YTD Cost of Sales — cost transactions this year (avoid double-counting: sum debit only)
+// YTD generated costs — cost transactions this year (avoid double-counting: sum debit only)
 $ytd_costs = (float)(db_row(
     "SELECT COALESCE(SUM(debit), 0) AS total
        FROM bf_transactions
-      WHERE category = 'Cost of Sales' AND YEAR(trans_date) = ?",
+      WHERE category IN ('Cost of Sales', 'Admin Costs', 'Finance Costs')
+        AND YEAR(trans_date) = ?",
     [$year]
 )['total'] ?? 0);
 
-// Net Balance = YTD Revenue minus YTD Costs
+// Net Balance = YTD Revenue minus generated costs
 $net_balance = $ytd_revenue - $ytd_costs;
 
 // Outstanding — unpaid invoices (Sent, Overdue, Draft) — current state, not period-filtered

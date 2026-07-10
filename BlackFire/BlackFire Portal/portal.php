@@ -651,7 +651,7 @@ $companyLogoUrl = $baseUrl . '/' . ltrim($cfg['company_logo'] ?? 'blackfire_logo
         <div class="kcard kcard--flex kcard--net"><div class="klbl">Net</div><div class="kval kval--lg" id="tx-net">R0</div></div>
       </div>
       <div class="srow"><input type="text" class="sinput" id="tx-search" placeholder="Search..."><button class="btn btn-p btn-s" data-action="openTxModal">+ Log Transaction</button></div>
-      <div class="panel"><div class="tw"><table><thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Ref</th><th>Credit</th><th>Debit</th></tr></thead><tbody id="tx-table"></tbody></table></div></div>
+      <div class="panel"><div class="tw"><table><thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Ref</th><th>Call Log</th><th>Credit</th><th>Debit</th></tr></thead><tbody id="tx-table"></tbody></table></div></div>
     </div>
 
     <!-- INVOICES -->
@@ -780,6 +780,7 @@ $companyLogoUrl = $baseUrl . '/' . ltrim($cfg['company_logo'] ?? 'blackfire_logo
     <!-- P&L LEDGER — 5-tab view matching BF_AECI_Full_PL_Ledger Excel -->
     <div id="p-pl-ledger" class="ppage">
       <div class="ptitle">P&amp;L Ledger</div><div class="psub">AECI CHEMPARK  ·  FULL FINANCIAL RECORD</div>
+      <div id="pl-ledger-summary" class="ledger-summary"></div>
       <div class="srow">
         <div id="pl-ledger-tabs" class="pnav-inline"></div>
       </div>
@@ -985,6 +986,8 @@ $companyLogoUrl = $baseUrl . '/' . ltrim($cfg['company_logo'] ?? 'blackfire_logo
         <button class="btn btn-p btn-s" data-action="newSafetyAudit">+ New Audit</button>
         <a class="btn btn-g btn-s" href="reports.php">Reports</a>
       </div>
+      <div id="safety-compliance-summary" class="safety-compliance-summary"></div>
+      <div id="safety-region-blocks" class="safety-region-blocks"></div>
       <div id="safety-reminders" class="safety-reminders"></div>
       <div id="safety-files-grid" class="safety-grid"></div>
     </div>

@@ -1,8 +1,8 @@
 import { db, schema } from '@/db/client'
-import { eq, like, and, sql } from 'drizzle-orm'
+import { eq, like, and } from 'drizzle-orm'
 import type { Client } from '@blackfire/types'
 
-const { bfClients, bfClientContacts } = schema
+const { bfClients } = schema
 
 type DbClient = typeof bfClients.$inferSelect
 

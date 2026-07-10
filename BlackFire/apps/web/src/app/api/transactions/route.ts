@@ -31,6 +31,7 @@ const createSchema = z.object({
   description: z.string().min(1).max(500),
   category: z.string().min(1).max(50),
   reference: z.string().max(100).optional().default(''),
+  callout_ref: z.string().min(1).max(30),
   credit: z.number().min(0).optional().default(0),
   debit: z.number().min(0).optional().default(0),
 }).refine(d => !(d.credit > 0 && d.debit > 0), {
@@ -51,7 +52,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, message: 'Validation failed', errors: parsed.error.flatten() }, { status: 400 })
   }
 
-  const { trans_date, description, category, reference, credit, debit } = parsed.data
+  const { trans_date, description, category, reference, callout_ref, credit, debit } = parsed.data
 
   // Validate date range (not in future, not > 5 years ago)
   const d = new Date(trans_date)
@@ -64,6 +65,14 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const id = await createTransaction({ transDate: trans_date, description, category, reference, credit, debit })
+  let id: number
+  try {
+    id = await createTransaction({ transDate: trans_date, description, category, reference, calloutRef: callout_ref, credit, debit })
+  } catch (error) {
+    return NextResponse.json(
+      { success: false, message: error instanceof Error ? error.message : 'Transaction could not be recorded' },
+      { status: 400 },
+    )
+  }
   return NextResponse.json({ success: true, data: { id }, message: 'Transaction recorded' }, { status: 201 })
 }

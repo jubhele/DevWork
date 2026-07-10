@@ -2,7 +2,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 
 export const metadata = {
-  title: 'Privacy Policy — BlackFire Solutions',
+  title: 'Privacy Policy - BlackFire Solutions',
   description: 'How BlackFire Solutions collects, uses, and protects your personal information under POPIA.',
 }
 
@@ -21,7 +21,7 @@ export default function PrivacyPage() {
         <h1 className="font-display text-5xl tracking-tight text-ink-text mb-8">Privacy Policy</h1>
 
         <Section title="1. Introduction">
-          <p>BlackFire Solutions (Pty) Ltd ("BlackFire", "we", "us") operates the Umlilo Operations Portal and related services (collectively, "the Portal"). This Privacy Policy explains how we collect, use, store, disclose, and protect personal information in compliance with the <strong>Protection of Personal Information Act 4 of 2013 (POPIA)</strong>.</p>
+          <p>BlackFire Solutions (Pty) Ltd (&quot;BlackFire&quot;, &quot;we&quot;, &quot;us&quot;) operates the Umlilo Operations Portal and related services (collectively, &quot;the Portal&quot;). This Privacy Policy explains how we collect, use, store, disclose, and protect personal information in compliance with the <strong>Protection of Personal Information Act 4 of 2013 (POPIA)</strong>.</p>
           <p className="mt-3">By accessing the Portal you confirm that you have read and understood this policy.</p>
         </Section>
 
@@ -59,14 +59,14 @@ export default function PrivacyPage() {
               ))}
             </tbody>
           </table>
-          <p className="mt-4 text-sm text-ash">We do <strong className="text-ink-text">not</strong> collect sensitive personal information (special categories under POPIA §26) unless explicitly required and disclosed separately.</p>
+          <p className="mt-4 text-sm text-ash">We do <strong className="text-ink-text">not</strong> collect sensitive personal information (special categories under POPIA Section 26) unless explicitly required and disclosed separately.</p>
         </Section>
 
         <Section title="4. Lawful Basis for Processing">
           <ul className="space-y-2 text-sm text-ash list-disc list-inside">
-            <li><strong className="text-ink-text">Performance of a contract</strong> — operating the Portal on behalf of the host company and its authorised personnel.</li>
-            <li><strong className="text-ink-text">Legal obligation</strong> — maintaining audit trails, OHS Act records, and security incident logs.</li>
-            <li><strong className="text-ink-text">Legitimate interests</strong> — fraud prevention, system security, and Portal improvement.</li>
+            <li><strong className="text-ink-text">Performance of a contract</strong> - operating the Portal on behalf of the host company and its authorised personnel.</li>
+            <li><strong className="text-ink-text">Legal obligation</strong> - maintaining audit trails, OHS Act records, and security incident logs.</li>
+            <li><strong className="text-ink-text">Legitimate interests</strong> - fraud prevention, system security, and Portal improvement.</li>
           </ul>
         </Section>
 
@@ -94,7 +94,7 @@ export default function PrivacyPage() {
               {[
                 ['Host company management', 'Operational reporting', 'Data processing agreement'],
                 ['Afrihost', 'Server infrastructure', 'Standard contractual clauses'],
-                ['Anthropic / OpenAI', 'AI report generation — anonymised data only', 'No personal identifiers transmitted'],
+                ['Anthropic / OpenAI', 'AI report generation - anonymised data only', 'No personal identifiers transmitted'],
               ].map(([r, reason, s]) => (
                 <tr key={r} className="border-t border-steel-dark/60">
                   <td className="px-4 py-3 font-medium text-ink-text">{r}</td>
@@ -111,7 +111,7 @@ export default function PrivacyPage() {
             {[
               ['Access', 'Request a copy of your personal information', 'Email info@blackfiresolutions.co.za'],
               ['Correction', 'Correct inaccurate or outdated information', 'Contact your system administrator or email us'],
-              ['Deletion', 'Request erasure of your account and personal data', 'Use the "Delete my account" option in Support, or email us'],
+              ['Deletion', 'Request erasure of your account and personal data', 'Use the &quot;Delete my account&quot; option in Support, or email us'],
               ['Objection', 'Object to processing under legitimate interests', 'Email us with the specific objection'],
             ].map(([right, desc, how]) => (
               <div key={right} className="rounded border border-steel-dark bg-white p-4">
@@ -137,13 +137,13 @@ export default function PrivacyPage() {
 
         <Section title="10. Contact">
           <p className="text-sm text-ash">For privacy queries, correction requests, or deletion requests:</p>
-          <p className="mt-2 text-sm font-medium text-ink-text">BlackFire Solutions (Pty) Ltd — Information Officer</p>
+          <p className="mt-2 text-sm font-medium text-ink-text">BlackFire Solutions (Pty) Ltd - Information Officer</p>
           <p className="text-sm text-ash">Email: info@blackfiresolutions.co.za</p>
         </Section>
       </main>
 
       <footer className="border-t border-steel-dark bg-white px-6 py-6 text-center text-xs text-ash sm:px-10">
-        <p>© {new Date().getFullYear()} BlackFire Solutions (Pty) Ltd · <Link href="/login" className="hover:text-ink-text">Portal Login</Link></p>
+        <p>(c) {new Date().getFullYear()} BlackFire Solutions (Pty) Ltd - <Link href="/login" className="hover:text-ink-text">Portal Login</Link></p>
       </footer>
     </div>
   )

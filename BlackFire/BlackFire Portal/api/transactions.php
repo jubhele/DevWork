@@ -29,8 +29,8 @@ if ($method === 'GET') {
 
     if ($q) {
         $like   = "%$q%";
-        $where  = 'WHERE (description LIKE ? OR category LIKE ? OR reference LIKE ?)';
-        $params = [$like, $like, $like];
+        $where  = 'WHERE (description LIKE ? OR category LIKE ? OR reference LIKE ? OR callout_ref LIKE ? OR trans_date LIKE ?)';
+        $params = [$like, $like, $like, $like, $like];
     }
 
     $total = db_row("SELECT COUNT(*) AS n FROM bf_transactions $where", $params)['n'] ?? 0;
@@ -51,7 +51,7 @@ if ($method === 'POST') {
     $usr = require_auth();
     $b   = get_body();
 
-    require_fields($b, ['trans_date', 'description', 'category']);
+    require_fields($b, ['trans_date', 'description', 'category', 'callout_ref']);
 
     $dateObj = DateTime::createFromFormat('Y-m-d', $b['trans_date']);
     if (!$dateObj || $dateObj->format('Y-m-d') !== $b['trans_date']) {
@@ -65,6 +65,12 @@ if ($method === 'POST') {
 
     $credit = max(0, (float)($b['credit'] ?? 0));
     $debit  = max(0, (float)($b['debit']  ?? 0));
+    $calloutRef = clean($b['callout_ref'] ?? '', 30);
+
+    $callout = db_row("SELECT id FROM bf_callouts WHERE ref_id = ? LIMIT 1", [$calloutRef]);
+    if (!$callout) {
+        json_err('Invalid callout_ref: transaction must link to an existing call log.', 400);
+    }
 
     // FIX: Enforce mutual exclusivity of credit and debit for data integrity
     if ($credit > 0 && $debit > 0) {
@@ -73,12 +79,13 @@ if ($method === 'POST') {
     }
 
     $id = db_insert(
-        "INSERT INTO bf_transactions (trans_date, description, category, reference, credit, debit) VALUES (?,?,?,?,?,?)",
+        "INSERT INTO bf_transactions (trans_date, description, category, reference, callout_ref, credit, debit) VALUES (?,?,?,?,?,?,?)",
         [
             $b['trans_date'],
             clean($b['description']),
             clean($b['category']),
             clean($b['reference'] ?? ''),
+            $calloutRef,
             $credit,
             $debit
         ]

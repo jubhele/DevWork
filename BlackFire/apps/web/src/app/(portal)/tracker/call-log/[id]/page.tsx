@@ -1,6 +1,5 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import type { Callout } from '@blackfire/types'
 import { getCurrentUser, can } from '@/lib/server-auth'
 import TrackerRecordPanel from '@/components/TrackerRecordPanel'
 import { getCallout } from '@/lib/data/callouts'

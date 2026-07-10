@@ -6,16 +6,31 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { useUser } from '@/context/UserContext'
 
-const PRIMARY = [
+type NavAccess = {
+  permission?: string
+  roles?: string[]
+}
+
+type PrimaryNavItem = NavAccess & {
+  href: string
+  label: string
+  group: string
+  matches: string[]
+}
+
+type SecondaryNavItem = NavAccess & {
+  href: string
+  label: string
+}
+
+const PRIMARY: PrimaryNavItem[] = [
   { href: '/dashboard', label: 'Dashboard', group: 'dashboard', matches: ['/dashboard'] },
-  { href: '/tracker', label: 'Operations', group: 'operations', matches: ['/tracker', '/callouts', '/quotes', '/clients'] },
+  { href: '/ops', label: 'Operations', group: 'operations', matches: ['/ops', '/tracker', '/callouts', '/quotes', '/clients'] },
   { href: '/finance', label: 'Finance', group: 'finance', matches: ['/finance', '/invoices'] },
-  { href: '/secure', label: 'Secure', group: 'secure', matches: ['/secure'], roles: ['sysadmin', 'admin', 'manager'] },
-  { href: '/ops', label: 'Ops', group: 'ops', matches: ['/ops'], roles: ['sysadmin', 'admin', 'manager'] },
   { href: '/support', label: 'Support', group: 'support', matches: ['/support', '/safety', '/admin'] },
 ]
 
-const SECONDARY: Record<string, Array<{ href: string; label: string; permission?: string; roles?: string[] }>> = {
+const SECONDARY: Record<string, SecondaryNavItem[]> = {
   dashboard: [
     { href: '/dashboard', label: 'Overview' },
     { href: '/admin/users', label: 'Users & Roles', roles: ['sysadmin', 'admin'] },
@@ -23,21 +38,17 @@ const SECONDARY: Record<string, Array<{ href: string; label: string; permission?
     { href: '/admin/audit', label: 'Audit Log', roles: ['sysadmin', 'admin'] },
   ],
   operations: [
+    { href: '/ops', label: 'Overview', roles: ['sysadmin', 'admin', 'manager'] },
     { href: '/tracker', label: 'Tracker', permission: 'task.view' },
     { href: '/quotes', label: 'Quotes', permission: 'quote.view' },
     { href: '/clients', label: 'Clients', permission: 'callout.view' },
+    { href: '/ops/schedule', label: 'Schedule', roles: ['sysadmin', 'admin', 'manager'] },
+    { href: '/ops/tasks', label: 'Task Planning', roles: ['sysadmin', 'admin', 'manager'] },
   ],
   finance: [
     { href: '/invoices', label: 'Invoices', permission: 'invoice.view' },
     { href: '/finance', label: 'Finance Overview', permission: 'finance.income' },
-  ],
-  secure: [
-    { href: '/secure/incidents', label: 'Incidents', roles: ['sysadmin', 'admin', 'manager'] },
-    { href: '/secure/vault', label: 'Vault', roles: ['sysadmin', 'admin'] },
-  ],
-  ops: [
-    { href: '/ops/schedule', label: 'Schedule', roles: ['sysadmin', 'admin', 'manager'] },
-    { href: '/ops/tasks', label: 'Task Planning', roles: ['sysadmin', 'admin', 'manager'] },
+    { href: '/finance#ledger', label: 'Ledger', permission: 'finance.income' },
   ],
   hub: [
     { href: '/hub', label: 'All Portals' },
@@ -50,7 +61,7 @@ const SECONDARY: Record<string, Array<{ href: string; label: string; permission?
   ],
 }
 
-function isVisible(userRole: string, permissions: string[], item: { permission?: string; roles?: string[] }) {
+function isVisible(userRole: string, permissions: string[], item: NavAccess) {
   if (item.roles) return item.roles.includes(userRole)
   if (item.permission) {
     if (userRole === 'sysadmin') return true

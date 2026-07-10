@@ -14,6 +14,15 @@ const PORTALS = [
     badgeStyle: 'bg-success/10 text-success',
   },
   {
+    title: 'Reporting Workspace',
+    subtitle: 'Power BI embedded views',
+    description: 'Open the live executive dashboard and finance reporting surfaces.',
+    href: '/dashboard',
+    accent: 'border-flame-gold',
+    badge: 'Live',
+    badgeStyle: 'bg-success/10 text-success',
+  },
+  {
     title: 'Secure Command',
     subtitle: 'Priority incident feed',
     description: 'Urgent and emergency callout monitoring with live status tracking.',
@@ -59,7 +68,7 @@ export default async function HubPage() {
   return (
     <div>
       <h1 className="font-display text-5xl tracking-tight text-ink-text mb-2">Portal Hub</h1>
-      <p className="mb-8 text-sm uppercase tracking-[0.28em] text-ash">BlackFire Solutions — all portals in one place</p>
+      <p className="mb-8 text-sm uppercase tracking-[0.28em] text-ash">BlackFire Solutions - all portals in one place</p>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {PORTALS.map(portal => (

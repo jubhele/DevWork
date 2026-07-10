@@ -1,6 +1,6 @@
 # Multi-Agent Workforce Architecture & System Prompts
 
-**Version:** 3.5 — Complete Production Implementation Guide (adds Umcwaningi + Umbheki, splitting QA by domain)
+**Version:** 3.5.1 — Complete Production Implementation Guide (adds Umcwaningi + Umbheki, splitting QA by domain; §17 adds BlackFire architecture recommendations)
 **Purpose:** Hand this document to any implementer to deploy this workforce in a new environment.
 Everything needed is here: architecture, system prompts, protocols, and operational playbook.
 
@@ -1581,7 +1581,31 @@ Inspection procedure:
 9. Re-run the mirror audit from §9.3.
 10. Log the inspection result and memory updates.
 
-### 9.5 Middleware Router (for full multi-provider automation)
+### 9.5 Project-Local Orchestration Packs
+
+When a task grows into a reusable implementation bundle for a specific repo, keep the whole rollout pack inside that owning repo instead of splitting it across the workspace root.
+
+The project-local pack should include:
+- implementation plans and page maps
+- build checklists and task queues
+- session briefs and generated session logs
+- helper scripts and generators
+- local memory entries that explain the rollout
+- any repo-specific artifacts needed to execute the work end to end
+
+Rules:
+- The workspace root stays the home for shared governance, provider mirrors, and cross-project policy.
+- The owning repo becomes the canonical source of truth for the rollout pack.
+- If the pack is moved into a project repo, remove or archive the old root copies so there is no split-brain instruction set.
+- Use the same pattern for future repo-specific rollouts and for existing repos such as `BlackFire`, `GoveTender`, and `JS_Resume`; keep each repo's rollout bundle inside that repo's `docs`, `scripts`, `sessions`, `memory`, and related project folders.
+- Each generator should ship with a small README in the owning repo's `scripts/` area showing copy-paste examples for every supported target mode, including dry-run usage.
+- The generator may also emit a brief-pack kickoff file before the shared foundation session, and reruns of the same timestamp should remain safe by appending a run suffix instead of failing on duplicate names.
+- If a rollout pack benefits from live execution control, add a local HTML status page plus a tiny repo-local server/runner so agents can click a button to launch verification commands, poll state, and refresh the dashboard after each run.
+- Keep that dashboard, its server script, and its queue/status docs inside the owning repo so the rollout stays portable and the control surface matches the code it governs.
+- Prefer a traffic-light view for both platform health and page-by-page rollout queues when the user needs fast progress visibility across layers.
+- Make the dashboard mobile-friendly by default so the status surface works on laptop and phone without a separate responsive variant.
+
+### 9.6 Middleware Router (for full multi-provider automation)
 
 A lightweight script (Python/Node.js/PHP) can route tasks to the correct provider:
 - Read the `domain` field from the task JSON
@@ -2274,6 +2298,115 @@ If matched: task is set to `blocked` and a session log entry records which file 
 - Tier 2/3 tasks use Claude API if `ANTHROPIC_API_KEY` is set in `.env`
 
 See `memory/project_local_ai_models.md` for installed models and smoke-test status.
+
+---
+
+## 17. Architecture Recommendations — BlackFire Applied
+
+**Version:** 3.5.1 — adds enforcement recommendations for agent boundaries, communication, observability, and deployment.
+
+This section is the full, self-contained copy. Mirrored at `BlackFire/docs/architecture_recommendations.md` — keep both in sync; this file (the master) is authoritative if they ever diverge.
+
+### 17.0 Overview
+
+Recommendations for evolving the BlackFire multi-agent workforce (Sibali, Mlawuli, and the 10 Sebenza agents) toward clearer boundaries, better communication, observability, and a modernized interaction model between the portal, orchestration layer, and individual agents.
+
+### 17.1 Clear Agent Boundaries (extends §2, §13.1)
+
+**Per-agent contracts:**
+- Define explicit input/output schemas per Sebenza agent (Nkanyezi, Usiba, Mhloli, Umakhi, Umdwebi, Mvavanyi, Umcwaningi, Umbheki, Umlindi) — each agent should declare what payload shape it accepts and what it guarantees to return, so callers don't need to know its internals
+- Document each agent's domain ownership explicitly (per the §2.3 routing table) so overlapping requests (e.g. "review this code for security" — Umlindi vs. Umcwaningi) resolve deterministically instead of by whichever agent picks it up first
+- Prevent cross-agent state leakage: Umakhi's code-change context should not silently bleed into Mvavanyi/Umcwaningi/Umbheki's QA passes — each QA agent should receive only the diff/output it needs to test, not Umakhi's full working memory
+
+**Governance/execution split:**
+- Separate governance-tier logic (Sibali cost clearance, Mlawuli routing/supervision) from Sebenza execution logic — governance agents should never perform task work themselves, only gate and route it
+- Enforce the existing hard-cap iteration budgets (§13.1: Nkanyezi 3, Usiba 2, Mhloli 5, Umakhi 3, Umdwebi 2, Mvavanyi 3, Umcwaningi 3, Umbheki 2, Umlindi 2) at the orchestration layer via a counter Mlawuli tracks, not just as a documented convention an agent is trusted to self-enforce
+- On cap exceeded, Mlawuli terminates the loop and logs `LOOP_TERMINATED` per the constitution — this should be a hard orchestration-layer check, not something each agent implements independently (and inconsistently)
+
+**Escalation boundary:**
+- Define exactly what "escalate to Mlawuli" means mechanically (return a specific status code/JSON shape) rather than leaving it as informal handoff language
+
+`agent-v3.ps1` gap: hard caps not yet implemented as a tracked counter — see §16.7.
+
+### 17.2 Improved Communication Patterns (extends §3.2 STEP 3, §5)
+
+**Protocol:**
+- Move from ad-hoc conversational handoffs to the strict JSON protocol already defined in the constitution (§13.2 session JSON metadata block) as the actual wire format between Mlawuli and Sebenza agents, not just a post-hoc logging artifact
+- Standardize a request envelope (task_id, assigned_agent, payload, budget/tier, correlation_id) distinct from the existing response/outcome metadata block in §6.2, so requests and results share a traceable ID
+
+**Transport:**
+- Introduce a message bus or queue between Mlawuli and Sebenza agents instead of direct synchronous calls — decouples agent execution time from the caller and makes retries/backpressure tractable
+- For any move to true multi-process/multi-service agents (rather than in-process Claude Code sub-agents), this queue is also the natural place to add the WebSocket layer described in §17.3 for client-facing streaming
+
+**Fault tolerance:**
+- Add retry/backoff semantics matching the constitution's fault-tolerance rule (§13.3: 3 retries on crash/timeout/corrupted payload, then halt + flag a system error), with `retry_count` incremented in the JSON metadata block on each attempt exactly as specified
+- Add circuit breakers so a repeatedly failing agent (e.g. Mhloli timing out on external research calls) doesn't get retried into the ground — trip after N consecutive failures across sessions, not just within one task
+
+**Context handling:**
+- Implement the §13.4 memory compression trigger (70% context capacity) as an actual mechanism — Sibali should be able to intercept a worker's context, summarize/drop stale facts/merge duplicates, and hand back a compressed payload with `action_taken: "Summarised context"` logged, rather than this being aspirational text
+
+`agent-v3.ps1` gap: no fault-tolerance retry loop yet — see §16.7.
+
+### 17.3 Async Processing & Client Integration
+
+- Implement agent-to-client direct communication (WebSockets) for long-running tasks (e.g. Mhloli research, Umakhi builds) instead of poll-only session logs
+- Add client-side agent workers with the Web Workers API
+- Create agent selection UI patterns
+- Implement agent result caching
+- Add agent context persistence
+
+These apply to the Next.js/portal layer specifically — not the PowerShell `agent-v3.ps1` runtime, which stays session-log-driven per §16.
+
+### 17.4 Cross-Cutting Concerns
+
+**Agent Communication:**
+- Standardize agent message format (JSON Schema)
+- Implement versioned agent APIs
+- Add circuit breakers for agent calls
+
+**Observability** (extends Pattern 21, §11 Observability, §13 checklist):
+- Implement agent telemetry
+- Add request tracing across all layers, correlated by `task_id` (Mlawuli → Sibali → worker → QA agent)
+- Create agent performance dashboards, surfaced from the session JSON metadata (§6.2) rather than only living in per-session Markdown logs
+
+**Security:**
+- Implement agent authentication (JWT/OAuth)
+- Add rate limiting per agent type
+- Create agent permission matrix
+
+### 17.5 Deployment Improvements (extends §4.4, §9)
+
+- Containerize agents for independent scaling once beyond single-machine `agent-v3.ps1` execution
+- Implement agent blue-green deployments
+- Add agent feature flags
+- Create agent rollback procedures
+
+Relevant once agents run as separate services rather than in-process Claude Code sub-agents.
+
+### 17.6 Implementation Roadmap
+
+**Phase 1 (0-4 weeks):**
+- Agent orchestration layer (hard-cap enforcement)
+- Basic agent communication (queue-based)
+- Telemetry foundation
+
+**Phase 2 (4-8 weeks):**
+- Asynchronous processing
+- Client-side agent hooks (WebSockets/Web Workers)
+- Security implementation (JWT/OAuth)
+
+**Phase 3 (8-12 weeks):**
+- Advanced routing
+- Full observability
+- Performance optimization
+
+### 17.7 Expected Benefits
+
+- 30-50% reduction in request processing time
+- Improved system resilience
+- Better development velocity for new features
+- Enhanced debugging capabilities
+- More flexible scaling options
 
 ---
 

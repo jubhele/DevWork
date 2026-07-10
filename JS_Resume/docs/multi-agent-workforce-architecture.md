@@ -1581,7 +1581,31 @@ Inspection procedure:
 9. Re-run the mirror audit from §9.3.
 10. Log the inspection result and memory updates.
 
-### 9.5 Middleware Router (for full multi-provider automation)
+### 9.5 Project-Local Orchestration Packs
+
+When a task grows into a reusable implementation bundle for a specific repo, keep the whole rollout pack inside that owning repo instead of splitting it across the workspace root.
+
+The project-local pack should include:
+- implementation plans and page maps
+- build checklists and task queues
+- session briefs and generated session logs
+- helper scripts and generators
+- local memory entries that explain the rollout
+- any repo-specific artifacts needed to execute the work end to end
+
+Rules:
+- The workspace root stays the home for shared governance, provider mirrors, and cross-project policy.
+- The owning repo becomes the canonical source of truth for the rollout pack.
+- If the pack is moved into a project repo, remove or archive the old root copies so there is no split-brain instruction set.
+- Use the same pattern for future repo-specific rollouts and for existing repos such as `BlackFire`, `GoveTender`, and `JS_Resume`; keep each repo's rollout bundle inside that repo's `docs`, `scripts`, `sessions`, `memory`, and related project folders.
+- Each generator should ship with a small README in the owning repo's `scripts/` area showing copy-paste examples for every supported target mode, including dry-run usage.
+- The generator may also emit a brief-pack kickoff file before the shared foundation session, and reruns of the same timestamp should remain safe by appending a run suffix instead of failing on duplicate names.
+- If a rollout pack benefits from live execution control, add a local HTML status page plus a tiny repo-local server/runner so agents can click a button to launch verification commands, poll state, and refresh the dashboard after each run.
+- Keep that dashboard, its server script, and its queue/status docs inside the owning repo so the rollout stays portable and the control surface matches the code it governs.
+- Prefer a traffic-light view for both platform health and page-by-page rollout queues when the user needs fast progress visibility across layers.
+- Make the dashboard mobile-friendly by default so the status surface works on laptop and phone without a separate responsive variant.
+
+### 9.6 Middleware Router (for full multi-provider automation)
 
 A lightweight script (Python/Node.js/PHP) can route tasks to the correct provider:
 - Read the `domain` field from the task JSON

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   ActivityIndicator, RefreshControl,
@@ -15,33 +15,93 @@ const STREAMS: { key: TaskCategory; label: string }[] = [
   { key: 'general', label: 'General' },
 ]
 
+const ACTIVE_STATUSES = ['Open', 'In Progress']
+
 const STATUS_COLOR: Record<string, string> = {
-  'Open': colors.info,
+  Open: colors.info,
   'In Progress': colors.warning,
-  'Done': colors.success,
-  'Cancelled': colors.ash,
+  Done: colors.success,
+  Cancelled: colors.ash,
 }
 
 const PRIORITY_COLOR: Record<string, string> = {
-  'Urgent': colors.fireOrange,
-  'High': colors.emberAmber,
-  'Normal': colors.ash,
-  'Low': colors.steelDark,
+  Urgent: colors.fireOrange,
+  High: colors.emberAmber,
+  Normal: colors.ash,
+  Low: colors.steelDark,
+}
+
+const PRIORITY_RANK: Record<string, number> = {
+  Urgent: 0,
+  High: 1,
+  Normal: 2,
+  Low: 3,
+}
+
+function isActive(task: Task) {
+  return ACTIVE_STATUSES.includes(task.status)
+}
+
+function dueValue(task: Task) {
+  return task.due_at ?? task.due_date ?? null
+}
+
+function todayIso() {
+  const date = new Date()
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
+
+function dueState(task: Task) {
+  const value = dueValue(task)
+  if (!value || !isActive(task)) return 'No date'
+  const day = value.slice(0, 10)
+  const today = todayIso()
+  if (day < today) return 'Overdue'
+  if (day === today) return 'Due today'
+  return 'Upcoming'
+}
+
+function urgencyRank(task: Task) {
+  const due = dueState(task)
+  const dueRank = due === 'Overdue' ? 0 : due === 'Due today' ? 1 : due === 'Upcoming' ? 2 : 3
+  return dueRank * 10 + (PRIORITY_RANK[task.priority] ?? 4)
+}
+
+function assignee(task: Task) {
+  return task.assignee_name ?? task.assigned_to ?? 'Unassigned'
+}
+
+function formatDate(value: string | null | undefined) {
+  return value ? new Date(value).toLocaleDateString('en-ZA', { day: '2-digit', month: 'short' }) : 'No date'
+}
+
+function SummaryCard({ label, value, sub }: { label: string; value: number; sub: string }) {
+  return (
+    <View style={styles.summaryCard}>
+      <Text style={styles.summaryLabel}>{label}</Text>
+      <Text style={styles.summaryValue}>{value}</Text>
+      <Text style={styles.summarySub}>{sub}</Text>
+    </View>
+  )
 }
 
 function TaskItem({ task }: { task: Task }) {
+  const due = dueState(task)
+  const dueColor = due === 'Overdue' ? colors.danger : due === 'Due today' ? colors.warning : colors.ash
+
   return (
     <View style={styles.item}>
       <View style={styles.itemHeader}>
         <Text style={styles.itemRef}>{task.ref_id}</Text>
-        <View style={{ flexDirection: 'row', gap: 6 }}>
-          <Text style={[styles.badge, { color: PRIORITY_COLOR[task.priority] ?? colors.ash }]}>{task.priority}</Text>
-          <Text style={[styles.badge, { color: STATUS_COLOR[task.status] ?? colors.ash }]}>{task.status}</Text>
-        </View>
+        <Text style={[styles.dueBadge, { color: dueColor }]}>{due}</Text>
       </View>
       <Text style={styles.itemTitle} numberOfLines={2}>{task.title}</Text>
-      {task.assignee_name && <Text style={styles.itemMeta}>→ {task.assignee_name}</Text>}
-      {task.due_at && <Text style={styles.itemMeta}>Due: {new Date(task.due_at).toLocaleDateString('en-ZA')}</Text>}
+      <View style={styles.metaRow}>
+        <Text style={[styles.badge, { color: PRIORITY_COLOR[task.priority] ?? colors.ash }]}>{task.priority}</Text>
+        <Text style={[styles.badge, { color: STATUS_COLOR[task.status] ?? colors.ash }]}>{task.status}</Text>
+      </View>
+      <Text style={styles.itemMeta}>{assignee(task)}</Text>
+      <Text style={styles.itemMeta}>Due {formatDate(dueValue(task))}</Text>
     </View>
   )
 }
@@ -59,7 +119,7 @@ export default function TrackerScreen() {
     setError(null)
     try {
       const headers: Record<string, string> = { 'X-Requested-With': 'XMLHttpRequest' }
-      if (token) headers['Authorization'] = `Bearer ${token}`
+      if (token) headers.Authorization = `Bearer ${token}`
       const res = await fetch(`${API_BASE}/tasks.php?category=${stream}&limit=100`, {
         credentials: 'include', headers,
       })
@@ -76,8 +136,20 @@ export default function TrackerScreen() {
 
   useEffect(() => { load() }, [load])
 
-  return (
-    <View style={styles.container}>
+  const activeTasks = useMemo(() => tasks.filter(isActive), [tasks])
+  const orderedTasks = useMemo(() => [...tasks].sort((a, b) => urgencyRank(a) - urgencyRank(b)), [tasks])
+  const overdue = activeTasks.filter(task => dueState(task) === 'Overdue')
+  const dueToday = activeTasks.filter(task => dueState(task) === 'Due today')
+  const urgent = activeTasks.filter(task => task.priority === 'Urgent')
+  const assigneeRows = Object.entries(activeTasks.reduce<Record<string, number>>((acc, task) => {
+    const name = assignee(task)
+    acc[name] = (acc[name] ?? 0) + 1
+    return acc
+  }, {})).sort((a, b) => b[1] - a[1]).slice(0, 4)
+  const maxAssignee = Math.max(...assigneeRows.map(([, count]) => count), 1)
+
+  const listHeader = (
+    <View>
       <View style={styles.header}>
         <Text style={styles.heading}>Tracker</Text>
         <View style={styles.tabs}>
@@ -89,15 +161,42 @@ export default function TrackerScreen() {
         </View>
       </View>
 
-      {loading && <ActivityIndicator color={colors.fireOrange} style={{ marginTop: spacing.xl }} />}
-      {error && <Text style={styles.errorText}>{error}</Text>}
+      <View style={styles.summaryGrid}>
+        <SummaryCard label="Open" value={activeTasks.length} sub="Active work" />
+        <SummaryCard label="Urgent" value={urgent.length} sub="Priority" />
+        <SummaryCard label="Due" value={dueToday.length + overdue.length} sub={`${overdue.length} overdue`} />
+      </View>
 
+      <View style={styles.loadCard}>
+        <Text style={styles.sectionTitle}>Assignee Load</Text>
+        {assigneeRows.length ? assigneeRows.map(([name, count]) => (
+          <View key={name} style={styles.loadRow}>
+            <View style={styles.loadTextRow}>
+              <Text style={styles.loadName}>{name}</Text>
+              <Text style={styles.loadCount}>{count}</Text>
+            </View>
+            <View style={styles.loadTrack}>
+              <View style={[styles.loadFill, { width: `${Math.max(8, Math.round((count / maxAssignee) * 100))}%` }]} />
+            </View>
+          </View>
+        )) : <Text style={styles.emptySmall}>No active assignee load.</Text>}
+      </View>
+
+      {error && <Text style={styles.errorText}>{error}</Text>}
+      {loading && <ActivityIndicator color={colors.fireOrange} style={{ marginTop: spacing.lg }} />}
+      <Text style={styles.sectionTitle}>Due / Overdue Work</Text>
+    </View>
+  )
+
+  return (
+    <View style={styles.container}>
       <FlatList
-        data={tasks}
+        data={orderedTasks}
         keyExtractor={t => String(t.id)}
         renderItem={({ item }) => <TaskItem task={item} />}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={colors.fireOrange} />}
-        contentContainerStyle={{ padding: spacing.md, paddingBottom: spacing.xxl }}
+        contentContainerStyle={styles.listContent}
+        ListHeaderComponent={listHeader}
         ListEmptyComponent={!loading ? <Text style={styles.empty}>No tasks in this stream.</Text> : null}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
       />
@@ -107,20 +206,37 @@ export default function TrackerScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.coal },
-  header: { paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.sm, backgroundColor: colors.navy, borderBottomWidth: 1, borderBottomColor: colors.steelDark },
+  listContent: { padding: spacing.md, paddingBottom: spacing.xxl },
+  header: { marginBottom: spacing.md },
   heading: { fontFamily: fonts.display, fontSize: 24, letterSpacing: 4, color: colors.flameGold, marginBottom: spacing.sm },
   tabs: { flexDirection: 'row', gap: spacing.sm },
-  tab: { paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: 4, borderWidth: 1, borderColor: colors.steelDark },
+  tab: { minHeight: 44, justifyContent: 'center', paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: 6, borderWidth: 1, borderColor: colors.steelDark },
   tabActive: { backgroundColor: colors.fireOrange, borderColor: colors.fireOrange },
   tabText: { fontFamily: fonts.mono, fontSize: 10, color: colors.ash, letterSpacing: 2, textTransform: 'uppercase' },
   tabTextActive: { color: colors.coal },
-  item: { backgroundColor: colors.navy, borderRadius: 8, borderWidth: 1, borderColor: colors.steelDark, padding: spacing.md },
-  itemHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+  summaryGrid: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },
+  summaryCard: { flex: 1, minHeight: 92, backgroundColor: colors.navy, borderRadius: 8, borderWidth: 1, borderColor: colors.steelDark, padding: spacing.sm },
+  summaryLabel: { fontFamily: fonts.mono, fontSize: 9, color: colors.ash, letterSpacing: 1.5, textTransform: 'uppercase' },
+  summaryValue: { fontFamily: fonts.display, fontSize: 28, color: colors.bonePaper, marginTop: 8 },
+  summarySub: { fontFamily: fonts.body, fontSize: 10, color: colors.ash, marginTop: 4 },
+  loadCard: { backgroundColor: colors.navy, borderRadius: 8, borderWidth: 1, borderColor: colors.steelDark, padding: spacing.md, marginBottom: spacing.md },
+  sectionTitle: { fontFamily: fonts.mono, fontSize: 11, color: colors.ash, letterSpacing: 2, textTransform: 'uppercase', marginBottom: spacing.sm },
+  loadRow: { marginBottom: spacing.sm },
+  loadTextRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 },
+  loadName: { fontFamily: fonts.body, fontSize: 12, color: colors.bonePaper },
+  loadCount: { fontFamily: fonts.mono, fontSize: 11, color: colors.ash },
+  loadTrack: { height: 6, borderRadius: 999, backgroundColor: colors.steelDark, overflow: 'hidden' },
+  loadFill: { height: 6, borderRadius: 999, backgroundColor: colors.fireOrange },
+  item: { backgroundColor: colors.navy, borderRadius: 8, borderWidth: 1, borderColor: colors.steelDark, padding: spacing.md, minHeight: 132 },
+  itemHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   itemRef: { fontFamily: fonts.mono, fontSize: 10, color: colors.fireOrange, letterSpacing: 1 },
+  dueBadge: { fontFamily: fonts.mono, fontSize: 9, letterSpacing: 1, textTransform: 'uppercase' },
+  metaRow: { flexDirection: 'row', gap: spacing.sm, marginTop: 10 },
   badge: { fontFamily: fonts.mono, fontSize: 9, letterSpacing: 1, textTransform: 'uppercase' },
   itemTitle: { fontFamily: fonts.body, fontSize: 14, color: colors.bonePaper, lineHeight: 20 },
   itemMeta: { fontFamily: fonts.body, fontSize: 11, color: colors.ash, marginTop: 4 },
   separator: { height: spacing.sm },
   empty: { fontFamily: fonts.body, fontSize: 13, color: colors.ash, textAlign: 'center', marginTop: spacing.xl },
-  errorText: { fontFamily: fonts.body, fontSize: 13, color: colors.danger, textAlign: 'center', margin: spacing.lg },
+  emptySmall: { fontFamily: fonts.body, fontSize: 12, color: colors.ash },
+  errorText: { fontFamily: fonts.body, fontSize: 13, color: colors.danger, textAlign: 'center', marginBottom: spacing.md },
 })

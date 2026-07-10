@@ -19,7 +19,7 @@ const SEVERITY_STYLE: Record<string, string> = {
   low:    'border-info/40 bg-info/5 text-info',
 }
 
-export default function SafetyCopilot({ items, fileId }: { items: SafetyItem[]; fileId: number }) {
+export default function SafetyCopilot({ items }: { items: SafetyItem[] }) {
   const [activeItemId, setActiveItemId] = useState<number | null>(null)
   const [generatedComment, setGeneratedComment] = useState<string | null>(null)
   const [commentLoading, setCommentLoading] = useState(false)

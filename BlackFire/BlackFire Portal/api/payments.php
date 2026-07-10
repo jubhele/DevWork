@@ -71,9 +71,9 @@ if ($method === 'POST') {
                 [$pay_date, $inv['ref_id']]
             );
             db_exec(
-                "INSERT INTO bf_transactions (trans_date, description, category, reference, credit, debit)
-                 VALUES (?,?,?,?,?,?)",
-                [$pay_date, "Payment received — {$inv['client_name']}", 'Invoice Payment', $inv['ref_id'], $inv['amount'], 0]
+                "INSERT INTO bf_transactions (trans_date, description, category, reference, callout_ref, credit, debit)
+                 VALUES (?,?,?,?,?,?,?)",
+                [$pay_date, "Payment received — {$inv['client_name']}", 'Invoice Payment', $inv['ref_id'], clean($inv['callout_ref'] ?? '', 30), $inv['amount'], 0]
             );
             db_insert(
                 "INSERT INTO bf_payments

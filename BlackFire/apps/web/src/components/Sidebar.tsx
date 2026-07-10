@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useUser, useCan } from '@/context/UserContext'
+import { useUser } from '@/context/UserContext'
 
 interface NavItem {
   href: string

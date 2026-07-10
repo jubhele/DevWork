@@ -39,7 +39,10 @@ export default function PublicLanding() {
   const [chips, setChips] = useState<Record<string, boolean>>({})
   const [ignDone, setIgnDone] = useState(false)
   const [ignPct, setIgnPct] = useState(0)
-  const [theme, setTheme] = useState<'light' | 'dark'>('light')
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    if (typeof window === 'undefined') return 'light'
+    return window.localStorage.getItem('bf-theme') === 'dark' ? 'dark' : 'light'
+  })
 
   const wForm = useRef<WizardForm>({ ...EMPTY_WIZARD_FORM })
   const [formV, setFormV] = useState<WizardForm>({ ...EMPTY_WIZARD_FORM })
@@ -50,11 +53,9 @@ export default function PublicLanding() {
   }
 
   useEffect(() => {
-    const saved = window.localStorage.getItem('bf-theme')
-    const next: 'light' | 'dark' = saved === 'dark' ? 'dark' : 'light'
-    document.documentElement.dataset.theme = next
-    setTheme(next)
-  }, [])
+    document.documentElement.dataset.theme = theme
+    window.localStorage.setItem('bf-theme', theme)
+  }, [theme])
 
   function toggleTheme() {
     const next = theme === 'dark' ? 'light' : 'dark'

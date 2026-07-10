@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { cookies } from 'next/headers'
 import { can, getServerUser } from '@/lib/auth'
 import { redirect } from 'next/navigation'
-import { getPortalUsers, type PortalUser } from '@/lib/data/users'
+import { getPortalUsers } from '@/lib/data/users'
 
 const ROLE_LABELS: Record<string, string> = {
   sysadmin: 'Sysadmin',

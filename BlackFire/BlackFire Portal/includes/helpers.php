@@ -56,7 +56,7 @@ function valid_date(?string $d): bool {
     return $dt && $dt->format('Y-m-d') === $d;
 }
 
-function record_invoice_cost_of_sales(array $invoice): void {
+function record_generated_invoice_cost_entry(array $invoice, string $category, string $prefix, string $label, float $rate): void {
     $amount = (float)($invoice['amount'] ?? 0);
     if ($amount <= 0) return;
 
@@ -65,41 +65,47 @@ function record_invoice_cost_of_sales(array $invoice): void {
     $basisRef   = $calloutRef ?: $invoiceRef;
     if (!$basisRef) return;
 
-    $costRef = clean('COST-' . $basisRef, 30);
+    $costRef = clean($prefix . $basisRef, 30);
     $invoiceDate = valid_date($invoice['invoice_date'] ?? null)
         ? $invoice['invoice_date']
         : date('Y-m-d');
     $clientName = clean($invoice['client_name'] ?? 'Client', 255);
-    $cost = round($amount / 1.30, 2);
+    $cost = round($amount * $rate, 2);
 
     $generated = db_row(
         "SELECT id FROM bf_transactions
-          WHERE category = 'Cost of Sales' AND reference = ?
+          WHERE category = ? AND reference = ?
           LIMIT 1",
-        [$costRef]
+        [$category, $costRef]
     );
     if ($generated) {
         db_exec(
-            "UPDATE bf_transactions SET trans_date = ?, description = ?, debit = ? WHERE id = ?",
-            [$invoiceDate, "Cost of services - {$clientName} ({$basisRef})", $cost, (int)$generated['id']]
+            "UPDATE bf_transactions SET trans_date = ?, description = ?, callout_ref = ?, debit = ? WHERE id = ?",
+            [$invoiceDate, "{$label} - {$clientName} ({$basisRef})", $calloutRef, $cost, (int)$generated['id']]
         );
         return;
     }
 
     $existing = db_row(
         "SELECT id FROM bf_transactions
-          WHERE category = 'Cost of Sales' AND reference IN (?, ?)
+          WHERE category = ? AND reference IN (?, ?)
           LIMIT 1",
-        [$basisRef, $invoiceRef]
+        [$category, $basisRef, $invoiceRef]
     );
     if ($existing) return;
 
     db_exec(
         "INSERT INTO bf_transactions
-         (trans_date, description, category, reference, credit, debit)
-         VALUES (?,?,?,?,?,?)",
-        [$invoiceDate, "Cost of services - {$clientName} ({$basisRef})", 'Cost of Sales', $costRef, 0, $cost]
+         (trans_date, description, category, reference, callout_ref, credit, debit)
+         VALUES (?,?,?,?,?,?,?)",
+        [$invoiceDate, "{$label} - {$clientName} ({$basisRef})", $category, $costRef, $calloutRef, 0, $cost]
     );
+}
+
+function record_invoice_cost_of_sales(array $invoice): void {
+    record_generated_invoice_cost_entry($invoice, 'Cost of Sales', 'COST-', 'Cost of services', 0.30);
+    record_generated_invoice_cost_entry($invoice, 'Admin Costs', 'ADMIN-', 'Admin costs', 0.15);
+    record_generated_invoice_cost_entry($invoice, 'Finance Costs', 'FIN-', 'Finance costs', 0.15);
 }
 
 function cors_origin(): ?string {

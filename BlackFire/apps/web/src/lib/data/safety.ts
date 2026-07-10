@@ -1,5 +1,5 @@
 import { db, schema } from '@/db/client'
-import { eq, and, inArray, desc, sql } from 'drizzle-orm'
+import { eq, and, desc, sql } from 'drizzle-orm'
 import type { SafetyFile } from '@blackfire/types'
 import { nextRefId } from './counters'
 

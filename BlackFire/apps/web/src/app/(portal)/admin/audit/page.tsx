@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers'
 import { can, getServerUser } from '@/lib/auth'
 import { redirect } from 'next/navigation'
-import { getAuditLog, type AuditEntry } from '@/lib/data/audit'
+import { getAuditLog } from '@/lib/data/audit'
 
 export default async function AuditPage({
   searchParams,

@@ -32,3 +32,4 @@ temp/
 
 .vercel
 sessions/debug_*.log
+.gstack/

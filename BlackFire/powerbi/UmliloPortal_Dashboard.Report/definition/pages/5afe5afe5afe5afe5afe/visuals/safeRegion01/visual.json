@@ -1,0 +1,75 @@
+{
+    "$schema":  "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.4.0/schema.json",
+    "name":  "safeRegion01",
+    "position":  {
+                     "y":  496,
+                     "height":  200,
+                     "width":  420,
+                     "z":  0,
+                     "x":  820
+                 },
+    "visual":  {
+                   "visualType":  "clusteredBarChart",
+                   "query":  {
+                                 "queryState":  {
+                                                    "Category":  {
+                                                                     "projections":  [
+                                                                                         {
+                                                                                             "queryRef":  "SafetyFiles.region",
+                                                                                             "field":  {
+                                                                                                           "Column":  {
+                                                                                                                          "Expression":  {
+                                                                                                                                             "SourceRef":  {
+                                                                                                                                                               "Entity":  "SafetyFiles"
+                                                                                                                                                           }
+                                                                                                                                         },
+                                                                                                                          "Property":  "region"
+                                                                                                                      }
+                                                                                                       }
+                                                                                         }
+                                                                                     ]
+                                                                 },
+                                                    "Y":  {
+                                                              "projections":  [
+                                                                                  {
+                                                                                      "queryRef":  "Metrics.Safety Files Count",
+                                                                                      "field":  {
+                                                                                                    "Measure":  {
+                                                                                                                    "Expression":  {
+                                                                                                                                       "SourceRef":  {
+                                                                                                                                                         "Entity":  "Metrics"
+                                                                                                                                                     }
+                                                                                                                                   },
+                                                                                                                    "Property":  "Safety Files Count"
+                                                                                                                }
+                                                                                                }
+                                                                                  }
+                                                                              ]
+                                                          }
+                                                }
+                             },
+                   "visualContainerObjects":  {
+                                                  "title":  [
+                                                                {
+                                                                    "properties":  {
+                                                                                       "text":  {
+                                                                                                    "expr":  {
+                                                                                                                 "Literal":  {
+                                                                                                                                 "Value":  "\u0027Files by Region\u0027"
+                                                                                                                             }
+                                                                                                             }
+                                                                                                },
+                                                                                       "show":  {
+                                                                                                    "expr":  {
+                                                                                                                 "Literal":  {
+                                                                                                                                 "Value":  "true"
+                                                                                                                             }
+                                                                                                             }
+                                                                                                }
+                                                                                   }
+                                                                }
+                                                            ]
+                                              },
+                   "drillFilterOtherVisuals":  true
+               }
+}

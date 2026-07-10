@@ -16,6 +16,7 @@ import TrackerScreen from './src/screens/TrackerScreen'
 import CallLogScreen from './src/screens/CallLogScreen'
 import QuotesScreen from './src/screens/QuotesScreen'
 import InvoicesScreen from './src/screens/InvoicesScreen'
+import SafetyScreen from './src/screens/SafetyScreen'
 import SupportScreen from './src/screens/SupportScreen'
 
 // ─── Navigator types ─────────────────────────────────────────────────────────
@@ -35,6 +36,7 @@ export type MainTabParamList = {
   Dashboard: undefined
   Operations: { screen?: keyof OperationsTabParamList }
   Finance: undefined
+  Safety: undefined
   Support: undefined
 }
 
@@ -96,6 +98,7 @@ function MainNavigator() {
       <Tab.Screen name="Dashboard" component={DashboardScreen} />
       <Tab.Screen name="Operations" component={OperationsNavigator} />
       <Tab.Screen name="Finance" component={InvoicesScreen} />
+      <Tab.Screen name="Safety" component={SafetyScreen} />
       <Tab.Screen name="Support" component={SupportScreen} />
     </Tab.Navigator>
   )

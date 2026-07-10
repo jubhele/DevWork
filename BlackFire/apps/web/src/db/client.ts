@@ -8,7 +8,6 @@ import path from 'node:path'
 // Single pooled connection per server runtime. Prefer DATABASE_URL (PlanetScale,
 // production); fall back to discrete BF_DB_* vars for local development.
 declare global {
-  // eslint-disable-next-line no-var
   var __bfPool: mysql.Pool | undefined
 }
 
