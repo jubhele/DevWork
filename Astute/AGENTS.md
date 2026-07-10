@@ -18,6 +18,12 @@ Stack: Python 3.11+ (FastAPI, Celery, Playwright, SQLAlchemy) + Next.js 15 + Pos
 6. **Agent routing** â€” see CLAUDE.md Â§3 for the full workforce routing table.
 7. **Definition of done** â€” Umakhi builds â†’ Mvavanyi/Umcwaningi/Umbheki test (functional/code/UX) â†’ Umlindi audits â†’ Mbhali documents. All must pass.
 
+## Project-Local Artifacts (MANDATORY)
+
+Sessions, generated work, archives, temp files, logs, and backups stay below this repository and are
+mapped by `ARTIFACT_INDEX.md`. Every new log includes `Project: astute` and this project's absolute
+`Project Root`. Full rule: `docs/multi-agent-workforce-architecture.md §9.7`.
+
 ## Key Files
 
 - `docs/architecture.md` â€” full system architecture

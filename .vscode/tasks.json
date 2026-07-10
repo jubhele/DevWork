@@ -8,7 +8,9 @@
       "args": [
         "-NonInteractive",
         "-File",
-        "${workspaceFolder}\\.claude\\scripts\\session-log-update.ps1"
+        "${workspaceFolder}\\.claude\\scripts\\session-log-update.ps1",
+        "-LogPath",
+        "${input:sessionLogPath}"
       ],
       "group": "none",
       "presentation": {
@@ -17,7 +19,14 @@
         "showReuseMessage": false
       },
       "problemMatcher": [],
-      "detail": "Checks session log sections and writes the closing accountability signature when Goal Status = ACHIEVED. Run this at the end of every session (all providers). Claude Code runs it automatically via Stop hook."
+      "detail": "Manual recovery for providers or surfaces whose native lifecycle hook did not run. Validates the latest log and writes a signature only when Goal Status = ACHIEVED."
+    }
+  ],
+  "inputs": [
+    {
+      "id": "sessionLogPath",
+      "type": "promptString",
+      "description": "Exact absolute path of the session log to close (never use newest-by-date discovery)"
     }
   ]
 }

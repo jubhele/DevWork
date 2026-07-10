@@ -18,9 +18,11 @@
 
 Session logs live in `c:\DevWork\GovTender\sessions\`.
 Format: `govtender_<topic>_YYYYMMDD_HHmmss.md`
-Mirror to `G:\My Drive\JS\Agentic AI\sessions\` with `.tbl.bk` suffix.
+Mirror to `G:\My Drive\JS\Agentic AI\sessions\govtender\` with `.tbl.bk` suffix.
 
 Every session must have: Goal, Decisions, Work Done, Blockers, **Learnings** (all mandatory).
+Every new log also includes `Project: govtender` and `Project Root: C:\DevWork\GovTender`.
+All artifacts stay project-local and are mapped by `ARTIFACT_INDEX.md`; see `docs/multi-agent-workforce-architecture.md §9.7`.
 
 ---
 

@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "command": "powershell.exe -NonInteractive -ExecutionPolicy Bypass -File \"C:\\DevWork\\scripts\\governance\\constitution-hook.ps1\" -Event SessionStart -Provider Cursor",
+        "timeout": 15
+      }
+    ],
+    "beforeSubmitPrompt": [
+      {
+        "command": "powershell.exe -NonInteractive -ExecutionPolicy Bypass -File \"C:\\DevWork\\scripts\\governance\\constitution-hook.ps1\" -Event UserPromptSubmit -Provider Cursor",
+        "timeout": 10
+      }
+    ],
+    "preToolUse": [
+      {
+        "matcher": "Write|Edit|Create|ApplyPatch",
+        "command": "powershell.exe -NonInteractive -ExecutionPolicy Bypass -File \"C:\\DevWork\\scripts\\governance\\constitution-hook.ps1\" -Event PreChange -Provider Cursor",
+        "timeout": 10
+      }
+    ],
+    "postToolUse": [
+      {
+        "matcher": "Write|Edit|Create|ApplyPatch",
+        "command": "powershell.exe -NonInteractive -ExecutionPolicy Bypass -File \"C:\\DevWork\\scripts\\governance\\constitution-hook.ps1\" -Event PostChange -Provider Cursor",
+        "timeout": 10
+      }
+    ],
+    "sessionEnd": [
+      {
+        "command": "powershell.exe -NonInteractive -ExecutionPolicy Bypass -File \"C:\\DevWork\\scripts\\governance\\constitution-hook.ps1\" -Event SessionEnd -Provider Cursor",
+        "timeout": 15
+      }
+    ]
+  }
+}

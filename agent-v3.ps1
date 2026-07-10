@@ -199,7 +199,7 @@ function Complete-SessionLog {
     Set-Content -Path $logPath -Value $out.ToArray() -Encoding utf8
 
     # Run the session close hook to write the accountability signature
-    powershell.exe -NonInteractive -File "c:\DevWork\.claude\scripts\session-log-update.ps1"
+    powershell.exe -NonInteractive -File "c:\DevWork\.claude\scripts\session-log-update.ps1" -LogPath $logPath
 }
 
 # -----------------------------------------------------------------------
@@ -355,14 +355,22 @@ function Invoke-AutoQueue {
 
 # -----------------------------------------------------------------------
 # SESSION LOG ENFORCEMENT (runs every loop tick)
-# Catches open session logs from any provider — Claude Code, Copilot, Cursor, etc.
-# session-log-update.ps1 finds the latest log itself and applies the 30-min
-# auto-confirm rule, so this covers sessions that no provider Stop hook closed.
+# Audits only logs referenced by exact provider/session state mappings.
 # -----------------------------------------------------------------------
 function Invoke-SessionLogCheck {
     $script = "c:\DevWork\.claude\scripts\session-log-update.ps1"
-    if (Test-Path $script) {
-        powershell.exe -NonInteractive -File $script
+    $stateDir = "c:\DevWork\temp\constitution-hooks"
+    if (Test-Path $script -and Test-Path $stateDir) {
+        Get-ChildItem -LiteralPath $stateDir -Filter "*.json" -File -ErrorAction SilentlyContinue | ForEach-Object {
+            try {
+                $state = Get-Content -LiteralPath $_.FullName -Raw -Encoding utf8 | ConvertFrom-Json
+                if ($state.log_path -and (Test-Path -LiteralPath $state.log_path)) {
+                    powershell.exe -NonInteractive -File $script -LogPath $state.log_path
+                }
+            } catch {
+                Write-Warning "Skipping invalid constitution hook state: $($_.FullName)"
+            }
+        }
     }
 }
 

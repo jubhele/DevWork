@@ -15,10 +15,10 @@ VS Code: Ctrl+Shift+P → Tasks: Run Task → Close Session Log
 
 Or in the terminal:
 ```powershell
-powershell.exe -NonInteractive -File "c:\DevWork\.claude\scripts\session-log-update.ps1"
+powershell.exe -NonInteractive -File "c:\DevWork\.claude\scripts\session-log-update.ps1" -LogPath "<exact-session-log-path>"
 ```
 
-This writes the accountability signature when Goal Status = ACHIEVED, auto-signs after 30min, never repeats. Claude Code runs this automatically — all other providers run it manually.
+Copilot CLI on local Windows runs `.github/hooks/constitution.json` at session start, every prompt, and session end. Copilot cloud runs in Linux, so this PowerShell-only pack treats cloud and Copilot VS Code chat as instruction-file soft fallbacks. Add and test a portable bash hook before claiming cloud-native enforcement.
 
 ---
 
@@ -163,6 +163,18 @@ Full rules: `Multi-Agent Workforce Architecture & System Prompts.md §14`
 
 ---
 
+## Project-Local Artifacts and Root Index (MANDATORY)
+
+Write project sessions and artifacts below the owning project root (`sessions/`, `artifacts/`,
+`archive/`, `temp/`, `logs/`, `_backups/`). Use `C:\DevWork\_workspace\` only for genuinely
+cross-project/control-plane work. New session logs include `Project` and `Project Root`.
+`C:\DevWork\WORKSPACE_INDEX.md` is the only root artifact catalogue and session close updates it only
+when summaries change. Ambiguous legacy items go to `_workspace\index\unresolved\`; never guess,
+overwrite, flatten project mirrors, bulk-delete temp data, or cross Git boundaries without a
+hash-verified manifest. Full rule: `Multi-Agent Workforce Architecture & System Prompts.md §9.7`.
+
+---
+
 ## Session Log Enforcement Script (MANDATORY)
 
 The workspace uses a shared PowerShell enforcement script that must run at the end of every session:
@@ -179,10 +191,10 @@ c:\DevWork\.claude\scripts\session-log-update.ps1
 
 **How to run:**
 ```powershell
-powershell.exe -NonInteractive -File "c:\DevWork\.claude\scripts\session-log-update.ps1"
+powershell.exe -NonInteractive -File "c:\DevWork\.claude\scripts\session-log-update.ps1" -LogPath "<exact-session-log-path>"
 ```
 
-GitHub Copilot does not support lifecycle shell hooks. Run this manually before ending the session. For automation, add it as a VS Code task in `.vscode/tasks.json`.
+GitHub Copilot CLI and cloud agent support repository lifecycle hooks in `.github/hooks/*.json`; this workspace registers start, every-prompt, and end enforcement there. The VS Code chat surface is not assumed to execute those hooks, so these instructions must be treated as the per-turn fallback and the VS Code close task remains available.
 
 ## Sensitive Files (never expose or commit)
 

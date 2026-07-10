@@ -6,7 +6,7 @@
 ---
 
 **1.a. Name and postal address of Principal Contractor:**
-BlackFire Solutions (trading name of Astute Insights (Pty) Ltd, Reg No. 2021/964381/07)
+BlackFire Solutions
 102 Stoneridge Street, Greenstone, Edenvale, 1609
 
 **1.b. Name and telephone nr. of Principal Contractor's contact person:**
@@ -50,10 +50,10 @@ _[To be completed — ongoing service contract, no fixed completion date on file
 Total: 5  Male: _______  Female: _______
 
 **12. Planned number of Contractors on the Construction Site accountable to Principal Contractor:**
-1 (Astute Insights (Pty) Ltd — no subcontractors on record)
+1 (BlackFire Solutions — no subcontractors on record)
 
 **13. Name(s) of Contractors already selected:**
-Astute Insights (Pty) Ltd (Principal Contractor — no subcontractors on record)
+BlackFire Solutions (Principal Contractor — no subcontractors on record)
 
 ---
 

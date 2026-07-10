@@ -5,7 +5,7 @@
 workspace:
   name: DevWork
   constitution: AGENTS.md          # Droid reads AGENTS.md for all workspace rules
-  session_logs: sessions/
+  session_logs: project-local      # <project>/sessions; _workspace/sessions for cross-project work
   memory: C:/Users/Jughele Shange/.claude/projects/c--DevWork/memory/MEMORY.md
 
 projects:
@@ -45,31 +45,15 @@ rules:
       - chatsessions/
       - "BlackFire/BlackFire Portal/install/blackfire_aeci_seed.sql"
   - session_log_required: true        # write sessions/<topic>_YYYYMMDD_HHmmss.md
+  - project_local_artifacts_required: true # full custody/index contract: architecture guide §9.7
+  - workspace_root_index: WORKSPACE_INDEX.md
   - agent_accountability_required: true  # session log must include Agent Accountability table
                                           # closing signature written ONLY when user sets Goal Status = ACHIEVED
                                           # auto-confirm: 30min inactivity + core sections filled = AUTOMATED signature
                                           # Umlindi audits at session end — unmatched assignments = HIGH violation
 
-hooks:
-  # Session log enforcement — mirrors Claude Code Stop hook behaviour
-  on_session_end:
-    - type: command
-      command: "powershell.exe -NonInteractive -File \"c:\\DevWork\\.claude\\scripts\\session-log-update.ps1\""
-      timeout: 15
-      description: >
-        Checks mandatory session log sections (Decisions, Work Done, Learnings,
-        Goal Status). Writes the closing accountability signature ONLY when Goal
-        Status = ACHIEVED (user confirmed) or 30min inactivity auto-confirm.
-
-hooks:
-  post_task:
-    - name: session-close
-      command: "powershell.exe -NonInteractive -File \"c:\\DevWork\\.claude\\scripts\\session-log-update.ps1\""
-      timeout: 15
-      description: >
-        Runs after every task completion. Checks mandatory session log sections.
-        Writes the one-time accountability signature when Goal Status = ACHIEVED (user confirmed).
-        Auto-signs with [AUTOMATED] flag after 30min inactivity. Never repeats if already signed.
+# Native lifecycle hooks live in .factory/hooks.json. Keeping hook declarations
+# out of this YAML avoids duplicate top-level keys and Factory parser ambiguity.
 
 cost_governance:
   tier_1_max_usd: 0.05

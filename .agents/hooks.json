@@ -1,0 +1,10 @@
+{
+  "enabled": true,
+  "PreToolUse": [
+    {
+      "matcher": "run_command|write_file|edit_file|apply_patch",
+      "command": "powershell.exe -NonInteractive -ExecutionPolicy Bypass -File \"C:\\DevWork\\scripts\\governance\\constitution-hook.ps1\" -Event PreInvocation -Provider \"Google Antigravity\"",
+      "timeout": 10
+    }
+  ]
+}

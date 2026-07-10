@@ -2,6 +2,8 @@
 Date: YYYY-MM-DD
 Provider: <Claude Code | GitHub Copilot | OpenAI Codex | Other>
 Model: <model name>
+Project: blackfire
+Project Root: C:\DevWork\BlackFire
 
 ## Goal
 <one paragraph — what was attempted>

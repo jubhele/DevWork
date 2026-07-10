@@ -2,6 +2,8 @@
 Date: YYYY-MM-DD
 Provider: <Claude Code | GitHub Copilot | OpenAI Codex | Other>
 Model: <model name>
+Project: js-resume
+Project Root: C:\DevWork\JS_Resume
 
 ## Goal
 <one paragraph — what was attempted>

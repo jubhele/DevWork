@@ -1,87 +1,53 @@
-# session-log-update.ps1
-# Called by the Claude Code Stop hook after every response.
-#
-# Signature is written ONLY when the user (or Claude acting on user instruction)
-# has set "## Goal Status" to ACHIEVED in the session log.
-#
-# Exception — automated confirmation (noted as such in the signature):
-#   If the session log has not been modified for AUTO_CONFIRM_HOURS and the core
-#   sections (Decisions + Work Done) are filled, the hook auto-signs with an
-#   [AUTOMATED] flag so the archive is never silently missing a close.
-#
-# Once signed, subsequent Stop events just timestamp and exit.
+param(
+    [Parameter(Mandatory = $true)]
+    [string]$LogPath
+)
 
-$sessionsDir       = "c:\DevWork\sessions"
-$AUTO_CONFIRM_HOURS = 0.5      # 30 minutes of inactivity before automated confirmation
-
-$today    = Get-Date -Format "yyyy-MM-dd"
-$ts       = Get-Date -Format "HH:mm:ss"
-$datetime = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-
-# ---- Resolve log file -------------------------------------------------------
-
-$todayLogs = Get-ChildItem $sessionsDir -Filter "*.md" -ErrorAction SilentlyContinue |
-    Where-Object { $_.Name -ne "_template.md" -and $_.LastWriteTime.Date -eq (Get-Date).Date } |
-    Sort-Object LastWriteTime -Descending
-
-if ($todayLogs) {
-    $logFile = $todayLogs[0].FullName
-} else {
-    $logFile = Join-Path $sessionsDir ($today + "_session.md")
-    $stub = @(
-        "# Session: $today",
-        "Date: $today",
-        "Provider: Claude Code",
-        "Model: claude-sonnet-4-6",
-        "",
-        "## Goal",
-        "(add goal here)",
-        "",
-        "## Goal Status",
-        "PENDING",
-        "",
-        "## Decisions",
-        "-",
-        "",
-        "## Work Done",
-        "-",
-        "",
-        "## Agent Accountability",
-        "| Task ID | Assigned Agent | Completed By | Status | Iterations | Note |",
-        "|---------|---------------|--------------|--------|------------|------|",
-        "",
-        "## Blockers / Next Steps",
-        "-",
-        "",
-        "## Learnings",
-        "-"
-    )
-    Set-Content -Path $logFile -Value $stub -Encoding utf8
+$ErrorActionPreference = 'Stop'
+$workspaceRoot = (Resolve-Path -LiteralPath 'C:\DevWork').Path
+$resolvedLog = (Resolve-Path -LiteralPath $LogPath).Path
+if (-not $resolvedLog.StartsWith($workspaceRoot + '\', [System.StringComparison]::OrdinalIgnoreCase) -or (Split-Path (Split-Path $resolvedLog -Parent) -Leaf) -ne 'sessions') {
+    throw "Session log must be inside a project-local sessions directory under $workspaceRoot"
 }
 
-$logItem  = Get-Item $logFile
-$rawLines = Get-Content $logFile -Encoding utf8
+$AUTO_CONFIRM_HOURS = 0.5
+$logFile = $resolvedLog
+$logItem = Get-Item -LiteralPath $logFile
+$rawLines = Get-Content -LiteralPath $logFile -Encoding utf8
+$content = $rawLines -join "`n"
+$datetime = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
 
-# ---- Already signed? Just timestamp and exit --------------------------------
-
-$alreadySigned = $rawLines | Where-Object { $_ -match '> Completed by:' }
-if ($alreadySigned) {
-    Add-Content -Path $logFile -Value "_Session ended: $today $ts (Claude Code / claude-sonnet-4-6)_" -Encoding utf8
-    exit 0
+function Sync-IndexAndMirror {
+    param([string]$ExactLogPath)
+    $indexScript = Join-Path $workspaceRoot 'scripts\governance\update-workspace-index.ps1'
+    if (Test-Path -LiteralPath $indexScript) {
+        $result = & $indexScript -WorkspaceRoot $workspaceRoot -SessionLogPath $ExactLogPath | Select-Object -Last 1 | ConvertFrom-Json
+        $raw = Get-Content -LiteralPath $ExactLogPath -Raw -Encoding utf8
+        if ($raw -notmatch '(?m)^_Workspace index:') {
+            Add-Content -LiteralPath $ExactLogPath -Value "`r`n_Workspace index: $($result.status) - $($result.workspace_index)_" -Encoding utf8
+        }
+    }
+    $sessionsDirectory = Split-Path $ExactLogPath -Parent
+    $projectRoot = Split-Path $sessionsDirectory -Parent
+    $projectSlug = if ($projectRoot.Equals($workspaceRoot, [StringComparison]::OrdinalIgnoreCase)) { '' } else { ((Split-Path $projectRoot -Leaf).ToLowerInvariant() -replace '[^a-z0-9_-]', '_') }
+    $mirrorRoot = 'G:\My Drive\JS\Agentic AI\sessions'
+    $mirrorDirectory = if ([string]::IsNullOrWhiteSpace($projectSlug)) { $mirrorRoot } else { Join-Path $mirrorRoot $projectSlug }
+    if (Test-Path -LiteralPath $mirrorRoot) {
+        New-Item -ItemType Directory -Path $mirrorDirectory -Force | Out-Null
+        Copy-Item -LiteralPath $ExactLogPath -Destination (Join-Path $mirrorDirectory ((Split-Path $ExactLogPath -Leaf) + '.tbl.bk')) -Force
+    }
 }
-
-# ---- Helper: check if a section has real content ----------------------------
 
 function Test-SectionFilled {
-    param([string[]]$lines, [string]$heading)
+    param([string[]]$Lines, [string]$Heading)
     $inSection = $false
-    foreach ($line in $lines) {
-        if ($line -match "^## $heading\s*$") { $inSection = $true; continue }
+    foreach ($line in $Lines) {
+        if ($line -match ('^## ' + [regex]::Escape($Heading) + '\s*$')) { $inSection = $true; continue }
         if ($inSection) {
             if ($line -match '^## ') { break }
-            $t = $line.Trim()
-            if ($t -eq '' -or $t -eq '-' -or $t -eq 'PENDING' -or $t -eq 'ACHIEVED') { continue }
-            if ($t -match '^\|\s*(Task ID|[-\s|]+)\s*\|') { continue }
+            $value = $line.Trim()
+            if ($value -eq '' -or $value -eq '-' -or $value -match '(?i)pending|replace this|<[^>]+>') { continue }
+            if ($value -match '^\|\s*(Task ID|[-\s|]+)\s*\|') { continue }
             return $true
         }
     }
@@ -89,101 +55,68 @@ function Test-SectionFilled {
 }
 
 function Get-SectionValue {
-    param([string[]]$lines, [string]$heading)
+    param([string[]]$Lines, [string]$Heading)
     $inSection = $false
-    foreach ($line in $lines) {
-        if ($line -match "^## $heading\s*$") { $inSection = $true; continue }
+    foreach ($line in $Lines) {
+        if ($line -match ('^## ' + [regex]::Escape($Heading) + '\s*$')) { $inSection = $true; continue }
         if ($inSection) {
             if ($line -match '^## ') { break }
-            $t = $line.Trim()
-            if ($t -ne '') { return $t }
+            $value = $line.Trim()
+            if ($value -ne '') { return $value }
         }
     }
     return ''
 }
 
-# ---- Determine confirmation status ------------------------------------------
-
-$goalStatus   = Get-SectionValue $rawLines 'Goal Status'
-$decisionsOk  = Test-SectionFilled $rawLines 'Decisions'
-$workDoneOk   = Test-SectionFilled $rawLines 'Work Done'
-$learningsOk  = Test-SectionFilled $rawLines 'Learnings'
-
-$userConfirmed = ($goalStatus -eq 'ACHIEVED')
-
-# Automated confirmation: log inactive for AUTO_CONFIRM_HOURS and core sections filled
+$goalStatus = Get-SectionValue $rawLines 'Goal Status'
+$decisionsOk = Test-SectionFilled $rawLines 'Decisions'
+$workDoneOk = Test-SectionFilled $rawLines 'Work Done'
+$learningsOk = Test-SectionFilled $rawLines 'Learnings'
+$modelOk = Test-SectionFilled $rawLines 'Model Recommendation'
 $hoursSinceWrite = (New-TimeSpan -Start $logItem.LastWriteTime -End (Get-Date)).TotalHours
-$autoConfirm     = (-not $userConfirmed) -and ($hoursSinceWrite -ge $AUTO_CONFIRM_HOURS) -and $decisionsOk -and $workDoneOk
-
+$userConfirmed = $goalStatus -eq 'ACHIEVED'
+$autoConfirm = (-not $userConfirmed) -and $hoursSinceWrite -ge $AUTO_CONFIRM_HOURS -and $decisionsOk -and $workDoneOk -and $learningsOk -and $modelOk
 $shouldSign = $userConfirmed -or $autoConfirm
 
-# ---- Warn about incomplete sections (always, mid-session) -------------------
-
-$warnings = @()
-if (-not $decisionsOk) { $warnings += '## Decisions' }
-if (-not $workDoneOk)  { $warnings += '## Work Done' }
-if (-not $learningsOk) { $warnings += '## Learnings' }
-if ($goalStatus -eq 'PENDING' -and -not $autoConfirm) { $warnings += '## Goal Status (still PENDING -- user must set to ACHIEVED)' }
-
-if ($warnings.Count -gt 0 -and -not $shouldSign) {
-    $sectionList = $warnings -join ', '
-    $warn = @(
-        "",
-        "## Warning: Session Log Incomplete",
-        "Incomplete at this stop: $sectionList",
-        ""
-    )
-    Add-Content -Path $logFile -Value $warn -Encoding utf8
+if ($content -match '(?m)^> Completed by:') {
+    Sync-IndexAndMirror $logFile
+    Write-Output "[session-log] Already signed: $logFile"
+    exit 0
 }
 
-# ---- Write accountability signature (once, on user confirmation or auto) ----
-
-if ($shouldSign) {
-    $taskId = [System.IO.Path]::GetFileNameWithoutExtension($logFile)
-
-    if ($autoConfirm) {
-        $confirmNote = "AUTOMATED -- no user confirmation after $([Math]::Round($hoursSinceWrite,1))h"
-        $rowStatus   = "COMPLETED [AUTOMATED]"
-    } else {
-        $confirmNote = "User confirmed ACHIEVED"
-        $rowStatus   = "COMPLETED"
-    }
-
-    $tableRow    = "| $taskId | Mlawuli | Claude Code (Mlawuli) | $rowStatus | - | $confirmNote -- $datetime |"
-    $closingLine = "> Completed by: Claude Code (Mlawuli)  |  Task: $taskId  |  Status: $rowStatus  |  Confirmed: $confirmNote  |  $datetime"
-
-    # Inject table row into Agent Accountability section
-    $resultLines = [System.Collections.Generic.List[string]]::new()
-    $inAcct      = $false
-    $rowWritten  = $false
-
-    foreach ($line in $rawLines) {
-        if ($line -match '^## Agent Accountability\s*$') { $inAcct = $true }
-        if ($inAcct -and -not $rowWritten -and $line -match '^## ' -and $line -notmatch '^## Agent Accountability') {
-            $resultLines.Add($tableRow)
-            $resultLines.Add("")
-            $rowWritten = $true
-            $inAcct     = $false
-        }
-        $resultLines.Add($line)
-    }
-    if ($inAcct -and -not $rowWritten) {
-        $resultLines.Add($tableRow)
-        $rowWritten = $true
-    }
-    if (-not $rowWritten) {
-        $resultLines.Add("")
-        $resultLines.Add("## Agent Accountability")
-        $resultLines.Add("| Task ID | Assigned Agent | Completed By | Status | Iterations | Note |")
-        $resultLines.Add("|---------|---------------|--------------|--------|------------|------|")
-        $resultLines.Add($tableRow)
-    }
-
-    Set-Content -Path $logFile -Value $resultLines.ToArray() -Encoding utf8
-    Add-Content -Path $logFile -Value "" -Encoding utf8
-    Add-Content -Path $logFile -Value $closingLine -Encoding utf8
+if (-not $shouldSign) {
+    $missing = @()
+    if (-not $modelOk) { $missing += 'Model Recommendation' }
+    if (-not $decisionsOk) { $missing += 'Decisions' }
+    if (-not $workDoneOk) { $missing += 'Work Done' }
+    if (-not $learningsOk) { $missing += 'Learnings' }
+    if ($goalStatus -eq 'PENDING') { $missing += 'Goal Status PENDING' }
+    Write-Output ('[session-log] Not signed. Incomplete: ' + ($missing -join ', '))
+    exit 0
 }
 
-# ---- Timestamp --------------------------------------------------------------
+$providerLine = @($rawLines | Where-Object { $_ -match '^Provider:\s*' } | Select-Object -First 1)
+$provider = if ($providerLine.Count -gt 0) { ($providerLine[0] -replace '^Provider:\s*', '').Trim() } else { 'Unknown provider' }
+$completed = [regex]::Match($content, '(?mi)^\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*COMPLETED(?:\s*\[AUTOMATED\])?\s*\|')
+if ($completed.Success) {
+    $taskId = $completed.Groups[1].Value.Trim()
+    $completedBy = $completed.Groups[3].Value.Trim()
+} else {
+    $taskId = [IO.Path]::GetFileNameWithoutExtension($logFile)
+    $completedBy = "$provider (Mlawuli)"
+}
 
-Add-Content -Path $logFile -Value "_Session ended: $today $ts (Claude Code / claude-sonnet-4-6)_" -Encoding utf8
+if ($autoConfirm) {
+    $status = 'COMPLETED [AUTOMATED]'
+    $confirmation = "AUTOMATED -- no user confirmation after $([Math]::Round($hoursSinceWrite, 1))h"
+} else {
+    $status = 'COMPLETED'
+    $confirmation = 'User confirmed ACHIEVED'
+}
+
+$signature = "> Completed by: $completedBy  |  Task: $taskId  |  Status: $status  |  Confirmed: $confirmation  |  $datetime"
+Add-Content -LiteralPath $logFile -Value "`r`n$signature`r`n_Session ended: $datetime ($provider)_" -Encoding utf8
+
+Sync-IndexAndMirror $logFile
+
+Write-Output "[session-log] Signed exact log: $logFile"

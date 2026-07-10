@@ -1,0 +1,54 @@
+﻿{
+    "name":  "JS_Resume",
+    "slug":  "js-resume",
+    "root":  "JS_Resume",
+    "standalone_repository":  true,
+    "artifact_index":  "JS_Resume\\ARTIFACT_INDEX.md",
+    "categories":  {
+                       "sessions":  [
+                                        {
+                                            "path":  "JS_Resume\\sessions",
+                                            "metric":  {
+                                                           "exists":  true,
+                                                           "files":  8,
+                                                           "bytes":  9949,
+                                                           "oldest":  "2026-06-21T17:18:56.7670315Z",
+                                                           "latest":  "2026-07-10T15:25:04.0389362Z"
+                                                       }
+                                        }
+                                    ],
+                       "artifacts":  [
+
+                                     ],
+                       "archive":  [
+
+                                   ],
+                       "temp":  [
+                                    {
+                                        "path":  "JS_Resume\\temp",
+                                        "metric":  {
+                                                       "exists":  true,
+                                                       "files":  0,
+                                                       "bytes":  0,
+                                                       "oldest":  null,
+                                                       "latest":  null
+                                                   }
+                                    }
+                                ],
+                       "logs":  [
+
+                                ],
+                       "backups":  [
+                                       {
+                                           "path":  "JS_Resume\\_backups",
+                                           "metric":  {
+                                                          "exists":  true,
+                                                          "files":  31,
+                                                          "bytes":  4810649,
+                                                          "oldest":  "2026-06-12T05:21:52.7880768Z",
+                                                          "latest":  "2026-07-08T20:28:16.2483912Z"
+                                                      }
+                                       }
+                                   ]
+                   }
+}

@@ -1,0 +1,8 @@
+﻿{
+    "provider":  "OpenAI Codex",
+    "session_id":  "artifact-index-smoke-3",
+    "log_path":  "C:\\DevWork\\_workspace\\temp\\constitution-hook-smoke-3\\SampleProject\\sessions\\agent_session_openai_codex_artifact-ind_20260710_172545.md",
+    "prompt_count":  1,
+    "created_at":  "2026-07-10T17:25:45.3348604+02:00",
+    "updated_at":  "2026-07-10T17:25:45.7687311+02:00"
+}

@@ -1,6 +1,6 @@
 # Multi-Agent Workforce Architecture & System Prompts
 
-**Version:** 3.5.1 — Complete Production Implementation Guide (adds Umcwaningi + Umbheki, splitting QA by domain; §17 adds BlackFire architecture recommendations)
+**Version:** 3.7.0 — Complete Production Implementation Guide (adds project-local artifact custody and root workspace indexing)
 **Purpose:** Hand this document to any implementer to deploy this workforce in a new environment.
 Everything needed is here: architecture, system prompts, protocols, and operational playbook.
 
@@ -941,7 +941,29 @@ Create this structure in the new workspace:
 │   ├── guide.md                 ← Operator and user guide
 │   ├── sttm.md                  ← System Technical Test Manual
 │   └── system_architecture.md  ← High-level architecture and flow diagrams
-├── sessions/          ← Session logs (Markdown + JSON metadata)
+├── WORKSPACE_INDEX.md ← Generated map only; never the canonical home of project artifacts
+├── _workspace/        ← Control-plane material that genuinely spans projects
+│   ├── sessions/
+│   ├── artifacts/
+│   ├── archive/
+│   ├── temp/
+│   ├── _backups/
+│   └── index/          ← Machine-readable manifests and unresolved-ownership queue
+├── projects/
+│   └── {project}/
+│       ├── ARTIFACT_INDEX.md
+│       ├── sessions/
+│       ├── artifacts/
+│       │   ├── drafts/
+│       │   ├── generated/
+│       │   ├── exports/
+│       │   ├── reports/
+│       │   ├── qa/
+│       │   └── screenshots/
+│       ├── archive/
+│       ├── temp/
+│       ├── logs/
+│       └── _backups/
 ├── memory/
 │   └── MEMORY.md      ← Memory index
 ├── design/
@@ -950,8 +972,14 @@ Create this structure in the new workspace:
 │   └── imports/       ← Design exports from Canva/Claude.ai/Figma
 ├── .env               ← Secrets & environment variables (NOT in repo)
 ├── .env.example       ← Template with all keys, empty values (IN repo)
-└── temp/              ← Scratch files, never committed
+└── scripts/governance/update-workspace-index.ps1
+                        ← Rebuilds the root map from project-local indexes
 ```
+
+`projects/` is illustrative. Existing workspaces may keep named repositories directly below the
+workspace root. The invariant is ownership, not one physical parent name: every project artifact
+must live below its owning project root, while genuinely cross-project control-plane material lives
+below `_workspace/`. See §9.7.
 
 #### Portable Repository Rule
 
@@ -1221,6 +1249,8 @@ Every session must produce a Markdown log. Multi-agent sessions also append a JS
 Date: YYYY-MM-DD
 Provider: {active provider / tool name}
 Model: {model name}
+Project: {project slug | _workspace}
+Project Root: {absolute canonical project root}
 
 ## Goal
 {one paragraph — what was attempted}
@@ -1277,166 +1307,76 @@ Append to the Markdown log:
 }
 ```
 
-### 6.3 Session Log Enforcement Scripts
+### 6.3 Constitution Lifecycle Enforcement
 
-Two PowerShell scripts enforce session log discipline. They live in `{workspace}/.claude/scripts/` and are the **enforcement layer** — they ensure that no session ends without a complete, signed log, regardless of which provider was active.
+The primary enforcement core is `scripts/governance/constitution-hook.ps1`. It correlates native provider session IDs to exact logs, initializes the log, performs prompt and mutation preflight, blocks incomplete Stop events once where supported, mirrors the exact mapped log, and signs only an explicitly ACHIEVED and otherwise complete session.
 
-#### What These Scripts Represent
+`.claude/scripts/session-log-update.ps1` is a compatibility close/30-minute-auto-confirm utility. It requires an explicit `-LogPath`; it must never discover the newest log. `session-log-reminder.ps1` is legacy and must not be registered as the primary lifecycle mechanism.
 
-These scripts are the operational backbone of session accountability. They are not documentation — they are running code that enforces the governance rules in §6 and §14 on every session, automatically where possible, manually otherwise. Without them, rules about session logs and accountability signatures are aspirational text. With them, they are enforced at the infrastructure level.
-
----
-
-#### Script 1 — `session-log-update.ps1` (Session Close)
-
-**What it does:** This is the session close script. It runs at the end of a session and is responsible for writing the one-time accountability signature — the permanent archive record that proves the session completed and who did the work.
-
-**Logic flow:**
-
-```
-Run
- │
- ├─ Find today's session log in sessions/
- │   └─ If none exists → create a minimal stub and continue
- │
- ├─ Already signed? (line matching "> Completed by:" exists)
- │   └─ YES → write timestamp only and exit (signature never repeats)
- │
- ├─ Check Goal Status section
- │   ├─ ACHIEVED → user confirmed → proceed to sign
- │   └─ PENDING → check auto-confirm condition:
- │       ├─ Log inactive 30+ minutes AND Decisions + Work Done filled
- │       │   └─ YES → auto-sign with [AUTOMATED] flag
- │       └─ NO → warn about incomplete sections, timestamp only, exit
- │
- └─ Write signature (once):
-     ├─ Insert one row into ## Agent Accountability table
-     ├─ Append closing attribution line:
-     │   > Completed by: ...  |  Task: ...  |  Status: ...  |  Confirmed: ...  |  {datetime}
-     └─ Append timestamp: _Session ended: YYYY-MM-DD HH:mm:ss_
-```
-
-**Signature formats:**
-
-User confirmed:
-```
-> Completed by: Claude Code (Mlawuli)  |  Task: {session-name}  |  Status: COMPLETED  |  Confirmed: User confirmed ACHIEVED  |  {datetime}
-```
-
-Auto-confirmed (30min inactivity):
-```
-> Completed by: Claude Code (Mlawuli)  |  Task: {session-name}  |  Status: COMPLETED [AUTOMATED]  |  Confirmed: AUTOMATED -- no user confirmation after 30min  |  {datetime}
-```
-
-**Key properties:**
-- Idempotent — running it multiple times never writes the signature twice
-- Creates a stub log if none exists so nothing goes unrecorded
-- Warns about empty Decisions / Work Done / Learnings / Goal Status mid-session
-- The 30-minute auto-confirm threshold is set at the top of the script (`$AUTO_CONFIRM_HOURS = 0.5`)
-
----
-
-#### Script 2 — `session-log-reminder.ps1` (Point-of-Change Reminder)
-
-**What it does:** This is the mid-session prompt. It fires the moment a file is changed (after every Edit or Write tool call in Claude Code) and checks whether `## Work Done` has been updated. If it hasn't, it writes a reminder directly into the tool result stream so the agent sees it immediately — at the point of change, not at session end when it's too late.
-
-**Logic flow:**
-
-```
-Edit/Write tool call completes
- │
- ├─ Find today's session log
- │   └─ If none → output warning: "No session log found — create one"
- │
- └─ Check ## Work Done section
-     ├─ Has real content → silent (no output)
-     └─ Empty or placeholder → output to agent:
-         "[session-log] ⚠ Work Done section is empty — update {logfile} before this session ends."
-```
-
-**Key property:** This script outputs to stdout, which Claude Code captures and shows to the agent as part of the tool result. The agent is reminded mid-task, not retroactively.
+`agent-v3.ps1` may run the compatibility utility only for exact `log_path` values read from provider/session state mappings. A global newest-log heartbeat is forbidden.
 
 ---
 
 #### Trigger Mechanisms Per Provider
 
-| Provider | Script triggered by | How |
-|----------|--------------------|-----|
-| **Claude Code** | `session-log-update.ps1` | Automatic — `Stop` hook fires after every response |
-| **Claude Code** | `session-log-reminder.ps1` | Automatic — `PostToolUse` hook fires after every Edit/Write |
-| **GitHub Copilot** | `session-log-update.ps1` | Manual — VS Code: `Ctrl+Shift+P → Tasks: Run Task → Close Session Log` |
-| **Cursor** | `session-log-update.ps1` | Manual — same VS Code task |
-| **Kiro** | `session-log-update.ps1` | Manual — same VS Code task |
-| **OpenAI Codex CLI** | `session-log-update.ps1` | Manual — terminal: `powershell.exe -NonInteractive -File "c:\DevWork\.claude\scripts\session-log-update.ps1"` |
-| **Google Antigravity** | `session-log-update.ps1` | Manual — same terminal command |
-| **Factory Droid** | `session-log-update.ps1` | Automatic — `post_task` hook in `.factory/config.yaml` |
+The enforcement layer is `scripts/governance/constitution-hook.ps1`. It is invoked at session start, before every user prompt (or before every model invocation where that is the provider's closest event), after changes where supported, and at stop/session end.
 
-`session-log-reminder.ps1` is Claude Code-only — other providers have no equivalent mid-session hook.
+| Provider / surface | Start event | Every-prompt event | Registration | Enforcement level |
+|--------------------|-------------|--------------------|--------------|-------------------|
+| **Claude Code** | `SessionStart` | `UserPromptSubmit` | `.claude/settings.json` | Native, automatic |
+| **OpenAI Codex CLI/app** | `SessionStart` | `UserPromptSubmit` | `.codex/hooks.json` | Native after project-hook trust approval |
+| **Cursor Agent** | `sessionStart` | `beforeSubmitPrompt` | `.cursor/hooks.json` | Native, automatic; test after Cursor upgrades |
+| **Kiro IDE** | `SessionStart` | `UserPromptSubmit` | `.kiro/hooks/constitution.json` | Native, automatic |
+| **Factory Droid** | `SessionStart` | `UserPromptSubmit` | `.factory/hooks.json` | Native, automatic |
+| **GitHub Copilot CLI (local Windows)** | `sessionStart` | `userPromptSubmitted` | `.github/hooks/constitution.json` | Native after hook trust/review |
+| **GitHub Copilot cloud agent** | Job start | One submitted job prompt | `AGENTS.md` plus a portable `bash` hook when installed | Soft fallback in this Windows-only pack; do not claim the PowerShell registration runs in Linux cloud |
+| **GitHub Copilot VS Code chat** | Instruction load | Instruction load on each turn | `.github/copilot-instructions.md` | Soft fallback; the CLI/cloud hook file is not a VS Code chat hook |
+| **Google Antigravity** | Persistent context load | Persistent context on each turn | `.agents/CONTEXT.md` | Soft start/prompt fallback; verified `.agents/hooks.json` gates supported tool events only |
+| **Google Jules** | Repository initialization | `AGENTS.md` context | `AGENTS.md` | Soft fallback; no repository-controlled per-prompt shell hook is assumed |
+
+Do not describe an instruction file, manual task, heartbeat, or git hook as an agent lifecycle hook. Those mechanisms remain defense-in-depth only.
 
 ---
 
-#### Hook Registrations
+#### Mandatory Hook Contract
 
-**Claude Code** — `.claude/settings.json`:
+Every implementation must satisfy all of the following:
 
-```json
-{
-  "hooks": {
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "powershell.exe -NonInteractive -File \"c:\\DevWork\\.claude\\scripts\\session-log-update.ps1\"",
-            "timeout": 15,
-            "statusMessage": "Updating session log..."
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "powershell.exe -NonInteractive -File \"c:\\DevWork\\.claude\\scripts\\session-log-reminder.ps1\"",
-            "timeout": 10,
-            "statusMessage": "Checking session log..."
-          }
-        ]
-      }
-    ]
-  }
-}
-```
+1. **Correlate by provider session ID.** Read `session_id`, `sessionId`, or the provider equivalent from hook stdin. Persist the mapping under `temp/constitution-hooks/`. Never select "the newest log today" because parallel providers can corrupt or sign one another's logs.
+2. **Create before work.** The start hook creates a PENDING log with every mandatory heading, provider, model, accountability table, and an explicit first-prompt action list. If the provider has no distinct start event, the first pre-invocation event performs the same idempotent initialization.
+3. **Re-inject on every prompt.** The prompt hook adds constitution context requiring `CLAUDE.md` and memory review, Sibali model clearance, Mlawuli routing, backups, accountability, log updates, and PENDING-until-confirmed goal status.
+4. **Do not log raw prompts.** Prompts can contain credentials or personal data. Record a human-written Goal and task IDs, not the prompt body.
+5. **Validate observable evidence.** Hooks can prove that a script ran and that artifacts exist; they cannot prove that a model reasoned correctly. Validate the exact session log, mandatory sections, backup evidence, accountability rows, and mirror copy.
+6. **Fail closed only for policy blocks.** Missing constitution, missing memory index, corrupt state, or an invalid log schema may block. A reminder or incomplete mid-session section must warn without erasing the user's prompt.
+7. **Keep lifecycle roles separate.** Session start initializes; prompt preflight reminds and validates; post-change checks backup/work-log evidence; Stop warns; SessionEnd validates, mirrors, and signs only when Goal Status is already ACHIEVED.
+8. **Preserve manual recovery.** `.vscode/tasks.json` retains `Close Session Log` for providers/surfaces without native end hooks and for hook failure recovery.
 
-**Factory Droid** — `.factory/config.yaml`:
+#### Installation Procedure for Any Workspace
 
-```yaml
-hooks:
-  post_task:
-    - name: session-close
-      command: "powershell.exe -NonInteractive -File \"c:\\DevWork\\.claude\\scripts\\session-log-update.ps1\""
-      timeout: 15
-```
+1. Copy `scripts/governance/constitution-hook.ps1` and the session log template.
+2. Copy only the provider registrations used in that workspace: `.claude/settings.json`, `.codex/hooks.json`, `.cursor/hooks.json`, `.kiro/hooks/*.json`, `.factory/hooks.json`, `.github/hooks/*.json`, or `.agents/hooks.json`.
+3. Replace hardcoded workspace and memory paths, or pass `-WorkspaceRoot` explicitly.
+4. Ensure provider instruction mirrors state that native hooks are mandatory and identify soft-fallback surfaces honestly.
+5. Review/trust the hook in providers that require it (for example Codex project hooks or Factory's `/hooks` review).
+6. Start a fresh test session; do not validate only by running the script manually.
+7. Run the conformance matrix below, then record the result in the session log and provider mirror audit.
 
-**All VS Code providers** — `.vscode/tasks.json`:
+#### Conformance Matrix
 
-```json
-{
-  "version": "2.0.0",
-  "tasks": [
-    {
-      "label": "Close Session Log",
-      "type": "shell",
-      "command": "powershell.exe",
-      "args": ["-NonInteractive", "-File", "${workspaceFolder}\\.claude\\scripts\\session-log-update.ps1"],
-      "detail": "Run at end of every session. Writes accountability signature when Goal Status = ACHIEVED."
-    }
-  ]
-}
-```
+| Test | Required result |
+|------|-----------------|
+| Fresh session | Exact PENDING log exists before substantive work |
+| First prompt | Same session ID/log reused; Sibali/Mlawuli reminder injected |
+| Second prompt | Prompt count advances without a second log |
+| Parallel sessions | Different state mappings and logs; no cross-write |
+| Missing constitution/memory | Hook fails visibly and blocks where provider supports blocking |
+| Existing-file change | Backup and Work Done reminder runs on supported mutation events |
+| Goal still PENDING | No closing signature |
+| Explicit ACHIEVED | One signature only; reruns are idempotent |
+| Session end | Exact log mirrored to `G:\My Drive\JS\Agentic AI\sessions\*.tbl.bk` |
+| Provider upgrade | Native hook is triggered again and configuration is re-approved if required |
+
+The provider registrations in the workspace are executable reference implementations. Keep examples synchronized with those files rather than duplicating large JSON blocks here.
 
 ---
 
@@ -1612,6 +1552,152 @@ A lightweight script (Python/Node.js/PHP) can route tasks to the correct provide
 - Look up which provider is active for that domain
 - Strip provider-specific metadata before forwarding to the worker
 - Merge the response back and route to Sibali for indexing
+
+### 9.7 Project-Local Artifact Custody and Root Workspace Index (MANDATORY)
+
+#### Constitutional rule
+
+The workspace root is a control plane and discovery surface, not a dumping ground. Session logs,
+archives, generated documents, QA evidence, screenshots, exports, backups, runtime logs, and scratch
+files must be stored beneath the root of the project that owns them. The workspace root contains the
+generated `WORKSPACE_INDEX.md`, shared constitutions/provider configuration, project directories,
+and only the minimum runtime files required to operate the workspace.
+
+Genuinely workspace-wide or cross-project material belongs in `_workspace/`, using the same
+`sessions/`, `artifacts/`, `archive/`, `temp/`, `logs/`, and `_backups/` structure as a normal project.
+`_workspace/` is an explicit owner, not a fallback for files whose owner was never investigated.
+
+#### What counts as an artifact
+
+This policy applies to all human- or agent-produced working material, including:
+
+- session logs, chat transcripts, handoff records, and accountability metadata;
+- drafts, reports, proposals, generated Word/PDF/HTML files, spreadsheets, and exports;
+- screenshots, recordings, QA evidence, coverage output, diagnostic dumps, and test reports;
+- superseded work, historical snapshots, imported source material, and archived deliverables;
+- timestamped backups, database dumps, patches, extracted attachments, and reconciliation files;
+- scratch scripts, downloaded installers/samples, temporary databases, and experiment output;
+- runtime logs and task-specific caches that are not reproducible dependency/build caches.
+
+Dependency directories and reproducible build caches such as `.git/`, `node_modules/`, `.venv/`,
+`.pnpm-store/`, `.next/`, `dist/`, `build/`, and database engine data directories are infrastructure,
+not work artifacts. They remain project-local where possible and are recorded in the index as
+excluded infrastructure with size and staleness metadata; their contents are never promoted into
+the artifact catalogue.
+
+#### Canonical project-local layout
+
+Every project must use or map equivalent folders to this taxonomy:
+
+| Kind | Canonical location | Retention rule |
+|------|--------------------|----------------|
+| Session record | `<project>/sessions/` | Permanent; one canonical copy plus configured external mirror |
+| Work in progress | `<project>/artifacts/drafts/` | Promote or archive when the task closes |
+| Generated deliverable | `<project>/artifacts/generated/` or `exports/` | Keep with provenance and source references |
+| Report / QA evidence | `<project>/artifacts/reports/`, `qa/`, or `screenshots/` | Keep with originating task/session ID |
+| Superseded/history | `<project>/archive/` | Immutable by default; never silently delete |
+| Scratch/experiment | `<project>/temp/` | Gitignored; review at session end; stale does not mean safe to delete |
+| Runtime output | `<project>/logs/` | Rotate under a project retention rule; never loose at workspace root |
+| Pre-change backup | nearest `<project>/_backups/` or component-local `_backups/` | Preserve relative ownership and timestamp |
+| Cross-project governance | `_workspace/<same-kind>/` | Use only when more than one project truly owns the record |
+
+Equivalent legacy names such as `_archive`, `_drafts`, `tmp`, `exports`, or component-local
+`_backups` may remain, but `ARTIFACT_INDEX.md` must map them to the canonical kind. New work uses the
+canonical names. A project may have component-local backup folders when proximity is needed, but its
+index must roll them up into the project view.
+
+#### Ownership resolution
+
+Before creating or migrating an artifact, determine its owner in this order:
+
+1. Use the explicit `Project` and `Project Root` fields in the session/task metadata.
+2. Otherwise use the nearest standalone repository or project root containing the files changed.
+3. Otherwise use the single project named by paths in `## Work Done`, source metadata, or the task ID.
+4. A record covering multiple projects belongs in `_workspace/` and links to each affected project;
+   do not duplicate editable canonical copies across projects.
+5. If ownership is still ambiguous, place the item in `_workspace/index/unresolved/`, record every
+   candidate owner and the reason for uncertainty, and require human review. Never guess and never
+   leave the item loose at the workspace root.
+
+All new session logs must include `Project` and `Project Root`. A project-specific session starts in
+`<project>/sessions/`, even when the provider was launched from the workspace root. The hook must
+resolve the destination from explicit metadata or the current project context; it must not choose the
+newest log anywhere in the workspace. Cross-project sessions go to `_workspace/sessions/`.
+
+#### Root and project indexes
+
+`WORKSPACE_INDEX.md` is the only root-level artifact catalogue. It is generated, concise, and safe to
+open; it points to canonical locations instead of copying artifact contents. Each project owns a
+generated or maintained `ARTIFACT_INDEX.md`. The root index must contain at least:
+
+- project name, canonical absolute/relative root, repository status, and active/archive state;
+- links to the project index, session directory, artifact directories, archive, temp, logs, and backups;
+- session count and latest session timestamp, artifact/archive counts and sizes, temp size and oldest item;
+- last successful index time, index schema version, and the session/task that triggered the update;
+- unresolved ownership items, duplicate/collision findings, stale temp findings, and missing required folders;
+- excluded infrastructure/cache paths summarized by path, size, and last-modified time.
+
+The machine-readable source of the root index lives in `_workspace/index/workspace-index.json`.
+Project manifests live in `<project>/ARTIFACT_INDEX.json` when automation needs structured data.
+Indexes contain paths and non-sensitive metadata only. They must never embed secrets, raw prompts,
+email bodies, document contents, database rows, or customer personal information.
+
+#### Mandatory end-of-session update
+
+Every session-close path must invoke `scripts/governance/update-workspace-index.ps1` after the exact
+session log has been updated and before the external mirror step completes. The updater must:
+
+1. resolve the session's explicit project owner;
+2. rescan that project and `_workspace/index/unresolved/`, not the entire workspace unless a full audit
+   was requested or project roots changed;
+3. update the project manifest/index only when its normalized content changed;
+4. rebuild `WORKSPACE_INDEX.md` only when project summaries changed;
+5. write to a sibling temporary file and atomically replace the destination;
+6. preserve the last valid index and return a non-zero exit code on validation failure;
+7. log `NO_CHANGE`, `UPDATED`, or `FAILED` plus affected paths in the exact session log;
+8. remain idempotent, concurrency-safe, and locked per project so parallel sessions cannot cross-write.
+
+An index failure does not justify moving, deleting, or rewriting artifacts. The session remains
+`PENDING` or records the failure as a blocker until the index is repaired. External mirrors must
+preserve ownership, for example `<mirror>/<project-slug>/sessions/<session>.md.tbl.bk`, rather than
+flattening every project's logs into one folder.
+
+#### Migration of existing root and legacy material
+
+Migration is inventory-first and non-destructive:
+
+1. Enumerate all files and folders, including hidden items, every `sessions`, `archive`, `_archive`,
+   `artifacts`, `_backups`, `temp`, `tmp`, `logs`, export, report, and generated-output tree.
+2. Record source path, proposed owner/destination, size, modified time, content hash, sensitivity flag,
+   repository boundary, and confidence in `_workspace/index/migration-manifest.json`.
+3. Produce a dry-run move map. Ambiguous ownership goes to the unresolved queue, not a guessed project.
+4. Create destination folders and timestamped backups of manifests/indexes before mutation.
+5. Use `git mv` for tracked files within one repository. Do not silently move files across nested Git
+   repositories; copy, hash-verify, record provenance, and request approval before deleting the source.
+6. On name collision, compare hashes. Identical files may share one canonical target with aliases in
+   the index; different files receive a deterministic timestamp/hash suffix. Never overwrite.
+7. Verify source/destination hashes and index links before marking a migration entry complete.
+8. Keep legacy directories read-only until every item is resolved and the user approves cleanup.
+
+Deleting temp content is never part of indexing. Session close only marks temp items as active,
+promote, archive, unresolved, or stale. Destructive cleanup requires an explicit retention policy and
+separate user authorization.
+
+#### DevWork audit baseline — 2026-07-10
+
+The audit that introduced this rule found a centralized workspace store despite existing project-local
+folders: 296 direct Markdown files under `C:\DevWork\sessions` (plus 51 session backups), 2,329 files
+under `C:\DevWork\temp` using about 312 MB, and 59 files under the root `_backups`. Project-local
+session/temp/backup stores already existed in BlackFire, Astute, GovTender, JS_Resume, and Umlilo.
+The root temp tree mixed BlackFire/AECI database and portal work, Umlilo QA, Astute extracts, resume/job
+application previews, workspace hook smoke tests, installers, and local infrastructure. This is the
+migration baseline, not permission to bulk-move or delete: every entry must pass the ownership and
+hash-verification procedure above.
+
+Root loose-file review also identified project/runtime candidates (`portal.php`, `agent-log.txt`,
+root worker/bootstrap scripts, queue state, and ambiguous `delete`/`stop` sentinels). They must remain
+in place until their runtime references and owners are verified, then move to the owning project or
+shared control-plane folder and be represented only by links in `WORKSPACE_INDEX.md`.
 
 ---
 
@@ -1844,6 +1930,9 @@ Use this checklist when deploying the workforce in a new environment.
 
 ### Foundation
 - [ ] Workspace folder structure created (§4.2)
+- [ ] `WORKSPACE_INDEX.md` and `_workspace/index/workspace-index.json` generated (§9.7)
+- [ ] Every project has an `ARTIFACT_INDEX.md` and project-local `sessions/`, `artifacts/`, `archive/`, `temp/`, `logs/`, and `_backups/` mapping (§9.7)
+- [ ] Existing root/legacy artifacts have a hash-verified migration manifest; ambiguous items are in the unresolved queue (§9.7)
 - [ ] `CLAUDE.md` / `AGENTS.md` / provider mirrors written and committed
 - [ ] `.github/copilot-instructions.md` written and committed for providers that read it
 - [ ] `.cursor/rules/constitution.mdc` written and committed for providers that read it
@@ -1852,15 +1941,15 @@ Use this checklist when deploying the workforce in a new environment.
 - [ ] `.vscode/extensions.json` written with recommended provider/tooling extensions
 - [ ] Standalone repos include their own portable constitution package (§4.2 Portable Repository Rule)
 - [ ] `.gitignore` includes: `*.env`, `config.local.*`, sensitive seed files, `temp/`
-- [ ] `sessions/` folder created with a `_template.md`
+- [ ] Project-local `sessions/` folders created with `_template.md`; cross-project logs use `_workspace/sessions/`
 - [ ] `memory/MEMORY.md` index created
-- [ ] `temp/` folder created and gitignored
-- [ ] `.claude/scripts/session-log-update.ps1` deployed — session close script (see §6.3 for full behavior)
-- [ ] `.claude/scripts/session-log-reminder.ps1` deployed — point-of-change reminder (Claude Code only)
-- [ ] `.claude/settings.json` registers both hooks: Stop → `session-log-update.ps1`, PostToolUse(Edit|Write) → `session-log-reminder.ps1`
-- [ ] `.vscode/tasks.json` contains `Close Session Log` task pointing to `session-log-update.ps1` (universal manual trigger for all VS Code providers)
-- [ ] `.factory/config.yaml` contains `post_task` hook pointing to `session-log-update.ps1` (Factory Droid auto-trigger)
-- [ ] All other provider mirror files instruct the agent to run `Close Session Log` VS Code task at session end
+- [ ] Project-local `temp/` folders and `_workspace/temp/` created and gitignored; no shared root temp dumping ground
+- [ ] Session-close hooks invoke `scripts/governance/update-workspace-index.ps1` and record `NO_CHANGE`, `UPDATED`, or `FAILED`
+- [ ] `scripts/governance/constitution-hook.ps1` deployed and registered for native start, prompt, mutation, Stop, and SessionEnd events supported by each provider
+- [ ] `.claude/scripts/session-log-update.ps1` accepts mandatory `-LogPath` and never discovers newest-by-date
+- [ ] `.claude/settings.json`, `.codex/hooks.json`, `.cursor/hooks.json`, `.kiro/hooks/`, `.factory/hooks.json`, `.github/hooks/`, and `.agents/` match the verified provider capability table in §6.3
+- [ ] `.vscode/tasks.json` close recovery task prompts for the exact absolute session log path
+- [ ] Soft-fallback surfaces are labeled honestly and use always-loaded provider instructions/context
 - [ ] Session log template (`sessions/_template.md`) includes `## Goal Status: PENDING` field
 - [ ] All agents know: closing signature is written ONLY when user sets Goal Status = ACHIEVED; auto-signs after 30min
 
@@ -2225,17 +2314,17 @@ Updates the session log with task outcome, then calls `session-log-update.ps1`:
 
 ### 16.5 Session Log Heartbeat (Cross-Provider)
 
-Every 20 minutes, `agent-v3.ps1` runs `Invoke-SessionLogCheck`, which calls `session-log-update.ps1` independently of any task completion.
+Every 20 minutes, `agent-v3.ps1` reads provider/session state mappings from `temp/constitution-hooks/` and invokes `session-log-update.ps1 -LogPath <exact mapped log>` for each valid mapping.
 
-**Why:** `session-log-update.ps1` finds the most recent session log from *any* provider and applies the 30-minute auto-confirm rule (§14.2). This means `agent-v3.ps1` acts as a background enforcer for sessions created by Claude Code, Copilot, Cursor, Kiro, or any other provider — not just its own tasks.
+**Why:** the 30-minute auto-confirm check remains useful, but newest-log discovery is unsafe when providers run concurrently. Invalid state is skipped with a warning; no log is guessed.
 
 ```
 every 20 minutes (every 60 ticks of the 20s loop):
   run session-log-update.ps1
-    └─ finds latest sessions/*.md
+    └─ read exact log_path from each provider/session state file
     └─ if Goal Status = ACHIEVED → write signature (if not already signed)
-    └─ if inactive 30+ min + sections filled → auto-sign [AUTOMATED]
-    └─ if already signed → timestamp only and exit
+    └─ if inactive 30+ min + mandatory sections filled → auto-sign [AUTOMATED]
+    └─ if already signed → exit without mutating the log
 ```
 
 ---
@@ -2274,7 +2363,7 @@ If matched: task is set to `blocked` and a session log entry records which file 
 | No Goal Status / signature | Yes — `Complete-SessionLog` + `session-log-update.ps1` |
 | No Umlindi pre-commit audit | Yes — `Invoke-Umlindi` blocks on hardcoded secrets |
 | No Mvavanyi QA pass | Yes — `Invoke-Mvavanyi` runs build + tests before push |
-| Cross-provider log enforcement | Yes — 20-min `Invoke-SessionLogCheck` heartbeat |
+| Cross-provider log enforcement | Yes — 20-min exact-state-mapped `Invoke-SessionLogCheck` heartbeat |
 
 **Remaining gaps (not yet in agent-v3):**
 

@@ -24,6 +24,10 @@ Required sections:
 
 Fill `Goal` at the start. Fill the rest before ending the session.
 
+Every new log includes `Project: blackfire` and this repository's absolute `Project Root`. Sessions,
+generated work, archives, temp files, logs, and backups remain below this repository and are mapped by
+`ARTIFACT_INDEX.md`. Full custody/index rule: `docs/multi-agent-workforce-architecture.md §9.7`.
+
 ---
 
 ## Memory

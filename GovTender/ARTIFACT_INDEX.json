@@ -1,0 +1,54 @@
+﻿{
+    "name":  "GovTender",
+    "slug":  "govtender",
+    "root":  "GovTender",
+    "standalone_repository":  true,
+    "artifact_index":  "GovTender\\ARTIFACT_INDEX.md",
+    "categories":  {
+                       "sessions":  [
+                                        {
+                                            "path":  "GovTender\\sessions",
+                                            "metric":  {
+                                                           "exists":  true,
+                                                           "files":  4,
+                                                           "bytes":  9321,
+                                                           "oldest":  "2026-06-21T17:18:56.7670315Z",
+                                                           "latest":  "2026-07-10T15:25:04.0231230Z"
+                                                       }
+                                        }
+                                    ],
+                       "artifacts":  [
+
+                                     ],
+                       "archive":  [
+
+                                   ],
+                       "temp":  [
+                                    {
+                                        "path":  "GovTender\\temp",
+                                        "metric":  {
+                                                       "exists":  true,
+                                                       "files":  0,
+                                                       "bytes":  0,
+                                                       "oldest":  null,
+                                                       "latest":  null
+                                                   }
+                                    }
+                                ],
+                       "logs":  [
+
+                                ],
+                       "backups":  [
+                                       {
+                                           "path":  "GovTender\\_backups",
+                                           "metric":  {
+                                                          "exists":  true,
+                                                          "files":  5,
+                                                          "bytes":  15819,
+                                                          "oldest":  "2026-07-08T20:22:53.9970768Z",
+                                                          "latest":  "2026-07-08T20:27:32.7594387Z"
+                                                      }
+                                       }
+                                   ]
+                   }
+}

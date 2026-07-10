@@ -22,7 +22,7 @@ VS Code: Ctrl+Shift+P → Tasks: Run Task → Close Session Log
 
 Or directly in any terminal:
 ```powershell
-powershell.exe -NonInteractive -File "c:\DevWork\.claude\scripts\session-log-update.ps1"
+powershell.exe -NonInteractive -File "c:\DevWork\.claude\scripts\session-log-update.ps1" -LogPath "<exact-session-log-path>"
 ```
 
 This script:
@@ -31,8 +31,10 @@ This script:
 - Auto-signs after 30min inactivity with `[AUTOMATED]` flag
 - Never repeats the signature if already written
 
-**Claude Code** runs this automatically via the Stop hook in `.claude/settings.json`.
-**All other providers** must run it manually at session end (VS Code task above).
+**Claude Code** uses native lifecycle hooks in `.claude/settings.json`; the compatibility close command above is manual recovery and always requires the exact log path.
+The close task remains a recovery path. Native provider hooks must also run `scripts/governance/constitution-hook.ps1` at SessionStart and before every user prompt/model invocation; registrations and the provider capability matrix are in `Multi-Agent Workforce Architecture & System Prompts.md §6.3`.
+
+GitHub Copilot VS Code chat and Google Jules are soft-fallback surfaces: their always-loaded instruction files must restate the same start/per-prompt obligations because a repository-controlled per-prompt shell hook is not assumed there. Do not describe that fallback as hard enforcement.
 
 ---
 
@@ -101,6 +103,15 @@ When the constitution or multi-agent architecture is copied into a repo or updat
 4. If the inspection reveals a generic improvement, update the architecture guide so future repos receive it.
 5. Re-copy the updated guide into the target repo and rerun the mirror audit.
 
+## Project-Local Artifacts and Root Index (MANDATORY)
+
+- Project work belongs under its owning project root: `sessions/`, `artifacts/`, `archive/`, `temp/`, `logs/`, and `_backups/`.
+- New session logs include `Project` and `Project Root` and are written to `<project>\sessions\`; only genuine cross-project/control-plane sessions use `C:\DevWork\_workspace\sessions\`.
+- The workspace root is a control plane and discovery surface. `C:\DevWork\WORKSPACE_INDEX.md` is the only root artifact catalogue; it links to canonical project locations and contains no artifact contents or secrets.
+- Every session-close path runs `scripts/governance/update-workspace-index.ps1` after updating the exact session log and records `NO_CHANGE`, `UPDATED`, or `FAILED`.
+- Ambiguous legacy material goes to `_workspace\index\unresolved\` with candidate owners. Never guess ownership, flatten project mirrors, overwrite collisions, bulk-delete temp data, or move files across nested repositories without manifest and hash verification.
+- Full taxonomy, migration procedure, privacy rules, concurrency contract, and DevWork audit baseline: `Multi-Agent Workforce Architecture & System Prompts.md §9.7`.
+
 ---
 
 ## Code Principles
@@ -140,18 +151,19 @@ c:\DevWork\.claude\scripts\session-log-update.ps1
 
 **How to run:**
 ```powershell
-powershell.exe -NonInteractive -File "c:\DevWork\.claude\scripts\session-log-update.ps1"
+powershell.exe -NonInteractive -File "c:\DevWork\.claude\scripts\session-log-update.ps1" -LogPath "<exact-session-log-path>"
 ```
 
 | Provider | Hook support | Invocation |
 |----------|-------------|-----------|
-| Claude Code | Auto (Stop hook in `.claude/settings.json`) | Runs automatically |
-| Factory Droid | Auto (`hooks.on_session_end` in `.factory/config.yaml`) | Runs automatically |
-| GitHub Copilot | None | Run manually at session end |
-| OpenAI Codex | None | Run manually at session end |
-| Google Antigravity | None | Run manually at session end |
-| Cursor | None | Run manually, or via VS Code task |
-| Kiro | None | Run manually at session end |
+| Claude Code | Native | `.claude/settings.json` |
+| Factory Droid | Native | `.factory/hooks.json` |
+| GitHub Copilot CLI (local Windows) | Native | `.github/hooks/constitution.json` |
+| GitHub Copilot cloud | Soft fallback in this pack | `AGENTS.md`; add a portable bash hook before claiming native enforcement |
+| OpenAI Codex | Native | `.codex/hooks.json` |
+| Google Antigravity | Soft start/prompt fallback | `.agents/CONTEXT.md`; verified tool gate in `.agents/hooks.json` |
+| Cursor | Native | `.cursor/hooks.json` |
+| Kiro | Native | `.kiro/hooks/constitution.json` |
 
 ## Sensitive Files (never commit)
 

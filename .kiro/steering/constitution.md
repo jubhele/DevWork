@@ -16,10 +16,10 @@ VS Code: Ctrl+Shift+P → Tasks: Run Task → Close Session Log
 
 Or in terminal:
 ```powershell
-powershell.exe -NonInteractive -File "c:\DevWork\.claude\scripts\session-log-update.ps1"
+powershell.exe -NonInteractive -File "c:\DevWork\.claude\scripts\session-log-update.ps1" -LogPath "<exact-session-log-path>"
 ```
 
-Writes the accountability signature once when Goal Status = ACHIEVED. Auto-signs after 30min inactivity with `[AUTOMATED]` flag. Never repeats. Claude Code runs this automatically — Kiro must trigger it manually at session end.
+Kiro must run the native hooks in `.kiro/hooks/constitution.json`: `SessionStart`, `UserPromptSubmit`, and `Stop`. The manual close task is recovery only.
 
 ## Mandatory: Session Logging
 
@@ -94,6 +94,16 @@ If not completed: `▸ NOT COMPLETED — assigned to: {AgentName}  |  Task: {tas
 
 Closing signature written once on user ACHIEVED confirmation. Auto-signs after 30min inactivity (marked AUTOMATED). Full rules: `Multi-Agent Workforce Architecture & System Prompts.md §14`
 
+## Project-Local Artifacts and Root Index (MANDATORY)
+
+Store sessions, archives, generated work, QA evidence, backups, logs, and temp data below the owning
+project root. Use `C:\DevWork\_workspace\` only for genuine cross-project/control-plane work. New logs
+include `Project` and `Project Root`. `WORKSPACE_INDEX.md` is the only root artifact catalogue and the
+session-close path updates it only when summaries change. Ambiguous legacy items go to
+`_workspace\index\unresolved\`; never guess ownership, overwrite, bulk-delete, or cross nested Git
+boundaries without a hash-verified migration manifest. Full rule:
+`Multi-Agent Workforce Architecture & System Prompts.md §9.7`.
+
 ## Session Log Enforcement Script (MANDATORY)
 
 The workspace uses a shared PowerShell enforcement script that must run at the end of every session:
@@ -110,10 +120,10 @@ c:\DevWork\.claude\scripts\session-log-update.ps1
 
 **How to run at session end:**
 ```powershell
-powershell.exe -NonInteractive -File "c:\DevWork\.claude\scripts\session-log-update.ps1"
+powershell.exe -NonInteractive -File "c:\DevWork\.claude\scripts\session-log-update.ps1" -LogPath "<exact-session-log-path>"
 ```
 
-Kiro does not support lifecycle hooks natively. Run this manually before ending the session, or wire it into any available task runner / pre-commit hook for this workspace.
+Kiro supports native workspace hooks. The mandatory registration in `.kiro/hooks/constitution.json` calls `scripts/governance/constitution-hook.ps1` at session start and before every prompt. Verify the hooks in Kiro's Agent Hooks UI after upgrades.
 
 ## Sensitive Files (never commit)
 

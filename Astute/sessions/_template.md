@@ -2,6 +2,8 @@
 Date: YYYY-MM-DD
 Provider: <Claude Code | GitHub Copilot | OpenAI Codex | Other>
 Model: <model name>
+Project: astute
+Project Root: C:\DevWork\Astute
 
 ## Goal
 <one paragraph — what was attempted>

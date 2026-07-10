@@ -1,0 +1,64 @@
+﻿{
+    "name":  "BlackFire",
+    "slug":  "blackfire",
+    "root":  "BlackFire",
+    "standalone_repository":  true,
+    "artifact_index":  "BlackFire\\ARTIFACT_INDEX.md",
+    "categories":  {
+                       "sessions":  [
+                                        {
+                                            "path":  "BlackFire\\sessions",
+                                            "metric":  {
+                                                           "exists":  true,
+                                                           "files":  57,
+                                                           "bytes":  133679,
+                                                           "oldest":  "2026-06-21T17:18:56.7670315Z",
+                                                           "latest":  "2026-07-10T15:25:04.0231230Z"
+                                                       }
+                                        }
+                                    ],
+                       "artifacts":  [
+
+                                     ],
+                       "archive":  [
+
+                                   ],
+                       "temp":  [
+                                    {
+                                        "path":  "BlackFire\\temp",
+                                        "metric":  {
+                                                       "exists":  true,
+                                                       "files":  80,
+                                                       "bytes":  17558170,
+                                                       "oldest":  "2026-07-09T19:23:09.9028041Z",
+                                                       "latest":  "2026-07-09T19:40:21.0730712Z"
+                                                   }
+                                    },
+                                    {
+                                        "path":  "BlackFire\\tmp",
+                                        "metric":  {
+                                                       "exists":  true,
+                                                       "files":  12,
+                                                       "bytes":  15987671,
+                                                       "oldest":  "2026-07-09T03:51:17.4102245Z",
+                                                       "latest":  "2026-07-10T13:27:37.5811322Z"
+                                                   }
+                                    }
+                                ],
+                       "logs":  [
+
+                                ],
+                       "backups":  [
+                                       {
+                                           "path":  "BlackFire\\_backups",
+                                           "metric":  {
+                                                          "exists":  true,
+                                                          "files":  424,
+                                                          "bytes":  23198790,
+                                                          "oldest":  "2026-05-20T18:52:51.5184565Z",
+                                                          "latest":  "2026-07-10T13:27:37.5616595Z"
+                                                      }
+                                       }
+                                   ]
+                   }
+}

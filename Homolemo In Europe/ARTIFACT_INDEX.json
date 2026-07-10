@@ -1,0 +1,27 @@
+﻿{
+    "name":  "Homolemo In Europe",
+    "slug":  "homolemo-in-europe",
+    "root":  "Homolemo In Europe",
+    "standalone_repository":  false,
+    "artifact_index":  "Homolemo In Europe\\ARTIFACT_INDEX.md",
+    "categories":  {
+                       "sessions":  [
+
+                                    ],
+                       "artifacts":  [
+
+                                     ],
+                       "archive":  [
+
+                                   ],
+                       "temp":  [
+
+                                ],
+                       "logs":  [
+
+                                ],
+                       "backups":  [
+
+                                   ]
+                   }
+}

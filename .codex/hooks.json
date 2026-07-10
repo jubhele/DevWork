@@ -1,0 +1,68 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NonInteractive -ExecutionPolicy Bypass -File \"C:\\DevWork\\scripts\\governance\\constitution-hook.ps1\" -Event SessionStart -Provider \"OpenAI Codex\"",
+            "commandWindows": "powershell.exe -NonInteractive -ExecutionPolicy Bypass -File \"C:\\DevWork\\scripts\\governance\\constitution-hook.ps1\" -Event SessionStart -Provider \"OpenAI Codex\"",
+            "timeout": 15,
+            "statusMessage": "Initializing constitutional session..."
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NonInteractive -ExecutionPolicy Bypass -File \"C:\\DevWork\\scripts\\governance\\constitution-hook.ps1\" -Event UserPromptSubmit -Provider \"OpenAI Codex\"",
+            "commandWindows": "powershell.exe -NonInteractive -ExecutionPolicy Bypass -File \"C:\\DevWork\\scripts\\governance\\constitution-hook.ps1\" -Event UserPromptSubmit -Provider \"OpenAI Codex\"",
+            "timeout": 10,
+            "statusMessage": "Running constitution preflight..."
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "^(edit|create|apply_patch|write)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NonInteractive -ExecutionPolicy Bypass -File \"C:\\DevWork\\scripts\\governance\\constitution-hook.ps1\" -Event PreChange -Provider \"OpenAI Codex\"",
+            "commandWindows": "powershell.exe -NonInteractive -ExecutionPolicy Bypass -File \"C:\\DevWork\\scripts\\governance\\constitution-hook.ps1\" -Event PreChange -Provider \"OpenAI Codex\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "^(edit|create|apply_patch|write)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NonInteractive -ExecutionPolicy Bypass -File \"C:\\DevWork\\scripts\\governance\\constitution-hook.ps1\" -Event PostChange -Provider \"OpenAI Codex\"",
+            "commandWindows": "powershell.exe -NonInteractive -ExecutionPolicy Bypass -File \"C:\\DevWork\\scripts\\governance\\constitution-hook.ps1\" -Event PostChange -Provider \"OpenAI Codex\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NonInteractive -ExecutionPolicy Bypass -File \"C:\\DevWork\\scripts\\governance\\constitution-hook.ps1\" -Event Stop -Provider \"OpenAI Codex\"",
+            "commandWindows": "powershell.exe -NonInteractive -ExecutionPolicy Bypass -File \"C:\\DevWork\\scripts\\governance\\constitution-hook.ps1\" -Event Stop -Provider \"OpenAI Codex\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

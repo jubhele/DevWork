@@ -1,0 +1,662 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Due Diligence Memo — FC Orbi / Sports Consulting Management</title>
+<style>
+  :root{
+    --bg:#EEF0EA; --surface:#FFFFFF; --surface-2:#E4E7DE; --border:#CDD3C6;
+    --ink:#1C2127; --ink-muted:#565F5B;
+    --accent:#234C6E; --accent-2:#2F6B45;
+    --risk-critical:#A5311F; --risk-high:#B5661C; --risk-ctx:#3E6B8A;
+    --risk-critical-bg:#F6E4DF; --risk-high-bg:#F6EBDC; --risk-ctx-bg:#DEE7EC; --risk-ok-bg:#DFEBE1;
+  }
+  :root[data-theme="light"]{
+    --bg:#EEF0EA; --surface:#FFFFFF; --surface-2:#E4E7DE; --border:#CDD3C6;
+    --ink:#1C2127; --ink-muted:#565F5B;
+    --accent:#234C6E; --accent-2:#2F6B45;
+    --risk-critical:#A5311F; --risk-high:#B5661C; --risk-ctx:#3E6B8A;
+    --risk-critical-bg:#F6E4DF; --risk-high-bg:#F6EBDC; --risk-ctx-bg:#DEE7EC; --risk-ok-bg:#DFEBE1;
+  }
+
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.55; -webkit-font-smoothing:antialiased;}
+  .page{max-width:760px;margin:0 auto;padding:48px 24px 96px;}
+  h1,h2,h3{font-family:Georgia,"Iowan Old Style","Palatino Linotype","Book Antiqua",serif;
+    font-weight:700; text-wrap:balance; color:var(--ink); margin:0;}
+  .mono{font-family:"SF Mono",SFMono-Regular,ui-monospace,Menlo,Consolas,"Liberation Mono",monospace;}
+  .eyebrow{font-family:"SF Mono",SFMono-Regular,ui-monospace,Menlo,Consolas,monospace;
+    font-size:11.5px; letter-spacing:.11em; text-transform:uppercase; color:var(--accent); font-weight:600;}
+
+  header.cover{border-bottom:2px solid var(--ink); padding-bottom:22px; margin-bottom:28px;}
+  header.cover .eyebrow{margin-bottom:10px; display:block;}
+  header.cover h1{font-size:28px; line-height:1.25;}
+  .meta{display:grid; grid-template-columns:auto 1fr; gap:5px 14px; margin-top:18px; font-size:14px;}
+  .meta dt{color:var(--ink-muted); font-family:"SF Mono",SFMono-Regular,ui-monospace,Menlo,Consolas,monospace; font-size:11.5px; letter-spacing:.04em; text-transform:uppercase; padding-top:2px;}
+  .meta dd{margin:0; font-weight:500;}
+
+  section{margin-top:38px;}
+  section > .eyebrow{display:block; margin-bottom:10px; padding-bottom:8px; border-bottom:1px solid var(--border);}
+  h2{font-size:20px; margin-bottom:12px;}
+  p{margin:0 0 12px; font-size:15.5px;}
+  p:last-child{margin-bottom:0;}
+  a{color:var(--accent);}
+  sup a{text-decoration:none; font-size:.75em;}
+
+  .verdict{background:var(--surface); border:1px solid var(--border); border-left:5px solid var(--risk-high);
+    border-radius:3px; padding:20px 22px;}
+  .verdict h2{font-size:17px; margin-bottom:8px;}
+  .verdict .rating{display:inline-block; font-family:"SF Mono",SFMono-Regular,ui-monospace,Menlo,Consolas,monospace;
+    font-size:11px; letter-spacing:.08em; text-transform:uppercase; font-weight:700;
+    background:var(--risk-high-bg); color:var(--risk-high); padding:3px 9px; border-radius:2px; margin-bottom:10px;}
+
+  .facts{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+  @media(max-width:600px){.facts{grid-template-columns:1fr;}}
+  .fact-card{background:var(--surface); border:1px solid var(--border); border-radius:3px; padding:16px 18px;}
+  .fact-card h3{font-size:15px; margin-bottom:2px;}
+  .fact-card .sub{color:var(--ink-muted); font-size:12.5px; margin-bottom:10px; display:block;}
+  .fact-card ul{margin:0; padding-left:18px; font-size:14px;}
+  .fact-card li{margin-bottom:6px;}
+  .status-line{margin-top:10px; padding-top:10px; border-top:1px dashed var(--border); font-size:13.5px; font-weight:600;}
+  .status-line.ok{color:var(--accent-2);}
+  .status-line.warn{color:var(--risk-high);}
+
+  .finding{background:var(--surface); border:1px solid var(--border); border-radius:3px;
+    padding:14px 18px; margin-bottom:12px; border-left-width:5px; border-left-style:solid;}
+  .finding.critical{border-left-color:var(--risk-critical);}
+  .finding.high{border-left-color:var(--risk-high);}
+  .finding.ctx{border-left-color:var(--risk-ctx);}
+  .finding-head{display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:6px;}
+  .finding-head h3{font-size:14.5px; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; font-weight:700;}
+  .badge{font-family:"SF Mono",SFMono-Regular,ui-monospace,Menlo,Consolas,monospace; font-size:10px;
+    letter-spacing:.08em; text-transform:uppercase; font-weight:700; padding:2px 7px; border-radius:2px; white-space:nowrap;}
+  .badge.critical{background:var(--risk-critical-bg); color:var(--risk-critical);}
+  .badge.high{background:var(--risk-high-bg); color:var(--risk-high);}
+  .badge.ctx{background:var(--risk-ctx-bg); color:var(--risk-ctx);}
+  .finding p{font-size:14px; color:var(--ink);}
+  .finding .clause{color:var(--ink-muted); font-size:12.5px; font-style:italic; margin-top:6px;}
+
+  .timeline{position:relative; margin:18px 0 4px; padding-left:26px; border-left:2px solid var(--border);}
+  .tl-item{position:relative; padding-bottom:20px;}
+  .tl-item:last-child{padding-bottom:0;}
+  .tl-item::before{content:""; position:absolute; left:-31px; top:3px; width:9px; height:9px; border-radius:50%;
+    background:var(--surface); border:2px solid var(--accent);}
+  .tl-item.risk::before{border-color:var(--risk-critical); background:var(--risk-critical);}
+  .tl-date{font-family:"SF Mono",SFMono-Regular,ui-monospace,Menlo,Consolas,monospace; font-size:12.5px;
+    color:var(--accent); font-weight:700; font-variant-numeric:tabular-nums;}
+  .tl-item.risk .tl-date{color:var(--risk-critical);}
+  .tl-amt{font-weight:700; font-size:14.5px; margin:2px 0 4px;}
+  .tl-note{font-size:13.5px; color:var(--ink-muted);}
+
+  .table-wrap{overflow-x:auto; border:1px solid var(--border); border-radius:3px;}
+  table{width:100%; border-collapse:collapse; font-size:13.5px; min-width:560px;}
+  th,td{text-align:left; padding:10px 12px; border-bottom:1px solid var(--border); vertical-align:top;}
+  th{background:var(--surface-2); font-family:"SF Mono",SFMono-Regular,ui-monospace,Menlo,Consolas,monospace;
+    font-size:11px; letter-spacing:.05em; text-transform:uppercase; color:var(--ink-muted); font-weight:600;}
+  tbody tr:last-child td{border-bottom:none;}
+  tbody tr:nth-child(odd){background:var(--surface);}
+  tbody tr:nth-child(even){background:var(--surface-2);}
+  td.num{font-variant-numeric:tabular-nums; font-family:"SF Mono",SFMono-Regular,ui-monospace,Menlo,Consolas,monospace;}
+  .row-this td:first-child{font-weight:700; color:var(--accent);}
+
+  .stat-row{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin:16px 0 4px;}
+  @media(max-width:600px){.stat-row{grid-template-columns:1fr;}}
+  .stat{background:var(--surface); border:1px solid var(--border); border-radius:3px; padding:14px 16px;}
+  .stat .num{font-family:Georgia,serif; font-size:26px; font-weight:700; color:var(--accent); font-variant-numeric:tabular-nums;}
+  .stat .lbl{font-size:12.5px; color:var(--ink-muted); margin-top:2px;}
+
+  .checklist{list-style:none; margin:14px 0 0; padding:0;}
+  .checklist li{position:relative; padding:8px 0 8px 30px; border-bottom:1px solid var(--border); font-size:14.5px;}
+  .checklist li:last-child{border-bottom:none;}
+  .checklist li::before{content:"□"; position:absolute; left:0; top:8px; color:var(--accent); font-size:16px;}
+
+  .callout{background:var(--surface-2); border:1px solid var(--border); border-radius:3px; padding:14px 18px; font-size:14px;}
+  .callout strong{color:var(--accent);}
+
+  footer{margin-top:48px; padding-top:16px; border-top:1px solid var(--border);}
+  footer h2{font-size:14px; margin-bottom:10px;}
+  .src-list{list-style:none; margin:0; padding:0; font-size:12.5px; color:var(--ink-muted);}
+  .src-list li{margin-bottom:6px; padding-left:20px; text-indent:-20px;}
+  .src-list a{word-break:break-all;}
+  .disclaimer{margin-top:20px; font-size:12px; color:var(--ink-muted); font-style:italic;}
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <header class="cover">
+    <span class="eyebrow">Due Diligence Memo</span>
+    <h1>FC Orbi placement &amp; the Sports Consulting Management fee agreement</h1>
+    <dl class="meta">
+      <dt>Re</dt><dd>Shange Homolemo Amunene — 6-month playing programme, FC Orbi (home ground confirmed in Khashuri, Georgia — see Section 2)</dd>
+      <dt>Counterparty</dt><dd>LLC Sports Consulting Management, Dir. Kartlos Rukhaia (Tbilisi)</dd>
+      <dt>Document</dt><dd>Football Player Representation and Service Agreement, dated 09 Jul 2026</dd>
+      <dt>Prepared</dt><dd>09 July 2026, for family review ahead of legal counsel</dd>
+    </dl>
+  </header>
+
+  <div class="verdict">
+    <span class="rating">Elevated risk — verify before paying further</span>
+    <h2>Bottom line</h2>
+    <p>Both the club and the agency are real, which puts this a step above the outright fabricated schemes documented below. But the fee structure, the all-risk-on-player forfeiture clauses, and the size of the ask relative to the wage on offer match the profile player unions and investigative reporters were still documenting as recently as 2025, across the same fake-agent economy South African, Ghanaian and Nigerian families keep losing money to<sup><a href="#src1">1</a></sup>. Nothing here proves fraud. It's exactly the profile that warrants the independent verification steps at the end of this memo <em>before</em> the 31 July payment.</p>
+  </div>
+
+  <section>
+    <span class="eyebrow">Section 1 — What checks out</span>
+    <h2>The club and the agency are both real, but small</h2>
+    <div class="facts">
+      <div class="fact-card">
+        <h3>FC Orbi</h3>
+        <span class="sub">The club</span>
+        <ul>
+          <li>Confirmed on Transfermarkt and Soccerway — currently 5th in Georgian Liga 3 (third tier), matching the standings table shared in chat<sup><a href="#src3">3</a></sup></li>
+          <li>20-man squad, average age 24.8, already <strong>3 foreign players (15% of squad)</strong> registered this season<sup><a href="#src3">3</a></sup></li>
+          <li>2,000-seat Grigol Jomartidze Stadium — a real but modest lower-league ground</li>
+          <li>Liga 3 is explicitly the amateur-to-professional bridge division in Georgia, not a fully professional league</li>
+        </ul>
+        <div class="status-line ok">Club exists as described. Worth confirming the "one quota spot left" pitch directly with the club — 3 foreign players already on the books is worth reconciling with that story.</div>
+      </div>
+      <div class="fact-card">
+        <h3>Sports Consulting Management</h3>
+        <span class="sub">The agency</span>
+        <ul>
+          <li>Has an actual Transfermarkt agent profile under Kartlos Rukhaia — not a ghost operation<sup><a href="#src2">2</a></sup></li>
+          <li>Represents 7 players total, combined market value <strong>€250,000</strong> — a very small book</li>
+          <li>Clients are placed in Georgian lower-tier and regional clubs; no record of any placement into a major European league</li>
+          <li>Two prior foreign clients: a Ghanaian midfielder (currently at Sioni Bolnisi) and a Nigerian forward who is <strong>currently without a club</strong></li>
+        </ul>
+        <div class="status-line warn">Real agency, but its own track record shows a prior African signing that didn't lead anywhere lasting — that's the closest thing to a "success rate" data point available.</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow">Section 2 — Reading the contract itself</span>
+    <h2>Where the risk actually sits in the clauses</h2>
+    <p>All monetary risk in this agreement runs one direction. Below are the clauses that matter most, in plain terms.</p>
+
+    <div class="finding critical">
+      <div class="finding-head"><h3>Deposit and payment 2 are non-refundable no matter what happens</h3><span class="badge critical">Critical</span></div>
+      <p>If the 31 July payment is even a day late, the representation agreement terminates immediately, the player has no right to continue the placement, and every euro already paid — including the €4,000 deposit — is explicitly kept by the agency with "no obligation to refund."</p>
+      <div class="clause">"All amounts previously paid to the Agency... shall be considered non-refundable. The Agency shall have no obligation to refund any money already paid."</div>
+    </div>
+
+    <div class="finding critical">
+      <div class="finding-head"><h3>The economics don't clear for years</h3><span class="badge critical">Critical</span></div>
+      <p>Total cost is €13,500. The wage on offer is 500 GEL/month — roughly €170. Over the full possible 12-month contract (6 months + a discretionary 6-month extension the club doesn't have to grant), that's about €2,040 in wages against a €13,500 outlay. The fee is not a percentage of a real transfer or salary — it's a flat placement charge that dwarfs anything the player earns from the arrangement itself.</p>
+    </div>
+
+    <div class="finding ctx">
+      <div class="finding-head"><h3>Self-funding accommodation is worth doing regardless of the fee outcome</h3><span class="badge ctx">Good instinct</span></div>
+      <p>The club's own in-kind promise (private apartment, Section "Football contract terms") is separate from the €13,500 agency fee — offering to cover accommodation and living costs directly doesn't reduce what's owed to Kartlos on paper. But it's still worth doing, for a reason unrelated to money: it puts the family, not the club or agency, in control of where Amunene actually lives. That directly addresses the exact failure mode in the fake-agent pattern in Section 3 — promised housing that turns out substandard or simply doesn't materialize. Worth raising in the same conversation as Section 12's milestone proposal: if the family is covering accommodation independently, ask Kartlos directly what the €13,500 is now paying for, since one of the in-kind benefits it was implicitly bundled with is no longer needed from his side.</p>
+    </div>
+
+    <div class="finding high">
+      <div class="finding-head"><h3>Missing payment 3 doesn't cancel the deal — it demotes the player</h3><span class="badge high">High</span></div>
+      <p>If the September payment is late, the agency doesn't have to refund anything or release the player either. Instead it can register him to the reserve/B team indefinitely and "suspend or limit further representation services" — keeping leverage without an exit for the family.</p>
+    </div>
+
+    <div class="finding ctx">
+      <div class="finding-head"><h3>The player is funding his own placement, not the club</h3><span class="badge ctx">Context</span></div>
+      <p>FIFA's 2023 agent regulations do allow a "client-pays" model where a player covers their own agent's fee<sup><a href="#src6">6</a></sup>. That makes this technically permissible. But the standard guidance for spotting fake-agent schemes is specifically that legitimate scouts and clubs do not require the player to fund the trial or placement itself, and FIFA rules expect the <em>inviting club</em> to cover travel and accommodation for a genuine trial<sup><a href="#src5">5</a></sup>. A 3rd-tier club paying €170/month has no obvious commercial reason to need a €13,500 intermediary fee to sign a trialist it already trained for free.</p>
+    </div>
+
+    <div class="finding ctx">
+      <div class="finding-head"><h3>Geoffrey Cockrill signs the agency's contract as the player's "Representative"</h3><span class="badge ctx">Context</span></div>
+      <p>The same person relaying encouraging updates to the family in the WhatsApp thread ("well done to Amu thus far") is named in the agreement as the Player's signing representative to the Georgian agency — not as an independent adviser to the family. Worth asking directly, in writing: does Cockrill or the South African coaching setup receive a referral fee, commission, or any payment from Sports Consulting Management for this placement? That's a standard conflict-of-interest question, not an accusation — and the family's position going in is that Cockrill has earned to be paid for the work that got the player this far. The point of asking isn't to uncover a hidden payment, it's to agree a fair figure and put it in writing as its own explicit line in the deal, rather than leave it as an undisclosed side arrangement.</p>
+    </div>
+
+    <div class="finding ctx">
+      <div class="finding-head"><h3>"Listed on Transfermarkt" is a low-value selling point</h3><span class="badge ctx">Context</span></div>
+      <p>Transfermarkt player pages can be requested by anyone and added by volunteer editors for essentially any registered lower-league player — it costs nothing and confirms nothing about career prospects. Framing it as a contract deliverable is a soft persuasion tactic, not a meaningful guarantee.</p>
+    </div>
+
+    <div class="finding high">
+      <div class="finding-head"><h3>FC Orbi's home ground checks out to Khashuri, not Tbilisi</h3><span class="badge high">High — verify directly</span></div>
+      <p>The club's own contact listing places its stadium (Grigol Jomartidze, 2,000 seats) at "Sport Strasse, Khashuri, Georgia"<sup><a href="#src3">3</a></sup> — a town of about 28,000 people roughly 90–100km (~1.5–2 hrs) west of Tbilisi<sup><a href="#src29">29</a></sup>, not the capital. Some aggregator pages label the club "Tbilisi," likely an office or admin address rather than where matches are actually played. This isn't a red flag by itself, but it does mean the cost-of-living and safety research in Section 8 — and the Tbilisi-as-a-base framing in Section 13 — was built around the wrong city if he'll actually be living and training in or near Khashuri day to day. <strong>Ask directly: where will he actually live and train — Khashuri, Tbilisi, or somewhere else — before signing anything further.</strong></p>
+    </div>
+
+    <div class="finding high">
+      <div class="finding-head"><h3>"B team now, first team later" may mean a different, lower league entirely</h3><span class="badge high">High</span></div>
+      <p>In the Georgian league system, reserve/B teams don't just sit lower in the same squad — they're structurally required to play in a lower division than their parent club, and can never be promoted past it<sup><a href="#src30">30</a></sup>. FC Orbi's first team is in Liga 3; if it fields a registered "B team," that side would be playing in Liga 4 or Regionuli Liga — the 4th or 5th tier, not a depth-squad version of the same league. This research pass found no public evidence FC Orbi even has a registered reserve side, which cuts both ways: it needs direct confirmation either way. If it does exist, video coverage of Liga 4/Regionuli Liga football is essentially nonexistent on the platforms that cover Liga 3<sup><a href="#src31">31</a></sup> — which matters enormously given the family's priority is <em>showcasing</em> him, not just getting him minutes nobody sees.</p>
+      <p style="margin-top:8px;">Two direct questions worth putting to Kartlos and the club before anything else: (1) does FC Orbi have a registered B team, and if so, which division does it actually play in; and (2) is the "first team with B-team steppingstone" framing describing a real, near-term pathway, or is it the same B-team demotion the contract already threatens as a penalty for a late third payment (Section 2, above) — just introduced earlier and reframed as the starting plan.</p>
+    </div>
+
+    <h3 style="margin-top:22px;font-size:15px;">Payment schedule as written</h3>
+    <div class="timeline">
+      <div class="tl-item">
+        <div class="tl-date">Before 13 Jul 2026</div>
+        <div class="tl-amt">€4,000 deposit</div>
+        <div class="tl-note">Secures the placement process. Non-refundable from the moment it's paid.</div>
+      </div>
+      <div class="tl-item risk">
+        <div class="tl-date">On/before 31 Jul 2026</div>
+        <div class="tl-amt">€4,750 — second payment</div>
+        <div class="tl-note">Miss this date and the whole agreement terminates immediately; the €4,000 already paid is forfeited entirely.</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">On/before 30 Sep 2026</div>
+        <div class="tl-amt">€4,750 — final payment</div>
+        <div class="tl-note">Miss this and the player can be pushed to the reserve/B team with representation "suspended" — no refund, no clean exit either.</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow">Section 3 — How this compares to other placement routes</span>
+    <h2>Other agencies offering "the same thing"</h2>
+    <p>There isn't a market of agencies that openly sell "pay us a flat fee to guarantee a foreign playing contract" as a reputable, comparable product — that offering itself is close to a defining feature of the schemes documented against African players in current (2023–2025) reporting. The honest comparison set is: (a) the legitimate alternative — paid <em>training and exposure</em> camps that make no placement guarantee, and (b) the broader fake-agent pattern this deal's structure resembles.</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Route</th><th>Upfront cost</th><th>Player's monthly pay</th><th>What's actually promised</th><th>Documented pattern</th></tr>
+        </thead>
+        <tbody>
+          <tr class="row-this">
+            <td>This deal — FC Orbi / SCM</td><td class="num">€13,500</td><td class="num">~€170 (500 GEL)</td><td>Guaranteed registration, forfeitable on late payment</td><td>Unverified beyond agency's own claims</td>
+          </tr>
+          <tr>
+            <td>Short EU trial/showcase camp (1–4 wks)<sup><a href="#src10">10</a></sup></td><td class="num">€395–€2,000</td><td class="num">None — training only</td><td>Training + scout exposure over 1–4 weeks, no contract guarantee</td><td>Sold as a service rendered, not an outcome — refundable/bounded cost either way</td>
+          </tr>
+          <tr>
+            <td>Full residential academy, e.g. Spain Rush-SPF<sup><a href="#src25">25</a></sup></td><td class="num">~€35,000</td><td class="num">None — training only</td><td>Residential training, academics, organized trials — no contract guarantee</td><td>Same safer "service, not outcome" structure, but over 2.5x FC Orbi/SCM's total cost — not a cheaper substitute</td>
+          </tr>
+          <tr>
+            <td>Fake-agent economy, active cases 2023–2025<sup><a href="#src1">1</a></sup><sup><a href="#src8">8</a></sup></td><td class="num">Processing/registration fees, often $300–$5,000+</td><td class="num">Fabricated — large salaries and bonuses promised, never paid</td><td>Trials or contracts at name-brand clubs</td><td>Money and "agent" vanish before or after arrival; one operator impersonating a real licensed agent was still active in 2025, approaching Ajax's academy</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow">Section 4 — Success rates</span>
+    <h2>What the data on "paid placement" outcomes actually says</h2>
+    <p>No agency — legitimate or otherwise — publishes an audited success rate for turning a paid placement into a sustained pro career, because the ones that are legitimate don't sell outcomes in the first place (they sell training, and the player's ability decides the rest). The closest real numbers come from player-union surveys of the broader fake-agent economy African players are navigating:</p>
+    <div class="stat-row">
+      <div class="stat"><div class="num">56%</div><div class="lbl">of players approached by an "agent" never received the trial they were promised<sup><a href="#src4">4</a></sup></div></div>
+      <div class="stat"><div class="num">44%</div><div class="lbl">didn't get the contract they expected, even after a trial happened<sup><a href="#src4">4</a></sup></div></div>
+      <div class="stat"><div class="num">1 of 2</div><div class="lbl">SCM's only other African client on record is currently without a club<sup><a href="#src2">2</a></sup></div></div>
+    </div>
+    <p style="margin-top:14px;">Source: FIFPRO Africa surveyed 263 professional players across Botswana, Cameroon, DR Congo, Ghana, Kenya, Zambia and Zimbabwe on their experience with agents claiming to arrange moves abroad<sup><a href="#src4">4</a></sup>. That survey covers the fake-agent economy broadly, not this specific agency — but it's the best available benchmark for what "the industry" actually delivers against what it promises.</p>
+  </section>
+
+  <section>
+    <span class="eyebrow">Section 5 — Before the next payment</span>
+    <h2>Verification steps that cost nothing and take days, not weeks</h2>
+    <ul class="checklist">
+      <li>Look up Kartlos Rukhaia / Sports Consulting Management on FIFA's own agent register at <span class="mono">agents.fifa.com</span> — confirm license status yourselves rather than accepting the agency's word<sup><a href="#src7">7</a></sup></li>
+      <li>Contact FC Orbi directly through the Georgian Football Federation (gff.ge) or the club's own official channels — not through Kartlos or Cockrill — and confirm they know of this signing and its terms independently</li>
+      <li>Ask the club (not the agent) to confirm the current foreign-player quota status in writing, given 3 foreign players already appear on the registered squad</li>
+      <li>Request the actual player employment contract with FC Orbi — this fee agreement is with the agency only; the club-side contract is a separate document and should be reviewed on its own</li>
+      <li>Agree a fair, explicit figure for Cockrill's own compensation and put it in writing as its own line in the deal — not an undisclosed referral arrangement with Sports Consulting Management</li>
+      <li>Have the lawyers focus specifically on the forfeiture clause (Section "Consequences of late payment, A") — ask whether it's enforceable as written or negotiable before signing</li>
+      <li>Any further payment should go through a traceable channel with a receipt referencing this specific contract — not informal transfer</li>
+    </ul>
+    <div class="callout" style="margin-top:18px;">
+      <strong>None of this means it's necessarily a scam.</strong> FC Orbi and the agency both check out as real, which is more than most of the documented cases can say. But "real entities" and "fair deal" are different questions — the clause review in Section 2 is the part worth having a lawyer push back on directly, regardless of what the license check turns up.
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow">Section 6 — Alternative routes worth a phone call</span>
+    <h2>Other agencies and pathways to approach</h2>
+    <p>There isn't a direct like-for-like competitor selling "guaranteed Georgian third-tier placement for a flat fee" — see Section 3 on why that offering itself is unusual. The realistic alternative isn't another version of this deal, it's going through the normal, regulated South African agent channel instead of a Tbilisi-based agency the family has no independent way to check on.</p>
+
+    <div class="finding ctx">
+      <div class="finding-head"><h3>Does he even need an agent right now?</h3><span class="badge ctx">Worth trying first — free</span></div>
+      <p>Under FIFA's own regulations, a player is always free to approach and negotiate with a club directly — an agent is a service he can buy, not a requirement to get signed<sup><a href="#src26">26</a></sup>. That matters a lot here, because the thing SCM is actually selling is <em>introduction</em> — getting a club to look at him — and a strong highlight reel plus direct outreach does the same job for free.</p>
+      <p style="margin-top:8px;">The practical version of this, used successfully at non-league/lower-division level generally<sup><a href="#src27">27</a></sup>:</p>
+      <ul style="margin:8px 0 0;padding-left:20px;font-size:14px;">
+        <li>A tight 2–3 minute highlight reel (best actions first) hosted on YouTube, plus a one-page player CV</li>
+        <li>Direct outreach by email and Instagram DM to club coaching staff — lower-division clubs are often genuinely reachable this way, more so than top-flight clubs</li>
+        <li>Offer to train first rather than asking for a trial outright — an easier yes for a coach to give</li>
+        <li>Follow up once after 5–7 days if there's no response, then move to the next club</li>
+      </ul>
+      <p style="margin-top:8px;">He already has the single biggest advantage this playbook depends on: he's physically in Georgia, training, and visible. That lets the family test direct outreach to other Liga 3 and Liga 2 clubs in parallel with anything happening at FC Orbi — at zero cost, and without touching the exclusivity question in Section 11's term sheet until something concrete comes back.</p>
+    </div>
+
+    <div class="finding ctx">
+      <div class="finding-head"><h3>Other Georgia-based agencies, if you do want one</h3><span class="badge ctx">More established than SCM</span></div>
+      <p>Two Tbilisi agencies turned up with real office addresses, phone numbers and portfolios well beyond SCM's scale<sup><a href="#src28">28</a></sup>:</p>
+      <ul style="margin:8px 0 0;padding-left:20px;font-size:14px;">
+        <li><strong>FA Players Agents</strong> — Republic Square, Tbilisi (+995 577 311777, info@playersagents.ge). 23 players represented, 12 of them in the Georgian top flight, combined market value €19.18m.</li>
+        <li><strong>Free Football</strong> — Iv. Kereselidze 1, Tbilisi (+995 598 444888, info@freefootball.ge). 27 players, 15 in the top flight, combined market value €32.13m.</li>
+      </ul>
+      <p style="margin-top:8px;">Both are a different scale entirely from SCM's 7-player, €250k book, and both have public contact details that can be checked before ever sending money. The honest caveat: agencies this size typically build their book around already-valued, contracted players — it's not established that either takes on completely unattached trialists the way SCM does. Worth a direct call to ask, not an assumption either way. (A third, Georgian Sports Agency, was checked and ruled out — just 2 clients, both Georgian, one retired and one currently without a club.)</p>
+      <p style="margin-top:8px;font-size:13.5px;color:var(--ink-muted);">FA Players Agents' full 22-player book<sup><a href="#src32">32</a></sup> is almost entirely Georgian nationals, and includes real internationals in major leagues — Otar Kiteishvili (SK Sturm Graz, Austria, €5.5m), Saba Lobjanidze (Atlanta United, MLS, €3m), Luka Lochoshvili (1.FC Köln, Germany, €2.5m) among them. That's what a credible Georgian agency's portfolio actually looks like — useful context even though their business is Georgian talent going out, not foreign trialists coming in. Free Football's roster couldn't be retrieved in this research pass (site access issue) — worth checking directly.</p>
+    </div>
+
+    <div class="finding ctx">
+      <div class="finding-head"><h3>SCM's own two foreign placements — the closest real references</h3><span class="badge ctx">Worth tracking down</span></div>
+      <p>These are the two people who've actually been through the exact pathway being sold to the family, via the same agency:</p>
+      <ul style="margin:8px 0 0;padding-left:20px;font-size:14px;">
+        <li><strong>Blessing Assamoah</strong> (Ghana, b. 2003, attacking midfielder) — his own Transfermarkt profile lists Sports Consulting Management Ltd. as agent, confirming this is a real SCM placement<sup><a href="#src33">33</a></sup>. Currently at a club in Erovnuli Liga 2 (Georgia's 2nd tier — one level above where Amunene would start). Sources disagreed on the exact current club (Sioni Bolnisi vs. FC Meshakhte Tkibuli) between two lookups minutes apart — a sign of how thin the public paper trail is at this level, not necessarily anything sinister.</li>
+        <li><strong>Francis Anyanwu</strong> (Nigeria, b. 2004, centre-forward) — last listed club was FC Telavi, which was actually in Georgia's <strong>top-flight Erovnuli Liga</strong> until its relegation after the 2025 season<sup><a href="#src34">34</a></sup>. That's a genuine positive data point for SCM's track record, fairer than the flat "no major placements" read in Section 1. He's currently without a club as of mid-2025 though — exact appearance/playing-time numbers at Telavi weren't available in this pass.</li>
+      </ul>
+      <p style="margin-top:8px;">Neither has a social media account this research could confidently confirm — several similarly-named profiles turned up, but handing over an unverified handle risks contacting the wrong person, so that's not included here. The more reliable routes to actually reach them:</p>
+      <ul style="margin:8px 0 0;padding-left:20px;font-size:14px;">
+        <li>Contact Sioni Bolnisi and FC Telavi directly and ask the club to pass a message along — clubs generally know how to reach their own former players</li>
+        <li>Contact <strong>GEFA</strong> (Georgian Footballers' Association), the Tbilisi-based, FIFPRO-affiliated players' union<sup><a href="#src35">35</a></sup> — the same body running the fake-agent awareness campaign cited in Section 4. Worth asking them two things directly: whether they have any record or reputation read on Kartlos Rukhaia specifically, and whether they can help connect the family with foreign players who've played under Georgian lower-league contracts</li>
+      </ul>
+    </div>
+
+    <div class="finding ctx">
+      <div class="finding-head"><h3>FIFA-licensed South African agents</h3><span class="badge ctx">Worth calling</span></div>
+      <p>Under FIFA's agent regulations, a licensed agent's fee is capped and tied to an actual signed transaction — not a large deposit paid before any club contract exists<sup><a href="#src6">6</a></sup>. Three SAFA-linked agents turned up with real track records placing South Africans into European leagues:</p>
+      <ul style="margin:8px 0 0;padding-left:20px;font-size:14px;">
+        <li><strong>Ryan Hartslief — Bigtime Sports Academy</strong> (FIFA licence via SAFA, No. 0012). Placements into the German Bundesliga, Turkish Süper Lig, Swedish Allsvenskan, Danish Superliga and English Championship<sup><a href="#src13">13</a></sup>.</li>
+        <li><strong>Karabo Mathang-Tshabuse — P Management</strong>, FIFA-accredited, South Africa-based<sup><a href="#src13">13</a></sup>.</li>
+        <li><strong>Mike Makaab — ProSport International</strong>, Durban-based<sup><a href="#src13">13</a></sup>.</li>
+      </ul>
+      <p style="margin-top:8px;">These agents typically work with players already inside PSL/NFD academy structures, so fit isn't guaranteed for an unattached amateur — but a genuine FIFA-licensed agent should take an introductory call and explain terms without asking for a non-refundable deposit first. SAFA doesn't publish a public searchable directory<sup><a href="#src11">11</a></sup>, so cross-check any name against the <a href="https://agents.fifa.com/" target="_blank" rel="noopener">FIFA Agent Platform</a> and the <a href="https://affaa.org/" target="_blank" rel="noopener">African Football Agents Association</a> (AFFAA)<sup><a href="#src14">14</a></sup> — the same two checks worth running on Kartlos Rukhaia himself.</p>
+    </div>
+
+    <div class="finding ctx">
+      <div class="finding-head"><h3>Club-funded pathway programmes</h3><span class="badge ctx">No fee model</span></div>
+      <p>Former Bafana Bafana defender Mark Fish's foundation has a standing partnership with English Championship club Charlton Athletic specifically to assess South African youth players at the club's own academy<sup><a href="#src12">12</a></sup>. The structure is the inverse of this deal: the club evaluates for free, the foundation funds logistics, and there's no forfeiture clause because no money changes hands up front. It's smaller in scale and has no publicized placement outcomes yet, but it's a useful example of what a non-predatory version of "trial abroad" looks like — worth asking the foundation directly whether they're taking new names.</p>
+    </div>
+
+    <div class="finding ctx">
+      <div class="finding-head"><h3>Spain Rush-SPF (Valencia) — a real, priced example of the trial-camp model</h3><span class="badge ctx">Worth a quote</span></div>
+      <p>This is the operator behind spanishprofootball.com, and it's a genuine, longer-running version of the "training + exposure, no guarantee" alternative described generically in Section 3<sup><a href="#src25">25</a></sup>:</p>
+      <ul style="margin:8px 0 0;padding-left:20px;font-size:14px;">
+        <li>Residential academy in Valencia, running since 2016, 500+ alumni from 20+ countries — <strong>South Africa specifically named</strong> as a source country</li>
+        <li>Named partner clubs are real and checkable: U.D. Alzira, C.F. San Jose, Silla C.F., Alboraya U.D., CD Castellón and others, playing at REEF/regional Valencia levels — roughly the same tier FC Orbi sits at in Georgia</li>
+        <li>Trials run 2 weeks to 3 months. Language throughout is "potential" and "opportunity to trial" — no guaranteed contract is sold, and no forfeiture-style clause turned up in what's public</li>
+        <li>Domain is 9 years old with a clean safety/trust scan, but no independent reviews (Trustpilot, Google) surfaced in this research — ask for 2–3 parent references directly before committing anything</li>
+        <li>Advertised age band is U14–U19; confirm directly whether Amunene's age fits their trial track or whether they only run this for younger academy prospects</li>
+      </ul>
+      <p style="margin-top:8px;"><strong>Pricing confirmed at roughly €35,000</strong> — well over double the FC Orbi/SCM deal's €13,500. The payment structure is still the safer shape (a service rendered — residential training, academics, UEFA-level coaching, organized trials — rather than a fee contingent on a guaranteed signing), but at this price it's not a cheaper alternative, it's a different, much larger commitment. It likely reflects a longer, fuller residential program rather than a short assessment window, so it isn't a like-for-like comparison to a 6-month playing contract — worth being clear-eyed that this specific option is priced out of range as a substitute for the FC Orbi decision, even though it's structurally more trustworthy.</p>
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow">Section 7 — Foreign player policy</span>
+    <h2>What actually governs a foreign signing in Georgian football</h2>
+    <p>No public, official squad-quota number (e.g. "max N foreign players") for Liga 3 turned up in this research pass — the GFF's regulatory documents aren't indexed publicly at that level of detail, so treat the "only one quota spot left" pitch as unverified rather than false.</p>
+    <p>Older reporting on a since-closed Tbilisi club (2017 — outside the 5-year window this research now applies, so not relied on here as a current fact) described Georgian clubs paying the GFF a registration fee as high as 15,000 lari (~€8,000) to place a single foreign player on the roster. This pass could not confirm a current 2026 figure from GFF's own published documents. Rather than treat that old number as fact, use it as the reason to ask a direct question:</p>
+    <ul class="checklist">
+      <li>Is FC Orbi actually registering Amunene with the GFF as a professional foreign player — or would he train and play informally, unregistered? That's the mechanism behind most of the fake-agent cases in Section 3.</li>
+      <li>Ask the agency for an itemized breakdown of the €13,500: how much is the agency's own commission versus costs passed through on the club's behalf (registration, accommodation, admin)?</li>
+      <li>Ask GFF or the club directly, in writing, for Liga 3's actual foreign-player squad limit — FC Orbi's own roster already carries 3 foreign players out of 20 (15%), which should factor into how much urgency the "last spot" framing deserves<sup><a href="#src3">3</a></sup>.</li>
+    </ul>
+  </section>
+
+  <section>
+    <span class="eyebrow">Section 8 — Living standards and safety</span>
+    <h2>What life in Tbilisi actually looks like</h2>
+    <p style="font-size:13.5px;color:var(--ink-muted);font-style:italic;">Researched assuming Tbilisi as the base, before Section 2 surfaced that FC Orbi's home ground is actually in Khashuri. National-level facts below (visa rules, GFF registration, racism data from TDI/OC Media, which describe patterns across Georgia, not just the capital) still apply; city-specific costs and incident locations may not transfer directly — worth re-checking once it's confirmed where he'll actually be based.</p>
+    <div class="facts">
+      <div class="fact-card">
+        <h3>Cost of living</h3>
+        <span class="sub">Generally favorable</span>
+        <ul>
+          <li>$1,000–1,500/month covers a comfortable single-person budget in Tbilisi<sup><a href="#src15">15</a></sup></li>
+          <li>1-bedroom rent: roughly $400–700/month depending on district</li>
+          <li>Budget meals $3–8, mid-range dining $8–20</li>
+          <li>General crime safety index (73.7) is higher than most Western European cities<sup><a href="#src15">15</a></sup></li>
+        </ul>
+        <div class="status-line ok">If the private apartment and stipend are actually delivered as written, day-to-day costs in Georgia are not the concern. The pattern across current fake-agent cases isn't that the destination is unaffordable — it's that promised housing, food and wages simply aren't delivered once the money has changed hands<sup><a href="#src1">1</a></sup> — the risk is delivery, not affordability.</div>
+      </div>
+      <div class="fact-card">
+        <h3>Racism and discrimination risk</h3>
+        <span class="sub">Documented, specific to Black and South Asian foreigners</span>
+        <ul>
+          <li>Verbal and physical abuse of African and Asian nationals reported in public places, transport, and rental housing — some landlords openly refuse Black or Indian tenants<sup><a href="#src17">17</a></sup></li>
+          <li>2015: two Nigerian nationals attacked on Tbilisi's Rustaveli Avenue by a hooligan group, filmed and posted online<sup><a href="#src16">16</a></sup></li>
+          <li>2018: foreign students, targeted for their color, assaulted and forced out of a municipal stadium<sup><a href="#src16">16</a></sup></li>
+          <li>Hate-crime prosecutions have reportedly increased, but civil-society monitors describe coverage and state response as inconsistent<sup><a href="#src17">17</a></sup></li>
+        </ul>
+        <div class="status-line warn">This is a materially different question from "is Tbilisi dangerous" — it's specifically about how a young Black South African is likely to be treated day to day. Worth asking the agency for direct contact with one of FC Orbi's existing foreign players, independent of Kartlos or Cockrill, as a real reference point.</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow">Section 9 — Timing</span>
+    <h2>Season calendar and registration cutoffs</h2>
+    <p>The 2026 Georgian season runs <strong>28 February – 6 December</strong><sup><a href="#src18">18</a></sup>. FIFA's global transfer rules require national federations to run two registration windows a year, capped at 12 weeks combined — but this research pass could not confirm GFF's exact 2026 window dates from public sources, so don't take any date the agency gives verbally as final.</p>
+    <div class="callout">
+      <strong>Ask the club or GFF directly</strong> (not the agency) for: (1) the exact date Amunene must be registered by to play competitively this season, and (2) written confirmation his registration will actually be filed with GFF. Also worth doing the arithmetic on what "six months, possibly plus six more" actually buys — starting around August, the initial term runs into the 6 December season close almost immediately, meaning a large share of any extension would sit inside the Jan/Feb off-season before the 2027 campaign starts, not on the pitch.
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow">Section 10 — Before anything else</span>
+    <h2>The clock, honestly</h2>
+    <div class="callout">
+      <strong>The €4,000 deposit is due before 13 July 2026 — that's 4 days from today.</strong> That is not enough time to properly scout clubs in a second country, get visas sorted, and negotiate a new deal. Treat the regional scan in Section 12 as the 6–12 month horizon — what "based in Georgia" opens up if this deal doesn't work out or once he's established — not a checklist to finish this week. The only two moves that are realistic in the next 4 days are: (1) ask Kartlos in writing for a short extension to complete due diligence — a legitimate counterparty accommodates that without drama, and a refusal is itself informative; and (2) use the negotiation points in Section 11 on the deal that's actually on the table right now.
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow">Section 11 — Negotiating for minutes, not a signature</span>
+    <h2>Structuring the ask: playing time is the deliverable</h2>
+    <p>Right now the agreement pays out in full whether or not the player ever gets on the pitch — the money is earned by signing, not by playing. That's the single thing worth restructuring before any further payment. A term sheet to bring to Kartlos (and to use as the baseline for any club, in Georgia or elsewhere):</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Draft agreement says</th><th>Ask for instead</th><th>Why it matters</th></tr></thead>
+        <tbody>
+          <tr><td>Deposit + 2nd payment fully earned regardless of outcome</td><td>Final payment tranche released only after registration <em>and</em> a defined number of competitive appearances</td><td>Ties the agency's payday to the player actually playing, not just to paperwork</td></tr>
+          <tr><td>No trial — straight into a signed 6-month term</td><td>A 2–4 week club-assessed trial before the family's bulk payment is due</td><td>Standard elsewhere; costs the club nothing extra if he's genuinely good enough</td></tr>
+          <tr><td>"Play only as part of FC Orbi... unless otherwise authorized in writing," in force from day one</td><td>Exclusivity starts only once he's appeared in a defined number of competitive matches</td><td>Stops him being locked to a bench role with no route to look elsewhere</td></tr>
+          <tr><td>Missed payment 3 → reserve/B team, agency can suspend services — all downside on the player</td><td>Mutual exit clause: zero competitive appearances within 6 weeks of registration (despite full fitness) lets the family exit with a pro-rated refund</td><td>Right now only the agency has a lever to walk away or downgrade; the player has none</td></tr>
+          <tr><td>Terms summarized only inside the agency's fee agreement</td><td>See and countersign the actual GFF-registered player–club employment contract before the final payment</td><td>That's the only document that legally binds FC Orbi — this one only binds the agency</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="margin-top:14px;">On defining "appearance" itself: push for something concrete — e.g. a minimum number of minutes in a set share of matchday squads over the first two months — rather than "squad member," which a club can satisfy by dressing him without ever using him<sup><a href="#src24">24</a></sup>.</p>
+  </section>
+
+  <section>
+    <span class="eyebrow">Section 12 — Changing the narrative</span>
+    <h2>The counter-proposal: make Kartlos work for the money</h2>
+    <p>Everything so far has been about risk. This flips it: instead of walking away or shopping alternatives, put a milestone schedule in front of Kartlos and frame it as how the family does business — collaborative, not accusatory. He still gets the full €13,500 if he delivers. He just doesn't get paid for a signature; he gets paid for a player who's actually playing.</p>
+
+    <div class="callout">
+      <strong>Live update:</strong> this arrived faster than planned — Amu's current programme ends next weekend, just a few days before month-end — so the proposal actually on the table right now is simpler than the full four-gate schedule below: split the €13,500 into two payments, half at the end of July and half at the end of August, with nothing due before either date. If Kartlos accepts, he's taking on real risk in doing so — housing, training, and caring for Amu from the moment this programme ends through to that first payment, weeks later, before he's received anything. A purely fee-driven operator typically wants money before taking on that responsibility, not after; accepting it is itself a signal worth reading. The four-gate structure below remains the fuller, more rigorous fallback if there's ever room to negotiate it in full — either way, the principle holds: no money moves until real responsibility has already been taken on.
+    </div>
+    <div class="callout" style="margin-top:12px;">
+      <strong>Separately:</strong> the family had already decided to extend Amu's stay in Georgia to 6+ months before this contract conversation came up, and is covering the R3,997 flight-change fee themselves — outside and independent of Kartlos's €13,500. That's a regional-base decision (Section 13), not a bet on this specific deal — it isn't conditional on how the Kartlos placement turns out, and it means there's no travel-driven pressure to rush the verification and negotiation below.
+    </div>
+
+    <div class="callout">
+      <strong>A message to open with:</strong> "We want this to work and we're ready to move forward. To make sure everyone's pointed the same direction — you get paid in full, we get our son playing — we'd like to structure the payments against the milestones below instead of fixed calendar dates. It protects the placement for both of us if anything changes on the club side, and it means you get paid faster if things go well. We're also writing down what Amu commits to on his side — training, fitness, discipline — so nobody's guessing whether a missed gate is on you, on the club, or on him. Happy to get on a call to agree the details this week."
+    </div>
+
+    <div class="table-wrap" style="margin-top:16px;">
+      <table>
+        <thead><tr><th>Milestone</th><th>What has to happen</th><th>Verified by</th><th>Payment released</th><th>If it's missed</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>0. Trial confirmed</strong></td>
+            <td>FC Orbi issues a short written confirmation of the trial terms and intent to register if he's good enough — directly to the family, not just via the agency</td>
+            <td>Document carries the club's own letterhead/stamp; family calls the club to confirm it's genuine</td>
+            <td class="num">€0</td>
+            <td>Strong signal to stop here — a real club assessing a trialist it's already training costs it nothing to confirm in writing</td>
+          </tr>
+          <tr>
+            <td><strong>1. GFF registration</strong></td>
+            <td>Amunene is officially registered as a professional foreign player with the Georgian Football Federation; agency provides an itemized breakdown of what the fee actually covers</td>
+            <td>GFF registration confirmation, requested independently by the family — not taken from the agency's word (Section 7)</td>
+            <td class="num">€4,000</td>
+            <td>Nothing paid. This flips the current agreement, where the €4,000 is due <em>before</em> anything is confirmed.</td>
+          </tr>
+          <tr>
+            <td><strong>2. First squad inclusion</strong></td>
+            <td>Named in an official matchday squad for a competitive Liga 3 fixture</td>
+            <td>Club's own published squad sheet, or GFF/Soccerway match report — checked directly, not via Kartlos or Cockrill</td>
+            <td class="num">€2,375</td>
+            <td>Nothing paid; Section 11's exit clause becomes available if this drags past 4 weeks post-registration</td>
+          </tr>
+          <tr>
+            <td><strong>3. Real playing time</strong></td>
+            <td>Minimum 45 minutes played in at least 3 of the next 6 competitive fixtures</td>
+            <td>Official match reports/stats</td>
+            <td class="num">€2,375</td>
+            <td>Withheld. Opens a straight renegotiation of the remaining fee rather than an automatic forfeit either way</td>
+          </tr>
+          <tr>
+            <td><strong>4. Extension offered</strong></td>
+            <td>FC Orbi formally offers the optional second 6-month term in writing, with confirmed wage and accommodation terms</td>
+            <td>Written extension offer direct from the club</td>
+            <td class="num">€4,750</td>
+            <td>Nothing further owed — the original 6-month engagement is simply complete, and the family is free to pursue Section 13's options without penalty</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="margin-top:14px;">Total is unchanged at €13,500 — this isn't a haircut on price, it's a change to when and whether each piece is earned. That's a much easier sell to Kartlos than a discount, because a legitimate operator loses nothing by agreeing to be paid for results he was always confident he'd deliver anyway. Reluctance to accept a structure like this is itself informative. Pair this with Section 14's independent monthly check-ins so the family isn't relying on the agency's word to confirm each gate has actually been hit.</p>
+    <div class="callout" style="margin-top:16px;">
+      <strong>Since the actual goal is showcasing him, not just playing him:</strong> add one more non-negotiable to Milestones 2 and 3 — footage. Georgian Liga 3 has thin video coverage and Liga 4/Regionuli Liga (Section 2's B-team finding) has essentially none, so playing time that nobody records doesn't accomplish what the family actually wants. Don't rely on the club or league to provide this: have someone film every match from the stands on a phone, tripod is enough. That footage is the actual deliverable — it's what turns into the highlight reel for Section 3's direct-outreach option regardless of how the FC Orbi situation plays out.
+    </div>
+
+    <h3 style="margin-top:26px;font-size:15px;">Making it two-sided: what Amu commits to at each gate</h3>
+    <p>A milestone schedule that only tests Kartlos and asks nothing of Amu isn't fair to Kartlos, and it wastes the moment. Amu is 18 — this placement is also where "professional" starts meaning something in his own daily habits, not just his talent. Pairing the agent's payment gates with the player's own commitments makes it obvious, gate by gate, whether a miss is on Kartlos, on the club, or on Amu himself.</p>
+    <div class="table-wrap" style="margin-top:12px;">
+      <table>
+        <thead><tr><th>Gate</th><th>What Amu commits to</th><th>Who verifies it</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>0. Trial</strong></td>
+            <td>Full effort and attendance at every trial session; follows coaching instructions; no unexplained absences</td>
+            <td>Family/Geoff cross-check directly with the coaching staff, not the agency</td>
+          </tr>
+          <tr>
+            <td><strong>1. GFF registration</strong></td>
+            <td>Completes his own medical, paperwork, and eligibility steps on time; stays in full training condition while it's processed</td>
+            <td>Confirm with the club that nothing was held up on the player's side</td>
+          </tr>
+          <tr>
+            <td><strong>2. First squad inclusion</strong></td>
+            <td>100% training attendance; meets the fitness and conditioning benchmarks the coaching staff sets; clean disciplinary record</td>
+            <td>Ask the coach directly for a monthly read on attendance and conditioning — not a summary filtered through Kartlos or Cockrill</td>
+          </tr>
+          <tr>
+            <td><strong>3. Real playing time</strong></td>
+            <td>Same training standard sustained through the run-in to squad selection</td>
+            <td>Cross-reference the training log against actual match minutes — a gap between the two is the diagnostic that matters</td>
+          </tr>
+          <tr>
+            <td><strong>4. Extension offered</strong></td>
+            <td>Six months of sustained discipline and professionalism — no suspensions, no contract breaches</td>
+            <td>Direct conversation with the coach — ask whether he'd personally vouch for Amu, not just report the stats</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout" style="margin-top:16px;">
+      <strong>Why this matters beyond fairness:</strong> it isolates the variable. If Amu holds up every one of his own commitments — full attendance, full fitness, clean conduct — and the minutes still don't come, that's strong, specific evidence the placement itself is the problem, not him, and the case for invoking Section 11's exit clause gets much stronger. If instead training attendance or discipline is slipping, that's a different and more immediate conversation to have directly with Amu — ideally with Geoff involved, since he knows him best — before any blame lands on the club.
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow">Section 13 — Georgia as a base</span>
+    <h2>The actual plan: a 6+ month regional base, not a fallback</h2>
+    <p>This is no longer a contingency for if FC Orbi falls through — it's the standing plan the family has already discussed directly with Geoff. Georgia becomes Amu's base for 6+ months regardless of how the Kartlos placement specifically plays out, with FC Orbi as one opportunity being pursued from that base, not a precondition for it. South African passport holders get a full year visa-free in Georgia<sup><a href="#src36">36</a></sup>, so the base itself carries no visa pressure — what matters is what's actually reachable from it without needing to fly every time.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Option</th><th>Visa (SA passport)</th><th>Getting there from Tbilisi</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr class="row-this"><td>Other Georgian clubs (Liga 3 / Liga 2)</td><td>None needed — already resident</td><td>N/A</td><td>Lowest-friction option of all. Same GFF registration-fee dynamic (Section 7) applies to any Georgian club, not just Orbi.</td></tr>
+          <tr><td>Armenia</td><td>e-Visa, up to 120 days<sup><a href="#src19">19</a></sup></td><td><strong>Public transport, confirmed.</strong> Marshrutka/bus from Tbilisi (Avlabari, Station Square, or Ortachala) direct to Yerevan, ~16 departures/day, 4–7 hrs, $8–30<sup><a href="#src37">37</a></sup>. An overnight train also runs (schedule flips between odd/even calendar days by season) via the Bagratashen–Sadakhlo border crossing<sup><a href="#src37">37</a></sup>.</td><td>The clearest, most reliable overland option of the four. Worth a scan of Armenian Premier League and lower-division clubs.</td></tr>
+          <tr><td>Turkey</td><td>e-Visa, straightforward, ~30-day stays<sup><a href="#src20">20</a></sup></td><td><strong>Public transport, confirmed — this is new.</strong> Land border at Sarpi, near Batumi: cross on foot, then local bus/marshrutka into Batumi in under an hour (~2 GEL)<sup><a href="#src38">38</a></sup>. Direct long-distance buses already run Tbilisi–Istanbul via this crossing. A second crossing (Sarp-II) opens 1 Aug 2026 specifically for tourist traffic, adding capacity<sup><a href="#src39">39</a></sup>.</td><td>Corrects this memo's earlier "flight only" read — Turkey is genuinely bus-reachable. Much bigger league pyramid (TFF 1/2/3 Lig, regional amateur tiers), but the same fake-agent/trial-scam pattern documented earlier in this memo is well documented in Turkey too. Same license and reference checks apply.</td></tr>
+          <tr><td>Azerbaijan</td><td>e-Visa required for SA citizens — not visa-free. Single-entry, 30-day stay, ~USD 25, apply online<sup><a href="#src40">40</a></sup></td><td><strong>Unsettled — verify directly before planning.</strong> An overnight sleeper train Tbilisi–Baku resumed 26 May 2026 after a 6-year closure (~9.5 hrs, new rolling stock), but as of this research pass it's restricted to Azerbaijani citizens and passport holders with visa-free entry — e-visa holders (likely including South Africans) were told to wait until 1 Jul 2026 for access, and separately the land/bus border for foreign nationals was reported closed "through July 2026"<sup><a href="#src41">41</a></sup>. Confirm current status with the embassy or GFF contacts before treating this as reachable.</td><td>The top flight abolished its foreign-player quota for 2025–26<sup><a href="#src23">23</a></sup> — interesting on paper, but the entry situation is still moving. Don't book anything around this until entry is independently confirmed.</td></tr>
+          <tr><td>Cyprus</td><td>Visa required, 2–6 week processing<sup><a href="#src21">21</a></sup></td><td>Flight only — it's an island, there is no overland option, ever.</td><td>Meaningful lead time needed. A Cyprus-based operator impersonating a real licensed agent to target West African players was still active as of 2025, including approaches to Ajax's academy<sup><a href="#src8">8</a></sup> — apply the same verification rigor as with Kartlos.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="margin-top:14px;">In practice: Armenia and Turkey are the two genuinely public-transport-reachable options right now, which is exactly the "just take public transport" plan discussed with Geoff. Azerbaijan may open up further as 2026 progresses but shouldn't be relied on yet. Cyprus was never going to fit this model and stays a flight-plus-visa option regardless.</p>
+  </section>
+
+  <section>
+    <span class="eyebrow">Section 14 — Staying on track</span>
+    <h2>A simple checkpoint plan</h2>
+    <p>Whichever deal is signed, the family should be checking the same four things on a fixed schedule — independently of what the agency reports.</p>
+    <div class="timeline">
+      <div class="tl-item">
+        <div class="tl-date">Gate 0</div>
+        <div class="tl-amt">GFF registration confirmed</div>
+        <div class="tl-note">Get written confirmation from the club (not the agency) that he's officially registered. No further payment before this is independently verified.</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">Week 2–4</div>
+        <div class="tl-amt">First matchday squad inclusion?</div>
+        <div class="tl-note">Check the club's own matchday squad list or GFF/Soccerway match reports directly — not a message from Kartlos or Cockrill.</div>
+      </div>
+      <div class="tl-item risk">
+        <div class="tl-date">Week 6</div>
+        <div class="tl-amt">Red-flag checkpoint</div>
+        <div class="tl-note">Zero competitive minutes by here, despite full fitness, is the trigger point to invoke whatever exit/renegotiation clause was won in Section 11 — or to start the Georgia-base scan in Section 12 for real.</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">Monthly</div>
+        <div class="tl-amt">Written status update</div>
+        <div class="tl-note">Insist on a named club contact — not the agency — for a short monthly note: appearances, minutes, injuries, disciplinary status. Pair it with Amu's own account of training attendance and conditioning (Section 12's player-accountability table) so the family has both sides, not just the club's.</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">Ongoing — 6+ months</div>
+        <div class="tl-amt">Georgia stays the base regardless</div>
+        <div class="tl-note">The Week 6 checkpoint above decides whether to keep pushing the FC Orbi placement specifically — it does not decide whether Amu stays in Georgia. That's a separate, already-made decision (Section 13): a 6+ month regional base, agreed with Geoff, independent of how any single club situation plays out. A weak Week 6 reading means pivoting to Section 13's other options from the same base, not packing up.</div>
+      </div>
+    </div>
+    <div class="callout" style="margin-top:16px;">
+      Keep every future payment traceable and receipted against a specific milestone in the contract — never an informal transfer against a verbal promise.
+    </div>
+  </section>
+
+  <footer>
+    <h2>Sources</h2>
+    <ol class="src-list">
+      <li id="src1">[1] Sports and Crime Briefing — <a href="https://www.sportsandcrime.com/p/fake-agents-traffic-thousands-of" target="_blank" rel="noopener">"Fake Agents Traffic Thousands of Players from Africa a Year"</a> (Jan 2025)</li>
+      <li id="src2">[2] Transfermarkt — <a href="https://www.transfermarkt.us/kartlos-rukhaia/beraterfirma/berater/3241" target="_blank" rel="noopener">Sports Consulting Management LTD., agent profile</a></li>
+      <li id="src3">[3] Transfermarkt / Soccerway — FC Orbi squad and league data</li>
+      <li id="src4">[4] FIFPRO — <a href="https://fifpro.org/en/supporting-players/safe-working-environments/fake-agents" target="_blank" rel="noopener">"Fake Agents: A Warning To Players"</a>, Africa survey of 263 pro players</li>
+      <li id="src5">[5] WDSportz — <a href="https://wdsportz.com/spot-the-scammer-fake-football-agents-trial-scams/" target="_blank" rel="noopener">"Spot the Scammer: Fake Football Agents & Trial Scams"</a></li>
+      <li id="src6">[6] SportsAgent Institute — <a href="https://fifa.sportsagentinstitute.com/en-us/subject/fifa-football-agent-regulations" target="_blank" rel="noopener">FIFA Football Agent Regulations, client-pays model</a></li>
+      <li id="src7">[7] FIFA — <a href="https://agents.fifa.com/" target="_blank" rel="noopener">FIFA Agent Platform</a> (public license verification)</li>
+      <li id="src8">[8] Sports and Crime Briefing — <a href="https://www.sportsandcrime.com/p/dreams-for-sale-inside-the-world" target="_blank" rel="noopener">"Dreams for Sale: Inside the World of a Fake Football Agent"</a> (Sept 2025)</li>
+      <li id="src10">[10] Soccer Camps International — <a href="https://soccercampsinternational.com/soccer-camps/" target="_blank" rel="noopener">EU trial/showcase camp pricing reference</a></li>
+      <li id="src11">[11] SAFA — <a href="https://www.safa.net/intermediaries/" target="_blank" rel="noopener">Intermediaries</a> (no public agent directory; IRT registration only)</li>
+      <li id="src12">[12] Forbes Africa — <a href="https://www.forbesafrica.com/current-affairs/2026/06/04/the-former-bafana-bafana-star-creating-pathways-and-partnerships-in-europe-for-south-africas-young-footballers" target="_blank" rel="noopener">Mark Fish / Charlton Athletic youth pathway</a></li>
+      <li id="src13">[13] Soka54 — <a href="https://soka54.com/agents-academies/football-agents-looking-for-players-in-africa/" target="_blank" rel="noopener">"Top 10 football agents looking for players in Africa"</a></li>
+      <li id="src14">[14] AFFAA — <a href="https://affaa.org/" target="_blank" rel="noopener">African Football Agents Association</a></li>
+      <li id="src15">[15] Numbeo / Georgia Expats — Tbilisi cost of living, 2026</li>
+      <li id="src16">[16] OC Media — <a href="https://oc-media.org/you-shouldnt-be-here-because-youre-black-georgias-racism-problem/" target="_blank" rel="noopener">"'You shouldn't be here because you're black' — Georgia's racism problem"</a></li>
+      <li id="src17">[17] TDI — <a href="https://tdi.ge/en/news/1084-legal-status-foreigners-and-racism-georgia" target="_blank" rel="noopener">"Legal Status of Foreigners and Racism in Georgia"</a> (Jul 2023)</li>
+      <li id="src18">[18] Wikipedia — <a href="https://en.wikipedia.org/wiki/2026_Erovnuli_Liga" target="_blank" rel="noopener">2026 Erovnuli Liga</a> (season calendar)</li>
+      <li id="src19">[19] Absolute Armenia — <a href="https://absolutearmenia.com/armenia-visa/" target="_blank" rel="noopener">Armenia e-Visa guide</a> (South African eligibility, 120-day validity)</li>
+      <li id="src20">[20] Turkey iVisa — <a href="https://www.turkeyivisa.org/turkey-visa-eligibility/south-african-citizens" target="_blank" rel="noopener">Turkey e-Visa for South African citizens</a></li>
+      <li id="src21">[21] The GSA — <a href="https://www.thegsa.co.za/visa-and-country-info/2676-cyprus-country-guide" target="_blank" rel="noopener">Cyprus visa country guide</a> (South African requirement)</li>
+      <li id="src22">[22] Eurasianet — <a href="https://eurasianet.org/azerbaijan-reopening-land-border-resuming-rail-connection-with-georgia" target="_blank" rel="noopener">Azerbaijan reopening land border / rail with Georgia</a>; Ountravela — <a href="https://ountravela.com/en/overlanding-off-road-trip/georgia-caucasus/border-crossings-permit/" target="_blank" rel="noopener">Georgia border crossings</a></li>
+      <li id="src23">[23] Wikipedia — <a href="https://en.wikipedia.org/wiki/2025%E2%80%9326_Azerbaijan_Premier_League" target="_blank" rel="noopener">2025–26 Azerbaijan Premier League</a> (foreign quota abolished)</li>
+      <li id="src24">[24] G-SPR — <a href="https://www.g-spr.com/post/everything-you-need-to-know-about-football-contracts" target="_blank" rel="noopener">Football contracts, appearance clause definitions</a></li>
+      <li id="src25">[25] Spain Rush-SPF — <a href="https://www.spanishprofootball.com/" target="_blank" rel="noopener">spanishprofootball.com</a>, incl. <a href="https://www.spanishprofootball.com/professional-soccer-tryouts" target="_blank" rel="noopener">club partners page</a> and <a href="https://www.spanishprofootball.com/spain-rush-spf-academy-trial" target="_blank" rel="noopener">trial program page</a>; domain-safety check via GridinSoft</li>
+      <li id="src26">[26] The Football Week — <a href="https://thefootballweek.com/2025/06/30/working-with-football-agents-guide/" target="_blank" rel="noopener">"Working with Football Agents: Guide for Clubs, Players and Parents"</a> (Jun 2025) — players may always negotiate directly, no agent required</li>
+      <li id="src27">[27] WDSportz — <a href="https://wdsportz.com/how-to-get-scouting-for-non-league-football-clubs/" target="_blank" rel="noopener">"How to get scouting for non-league football clubs"</a>; RicFit — <a href="https://ricfittraining.com/blog/football-trial-message-templates-email-linkedin-instagram" target="_blank" rel="noopener">Football Trial Message Templates</a></li>
+      <li id="src28">[28] Transfermarkt — <a href="https://www.transfermarkt.us/georgia/berateruebersicht/verein/3669" target="_blank" rel="noopener">Georgia agent &amp; contracts overview</a> (FA Players Agents, Free Football, Georgian Sports Agency)</li>
+      <li id="src29">[29] Wikipedia — <a href="https://en.wikipedia.org/wiki/Khashuri" target="_blank" rel="noopener">Khashuri</a> (population, distance from Tbilisi)</li>
+      <li id="src30">[30] Wikipedia — <a href="https://en.wikipedia.org/wiki/Liga_4_(Georgia)" target="_blank" rel="noopener">Liga 4 (Georgia)</a>; <a href="https://en.wikipedia.org/wiki/Regionuli_Liga" target="_blank" rel="noopener">Regionuli Liga</a> — reserve-team promotion rules</li>
+      <li id="src31">[31] Sofascore / Livesport / Flashscore Liga 3 vs. Liga 4 coverage comparison; no dedicated video-highlight coverage found for Liga 4 or Regionuli Liga</li>
+      <li id="src32">[32] Transfermarkt — <a href="https://www.transfermarkt.us/fa-players-agents/beraterfirma/berater/1589" target="_blank" rel="noopener">FA Players Agents, full roster</a></li>
+      <li id="src33">[33] Transfermarkt — <a href="https://www.transfermarkt.us/blessing-assamoah/profil/spieler/1113159" target="_blank" rel="noopener">Blessing Assamoah player profile</a> (agent listed as Sports Consulting Management Ltd.)</li>
+      <li id="src34">[34] Wikipedia — <a href="https://en.wikipedia.org/wiki/FC_Telavi" target="_blank" rel="noopener">FC Telavi</a> (Erovnuli Liga status, 2025 relegation); Transfermarkt/Flashscore — Francis Anyanwu profile</li>
+      <li id="src35">[35] Facebook — <a href="https://www.facebook.com/FIFPROGEORGIA/" target="_blank" rel="noopener">Georgian Footballers' Association (GEFA)</a>, Tbilisi</li>
+      <li id="src36">[36] Wikipedia — <a href="https://en.wikipedia.org/wiki/Visa_policy_of_Georgia" target="_blank" rel="noopener">Visa policy of Georgia</a> — South African citizens listed under the 1-year visa-free entry category</li>
+      <li id="src37">[37] Absolute Armenia — <a href="https://absolutearmenia.com/tbilisi-to-yerevan-bus/" target="_blank" rel="noopener">How to Get From Tbilisi to Yerevan by Bus</a> — bus/marshrutka and overnight train schedules, Bagratashen–Sadakhlo crossing</li>
+      <li id="src38">[38] Travel Tramp — <a href="https://www.travel-tramp.com/turkey-to-georgia-crossing-the-border-from-sarpi-to-batumi/" target="_blank" rel="noopener">Crossing the Border From Sarpi to Batumi</a> — practical bus/marshrutka details at the existing crossing</li>
+      <li id="src39">[39] Atlas Guide Travel News — <a href="https://www.atlas-guide.com/news/2026-06-18-turkey-opens-new-land-border-crossing-with-georgia-for-tourists-in-august" target="_blank" rel="noopener">Turkey Opens New Land Border Crossing With Georgia for Tourists in August</a> — Sarp-II crossing, opens 1 Aug 2026</li>
+      <li id="src40">[40] Embassy of Azerbaijan, Pretoria — <a href="https://pretoria.mfa.gov.az/en/content/44/visa-application-information" target="_blank" rel="noopener">Visa application information</a> — e-Visa requirement and terms for South African citizens</li>
+      <li id="src41">[41] Wander-Lush — <a href="https://wander-lush.org/tbilisi-to-baku-train/" target="_blank" rel="noopener">Tbilisi to Baku Train: 2026 Guide</a>; Travel And Tour World — <a href="https://www.travelandtourworld.com/news/article/8mqt2ifppfbu/" target="_blank" rel="noopener">Revival of the Baku–Tbilisi Overnight Rail Service</a> — resumption date and current citizenship/visa-class access restrictions</li>
+    </ol>
+    <p class="disclaimer">Sourcing restricted to material published in the last 5 years (2021 onward), plus live/current reference pages (club and agent registries, visa rules, cost-of-living data). Two older sources used in an earlier pass of this research — a 2017 report on a since-closed Tbilisi club, and 2018/2020 Southeast Asia reporting — were removed and replaced with 2023–2025 sourcing once identified. Compiled from public sources and the agreement text provided. This is a research summary to inform your own legal review, not legal advice.</p>
+  </footer>
+
+</div>
+</body>
+</html>

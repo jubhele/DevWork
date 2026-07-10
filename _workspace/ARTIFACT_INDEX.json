@@ -1,0 +1,81 @@
+﻿{
+    "name":  "_workspace",
+    "slug":  "_workspace",
+    "root":  "_workspace",
+    "standalone_repository":  false,
+    "artifact_index":  "_workspace\\ARTIFACT_INDEX.md",
+    "categories":  {
+                       "sessions":  [
+                                        {
+                                            "path":  "_workspace\\sessions",
+                                            "metric":  {
+                                                           "exists":  true,
+                                                           "files":  2,
+                                                           "bytes":  6194,
+                                                           "oldest":  "2026-07-10T15:25:04.0231230Z",
+                                                           "latest":  "2026-07-10T15:30:39.6979706Z"
+                                                       }
+                                        }
+                                    ],
+                       "artifacts":  [
+                                         {
+                                             "path":  "_workspace\\artifacts",
+                                             "metric":  {
+                                                            "exists":  true,
+                                                            "files":  0,
+                                                            "bytes":  0,
+                                                            "oldest":  null,
+                                                            "latest":  null
+                                                        }
+                                         }
+                                     ],
+                       "archive":  [
+                                       {
+                                           "path":  "_workspace\\archive",
+                                           "metric":  {
+                                                          "exists":  true,
+                                                          "files":  0,
+                                                          "bytes":  0,
+                                                          "oldest":  null,
+                                                          "latest":  null
+                                                      }
+                                       }
+                                   ],
+                       "temp":  [
+                                    {
+                                        "path":  "_workspace\\temp",
+                                        "metric":  {
+                                                       "exists":  true,
+                                                       "files":  5,
+                                                       "bytes":  37974,
+                                                       "oldest":  "2026-07-09T07:43:24.4961452Z",
+                                                       "latest":  "2026-07-10T15:25:45.7789155Z"
+                                                   }
+                                    }
+                                ],
+                       "logs":  [
+                                    {
+                                        "path":  "_workspace\\logs",
+                                        "metric":  {
+                                                       "exists":  true,
+                                                       "files":  0,
+                                                       "bytes":  0,
+                                                       "oldest":  null,
+                                                       "latest":  null
+                                                   }
+                                    }
+                                ],
+                       "backups":  [
+                                       {
+                                           "path":  "_workspace\\_backups",
+                                           "metric":  {
+                                                          "exists":  true,
+                                                          "files":  1,
+                                                          "bytes":  1265,
+                                                          "oldest":  "2026-07-10T15:09:07.8418567Z",
+                                                          "latest":  "2026-07-10T15:09:07.8418567Z"
+                                                      }
+                                       }
+                                   ]
+                   }
+}
