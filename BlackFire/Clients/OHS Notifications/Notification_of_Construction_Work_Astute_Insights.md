@@ -20,7 +20,6 @@ AECI Chempark
 200 Bergrivier Drive, Chloorkop Ext. 24, Kempton Park, 1619
 
 **3.b. Name and telephone nr. of Client's contact person or agent:**
-Simphiwe Ndevu — +27 11 922 1770
 
 **4.a. Name and postal address of Designer(s) for the Project:**
 Not applicable — electronic security infrastructure works (no professional Designer appointed for this scope)
@@ -41,10 +40,8 @@ AECI Chempark, 200 Bergrivier Drive, Chloorkop Ext. 24, Kempton Park, 1619
 Electronic security infrastructure: perimeter fence, CCTV, access control, alarm NOC, patrols, drone surveillance response.
 
 **9. Expected commencement date:**
-_[To be completed]_
 
 **10. Expected completion date:**
-_[To be completed — ongoing service contract, no fixed completion date on file]_
 
 **11. Estimated maximum number of persons on the Construction Site:**
 Total: 5  Male: _______  Female: _______
