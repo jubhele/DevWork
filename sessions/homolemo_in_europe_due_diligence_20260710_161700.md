@@ -528,3 +528,26 @@ _Session ended: 2026-07-12 09:05:00 (Claude Code / claude-sonnet-5)_
 Incomplete at this stop: ## Goal Status (still PENDING -- user must set to ACHIEVED)
 
 _Session ended: 2026-07-12 09:20:00 (Claude Code / claude-sonnet-5)_
+
+## Resumed 2026-07-12 (Phase 22 — Correction: Jubhele alone is visiting, not both parents)
+
+### Decisions (Phase 22)
+- User corrected `to-kartlos.html`: the weekend-visit paragraph read "so we get to experience... Georgian culture," ambiguous enough to imply both parents traveling. It's specifically Jubhele (the father) making the trip, not Mpho.
+- Fixed to "I (Jubhele)... so the two of us [Jubhele and Amu] get to experience..." — removes the ambiguity without needing to explain why, consistent with [[project_homolemo_in_europe]]'s standing note that both parents are decision-makers but not always co-present for every logistics detail.
+- Backed up before editing (timestamp 20260712_113201).
+
+### Work Done (Phase 22)
+- `c:\DevWork\Homolemo In Europe\docs\to-kartlos.html` — visit paragraph corrected to attribute the trip to Jubhele specifically
+- Artifact republished: https://claude.ai/code/artifact/f6d4e3a7-789a-4e67-b689-5f2d5f4622fa
+- `docs/_backups/to-kartlos_backup_20260712_113201.html` — pre-edit backup (new)
+
+### Agent Accountability (Phase 22)
+
+| Task ID | Assigned Agent | Completed By | Status | Iterations | Note |
+|---------|---------------|--------------|--------|------------|------|
+| homolemo_kartlos_letter_correction | Nkanyezi | Claude Code (as Mlawuli, §12.3) | COMPLETED | 1 | Single-paragraph wording fix; within Nkanyezi hard cap of 3 |
+
+## Warning: Session Log Incomplete
+Incomplete at this stop: ## Goal Status (still PENDING -- user must set to ACHIEVED)
+
+_Session ended: 2026-07-12 11:35:00 (Claude Code / claude-sonnet-5)_

@@ -7,7 +7,13 @@ Project Root: c:\DevWork\ilahle-portal
 
 ## Project Determination
 Status: resolved
-Source: cwd_project_signal — user's first request ("create ilahle github repo and update it") matched the existing local git repo at c:\DevWork\ilahle-portal (commit history present, no remote configured). Bound manually because constitution-hook.ps1 -Event ProjectBind failed in this environment ("No stable session ID or transcript path was supplied") — no provider-native session ID/transcript path was available to correlate against. Detailed work and the project-side session log live at c:\DevWork\ilahle-portal\sessions\github_repo_setup_20260712_111157.md; this bootstrap log is being closed out per the constitution gate.
+Source: cwd_project_signal
+
+Initial request ("create ilahle github repo and update it") matched the existing local git repo at c:\DevWork\ilahle-portal (commit history present, no remote configured). Bound manually because constitution-hook.ps1 -Event ProjectBind failed in this environment ("No stable session ID or transcript path was supplied") — no provider-native session ID/transcript path was available to correlate against.
+
+**Session resumed 2026-07-12 11:13**: Second request ("ilahle must be at the same level as other repos e.g. Astute, JS Resume") is still ilahle-portal work (directory naming/organization for the same project). Continues under same project binding.
+
+Detailed work and the project-side session log live at c:\DevWork\ilahle-portal\sessions\github_repo_setup_20260712_111157.md; this bootstrap log tracks the overall session lifecycle per the constitution gate.
 
 ## Goal
 Create a GitHub repository for the existing local ilahle-portal project and push its current state.

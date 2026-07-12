@@ -2,13 +2,13 @@
     "provider":  "Claude Code",
     "session_id":  "5e7d159a-c7fa-4cb6-9984-bab94c0fca2c",
     "log_path":  "C:\\DevWork\\_workspace\\sessions\\agent_session_claude_code_5e7d159a-c7f_20260712_110418.md",
-    "project_status":  "unresolved",
-    "project_name":  "UNRESOLVED",
-    "project_root":  "",
-    "project_source":  "outside_workspace",
-    "binding_version":  1,
-    "binding_updated_at":  "",
-    "prompt_count":  1,
+    "project_status":  "resolved",
+    "project_name":  "ilahle-portal",
+    "project_root":  "C:\\DevWork\\ilahle-portal",
+    "project_source":  "explicit_user_binding",
+    "binding_version":  2,
+    "binding_updated_at":  "2026-07-12T12:00:51.9770455+02:00",
+    "prompt_count":  4,
     "created_at":  "2026-07-12T11:04:18.6851197+02:00",
-    "updated_at":  "2026-07-12T11:12:42.6019439+02:00"
+    "updated_at":  "2026-07-12T12:01:03.8378696+02:00"
 }
