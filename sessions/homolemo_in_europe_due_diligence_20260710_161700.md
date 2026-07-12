@@ -404,3 +404,127 @@ _Session ended: 2026-07-10 21:05:00 (Claude Code / claude-sonnet-5)_
 Incomplete at this stop: ## Goal Status (still PENDING -- user must set to ACHIEVED)
 
 _Session ended: 2026-07-10 21:35:00 (Claude Code / claude-sonnet-5)_
+
+## Resumed 2026-07-12 (Phase 18 — Kartlos's actual reply arrived, plus a signature-ready Payment Agreement)
+
+### Decisions (Phase 18)
+- User shared two real incoming documents, no further instruction attached: `Agent_JubheleandMpho.pdf` (Kartlos Rukhaia's written reply to the letter/due-diligence sent to Geoff) and `Agent_payment_agreement.pdf` (a formal, ready-to-sign Payment Agreement dated 11 Jul 2026). Read both in full via the Read tool (PDF support) rather than acting on the filenames alone.
+- Critical finding, verified via WebSearch + WebFetch rather than taken on trust: the Payment Agreement silently changed the club. It no longer names FC Orbi at all — it now authorizes placement with **either FC Iveria or FC Iberia 2010**, undetermined, at the Agency's discretion. Verified both:
+  - **FC Iveria (Khashuri)** — Liga 4, Georgia's **fourth** division (confirmed via Wikipedia) — plays at the exact same stadium (Grigol Jomartidze, Khashuri) FC Orbi used. This is one tier **below** FC Orbi's Liga 3, directly contradicting Kartlos's written claim that the club change gives Amu "a stronger environment for development, better exposure, and a clearer pathway."
+  - **FC Iberia 2010 (Tbilisi)** — just promoted to Liga 3 for the first time ever in club history (won Liga 4 in 2025 with games still to play). Same tier as FC Orbi, but an unproven club at that level, in Tbilisi rather than Khashuri.
+  - Almost none of the FC Orbi-specific due diligence (squad, quota, B-team structure, Khashuri logistics) transfers to either replacement club — neither has been researched to the same depth, and the family would be signing before knowing which one applies.
+- Cross-checked Kartlos's letter against every specific ask in `to-geoff.html`/the memo: two-payment structure (31 Jul / 31 Aug, €6,750 each) — **accepted**, matches almost exactly what was proposed. Milestone-gated release tied to registration/playing time — **not accepted**; payment is still by calendar date only. Seeing the club contract before payment — **explicitly refused** ("not possible until part of the payment has been completed"). Geoff's own compensation — **not addressed at all** in Kartlos's reply, even though the Payment Agreement now formally lists "COCKRILL GEOFFRY MALVIN" as a required co-signatory ("Player's Representative"), sharpening rather than resolving the conflict-of-interest question already on record. "Moving him to another club if minutes don't come" — Kartlos states this "would not be realistic once the transfer window has closed," offering only a first-team/reserve-team hybrid instead — the same weaker B-team dynamic already flagged as a risk in the memo (Section 2/13), not a real escalation path.
+- Noted real new time pressure from Kartlos's own letter: transfer window 22 Jun–2 Aug 2026, FC Orbi's (or the new clubs') next matches begin 25 Jul 2026, first payment due 31 Jul 2026 — tight, and now compounded by not even knowing the final club.
+- Did not fill in, sign, or otherwise act on the Payment Agreement PDF — read-only reference, decision reserved for the user.
+- Held off on drafting a reply to Kartlos or restructuring the due-diligence documents further until the user directs next steps, given the scale of this development — surfaced the findings directly in chat and asked which direction to take.
+
+### Work Done (Phase 18)
+- Read `C:\DevWork\Homolemo In Europe\Agent_JubheleandMpho.pdf` and `Agent_payment_agreement.pdf` in full
+- Verified FC Iveria and FC Iberia 2010 via WebSearch + WebFetch (Wikipedia, Transfermarkt/Soccerway search results)
+- This session log entry (new)
+
+### Blockers / Next Steps (Phase 18)
+- **Urgent, before any signature**: get written clarification from Kartlos on which specific club Amu will actually be placed with, and why FC Orbi was dropped — the "either/or" framing in the Payment Agreement is not acceptable to sign as-is given the Liga 4 finding.
+- User to decide direction: draft an urgent reply flagging the club-tier discrepancy, update the due diligence memo/letter for the new club(s), or something else — awaiting instruction.
+- The two incoming PDFs currently sit loose at the project root (`Homolemo In Europe\`) rather than in `docs\` — flagged, not moved, pending user preference.
+
+### Agent Accountability (Phase 18)
+
+| Task ID | Assigned Agent | Completed By | Status | Iterations | Note |
+|---------|---------------|--------------|--------|------------|------|
+| homolemo_kartlos_reply_review | Mhloli | Claude Code (as Mlawuli, §12.3) | COMPLETED | 2 | Document review + club verification (2 WebSearch, 2 WebFetch); within Mhloli hard cap of 5 |
+
+## Warning: Session Log Incomplete
+Incomplete at this stop: ## Goal Status (still PENDING -- user must set to ACHIEVED)
+
+_Session ended: 2026-07-12 08:20:00 (Claude Code / claude-sonnet-5)_
+
+## Resumed 2026-07-12 (Phase 19 — Written up as a standalone document)
+
+### Decisions (Phase 19)
+- User asked via AskUserQuestion (Phase 18) for "just the analysis" with no further drafting — then, in a follow-up prompt, asked for that same analysis as a document. Built `kartlos-response-review.html` rather than re-doing the analysis: same findings as the Phase 18 chat response (club-change discrepancy, ask-vs-granted table, deadline timeline, pre-signature checklist), formatted in the project's established due-diligence register (verdict box, fact-cards, finding/badge callouts, table-wrap) since this is internal analysis, not correspondence to Geoff or Kartlos.
+- Marked the document "Internal Review — Not for Geoff or Kartlos" in its header, consistent with the project's established internal-vs-external document distinction (see `geoff-conversation-guide.html` precedent).
+- Backlinked to both `football-agency-due-diligence.html` and `to-geoff.html` at the top, matching the project's existing cross-linking convention for internal docs.
+
+### Work Done (Phase 19)
+- `c:\DevWork\Homolemo In Europe\docs\kartlos-response-review.html` — new; 4 sections (club-change finding with FC Iveria/Iberia 2010 fact-cards, ask-vs-granted table, deadline timeline, pre-signature checklist)
+- Published as Claude Artifact: https://claude.ai/code/artifact/13eed0a6-e978-415a-b902-0b8cce822d9c
+- `c:\DevWork\Homolemo In Europe\README.md` — Contents table updated with the new document
+
+### Blockers / Next Steps (Phase 19)
+- Same as Phase 18: club still unconfirmed, first payment (31 Jul) currently falls before that's resolved. Family to decide when/how to respond to Kartlos.
+
+### Agent Accountability (Phase 19)
+
+| Task ID | Assigned Agent | Completed By | Status | Iterations | Note |
+|---------|---------------|--------------|--------|------------|------|
+| homolemo_kartlos_review_doc | Nkanyezi | Claude Code (as Mlawuli, §12.3) | COMPLETED | 1 | Document authoring from existing analysis; within Nkanyezi hard cap of 3 |
+
+## Warning: Session Log Incomplete
+Incomplete at this stop: ## Goal Status (still PENDING -- user must set to ACHIEVED)
+
+_Session ended: 2026-07-12 08:35:00 (Claude Code / claude-sonnet-5)_
+
+## Resumed 2026-07-12 (Phase 20 — Club-flexibility decision, registration go-ahead, accommodation cost)
+
+### Decisions (Phase 20)
+- User resolved the Phase 18/19 "club unconfirmed" objection deliberately rather than by getting a specific answer from Kartlos: FC Orbi is mid promotion-race, which pressures its coach toward proven players over an unproven 18-year-old newcomer — a club without that pressure is judged the better fit for the family's actual priority (game time). Not knowing which of FC Iveria / FC Iberia 2010 in advance is therefore no longer treated as a blocker. This is the family's own reasoning, not mine — the underlying tier/quality gap (Iveria = Liga 4, one below FC Orbi) remains true and was preserved in the document, just reframed as no longer decisive.
+- Confirmed: registration is to proceed, with a written update from the agency required once it happens.
+- New logistics fact: Amu's current programme finishes the weekend of 17 Jul 2026; rather than flying home as originally planned, he stays on in Georgia while the placement is finalized. The agency agreed to organize accommodation/food for the extra period; family pays directly, separate from the €13,500 agency fee (same principle as the R3,997 flight-change fee already on record).
+- Computed a planning estimate for ~2 weeks (17–31 Jul) of accommodation + food, since no agency quote exists yet: built from the due diligence memo's existing Tbilisi cost-of-living research (rent $400–700/mo, meals $3–8 to $8–20/meal), prorated to 14 days — $400–700 range, ~$550 midpoint. Converted at current FX (verified via WebSearch: 1 USD ≈ €0.876 / R16.35, mid-Jul 2026) to a practical planning figure: ~R9,000 / €480 / $550. Flagged as an estimate, not a quote — family should get the agency's actual number before transferring.
+- Noted the 25 Jul 2026 "next matches begin" date from Kartlos's letter is FC-Orbi-specific and no longer directly applicable now that Amu isn't joining FC Orbi — corrected in the review document's timeline rather than left stale.
+- User wants, relayed to Kartlos alongside the registration go-ahead: a personal thank-you for his engagement and the tone of his reply, a thank-you that the letter reached him via Geoff and got a considered response, and a request for a short introductory video/phone call once things are signed.
+- Updated `kartlos-response-review.html` rather than writing a new document: changed the top verdict from "do not sign" to "proceeding, club flexibility now deliberate," added a new "Resolved Since This Review" section capturing the promotion-pressure reasoning, corrected the 25 Jul timeline item, downgraded Section 4 from "before signing" blockers to "still worth asking" (non-blocking), and added two new sections (accommodation cost estimate; what to relay to Kartlos).
+- Backed up the file before editing (timestamp 20260712_092107).
+
+### Work Done (Phase 20)
+- `c:\DevWork\Homolemo In Europe\docs\kartlos-response-review.html` — verdict box, new "Resolved Since This Review" section, Section 3 timeline correction, Section 4 reframed, new Section 5 (accommodation cost table in USD/EUR/ZAR) and Section 6 (message to relay to Kartlos)
+- Artifact republished: https://claude.ai/code/artifact/13eed0a6-e978-415a-b902-0b8cce822d9c
+- `c:\DevWork\Homolemo In Europe\README.md` — Status section: two new bullets covering the resolution reasoning and the accommodation cost
+- `docs/_backups/kartlos-response-review_backup_20260712_092107.html` — pre-edit backup (new)
+
+### Blockers / Next Steps (Phase 20)
+- Family still needs the agency's actual accommodation/food figure for 17–31 Jul before transferring — the ~R9,000 figure here is a planning estimate only.
+- No reply has been drafted or sent to Kartlos yet; family to decide whether they want that drafted or will handle it themselves (offered, not assumed, consistent with Phase 18's approach).
+- Geoff's own compensation and the milestone/pre-payment-contract asks remain unresolved but are no longer blocking — carried forward as "still worth asking," not gates.
+
+### Agent Accountability (Phase 20)
+
+| Task ID | Assigned Agent | Completed By | Status | Iterations | Note |
+|---------|---------------|--------------|--------|------------|------|
+| homolemo_club_flex_resolution | Nkanyezi | Claude Code (as Mlawuli, §12.3) | COMPLETED | 1 | Document update reflecting family decisions; within Nkanyezi hard cap of 3 |
+| homolemo_accommodation_estimate | Mhloli | Claude Code (as Mlawuli, §12.3) | COMPLETED | 1 | FX-rate lookup (1 WebSearch) + cost computation; within Mhloli hard cap of 5 |
+
+## Warning: Session Log Incomplete
+Incomplete at this stop: ## Goal Status (still PENDING -- user must set to ACHIEVED)
+
+_Session ended: 2026-07-12 09:05:00 (Claude Code / claude-sonnet-5)_
+
+## Resumed 2026-07-12 (Phase 21 — Draft reply to Kartlos)
+
+### Decisions (Phase 21)
+- User asked for an actual draft reply to Kartlos, plus a new detail to include: Jubhele is planning a weekend visit to Georgia to help Amu settle in and experience Georgian culture.
+- Scoped the letter to the items already curated in the review document's "Section 6 — What to say back to Kartlos" (registration go-ahead + written-update request, thanks for his engagement, thanks that the letter reached him via Geoff and got a considered response, request for an introductory call) plus the new visit detail and a direct follow-up on the still-open accommodation-cost figure from Section 5. Deliberately left out the heavier, non-blocking asks (Geoff's own compensation, milestone gating, pre-payment contract sight) — those were downgraded to "still worth asking" rather than urgent in Phase 20, and this message is a warm, forward-moving one, not a renewed negotiation push.
+- Tied the visit mention to the intro-call ask naturally (offered to meet in person if timing allows, no pressure either way) rather than treating them as two disconnected asks.
+- Built as a new standalone HTML letter (`to-kartlos.html`) reusing the project's established letter format (simpler subset of the `to-geoff.html` CSS — header/cover, meta, a plain `.letter` block, signoff) rather than the heavier due-diligence-memo register, since this is a short, warm, forward-moving message, not an analysis document.
+- Marked it explicitly as a draft for family review before sending, via a closing callout — not treated as already-sent correspondence.
+
+### Work Done (Phase 21)
+- `c:\DevWork\Homolemo In Europe\docs\to-kartlos.html` — new; draft reply letter to Kartlos Rukhaia
+- Published as Claude Artifact: https://claude.ai/code/artifact/f6d4e3a7-789a-4e67-b689-5f2d5f4622fa
+- `c:\DevWork\Homolemo In Europe\README.md` — Contents table: `kartlos-response-review.html` entry updated to note the 12 Jul additions; new `to-kartlos.html` entry added
+
+### Blockers / Next Steps (Phase 21)
+- Draft not yet sent — family to review tone/detail and send when ready.
+- Accommodation figure still needs to come back from Kartlos before the family can arrange the actual payment (this draft is what asks for it).
+
+### Agent Accountability (Phase 21)
+
+| Task ID | Assigned Agent | Completed By | Status | Iterations | Note |
+|---------|---------------|--------------|--------|------------|------|
+| homolemo_kartlos_reply_draft | Nkanyezi | Claude Code (as Mlawuli, §12.3) | COMPLETED | 1 | New letter drafted from already-decided content + one new detail; within Nkanyezi hard cap of 3 |
+
+## Warning: Session Log Incomplete
+Incomplete at this stop: ## Goal Status (still PENDING -- user must set to ACHIEVED)
+
+_Session ended: 2026-07-12 09:20:00 (Claude Code / claude-sonnet-5)_

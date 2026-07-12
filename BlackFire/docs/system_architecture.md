@@ -1,6 +1,6 @@
 # BlackFire — System Architecture
 
-> Maintained by Mbhali. Uses Mermaid.js for all diagrams.
+> Maintained by uMbhali. Uses Mermaid.js for all diagrams.
 
 ## High-Level Architecture
 

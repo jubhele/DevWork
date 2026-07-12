@@ -57,7 +57,7 @@ Log structure:
 |---------|---------------|--------------|--------|------------|------|
 | ...     | ...           | ...          | COMPLETED/FAILED | n/cap | brief note |
 
-Mlawuli fills one row when the user confirms the goal is achieved. Umlindi audits at session end — any agent assigned with no COMPLETED entry is a HIGH governance violation, flagged by name.
+uMlawuli fills one row when the user confirms the goal is achieved. uMlindi audits at session end — any agent assigned with no COMPLETED entry is a HIGH governance violation, flagged by name.
 
 **Goal Status field (mandatory in every session log):**
 ```
@@ -111,6 +111,16 @@ When the constitution or multi-agent architecture is copied into a repo or updat
 - Every session-close path runs `scripts/governance/update-workspace-index.ps1` after updating the exact session log and records `NO_CHANGE`, `UPDATED`, or `FAILED`.
 - Ambiguous legacy material goes to `_workspace\index\unresolved\` with candidate owners. Never guess ownership, flatten project mirrors, overwrite collisions, bulk-delete temp data, or move files across nested repositories without manifest and hash verification.
 - Full taxonomy, migration procedure, privacy rules, concurrency contract, and DevWork audit baseline: `Multi-Agent Workforce Architecture & System Prompts.md §9.7`.
+
+## Project Determination at Session Start (MANDATORY)
+
+- Before substantive work, bind the session to one existing project, one newly created project, or explicit `_workspace` control-plane scope.
+- A root/control-plane working directory is ambiguous; it is not automatic permission to use `_workspace`.
+- When ambiguous, ask the user which existing project applies, whether to create a new named project, or whether the request is genuinely cross-project/control-plane work.
+- Keep `Project: UNRESOLVED`, block mutations/completion, and do not generate artifacts until the user or a clear project working directory resolves ownership.
+- Bind existing projects through `constitution-hook.ps1 -Event ProjectBind -RequestedProjectRoot <path>`.
+- Create new projects through `constitution-hook.ps1 -Event ProjectCreate -ProjectName <name>`. The initializer creates the folder, standalone Git repository, project-local artifact taxonomy, README, `.gitignore`, and index entry.
+- Never silently switch a resolved session to another project.
 
 ---
 
@@ -172,9 +182,9 @@ powershell.exe -NonInteractive -File "c:\DevWork\.claude\scripts\session-log-upd
 - `BlackFire/BlackFire Portal/install/blackfire_aeci_seed.sql`
 - `*.env`, `config.local.*`
 
-## Sibali — Cost / Token Management Agent (MANDATORY)
+## uSibali — Cost / Token Management Agent (MANDATORY)
 
-**Zulu name:** Sibali *(The Accountant/Calculator)*. System prompt: `agents/sibali_system_prompt.md`
+**Zulu name:** uSibali *(The Accountant/Calculator)*. System prompt: `agents/sibali_system_prompt.md`
 
 At conversation start, classify the request into a tier and check the active model:
 
@@ -195,37 +205,39 @@ See full constitution in `CLAUDE.md` §11 for the complete rule and recommendati
 
 ## Multi-Agent Workforce
 
+**Zulu proper-name rule:** every human-facing agent name uses lowercase `u` plus the capitalized name stem: `uSibali`, `uMlawuli`, `uNkanyezi`, `uSiba`, `uMhloli`, `uMakhi`, `uMdwebi`, `uMvavanyi`, `uMcwaningi`, `uMbheki`, `uMlindi`, and `uMbhali`. Do not write the legacy unprefixed/capital-U forms as proper names. Stable lowercase filenames and technical identifiers such as `Invoke-Umakhi` remain compatibility exceptions.
+
 All agent system prompts live in `agents/`. Full definitions in `CLAUDE.md` §12–§13.
 
 | Zulu Name | English Meaning | Role |
 |-----------|-----------------|------|
-| **Sibali** | The Accountant | Cost governance & session log indexing |
-| **Mlawuli** | The Controller | Supervisor — routes tasks, manages lifecycle |
-| **Nkanyezi** | Star | Content & proposals (BlackFire docs, AECI) |
-| **Usiba** | Feather / Pen | Document generation (generate_docs.ps1, Word/PDF) |
-| **Mhloli** | Explorer / Inspector | Research, competitive intel, security audits |
-| **Umakhi** | The Builder | Code & portal development (BlackFire Portal, Umlilo) |
-| **Umdwebi** | The Artist | Brand identity, UI/UX design, design system governance |
-| **Mvavanyi** | The Evaluator/Tester | Functional QA, regression, integration/E2E verification |
-| **Umcwaningi** | The Auditor/Examiner | Code QA — correctness, coverage, efficiency, modularity |
-| **Umbheki** | The Watcher/Observer | UX/UI QA — visual regression, accessibility, brand compliance |
-| **Umlindi** | The Guardian/Watchman | Governance, compliance, policy enforcement, session audit |
+| **uSibali** | The Accountant | Cost governance & session log indexing |
+| **uMlawuli** | The Controller | Supervisor — routes tasks, manages lifecycle |
+| **uNkanyezi** | Star | Content & proposals (BlackFire docs, AECI) |
+| **uSiba** | Feather / Pen | Document generation (generate_docs.ps1, Word/PDF) |
+| **uMhloli** | Explorer / Inspector | Research, competitive intel, security audits |
+| **uMakhi** | The Builder | Code & portal development (BlackFire Portal, Umlilo) |
+| **uMdwebi** | The Artist | Brand identity, UI/UX design, design system governance |
+| **uMvavanyi** | The Evaluator/Tester | Functional QA, regression, integration/E2E verification |
+| **uMcwaningi** | The Auditor/Examiner | Code QA — correctness, coverage, efficiency, modularity |
+| **uMbheki** | The Watcher/Observer | UX/UI QA — visual regression, accessibility, brand compliance |
+| **uMlindi** | The Guardian/Watchman | Governance, compliance, policy enforcement, session audit |
 
 These are **Sebenza agents** *(from ukusebenza: to work)* — full definitions in `agents/sebenza_agents.md`.
-QA is split three ways: Mvavanyi (behavior), Umcwaningi (code quality), Umbheki (visual/UX) —
+QA is split three ways: uMvavanyi (behavior), uMcwaningi (code quality), uMbheki (visual/UX) —
 a single tester previously conflated all three, letting visual and code-quality issues slide
 through under a functional pass/fail label.
 
-**Routing rule:** Content → Nkanyezi | Docs → Usiba | Research → Mhloli | Code → Umakhi | Design → Umdwebi | Functional QA → Mvavanyi | Code QA → Umcwaningi | UX/UI QA → Umbheki | Governance → Umlindi.
-All payloads pass through Sibali before reaching any Sebenza agent.
-Umlindi audits Umakhi pre-deploy. Mvavanyi, Umcwaningi, and Umbheki each test a different slice
-of Umakhi's output before release.
+**Routing rule:** Content → uNkanyezi | Docs → uSiba | Research → uMhloli | Code → uMakhi | Design → uMdwebi | Functional QA → uMvavanyi | Code QA → uMcwaningi | UX/UI QA → uMbheki | Governance → uMlindi.
+All payloads pass through uSibali before reaching any Sebenza agent.
+uMlindi audits uMakhi pre-deploy. uMvavanyi, uMcwaningi, and uMbheki each test a different slice
+of uMakhi's output before release.
 
-**Hard caps (max iterations before escalating to Mlawuli):**
-Nkanyezi=3 | Usiba=2 | Mhloli=5 | Umakhi=3 | Umdwebi=2 | Mvavanyi=3 | Umcwaningi=3 | Umbheki=2 | Umlindi=2
+**Hard caps (max iterations before escalating to uMlawuli):**
+uNkanyezi=3 | uSiba=2 | uMhloli=5 | uMakhi=3 | uMdwebi=2 | uMvavanyi=3 | uMcwaningi=3 | uMbheki=2 | uMlindi=2
 
-**Fault tolerance:** Mlawuli retries a failed worker agent up to 3 times before flagging a system error.
-**Memory compression:** Sibali triggers summarisation when a worker's context hits 70% capacity.
+**Fault tolerance:** uMlawuli retries a failed worker agent up to 3 times before flagging a system error.
+**Memory compression:** uSibali triggers summarisation when a worker's context hits 70% capacity.
 
 **Agent Accountability (MANDATORY):**
 The closing signature is written to the session log ONCE when the user confirms the goal is achieved (Goal Status = ACHIEVED). Format:

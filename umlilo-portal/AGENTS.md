@@ -1,11 +1,11 @@
-﻿# Umlilo Portal Constitution
+# Umlilo Portal Constitution
 
 This repository follows the DevWork Workspace Constitution and the Multi-Agent Workforce Architecture.
 
 Authoritative local references:
 - `docs/multi-agent-workforce-architecture.md` — full architecture, system prompts, protocol, provider map, and setup checklist.
-- `agents/sibali_system_prompt.md` — Sibali cost governance and session indexing.
-- `agents/mlawuli_system_prompt.md` — Mlawuli orchestration and routing.
+- `agents/sibali_system_prompt.md` — uSibali cost governance and session indexing.
+- `agents/mlawuli_system_prompt.md` — uMlawuli orchestration and routing.
 - `agents/sebenza_agents.md` — Sebenza worker roster and domain rules.
 
 ---
@@ -50,7 +50,7 @@ Reflect is mandatory before ending a session:
 
 ---
 
-## Sibali — Cost / Token Governance
+## uSibali — Cost / Token Governance
 
 At conversation start, classify the request tier and check model fit.
 
@@ -70,24 +70,24 @@ This repo uses the DevWork named workforce:
 
 | Zulu Name | Role |
 |-----------|------|
-| Sibali | Cost governance and session log indexing |
-| Mlawuli | Supervisor, routing, lifecycle management |
-| Nkanyezi | Content, narrative, proposals |
-| Usiba | Document generation and Word/PDF automation |
-| Mhloli | Research, intelligence, audits |
-| Umakhi | Code and portal development |
-| Umdwebi | Brand, design, UI/UX governance |
-| Mvavanyi | Functional QA, regression, integration/E2E verification |
-| Umcwaningi | Code QA — correctness, coverage, efficiency |
-| Umbheki | UX/UI QA — visual regression, accessibility |
-| Umlindi | Governance, compliance, security posture |
-| Mbhali | Technical documentation |
+| uSibali | Cost governance and session log indexing |
+| uMlawuli | Supervisor, routing, lifecycle management |
+| uNkanyezi | Content, narrative, proposals |
+| uSiba | Document generation and Word/PDF automation |
+| uMhloli | Research, intelligence, audits |
+| uMakhi | Code and portal development |
+| uMdwebi | Brand, design, UI/UX governance |
+| uMvavanyi | Functional QA, regression, integration/E2E verification |
+| uMcwaningi | Code QA — correctness, coverage, efficiency |
+| uMbheki | UX/UI QA — visual regression, accessibility |
+| uMlindi | Governance, compliance, security posture |
+| uMbhali | Technical documentation |
 
-QA is split three ways: Mvavanyi (behavior), Umcwaningi (code quality), Umbheki (visual/UX).
+QA is split three ways: uMvavanyi (behavior), uMcwaningi (code quality), uMbheki (visual/UX).
 
-Routing rule: Content → Nkanyezi; Docs → Usiba or Mbhali; Research → Mhloli; Code → Umakhi; Design → Umdwebi; Functional QA → Mvavanyi; Code QA → Umcwaningi; UX/UI QA → Umbheki; Governance/security → Umlindi.
+Routing rule: Content → uNkanyezi; Docs → uSiba or uMbhali; Research → uMhloli; Code → uMakhi; Design → uMdwebi; Functional QA → uMvavanyi; Code QA → uMcwaningi; UX/UI QA → uMbheki; Governance/security → uMlindi.
 
-All payloads pass through Sibali before reaching a worker. The active provider acts as Mlawuli when it is the sole active agent.
+All payloads pass through uSibali before reaching a worker. The active provider acts as uMlawuli when it is the sole active agent.
 
 ---
 

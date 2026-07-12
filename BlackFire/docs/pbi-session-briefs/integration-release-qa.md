@@ -1,7 +1,7 @@
 Certainly# Integration And Release QA Brief
 
-Owner: Mvavanyi
-Supporting owners: Umbheki, Umcwaningi, Umlindi
+Owner: uMvavanyi
+Supporting owners: uMbheki, uMcwaningi, uMlindi
 Queue order: 7
 
 ## Objective

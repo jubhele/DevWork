@@ -6,7 +6,16 @@
     "artifact_index":  "Homolemo In Europe\\ARTIFACT_INDEX.md",
     "categories":  {
                        "sessions":  [
-
+                                        {
+                                            "path":  "Homolemo In Europe\\sessions",
+                                            "metric":  {
+                                                           "exists":  true,
+                                                           "files":  0,
+                                                           "bytes":  0,
+                                                           "oldest":  null,
+                                                           "latest":  null
+                                                       }
+                                        }
                                     ],
                        "artifacts":  [
 

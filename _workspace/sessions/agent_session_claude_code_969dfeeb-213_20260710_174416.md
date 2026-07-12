@@ -39,11 +39,34 @@ Active model: Sonnet 5  Status: correct — handled scaffold pivots, brand-token
 |---------|---------------|--------------|--------|------------|------|
 | ilahle-site-build | Umakhi (code/portal) | Claude Code (Sonnet 5) | COMPLETED | 1 | Two-service PHP site, PayFast checkout/webhook, brand-matched preview |
 | ilahle-pricing-logic | Umakhi (code/portal) | Claude Code (Sonnet 5) | COMPLETED | 1 | Height/distance pricing formulas confirmed with client, server-side recomputed at checkout |
+| ilahle-debris-addon | uMakhi (code/portal) | Claude Code (Sonnet 5) | COMPLETED | 2 | R300 debris add-on: first applied to both services per "with every order"; revised to palm-only per client quotation, scoped server-side in onsite.php + checkout.php |
 
 ## Blockers / Next Steps
-- **Unresolved**: PayFast passphrase status unconfirmed by client (Settings → Integration on payfast.co.za). `PAYFAST_PASSPHRASE` left blank — if one exists on the live account, every real transaction will fail signature validation until it's added.
+- ~~PayFast passphrase unconfirmed~~ **Resolved 2026-07-12**: passphrase supplied by client and stored in local `.env` (`PAYFAST_PASSPHRASE`), `PAYFAST_MODE=live`.
 - Site not yet deployed — needs the actual cPanel/FTP password for `ncube@ilahle.co.za` (only the username was shared).
 - Client has not yet shared the public Artifact link (needs to click Share on their end).
+- Standalone preview HTML still shows the earlier gold-accent branding — regenerate if the client requests an updated static preview.
+- PayFast Onsite modal cannot be tested end-to-end locally (requires HTTPS) — verify after cPanel deploy.
+
+## Resumed 2026-07-12
+
+### Decisions (chronological — earlier entries preserved above, per decision-tracking rule)
+- **Phase: Debris add-on (initial)** — Client asked for R300 "Debris removal & disposal" as a default-checked checkbox "with every order". Read literally: applied to both Palm Pruning and Transportation, server default treats missing `debris` param as checked.
+- **Phase: Debris add-on (revised — supersedes above)** — Client's own quotation screenshot showed the R300 line item only against palm work. Flagged the mismatch; user confirmed via AskUserQuestion: **"Palm only"**. Checkbox removed from transportation.php; fee scoped server-side to `$service === 'palm-tree-pruning'` in both `payfast/onsite.php` and `payfast/checkout.php` so transport orders can never carry it even if a stray `debris=1` is submitted.
+- **Phase: Pricing bands (revised — supersedes the R800 band-dip decision above)** — Client's updated 2026-07-12 rate card made bands contiguous (Small R850–1,500 / Medium R1,500–2,500 / Large R2,500–7,500 / Very Tall R7,500–15,000); the earlier "intentional dip" answer no longer applies.
+- Switched checkout UX to **PayFast Onsite Payments** (on-page modal via engine.js + server-fetched uuid) with `checkout.php` retained as a redirect fallback. Key constraint discovered: `email_address` must precede transaction fields in the signed payload or PayFast returns a misleading "signature does not match".
+
+### Work Done
+- `transportation.php` — removed debris checkbox markup, removed `DEBRIS_FEE`/checkbox handling from the live-price JS, removed `&debris=` from the onsite fetch body
+- `payfast/onsite.php` — debris fee now applied only when `$service === 'palm-tree-pruning' && $debris`
+- `payfast/checkout.php` — same palm-only scoping on the GET fallback
+- `README.md` — debris bullet rewritten from "offered on both" to palm-only scope
+- Timestamped backups of all four files under `_backups/` / `payfast/_backups/` (20260712_102642)
+- Verification: `php -l` clean on all three PHP files; local server test — transport page renders with zero debris references; checkout amounts confirmed: transport 15km = R780.00 (even with forced `debris=1`), palm 7.5m = R2,300.00 default / R2,000.00 with `debris=0`
+- Earlier in session: full zero-warning scan under `E_ALL` (clean), full pricing verification pass incl. 35m cap at R15,000
+
+### Learnings (resumed)
+- A default-on server-side fee (`$_POST['debris'] ?? '1'`) becomes a silent overbilling bug the moment a client page stops sending the parameter — when scoping a fee to one service, enforce the scope server-side on the service name, not on parameter presence.
 
 ## Learnings
 - When a client sends a photographed spreadsheet/rate card mid-project, treat every number as a real financial constraint, not a placeholder — confirm ambiguous formulas with concrete worked examples before wiring them into a live payment gateway, since a wrong guess means charging real customers the wrong amount. This paid off directly this session (caught the R800 "dip" and the open-ended Very Tall range before they became live bugs).

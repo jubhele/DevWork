@@ -1,6 +1,6 @@
 # BlackFire — Operator & User Guide
 
-> Maintained by Mbhali. Updated when Umakhi ships a production feature and Mvavanyi returns PASS.
+> Maintained by uMbhali. Updated when uMakhi ships a production feature and uMvavanyi returns PASS.
 
 ## System Overview
 
@@ -29,8 +29,8 @@ pnpm --filter mobile start
 
 ## Agent Workforce
 
-Submit tasks via Mlawuli. See `agents/mlawuli_system_prompt.md` for routing.
-Umlindi audits all Umakhi changes before production deploy.
+Submit tasks via uMlawuli. See `agents/mlawuli_system_prompt.md` for routing.
+uMlindi audits all uMakhi changes before production deploy.
 
 ## Role Surface
 

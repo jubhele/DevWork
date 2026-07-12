@@ -25,4 +25,4 @@ GovTender crawls all South African government tender portals, scores matches aga
 
 **Why:** Standalone module first; integrates with BlackFire portal (bf_quotes, bf_clients, bf_attachments) post-launch via webhook.
 
-**How to apply:** All new code must be modular, use Pattern 21 debug hook, follow Umlindi governance rules, and be QA'd by Mvavanyi before merge.
+**How to apply:** All new code must be modular, use Pattern 21 debug hook, follow uMlindi governance rules, and be QA'd by uMvavanyi before merge.

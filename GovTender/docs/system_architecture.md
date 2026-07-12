@@ -1,6 +1,6 @@
 # GovTender — System Architecture (Mermaid Diagrams)
 
-*Maintained by Mbhali. Updated on every production delivery.*
+*Maintained by uMbhali. Updated on every production delivery.*
 
 ---
 
@@ -162,15 +162,15 @@ stateDiagram-v2
 ```mermaid
 sequenceDiagram
     participant H as Human
-    participant ML as Mlawuli
-    participant SB as Sibali
+    participant ML as uMlawuli
+    participant SB as uSibali
     participant W as Worker Agent
-    participant MB as Mbhali
+    participant MB as uMbhali
 
     H->>ML: Submit task (JSON)
     ML->>SB: Cost clearance + payload trim
     SB-->>ML: APPROVED + optimized_payload + token_budget
-    ML->>W: Execute (Umakhi / Mvavanyi / etc.)
+    ML->>W: Execute (uMakhi / uMvavanyi / etc.)
     W-->>ML: COMPLETED (JSON)
     ML->>SB: Final cost indexing
     opt if Production Stage

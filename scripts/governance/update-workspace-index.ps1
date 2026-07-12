@@ -10,6 +10,13 @@ $indexPath = Join-Path $WorkspaceRoot 'WORKSPACE_INDEX.md'
 $indexDirectory = Join-Path $WorkspaceRoot '_workspace\index'
 $manifestPath = Join-Path $indexDirectory 'workspace-index.json'
 $unresolvedDirectory = Join-Path $indexDirectory 'unresolved'
+$indexMutex = New-Object Threading.Mutex($false, 'Global\DevWorkWorkspaceIndex')
+try {
+    $indexLockAcquired = $indexMutex.WaitOne([TimeSpan]::FromSeconds(30))
+    if (-not $indexLockAcquired) { throw 'Timed out waiting for workspace-index lock.' }
+} catch [Threading.AbandonedMutexException] {
+    $indexLockAcquired = $true
+}
 
 function Get-SafeSlug {
     param([string]$Value)
@@ -262,11 +269,13 @@ if ($changed) {
     $status = 'NO_CHANGE'
 }
 
-[pscustomobject]@{
+$result = [pscustomobject]@{
     status = $status
     workspace_index = $indexPath
     manifest = $manifestPath
     projects = $projects.Count
     legacy_root_stores = $legacy.Count
     unresolved = $inventory.unresolved_files.Count
-} | ConvertTo-Json -Compress
+}
+if ($indexMutex) { try { $indexMutex.ReleaseMutex() } catch { }; $indexMutex.Dispose() }
+$result | ConvertTo-Json -Compress

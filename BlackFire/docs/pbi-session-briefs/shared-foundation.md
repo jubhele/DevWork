@@ -1,7 +1,7 @@
 # Shared Foundation Brief
 
-Owner: Umdwebi
-Supporting owners: Umakhi, Umbheki, Mvavanyi, Sibali
+Owner: uMdwebi
+Supporting owners: uMakhi, uMbheki, uMvavanyi, uSibali
 Queue order: 1
 
 ## Objective

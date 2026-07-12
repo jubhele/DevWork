@@ -52,10 +52,10 @@
                                            "path":  "Astute\\_backups",
                                            "metric":  {
                                                           "exists":  true,
-                                                          "files":  10,
-                                                          "bytes":  12619,
+                                                          "files":  12,
+                                                          "bytes":  17312,
                                                           "oldest":  "2026-06-19T20:58:32.9202488Z",
-                                                          "latest":  "2026-07-08T20:25:34.0132769Z"
+                                                          "latest":  "2026-07-10T15:19:06.4796075Z"
                                                       }
                                        }
                                    ]

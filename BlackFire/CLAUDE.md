@@ -31,16 +31,16 @@ This project uses the full multi-agent workforce from `agents/`.
 
 | Task | Agent |
 |------|-------|
-| PHP portal, Next.js web, Expo mobile, DB, API | Umakhi |
-| Security audit, threat modelling | Mhloli |
-| Client proposals, security narratives | Nkanyezi |
-| Word/PDF document generation, reporting scripts | Usiba |
-| Brand identity, UI/UX (BlackFire brand) | Umdwebi |
-| Functional QA, regression, integration/E2E verification | Mvavanyi |
-| Code QA, static review, test coverage | Umcwaningi |
-| UX/UI QA, visual regression, accessibility | Umbheki |
-| Governance, RBAC audit, pre-deploy compliance | Umlindi |
-| Docs, architecture maps, release notes | Mbhali |
+| PHP portal, Next.js web, Expo mobile, DB, API | uMakhi |
+| Security audit, threat modelling | uMhloli |
+| Client proposals, security narratives | uNkanyezi |
+| Word/PDF document generation, reporting scripts | uSiba |
+| Brand identity, UI/UX (BlackFire brand) | uMdwebi |
+| Functional QA, regression, integration/E2E verification | uMvavanyi |
+| Code QA, static review, test coverage | uMcwaningi |
+| UX/UI QA, visual regression, accessibility | uMbheki |
+| Governance, RBAC audit, pre-deploy compliance | uMlindi |
+| Docs, architecture maps, release notes | uMbhali |
 
 ---
 
@@ -63,7 +63,7 @@ See `docs/multi-agent-workforce-architecture.md` §11. Key project-specific addi
 - `.env.example` committed with empty values only (use `BF_` prefix for BlackFire vars).
 - `BlackFire Portal/_backups/` may contain `.env` backups — confirm gitignored.
 - No hardcoded credentials in PHP, JS, or SQL files.
-- Umlindi audits Umakhi changes pre-deploy.
+- uMlindi audits uMakhi changes pre-deploy.
 
 ---
 

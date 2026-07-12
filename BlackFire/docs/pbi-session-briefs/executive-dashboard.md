@@ -1,7 +1,7 @@
 # Executive Dashboard Brief
 
-Owner: Umakhi
-Supporting owners: Umdwebi, Mvavanyi, Umbheki
+Owner: uMakhi
+Supporting owners: uMdwebi, uMvavanyi, uMbheki
 Queue order: 2
 
 ## Objective

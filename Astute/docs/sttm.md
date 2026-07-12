@@ -1,6 +1,6 @@
 # Astute Insights — System Technical Test Manual (STTM)
 
-> Maintained by Mbhali + Mvavanyi. Updated when QA test suite expands.
+> Maintained by uMbhali + uMvavanyi. Updated when QA test suite expands.
 
 ## Baseline Security Checklist
 

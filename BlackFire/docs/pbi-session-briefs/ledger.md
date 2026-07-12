@@ -1,7 +1,7 @@
 # Ledger Brief
 
-Owner: Umakhi
-Supporting owners: Umdwebi, Umcwaningi, Mvavanyi, Umbheki
+Owner: uMakhi
+Supporting owners: uMdwebi, uMcwaningi, uMvavanyi, uMbheki
 Queue order: 6
 
 ## Objective

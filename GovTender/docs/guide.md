@@ -1,6 +1,6 @@
 # GovTender — Operator Guide
 
-*Maintained by Mbhali. Updated on every production delivery.*
+*Maintained by uMbhali. Updated on every production delivery.*
 
 ---
 

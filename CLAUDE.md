@@ -14,9 +14,20 @@ Every session **must** create or update a session log. This is non-negotiable.
 
 The shared enforcement script **`scripts/governance/constitution-hook.ps1`** must run at session start and before every prompt/model invocation. Native registrations are mandatory in `.claude/settings.json`, `.codex/hooks.json`, `.cursor/hooks.json`, `.kiro/hooks/`, `.factory/hooks.json`, `.github/hooks/`, and `.agents/hooks.json` for the providers used in this workspace.
 
-The hook correlates the provider's native session ID to one exact log, creates the log before substantive work, checks the schema, re-injects Sibali/Mlawuli/backup/accountability requirements on every prompt, and mirrors the exact log. Never select the newest log by date; parallel providers must not cross-write.
+The hook correlates the provider's native session ID to one exact log, creates the log before substantive work, checks the schema, re-injects uSibali/uMlawuli/backup/accountability requirements on every prompt, and mirrors the exact log. Never select the newest log by date; parallel providers must not cross-write.
 
 GitHub Copilot VS Code chat and Google Jules use their always-loaded instruction files as soft fallbacks because repository-native per-prompt shell hooks are not assumed on those surfaces. The `Close Session Log` VS Code task remains manual recovery only. Full provider matrix and installation/conformance procedure: `Multi-Agent Workforce Architecture & System Prompts.md §6.3`.
+
+### Project Determination Gate (MANDATORY)
+
+Every session starts with an explicit project determination before substantive work:
+
+- A clear project working directory may bind the session automatically.
+- If ownership is unclear, the active agent must ask the user whether the request belongs to an existing project, a new named project, or genuine `_workspace` control-plane/cross-project work. Do not silently default ambiguity to `_workspace`.
+- Mutations and final completion are blocked while Project is `UNRESOLVED`.
+- Existing-project selection is persisted through `constitution-hook.ps1 -Event ProjectBind -RequestedProjectRoot <path>`.
+- New-project selection runs `constitution-hook.ps1 -Event ProjectCreate -ProjectName <name>`, which creates the project folder, standalone Git repository, session/artifact/archive/temp/log/backup structure, README, `.gitignore`, and workspace index entry before artifacts are generated.
+- Once bound, a session may not silently switch projects. Ask the user whether to switch or start a new session.
 
 **Log location**: `<project-root>\sessions\` for project work; `c:\DevWork\_workspace\sessions\` only for genuinely cross-project/control-plane work.
 **Format**: `<chat-name>_YYYYMMDD_HHmmss.md` — one file per session, named after the chat topic with a timestamp suffix.
@@ -36,8 +47,12 @@ Copy-Item "c:\DevWork\sessions\<filename>.md" "G:\My Drive\JS\Agentic AI\session
 Date: YYYY-MM-DD
 Provider: <Claude Code | GitHub Copilot | OpenAI Codex | Google Antigravity | Cursor | Kiro | Other>
 Model: <model name>
-Project: <project slug | _workspace>
-Project Root: <absolute canonical project root>
+Project: <project slug | _workspace | UNRESOLVED>
+Project Root: <absolute canonical project root | UNRESOLVED>
+
+## Project Determination
+Status: <resolved | unresolved>
+Source: <cwd_project_signal | explicit_user_binding | new_project | unresolved reason>
 
 ## Goal
 <one paragraph — what was attempted>
@@ -97,15 +112,15 @@ c:\DevWork\
 ├── sessions/                   ← Session logs (all providers)
 ├── chatsessions/               ← Legacy Copilot transcript archive
 ├── agents/                     ← Multi-agent workforce definitions
-│   ├── sibali_system_prompt.md       ← Sibali (Accountant) — cost governance
-│   ├── mlawuli_system_prompt.md      ← Mlawuli (Controller) — supervisor
-│   ├── umdwebi_system_prompt.md      ← Umdwebi (Artist) — design & brand
-│   ├── mvavanyi_system_prompt.md     ← Mvavanyi (Tester) — functional QA & regression
-│   ├── umcwaningi_system_prompt.md   ← Umcwaningi (Auditor) — code QA & static review
-│   ├── umbheki_system_prompt.md      ← Umbheki (Watcher) — UX/UI QA & visual regression
-│   ├── umlindi_system_prompt.md      ← Umlindi (Guardian) — governance & compliance
+│   ├── sibali_system_prompt.md       ← uSibali (Accountant) — cost governance
+│   ├── mlawuli_system_prompt.md      ← uMlawuli (Controller) — supervisor
+│   ├── umdwebi_system_prompt.md      ← uMdwebi (Artist) — design & brand
+│   ├── mvavanyi_system_prompt.md     ← uMvavanyi (Tester) — functional QA & regression
+│   ├── umcwaningi_system_prompt.md   ← uMcwaningi (Auditor) — code QA & static review
+│   ├── umbheki_system_prompt.md      ← uMbheki (Watcher) — UX/UI QA & visual regression
+│   ├── umlindi_system_prompt.md      ← uMlindi (Guardian) — governance & compliance
 │   └── sebenza_agents.md             ← All 8 Sebenza agent definitions
-├── design/                     ← Umdwebi's domain — brand tokens, design exports
+├── design/                     ← uMdwebi's domain — brand tokens, design exports
 │   ├── blackfire/
 │   │   ├── brand_tokens.md         ← BlackFire color, typography, logo specs
 │   │   └── exports/                ← Claude.ai, Canva, Figma exports
@@ -174,7 +189,7 @@ Update with: `git submodule update --remote cybersecurity-skills`
 
 **Security domains covered (26):** web security, pentesting, DFIR, threat intelligence, cloud security, malware analysis, network forensics, OSINT, red team, blue team, incident response, compliance (CMMC, SOC 2, ISO 27001), OT/ICS, mobile, API security, devsecops, vulnerability management, identity & access, data loss prevention, and more.
 
-**Umlindi uses this library** when conducting governance/compliance reviews — route security task requests through Umlindi (§12.2).
+**uMlindi uses this library** when conducting governance/compliance reviews — route security task requests through uMlindi (§12.2).
 
 ---
 
@@ -339,7 +354,7 @@ All runtimes on system PATH. No project-scoped installs.
 | Node.js LTS + pnpm | latest LTS | System PATH | Umlilo portal (Next.js/Expo) |
 | PHP | 8.x | System PATH (`C:\php`) | BlackFire Portal (PHP/MySQL) |
 | Python | 3.10+ | System PATH + workspace venv at `c:\DevWork\.venv` | All agent scripts |
-| PowerShell | **5.1 only** | Built into Windows | Usiba document generation (COM automation) |
+| PowerShell | **5.1 only** | Built into Windows | uSiba document generation (COM automation) |
 | Git | latest | System PATH | All version control |
 
 **Python workspace venv** — create once, shared by all projects:
@@ -373,7 +388,7 @@ Copy `.env.example` → `.env` on first setup. Never commit `.env`.
 - **PHP:** `getenv('KEY')` or `$_ENV['KEY']`
 - **Python:** `os.getenv('KEY')` after `load_dotenv()`
 - **Node.js/Next.js:** `process.env.KEY` after `dotenv.config()`
-- **PowerShell:** parse `.env` manually — see `agents/sebenza_agents.md` (Usiba patterns)
+- **PowerShell:** parse `.env` manually — see `agents/sebenza_agents.md` (uSiba patterns)
 
 ### 8.3 Known Sensitive Paths (never commit)
 
@@ -385,7 +400,7 @@ Copy `.env.example` → `.env` on first setup. Never commit `.env`.
 
 ### 8.4 Hardcoded Credential Detection
 
-Umlindi runs this check pre-deploy. Any agent can run it on demand:
+uMlindi runs this check pre-deploy. Any agent can run it on demand:
 
 ```bash
 grep -rn --include="*.php" --include="*.js" --include="*.ts" --include="*.py" \
@@ -424,9 +439,9 @@ All providers follow the same constitution. Divergence is a bug.
 
 ---
 
-## 11. Sibali — Cost / Token Management Agent (MANDATORY)
+## 11. uSibali — Cost / Token Management Agent (MANDATORY)
 
-**Zulu name:** Sibali *(The Accountant/Calculator)*
+**Zulu name:** uSibali *(The Accountant/Calculator)*
 **System prompt:** `agents/sibali_system_prompt.md`
 
 Every session **must** assess whether the current model is the right one for the task.
@@ -505,6 +520,10 @@ The `## Learnings` section in the session log must record whether scores were up
 
 ## 12. Multi-Agent Workforce
 
+### Zulu Proper-Name Rule (MANDATORY)
+
+Every human-facing agent proper name uses the lowercase grammatical prefix `u` followed by the capitalized name stem: `uSibali`, `uMlawuli`, `uNkanyezi`, `uSiba`, `uMhloli`, `uMakhi`, `uMdwebi`, `uMvavanyi`, `uMcwaningi`, `uMbheki`, `uMlindi`, and `uMbhali`. Never use an unprefixed name or mechanically prepend `u` to an old capital-U form such as `uUmakhi`. Stable lowercase filenames and technical identifiers such as `Invoke-Umakhi` may remain unchanged for compatibility.
+
 This workspace runs a named, role-separated agent workforce. All agent system prompts live in `agents/`.
 
 ### 12.1 Full Agent Roster
@@ -513,57 +532,57 @@ This workspace runs a named, role-separated agent workforce. All agent system pr
 
 | Zulu Name | English Meaning | Role | System Prompt |
 |-----------|-----------------|------|---------------|
-| **Sibali** | The Accountant/Calculator | Cost governance & session log indexing | `agents/sibali_system_prompt.md` |
-| **Mlawuli** | The Controller/Administrator | Supervisor — routes tasks, manages lifecycle | `agents/mlawuli_system_prompt.md` |
+| **uSibali** | The Accountant/Calculator | Cost governance & session log indexing | `agents/sibali_system_prompt.md` |
+| **uMlawuli** | The Controller/Administrator | Supervisor — routes tasks, manages lifecycle | `agents/mlawuli_system_prompt.md` |
 
 **Sebenza agents** *(from ukusebenza: to work)* — specialized executors:
 
 | Zulu Name | English Meaning | Role | Hard Cap |
 |-----------|-----------------|------|----------|
-| **Nkanyezi** | Star — illumination, new ideas | Content & proposals | 3 |
-| **Usiba** | Feather / Pen | Document generation | 2 |
-| **Mhloli** | Explorer / Inspector | Research, competitive intel, threat modelling | 5 |
-| **Umakhi** | The Builder | Code & portal development | 3 |
-| **Umdwebi** | The Artist / Draughtsperson | Brand identity, UI/UX design | 2 |
-| **Mvavanyi** | The Evaluator / Tester | Functional QA, regression, integration testing | 3 |
-| **Umcwaningi** | The Auditor / Examiner | Code QA — correctness, coverage, efficiency | 3 |
-| **Umbheki** | The Watcher / Observer | UX/UI QA — visual regression, accessibility | 2 |
-| **Umlindi** | The Guardian / Watchman | Governance, compliance, policy enforcement | 2 |
+| **uNkanyezi** | Star — illumination, new ideas | Content & proposals | 3 |
+| **uSiba** | Feather / Pen | Document generation | 2 |
+| **uMhloli** | Explorer / Inspector | Research, competitive intel, threat modelling | 5 |
+| **uMakhi** | The Builder | Code & portal development | 3 |
+| **uMdwebi** | The Artist / Draughtsperson | Brand identity, UI/UX design | 2 |
+| **uMvavanyi** | The Evaluator / Tester | Functional QA, regression, integration testing | 3 |
+| **uMcwaningi** | The Auditor / Examiner | Code QA — correctness, coverage, efficiency | 3 |
+| **uMbheki** | The Watcher / Observer | UX/UI QA — visual regression, accessibility | 2 |
+| **uMlindi** | The Guardian / Watchman | Governance, compliance, policy enforcement | 2 |
 
 Full definitions: `agents/sebenza_agents.md`
 Individual system prompts: `agents/{name}_system_prompt.md`
 
 ### 12.2 Routing Logic
 
-When Claude Code is acting as the sole active agent, it fulfils Mlawuli's role internally.
-When multiple AI providers are active simultaneously, Mlawuli is the designated supervisor:
+When Claude Code is acting as the sole active agent, it fulfils uMlawuli's role internally.
+When multiple AI providers are active simultaneously, uMlawuli is the designated supervisor:
 
 | Task domain | Sebenza agent |
 |-------------|--------------|
-| Content / narrative / proposals | Nkanyezi |
-| Document generation / scripting | Usiba |
-| Research / competitive intel / threat modelling | Mhloli |
-| Code / portal / database / API | Umakhi |
-| Brand / design / UI / UX | Umdwebi |
-| Functional QA / regression / integration / E2E verification | Mvavanyi |
-| Code QA / static review / test coverage / efficiency audit | Umcwaningi |
-| UX/UI QA / visual regression / accessibility / brand compliance | Umbheki |
-| Policy compliance / governance / security posture | Umlindi |
+| Content / narrative / proposals | uNkanyezi |
+| Document generation / scripting | uSiba |
+| Research / competitive intel / threat modelling | uMhloli |
+| Code / portal / database / API | uMakhi |
+| Brand / design / UI / UX | uMdwebi |
+| Functional QA / regression / integration / E2E verification | uMvavanyi |
+| Code QA / static review / test coverage / efficiency audit | uMcwaningi |
+| UX/UI QA / visual regression / accessibility / brand compliance | uMbheki |
+| Policy compliance / governance / security posture | uMlindi |
 
-All payloads pass through Sibali (cost clearance) before reaching any Sebenza agent.
-Umlindi audits Umakhi's changes pre-deploy. Mvavanyi, Umcwaningi, and Umbheki each test a
-different slice of Umakhi's output (behavior, code quality, visual/UX) before release.
+All payloads pass through uSibali (cost clearance) before reaching any Sebenza agent.
+uMlindi audits uMakhi's changes pre-deploy. uMvavanyi, uMcwaningi, and uMbheki each test a
+different slice of uMakhi's output (behavior, code quality, visual/UX) before release.
 
-### 12.3 Claude Code as Mlawuli
+### 12.3 Claude Code as uMlawuli
 
 When operating as the primary agent (default mode), Claude Code:
 1. Classifies the incoming task and maps it to the correct Sebenza domain (§12.2 routing table).
-2. Routes the conceptual payload through Sibali's tier logic (§11.1) before proceeding.
+2. Routes the conceptual payload through uSibali's tier logic (§11.1) before proceeding.
 3. Executes the task under the Sebenza agent's constraints (see `agents/sebenza_agents.md`).
 4. Logs the session with the JSON metadata block (§13.2) if the task involved inter-agent coordination.
 5. **Accountability signature:** Written to the session log **once** — only when the user explicitly confirms the goal is achieved by setting `## Goal Status` to `ACHIEVED`. Claude writes `ACHIEVED` only on direct user instruction.
 6. **Auto-confirm exception:** If an exact provider/session state mapping points to a log inactive for 30+ minutes and all mandatory sections are filled, the background compatibility check may auto-sign with `[AUTOMATED - no user confirmation after 30min]`. Stop hooks do not discover or auto-sign the newest log.
-7. **Session-end audit (Umlindi):** Any Sebenza agent assigned a task with no COMPLETED entry is a HIGH governance violation — reported by name.
+7. **Session-end audit (uMlindi):** Any Sebenza agent assigned a task with no COMPLETED entry is a HIGH governance violation — reported by name.
    Full accountability protocol: `Multi-Agent Workforce Architecture & System Prompts.md §14`
 
 ### 12.4 Agent Accountability (MANDATORY — all providers)
@@ -573,7 +592,7 @@ Every session log **must** include these two fields:
 **`## Goal Status`** — set to `PENDING` at session start. User changes to `ACHIEVED` when done.
 The closing signature is ONLY written when this field = `ACHIEVED`.
 
-**`## Agent Accountability`** table — one row written by Mlawuli at goal completion:
+**`## Agent Accountability`** table — one row written by uMlawuli at goal completion:
 
 | Task ID | Assigned Agent | Completed By | Status | Iterations | Note |
 |---------|---------------|--------------|--------|------------|------|
@@ -584,7 +603,7 @@ Closing signature format:
 ```
 Auto-confirm (30min inactivity): same format with `Status: COMPLETED [AUTOMATED]` and `Confirmed: AUTOMATED -- no user confirmation after 30min`.
 
-Umlindi cross-checks at session end — any assigned agent missing a COMPLETED row = HIGH violation.
+uMlindi cross-checks at session end — any assigned agent missing a COMPLETED row = HIGH violation.
 
 ---
 
@@ -594,30 +613,30 @@ When multiple agents are active, all inter-agent messages use strict JSON. No co
 
 ### 13.1 Hard Cap Rule
 
-Each Sebenza agent has a maximum iteration budget before it must escalate to Mlawuli:
+Each Sebenza agent has a maximum iteration budget before it must escalate to uMlawuli:
 
 | Sebenza Agent | Max iterations |
 |---------------|---------------|
-| Nkanyezi | 3 |
-| Usiba | 2 |
-| Mhloli | 5 |
-| Umakhi | 3 |
-| Umdwebi | 2 |
-| Mvavanyi | 3 |
-| Umcwaningi | 3 |
-| Umbheki | 2 |
-| Umlindi | 2 |
+| uNkanyezi | 3 |
+| uSiba | 2 |
+| uMhloli | 5 |
+| uMakhi | 3 |
+| uMdwebi | 2 |
+| uMvavanyi | 3 |
+| uMcwaningi | 3 |
+| uMbheki | 2 |
+| uMlindi | 2 |
 
-If an agent loop exceeds its cap, Mlawuli terminates the loop and logs `LOOP_TERMINATED`.
+If an agent loop exceeds its cap, uMlawuli terminates the loop and logs `LOOP_TERMINATED`.
 
 ### 13.2 Session JSON Metadata Block
 
-Append this block to any session log that involved multi-agent coordination or Sibali routing:
+Append this block to any session log that involved multi-agent coordination or uSibali routing:
 
 ```json
 {
   "session_id": "<YYYYMMDD_HHmmss>",
-  "agent": "<Nkanyezi | Usiba | Mhloli | Umakhi | Umdwebi | Mvavanyi | Umcwaningi | Umbheki | Umlindi>",
+  "agent": "<uNkanyezi | uSiba | uMhloli | uMakhi | uMdwebi | uMvavanyi | uMcwaningi | uMbheki | uMlindi>",
   "model_endpoint": "<claude-sonnet-4-6 | gpt-4o | etc>",
   "token_metrics": {
     "tokens_in": 0,
@@ -637,13 +656,13 @@ Append this block to any session log that involved multi-agent coordination or S
 ### 13.3 Fault Tolerance
 
 If a worker agent crashes, times out, or returns a corrupted payload:
-- Mlawuli automatically restarts the agent and retries up to **3 times**.
-- After 3 failed attempts, Mlawuli flags a system error and halts the task.
+- uMlawuli automatically restarts the agent and retries up to **3 times**.
+- After 3 failed attempts, uMlawuli flags a system error and halts the task.
 - Each retry is logged with `retry_count` incremented in the JSON metadata block.
 
 ### 13.4 Memory Compression Trigger
 
 When a worker agent's context window reaches **70% capacity**:
-- Sibali triggers a summarisation routine: drop stale facts, merge duplicates.
+- uSibali triggers a summarisation routine: drop stale facts, merge duplicates.
 - The compressed context is returned as the new payload before the agent continues.
 - Log `action_taken: "Summarised context"` in the JSON metadata block.

@@ -25,13 +25,13 @@ projects:
 droids:
   # Droid agents for autonomous GitHub issue resolution
   - role: code
-    agent: Umakhi         # The Builder — matches workspace multi-agent roster
+    agent: uMakhi         # The Builder — matches workspace multi-agent roster
     max_iterations: 3     # matches CLAUDE.md §13.1 hard cap
     branches:
       base: master
       prefix: droid/
   - role: review
-    agent: Mvavanyi       # The Tester — QA and regression
+    agent: uMvavanyi       # The Tester — QA and regression
     max_iterations: 3
 
 rules:
@@ -50,7 +50,7 @@ rules:
   - agent_accountability_required: true  # session log must include Agent Accountability table
                                           # closing signature written ONLY when user sets Goal Status = ACHIEVED
                                           # auto-confirm: 30min inactivity + core sections filled = AUTOMATED signature
-                                          # Umlindi audits at session end — unmatched assignments = HIGH violation
+                                          # uMlindi audits at session end — unmatched assignments = HIGH violation
 
 # Native lifecycle hooks live in .factory/hooks.json. Keeping hook declarations
 # out of this YAML avoids duplicate top-level keys and Factory parser ambiguity.

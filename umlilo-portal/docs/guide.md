@@ -1,6 +1,6 @@
-﻿# Umlilo Portal Operator Guide
+# Umlilo Portal Operator Guide
 
-This guide is maintained under the Mbhali documentation workflow.
+This guide is maintained under the uMbhali documentation workflow.
 
 ## Current Source Of Truth
 

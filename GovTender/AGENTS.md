@@ -16,7 +16,7 @@ Stack: Python 3.11+ (FastAPI, Celery, Playwright, SQLAlchemy) + Next.js 15 + Pos
 4. **Pattern 21 debug hook** — every Python module imports `from api.debug import log_debug` and logs all critical state transitions. `DEBUG_MODE=false` in production.
 5. **Modular & dynamic** — no hardcoded values. All modules accept config objects or parameters.
 6. **Agent routing** — see CLAUDE.md §3 for the full workforce routing table.
-7. **Definition of done** — Umakhi builds → Mvavanyi/Umcwaningi/Umbheki test (functional/code/UX) → Umlindi audits → Mbhali documents. All must pass.
+7. **Definition of done** — uMakhi builds → uMvavanyi/uMcwaningi/uMbheki test (functional/code/UX) → uMlindi audits → uMbhali documents. All must pass.
 
 ## Project-Local Artifacts (MANDATORY)
 
@@ -28,7 +28,7 @@ mapped by `ARTIFACT_INDEX.md`. Every new log includes `Project: govtender` and t
 
 - `docs/architecture.md` — full system architecture
 - `docs/plan.md` — master build plan with all tasks
-- `docs/guide.md` — operator guide (Mbhali maintains)
+- `docs/guide.md` — operator guide (uMbhali maintains)
 - `docs/system_architecture.md` — Mermaid.js diagrams
 - `shared/db/migrations/` — all schema migrations
 - `crawler/portals/` — one file per government tender portal

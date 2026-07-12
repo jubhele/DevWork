@@ -7,9 +7,9 @@
 
 ## Workflow
 
-1. Nkanyezi drafts tailored cover letter content from the brief.
-2. Usiba generates the `.docx` via PowerShell COM automation.
-3. Umlindi audits for PII before sharing externally.
+1. uNkanyezi drafts tailored cover letter content from the brief.
+2. uSiba generates the `.docx` via PowerShell COM automation.
+3. uMlindi audits for PII before sharing externally.
 
 ## Naming Convention
 

@@ -115,8 +115,8 @@ PENDING
 ## Learnings
 
 ## Session Brief
-- Owner: Mlawuli
-- Supporting owners: Sibali, Umdwebi, Umakhi, Umbheki, Mvavanyi
+- Owner: uMlawuli
+- Supporting owners: uSibali, uMdwebi, uMakhi, uMbheki, uMvavanyi
 
 ## Tasks
 - Confirm the queue and brief pack are in place.
@@ -193,8 +193,8 @@ $doneLines
 $briefPackKickoff = @{
     Topic = 'brief_pack_kickoff'
     Brief = 'docs/pbi-session-briefs/index.md'
-    Owner = 'Mlawuli'
-    Support = 'Sibali, Umdwebi, Umakhi, Umbheki, Mvavanyi'
+    Owner = 'uMlawuli'
+    Support = 'uSibali, uMdwebi, uMakhi, uMbheki, uMvavanyi'
     Tasks = @(
         'Confirm the brief pack index and queue are present.',
         'Start the shared foundation brief first.',
@@ -215,8 +215,8 @@ $queue = @(
     @{
         Topic = 'shared_foundation'
         Brief = 'docs/pbi-session-briefs/shared-foundation.md'
-        Owner = 'Umdwebi'
-        Support = 'Umakhi, Umbheki, Mvavanyi, Sibali'
+        Owner = 'uMdwebi'
+        Support = 'uMakhi, uMbheki, uMvavanyi, uSibali'
         Tasks = @(
             'Audit the Power BI tokens and current UI primitives.',
             'Define shared color, typography, spacing, elevation, and border tokens.',
@@ -239,8 +239,8 @@ $queue = @(
     @{
         Topic = 'executive_dashboard'
         Brief = 'docs/pbi-session-briefs/executive-dashboard.md'
-        Owner = 'Umakhi'
-        Support = 'Umdwebi, Mvavanyi, Umbheki'
+        Owner = 'uMakhi'
+        Support = 'uMdwebi, uMvavanyi, uMbheki'
         Tasks = @(
             'Review the Executive Dashboard page structure from Power BI.',
             'Build the PHP dashboard shell and responsive card stack.',
@@ -263,8 +263,8 @@ $queue = @(
     @{
         Topic = 'finance_reporting'
         Brief = 'docs/pbi-session-briefs/finance-reporting.md'
-        Owner = 'Umakhi'
-        Support = 'Umdwebi, Mvavanyi, Umbheki'
+        Owner = 'uMakhi'
+        Support = 'uMdwebi, uMvavanyi, uMbheki'
         Tasks = @(
             'Review the Finance Reporting page structure from Power BI.',
             'Build the PHP finance summary blocks and list/table fallback.',
@@ -287,8 +287,8 @@ $queue = @(
     @{
         Topic = 'safety_compliance'
         Brief = 'docs/pbi-session-briefs/safety-compliance.md'
-        Owner = 'Umakhi'
-        Support = 'Umdwebi, Mvavanyi, Umbheki'
+        Owner = 'uMakhi'
+        Support = 'uMdwebi, uMvavanyi, uMbheki'
         Tasks = @(
             'Review the Safety & Compliance page structure from Power BI.',
             'Build compliance summary cards and regional blocks in PHP.',
@@ -311,8 +311,8 @@ $queue = @(
     @{
         Topic = 'operations_tasks'
         Brief = 'docs/pbi-session-briefs/operations-tasks.md'
-        Owner = 'Umakhi'
-        Support = 'Umdwebi, Mvavanyi, Umbheki'
+        Owner = 'uMakhi'
+        Support = 'uMdwebi, uMvavanyi, uMbheki'
         Tasks = @(
             'Review the Operations Tasks page structure from Power BI.',
             'Build open-task, assignee-load, and due/overdue sections in PHP.',
@@ -335,8 +335,8 @@ $queue = @(
     @{
         Topic = 'ledger'
         Brief = 'docs/pbi-session-briefs/ledger.md'
-        Owner = 'Umakhi'
-        Support = 'Umdwebi, Umcwaningi, Mvavanyi, Umbheki'
+        Owner = 'uMakhi'
+        Support = 'uMdwebi, uMcwaningi, uMvavanyi, uMbheki'
         Tasks = @(
             'Review the Ledger page structure from Power BI.',
             'Build the ledger summary cards and transaction trend in PHP.',
@@ -359,8 +359,8 @@ $queue = @(
     @{
         Topic = 'integration_release_qa'
         Brief = 'docs/pbi-session-briefs/integration-release-qa.md'
-        Owner = 'Mvavanyi'
-        Support = 'Umbheki, Umcwaningi, Umlindi'
+        Owner = 'uMvavanyi'
+        Support = 'uMbheki, uMcwaningi, uMlindi'
         Tasks = @(
             'Run end-to-end checks across all pages.',
             'Verify route order and shared hierarchy.',

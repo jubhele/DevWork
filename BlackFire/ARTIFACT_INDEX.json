@@ -53,10 +53,10 @@
                                            "path":  "BlackFire\\_backups",
                                            "metric":  {
                                                           "exists":  true,
-                                                          "files":  424,
-                                                          "bytes":  23198790,
+                                                          "files":  426,
+                                                          "bytes":  23206627,
                                                           "oldest":  "2026-05-20T18:52:51.5184565Z",
-                                                          "latest":  "2026-07-10T13:27:37.5616595Z"
+                                                          "latest":  "2026-07-10T15:19:06.4796075Z"
                                                       }
                                        }
                                    ]

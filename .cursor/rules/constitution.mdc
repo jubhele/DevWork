@@ -25,6 +25,10 @@ Cursor must run the native project hooks in `.cursor/hooks.json`: `sessionStart`
 
 ## Session Logging (Mandatory)
 
+At session start, determine the owning project. If unclear, ask the user to choose an existing project, create a new named project, or explicitly select `_workspace`; block substantive work while unresolved. New projects use `scripts/governance/initialize-project.ps1` before artifact generation.
+
+All human-facing agent proper names use lowercase `u` plus the capitalized stem (`uSibali`, `uMlawuli`, `uMakhi`, `uMlindi`, etc.).
+
 Create or update a log in `c:\DevWork\sessions\` at session start and end.
 Format: `<chat-name>_YYYYMMDD_HHmmss.md` — one file per session, named after the chat topic with a timestamp suffix.
 Sections: Goal, Provider, Model, Decisions, Work Done, **Agent Accountability**, Blockers/Next Steps, Learnings.
@@ -34,7 +38,7 @@ Sections: Goal, Provider, Model, Decisions, Work Done, **Agent Accountability**,
 | Task ID | Assigned Agent | Completed By | Status | Iterations | Note |
 |---------|---------------|--------------|--------|------------|------|
 
-Any agent assigned but with no COMPLETED row is flagged as a HIGH governance violation by Umlindi.
+Any agent assigned but with no COMPLETED row is flagged as a HIGH governance violation by uMlindi.
 
 **Goal Status field (mandatory in every session log):**
 ```

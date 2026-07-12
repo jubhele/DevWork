@@ -10,10 +10,10 @@
                                             "path":  "_workspace\\sessions",
                                             "metric":  {
                                                            "exists":  true,
-                                                           "files":  2,
-                                                           "bytes":  6194,
+                                                           "files":  6,
+                                                           "bytes":  25703,
                                                            "oldest":  "2026-07-10T15:25:04.0231230Z",
-                                                           "latest":  "2026-07-10T15:30:39.6979706Z"
+                                                           "latest":  "2026-07-11T07:00:16.0035164Z"
                                                        }
                                         }
                                     ],
@@ -46,10 +46,10 @@
                                         "path":  "_workspace\\temp",
                                         "metric":  {
                                                        "exists":  true,
-                                                       "files":  5,
-                                                       "bytes":  37974,
+                                                       "files":  8,
+                                                       "bytes":  39012,
                                                        "oldest":  "2026-07-09T07:43:24.4961452Z",
-                                                       "latest":  "2026-07-10T15:25:45.7789155Z"
+                                                       "latest":  "2026-07-11T06:33:48.6643065Z"
                                                    }
                                     }
                                 ],
@@ -70,10 +70,10 @@
                                            "path":  "_workspace\\_backups",
                                            "metric":  {
                                                           "exists":  true,
-                                                          "files":  1,
-                                                          "bytes":  1265,
+                                                          "files":  2,
+                                                          "bytes":  3740,
                                                           "oldest":  "2026-07-10T15:09:07.8418567Z",
-                                                          "latest":  "2026-07-10T15:09:07.8418567Z"
+                                                          "latest":  "2026-07-11T06:35:26.4919481Z"
                                                       }
                                        }
                                    ]

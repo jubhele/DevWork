@@ -1,8 +1,8 @@
 # BlackFire — System Technical Test Manual (STTM)
 
-> Maintained by Mbhali + Mvavanyi. Updated when QA suite expands.
+> Maintained by uMbhali + uMvavanyi. Updated when QA suite expands.
 
-## Pre-Deploy Security Checklist (Umlindi)
+## Pre-Deploy Security Checklist (uMlindi)
 
 - [ ] No hardcoded credentials in PHP/JS/SQL files
 - [ ] `.env` not committed; `.env.example` has empty values only
@@ -13,7 +13,7 @@
 - [ ] DEBUG_MODE=false in production `.env`
 - [ ] All new tables have `host_company_id DEFAULT 1`
 
-## Baseline Security Checklist (Mhloli / OWASP)
+## Baseline Security Checklist (uMhloli / OWASP)
 
 - [ ] SQL injection: parameterized queries on all user inputs
 - [ ] XSS: all output escaped with htmlspecialchars()

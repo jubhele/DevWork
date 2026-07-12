@@ -1,7 +1,7 @@
 # Finance Reporting Brief
 
-Owner: Umakhi
-Supporting owners: Umdwebi, Mvavanyi, Umbheki
+Owner: uMakhi
+Supporting owners: uMdwebi, uMvavanyi, uMbheki
 Queue order: 3
 
 ## Objective

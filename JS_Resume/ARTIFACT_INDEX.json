@@ -43,10 +43,10 @@
                                            "path":  "JS_Resume\\_backups",
                                            "metric":  {
                                                           "exists":  true,
-                                                          "files":  31,
-                                                          "bytes":  4810649,
+                                                          "files":  33,
+                                                          "bytes":  4814828,
                                                           "oldest":  "2026-06-12T05:21:52.7880768Z",
-                                                          "latest":  "2026-07-08T20:28:16.2483912Z"
+                                                          "latest":  "2026-07-10T15:19:06.4839701Z"
                                                       }
                                        }
                                    ]

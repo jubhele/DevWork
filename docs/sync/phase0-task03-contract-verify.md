@@ -1,4 +1,4 @@
-# SYNC-P0-03-Mhloli — portal.contract.json Verification (Re-check post P0-02)
+# SYNC-P0-03-uMhloli — portal.contract.json Verification (Re-check post P0-02)
 
 **Date:** 2026-06-30
 **Source of truth:** live MySQL `blackfm6w9f9_portal` enum columns (`information_schema.COLUMNS`, captured in `temp/bf_columns.tsv`) + PHP API source (`BlackFire Portal/api/*.php`)
@@ -6,7 +6,7 @@
 
 ## Why this re-check happened
 
-`docs/sync/phase0-foundation.md` marked SYNC-P0-03 `PASS_AFTER_REMEDIATION` earlier today. That remediation pass compared the contract against **table-name presence**, not live enum values. SYNC-P0-02-Mhloli's deeper column-level diff (done immediately after) proved the same shallow-comparison method had missed 8 entire tables and 116 column mismatches in Drizzle. This task re-verifies the contract the same way — enum-by-enum against live `information_schema` — rather than trusting the earlier pass.
+`docs/sync/phase0-foundation.md` marked SYNC-P0-03 `PASS_AFTER_REMEDIATION` earlier today. That remediation pass compared the contract against **table-name presence**, not live enum values. SYNC-P0-02-uMhloli's deeper column-level diff (done immediately after) proved the same shallow-comparison method had missed 8 entire tables and 116 column mismatches in Drizzle. This task re-verifies the contract the same way — enum-by-enum against live `information_schema` — rather than trusting the earlier pass.
 
 ## Verdict
 
@@ -43,7 +43,7 @@ Today's earlier P0-03 remediation pass fixed only the `Role` enum (the one expli
 
 ## Recommendation
 
-Reopen `SYNC-P0-05-Mbhali` synthesis and `SYNC-P0-06-Umlindi` governance verdict — both currently say `COMPLIANT`/`GO` based on the false "PASS_AFTER_REMEDIATION." That verdict is not supportable; QuoteStatus and InvoiceStatus errors mean apps/web or umlilo code generated from this contract today would misclassify real DB rows (an `Approved` quote would not match any of the contract's `QuoteStatus` members, and `Pending Approval`/`Converted` quotes would not type-check).
+Reopen `SYNC-P0-05-uMbhali` synthesis and `SYNC-P0-06-uMlindi` governance verdict — both currently say `COMPLIANT`/`GO` based on the false "PASS_AFTER_REMEDIATION." That verdict is not supportable; QuoteStatus and InvoiceStatus errors mean apps/web or umlilo code generated from this contract today would misclassify real DB rows (an `Approved` quote would not match any of the contract's `QuoteStatus` members, and `Pending Approval`/`Converted` quotes would not type-check).
 
 Concrete fixes needed in `BlackFire/contracts/portal.contract.json`:
 1. `QuoteStatus`: replace `Accepted` with `Approved`; add `Pending Approval`, `Converted`.
@@ -57,10 +57,10 @@ Concrete fixes needed in `BlackFire/contracts/portal.contract.json`:
 
 ```json
 {
-  "task_id": "SYNC-P0-03-Mhloli",
-  "agent": "Mhloli",
-  "supervisor": "Mlawuli",
-  "cost_clearance": { "by": "Sibali", "tier": "2-Medium", "model": "Claude Sonnet 4.6", "trust": 9 },
+  "task_id": "SYNC-P0-03-uMhloli",
+  "agent": "uMhloli",
+  "supervisor": "uMlawuli",
+  "cost_clearance": { "by": "uSibali", "tier": "2-Medium", "model": "Claude Sonnet 4.6", "trust": 9 },
   "status": "COMPLETED",
   "iterations": 1,
   "hard_cap": 5,
@@ -79,7 +79,7 @@ Concrete fixes needed in `BlackFire/contracts/portal.contract.json`:
     "missing_interfaces": ["DigitalSignature"],
     "contradicts_prior_status": "phase0-foundation.md SYNC-P0-03 PASS_AFTER_REMEDIATION is not supportable"
   },
-  "handoff": ["SYNC-P0-05-Mbhali (reopen synthesis)", "SYNC-P0-06-Umlindi (reopen governance verdict)"],
-  "recommended_fix_owner": "Umakhi (contract + types regen)"
+  "handoff": ["SYNC-P0-05-uMbhali (reopen synthesis)", "SYNC-P0-06-uMlindi (reopen governance verdict)"],
+  "recommended_fix_owner": "uMakhi (contract + types regen)"
 }
 ```

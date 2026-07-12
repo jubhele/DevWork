@@ -111,4 +111,4 @@ All assets live in: `BlackFire/BlackFire-Brand-Pack/` and `BlackFire/blackfire-l
 Paste Claude.ai exported HTML/CSS design artifacts into:
 `design/blackfire/exports/` or `design/imports/` (if cross-project)
 
-These need to be reconciled against the brand tokens above before handoff to Umakhi.
+These need to be reconciled against the brand tokens above before handoff to uMakhi.

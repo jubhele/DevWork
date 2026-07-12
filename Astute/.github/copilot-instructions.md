@@ -1,4 +1,4 @@
-﻿# Astute Insights â€” GitHub Copilot Instructions
+# Astute Insights â€” GitHub Copilot Instructions
 
 Mirror of AGENTS.md. All rules apply equally here.
 
@@ -15,5 +15,5 @@ Python 3.11+ backend (FastAPI, Celery, Playwright) + Next.js 15 frontend + Postg
 - `DEBUG_MODE=false` in production `.env`; never `true` in `.env.example`
 
 ## Definition of Done
-Code â†’ Mvavanyi/Umcwaningi/Umbheki (functional/code/UX QA PASS) â†’ Umlindi (COMPLIANT) â†’ Mbhali (docs updated) â†’ session log complete.
+Code â†’ uMvavanyi/uMcwaningi/uMbheki (functional/code/UX QA PASS) â†’ uMlindi (COMPLIANT) â†’ uMbhali (docs updated) â†’ session log complete.
 

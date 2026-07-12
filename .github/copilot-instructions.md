@@ -24,6 +24,8 @@ Copilot CLI on local Windows runs `.github/hooks/constitution.json` at session s
 
 ## Mandatory: Session Logging
 
+Before work, determine the owning project. If it is unclear, ask the user to select an existing project, create a new named project, or explicitly choose `_workspace` control-plane scope. Do not generate artifacts or silently default to `_workspace` while unresolved. New projects must be scaffolded with `scripts/governance/initialize-project.ps1` before work begins.
+
 Every session must create or update a log in `c:\DevWork\sessions\`.
 Format: `<chat-name>_YYYYMMDD_HHmmss.md` — one file per session, named after the chat topic with a timestamp suffix.
 
@@ -42,7 +44,7 @@ Log structure:
 | Task ID | Assigned Agent | Completed By | Status | Iterations | Note |
 |---------|---------------|--------------|--------|------------|------|
 
-Mlawuli fills one row when the user confirms the goal is achieved. Umlindi audits at session end.
+uMlawuli fills one row when the user confirms the goal is achieved. uMlindi audits at session end.
 
 **Goal Status field (mandatory in every session log):**
 ```
@@ -106,9 +108,9 @@ When the constitution or multi-agent architecture is copied into a repo or updat
 - **BlackFire / AECI**: `c:\DevWork\BlackFire\` — security proposals + PHP portal
 - **Astute**: `c:\DevWork\Astute\`
 
-## Sibali — Cost / Token Management Agent (MANDATORY)
+## uSibali — Cost / Token Management Agent (MANDATORY)
 
-**Zulu name:** Sibali *(The Accountant/Calculator)*. System prompt: `agents/sibali_system_prompt.md`
+**Zulu name:** uSibali *(The Accountant/Calculator)*. System prompt: `agents/sibali_system_prompt.md`
 
 At conversation start, classify the request and check if the active model fits the tier:
 
@@ -127,28 +129,30 @@ Target cost: Tier 1 < $0.05 | Tier 2 $0.05–$0.50 | Tier 3 $0.50–$5.00.
 
 ## Multi-Agent Workforce
 
+All human-facing proper names use lowercase `u` plus the capitalized stem: `uSibali`, `uMlawuli`, `uNkanyezi`, `uSiba`, `uMhloli`, `uMakhi`, `uMdwebi`, `uMvavanyi`, `uMcwaningi`, `uMbheki`, `uMlindi`, and `uMbhali`.
+
 All agent system prompts live in `agents/`. Full definitions in `CLAUDE.md` §12–§13.
 
 | Zulu Name | English Meaning | Role |
 |-----------|-----------------|------|
-| **Sibali** | The Accountant | Cost governance & session log indexing |
-| **Mlawuli** | The Controller | Supervisor — routes tasks, manages lifecycle |
-| **Nkanyezi** | Star | Content & proposals |
-| **Usiba** | Feather / Pen | Document generation |
-| **Mhloli** | Explorer / Inspector | Research, intel, security audits |
-| **Umakhi** | The Builder | Code & portal development |
-| **Umdwebi** | The Artist | Brand identity, UI/UX design, design system governance |
-| **Mvavanyi** | The Evaluator/Tester | Functional QA, regression, integration/E2E verification |
-| **Umcwaningi** | The Auditor/Examiner | Code QA — correctness, coverage, efficiency |
-| **Umbheki** | The Watcher/Observer | UX/UI QA — visual regression, accessibility |
-| **Umlindi** | The Guardian/Watchman | Governance, compliance, policy enforcement |
+| **uSibali** | The Accountant | Cost governance & session log indexing |
+| **uMlawuli** | The Controller | Supervisor — routes tasks, manages lifecycle |
+| **uNkanyezi** | Star | Content & proposals |
+| **uSiba** | Feather / Pen | Document generation |
+| **uMhloli** | Explorer / Inspector | Research, intel, security audits |
+| **uMakhi** | The Builder | Code & portal development |
+| **uMdwebi** | The Artist | Brand identity, UI/UX design, design system governance |
+| **uMvavanyi** | The Evaluator/Tester | Functional QA, regression, integration/E2E verification |
+| **uMcwaningi** | The Auditor/Examiner | Code QA — correctness, coverage, efficiency |
+| **uMbheki** | The Watcher/Observer | UX/UI QA — visual regression, accessibility |
+| **uMlindi** | The Guardian/Watchman | Governance, compliance, policy enforcement |
 
 These are **Sebenza agents** — full definitions in `agents/sebenza_agents.md`.
-QA is split three ways: Mvavanyi (behavior), Umcwaningi (code quality), Umbheki (visual/UX).
+QA is split three ways: uMvavanyi (behavior), uMcwaningi (code quality), uMbheki (visual/UX).
 
-Routing: Content → Nkanyezi | Docs → Usiba | Research → Mhloli | Code → Umakhi | Design → Umdwebi | Functional QA → Mvavanyi | Code QA → Umcwaningi | UX/UI QA → Umbheki | Governance → Umlindi.
-All payloads pass through Sibali before reaching any Sebenza agent.
-Umdwebi brand source: `design/blackfire/brand_tokens.md`
+Routing: Content → uNkanyezi | Docs → uSiba | Research → uMhloli | Code → uMakhi | Design → uMdwebi | Functional QA → uMvavanyi | Code QA → uMcwaningi | UX/UI QA → uMbheki | Governance → uMlindi.
+All payloads pass through uSibali before reaching any Sebenza agent.
+uMdwebi brand source: `design/blackfire/brand_tokens.md`
 
 **Agent Accountability (MANDATORY):**
 Closing signature written to session log ONCE when user confirms goal is achieved (Goal Status = ACHIEVED):

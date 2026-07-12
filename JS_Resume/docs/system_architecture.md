@@ -15,9 +15,9 @@ sessions/           — Session logs per application round
 
 ```mermaid
 graph LR
-    Brief["Job Description"] --> Nkanyezi["Nkanyezi (Content)"]
-    Nkanyezi --> Usiba["Usiba (Generate .docx)"]
-    Usiba --> Mvavanyi["Mvavanyi (QA)"]
-    Mvavanyi --> Umlindi["Umlindi (PII Audit)"]
-    Umlindi --> Output["Final .docx"]
+    Brief["Job Description"] --> uNkanyezi["uNkanyezi (Content)"]
+    uNkanyezi --> uSiba["uSiba (Generate .docx)"]
+    uSiba --> uMvavanyi["uMvavanyi (QA)"]
+    uMvavanyi --> uMlindi["uMlindi (PII Audit)"]
+    uMlindi --> Output["Final .docx"]
 ```

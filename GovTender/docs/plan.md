@@ -3,28 +3,28 @@
 **Version:** 0.1  
 **Date:** 2026-06-21  
 **Owner:** Astute Insights / BlackFire Solutions  
-**Agent routing:** Umakhi (build) → Mvavanyi (QA) → Umlindi (audit) → Mbhali (docs)
+**Agent routing:** uMakhi (build) → uMvavanyi (QA) → uMlindi (audit) → uMbhali (docs)
 
 ---
 
 ## Agent Workforce Routing (per task)
 
-All tasks follow the Mlawuli protocol from the Multi-Agent Workforce Architecture:
+All tasks follow the uMlawuli protocol from the Multi-Agent Workforce Architecture:
 
 ```
-Human → Mlawuli → Sibali (cost clearance) → Worker Agent → Mlawuli → Sibali (index) → Human
+Human → uMlawuli → uSibali (cost clearance) → Worker Agent → uMlawuli → uSibali (index) → Human
 ```
 
 | Task type | Agent |
 |-----------|-------|
-| Writing code, DB schema, API | Umakhi |
-| Research (portals, procurement taxonomy) | Mhloli |
-| Proposal templates, content | Nkanyezi |
-| Document generation scripts | Usiba |
-| UI/UX design specs | Umdwebi |
-| QA, functional verification | Mvavanyi |
-| Governance, secret audits | Umlindi |
-| Docs, architecture, release notes | Mbhali |
+| Writing code, DB schema, API | uMakhi |
+| Research (portals, procurement taxonomy) | uMhloli |
+| Proposal templates, content | uNkanyezi |
+| Document generation scripts | uSiba |
+| UI/UX design specs | uMdwebi |
+| QA, functional verification | uMvavanyi |
+| Governance, secret audits | uMlindi |
+| Docs, architecture, release notes | uMbhali |
 
 ---
 
@@ -51,8 +51,8 @@ Everything below must exist before a single line of product code is written.
 - [ ] `agents/sebenza_agents.md` — all 8 Sebenza agents
 
 ### P0.3 — Docs Foundation
-- [ ] `docs/guide.md` — operator guide (stub; Mbhali fills on each production delivery)
-- [ ] `docs/sttm.md` — system test manual (stub; Mvavanyi fills per feature)
+- [ ] `docs/guide.md` — operator guide (stub; uMbhali fills on each production delivery)
+- [ ] `docs/sttm.md` — system test manual (stub; uMvavanyi fills per feature)
 - [ ] `docs/system_architecture.md` — Mermaid.js diagrams (generated from architecture.md)
 
 ### P0.4 — Docker Compose Dev Environment
@@ -234,7 +234,7 @@ Everything below must exist before a single line of product code is written.
 
 ## Phase 7 — QA & Governance (continuous, per feature)
 
-### P7.1 — Mvavanyi QA Checklist (per shipped feature)
+### P7.1 — uMvavanyi QA Checklist (per shipped feature)
 - [ ] Functional test against the golden path
 - [ ] Edge cases: empty results, closed tenders, duplicate tenders, failed portal login
 - [ ] Auth: unauthenticated request → 401; wrong tier → 403
@@ -242,7 +242,7 @@ Everything below must exist before a single line of product code is written.
 - [ ] Regression: verify adjacent features still work after each change
 - [ ] Debug hook present in all new modules
 
-### P7.2 — Umlindi Governance (pre-deploy)
+### P7.2 — uMlindi Governance (pre-deploy)
 - [ ] `.env` not in git
 - [ ] `.env.example` has all keys (empty values)
 - [ ] No hardcoded credentials anywhere
@@ -251,7 +251,7 @@ Everything below must exist before a single line of product code is written.
 - [ ] Backup-before-change followed for all modified files
 - [ ] All new modules are modular and parameterised (no hardcoded portal URLs, tenants, values)
 
-### P7.3 — Mbhali Documentation (post-production, auto-triggered)
+### P7.3 — uMbhali Documentation (post-production, auto-triggered)
 - [ ] `docs/guide.md` updated with any new user-facing feature
 - [ ] `docs/sttm.md` updated with new test cases
 - [ ] `docs/system_architecture.md` updated with schema/API changes
@@ -311,7 +311,7 @@ Everything below must exist before a single line of product code is written.
 | eTenders blocks headless browser | MEDIUM | HIGH | Rotate User-Agent; add randomised delays; fallback to direct HTTP where possible |
 | Claude API cost exceeds budget | LOW | MEDIUM | Haiku for classification (cheap); Sonnet only for proposals; prompt caching |
 | Stripe ZAR settlement issues | LOW | LOW | Stripe officially supports ZAR; test in test mode before go-live |
-| Subscriber portal credential breach | LOW | CRITICAL | AES-256-GCM + per-tenant key; master secret never in DB; Umlindi audit pre-deploy |
+| Subscriber portal credential breach | LOW | CRITICAL | AES-256-GCM + per-tenant key; master secret never in DB; uMlindi audit pre-deploy |
 | Proposal quality too low to win | MEDIUM | HIGH | RAG retrieval of real company documents; human review before submission; iterate |
 
 ---
@@ -319,9 +319,9 @@ Everything below must exist before a single line of product code is written.
 ## Definition of Done (per feature)
 
 A feature is DONE when:
-1. Umakhi's code is merged to `main`
-2. Mvavanyi's QA returns `"status": "PASS"` (golden path + edge cases)
-3. Umlindi's governance audit returns `"verdict": "COMPLIANT"`
-4. Mbhali has updated `docs/guide.md`, `docs/sttm.md`, `docs/system_architecture.md`
+1. uMakhi's code is merged to `main`
+2. uMvavanyi's QA returns `"status": "PASS"` (golden path + edge cases)
+3. uMlindi's governance audit returns `"verdict": "COMPLIANT"`
+4. uMbhali has updated `docs/guide.md`, `docs/sttm.md`, `docs/system_architecture.md`
 5. Session log is complete (Goal + Decisions + Work Done + Learnings all filled)
 6. No `## ⚠ Session Log Incomplete` warnings in the session log

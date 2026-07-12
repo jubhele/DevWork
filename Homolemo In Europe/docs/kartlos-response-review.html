@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Review — Kartlos's Reply &amp; the Payment Agreement</title>
+<style>
+  :root{
+    --bg:#EEF0EA; --surface:#FFFFFF; --surface-2:#E4E7DE; --border:#CDD3C6;
+    --ink:#1C2127; --ink-muted:#565F5B;
+    --accent:#234C6E; --accent-2:#2F6B45;
+    --risk-critical:#A5311F; --risk-high:#B5661C; --risk-ctx:#3E6B8A;
+    --risk-critical-bg:#F6E4DF; --risk-high-bg:#F6EBDC; --risk-ctx-bg:#DEE7EC; --risk-ok-bg:#DFEBE1;
+  }
+  :root[data-theme="light"]{
+    --bg:#EEF0EA; --surface:#FFFFFF; --surface-2:#E4E7DE; --border:#CDD3C6;
+    --ink:#1C2127; --ink-muted:#565F5B;
+    --accent:#234C6E; --accent-2:#2F6B45;
+    --risk-critical:#A5311F; --risk-high:#B5661C; --risk-ctx:#3E6B8A;
+    --risk-critical-bg:#F6E4DF; --risk-high-bg:#F6EBDC; --risk-ctx-bg:#DEE7EC; --risk-ok-bg:#DFEBE1;
+  }
+
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.55; -webkit-font-smoothing:antialiased;}
+  .page{max-width:760px;margin:0 auto;padding:48px 24px 96px;}
+  h1,h2,h3{font-family:Georgia,"Iowan Old Style","Palatino Linotype","Book Antiqua",serif;
+    font-weight:700; text-wrap:balance; color:var(--ink); margin:0;}
+  .mono{font-family:"SF Mono",SFMono-Regular,ui-monospace,Menlo,Consolas,"Liberation Mono",monospace;}
+  .eyebrow{font-family:"SF Mono",SFMono-Regular,ui-monospace,Menlo,Consolas,monospace;
+    font-size:11.5px; letter-spacing:.11em; text-transform:uppercase; color:var(--accent); font-weight:600;}
+
+  header.cover{border-bottom:2px solid var(--ink); padding-bottom:22px; margin-bottom:28px;}
+  header.cover .eyebrow{margin-bottom:10px; display:block;}
+  header.cover h1{font-size:27px; line-height:1.28;}
+  .meta{display:grid; grid-template-columns:auto 1fr; gap:5px 14px; margin-top:18px; font-size:14px;}
+  .meta dt{color:var(--ink-muted); font-family:"SF Mono",SFMono-Regular,ui-monospace,Menlo,Consolas,monospace; font-size:11.5px; letter-spacing:.04em; text-transform:uppercase; padding-top:2px;}
+  .meta dd{margin:0; font-weight:500;}
+
+  .backlink{display:inline-block; margin-bottom:8px; margin-right:16px; font-size:13px; color:var(--ink-muted); text-decoration:none; border-bottom:1px dotted var(--border);}
+  .backlink:hover{color:var(--accent); border-color:var(--accent);}
+  .backlinks{margin-bottom:20px;}
+
+  section{margin-top:38px;}
+  section > .eyebrow{display:block; margin-bottom:10px; padding-bottom:8px; border-bottom:1px solid var(--border);}
+  h2{font-size:20px; margin-bottom:12px;}
+  h3{font-size:15px;}
+  p{margin:0 0 12px; font-size:15.5px;}
+  p:last-child{margin-bottom:0;}
+  a{color:var(--accent);}
+
+  .verdict{background:var(--surface); border:1px solid var(--border); border-left:5px solid var(--risk-critical);
+    border-radius:3px; padding:20px 22px;}
+  .verdict .rating{display:inline-block; font-family:"SF Mono",monospace;
+    font-size:11px; letter-spacing:.08em; text-transform:uppercase; font-weight:700;
+    background:var(--risk-critical-bg); color:var(--risk-critical); padding:3px 9px; border-radius:2px; margin-bottom:10px;}
+  .verdict h2{font-size:17px; margin-bottom:8px;}
+
+  .facts{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+  @media(max-width:600px){.facts{grid-template-columns:1fr;}}
+  .fact-card{background:var(--surface); border:1px solid var(--border); border-radius:3px; padding:16px 18px;}
+  .fact-card h3{font-size:15px; margin-bottom:2px;}
+  .fact-card .sub{color:var(--ink-muted); font-size:12.5px; margin-bottom:10px; display:block;}
+  .fact-card ul{margin:0; padding-left:18px; font-size:14px;}
+  .fact-card li{margin-bottom:6px;}
+  .status-line{margin-top:10px; padding-top:10px; border-top:1px dashed var(--border); font-size:13.5px; font-weight:600;}
+  .status-line.warn{color:var(--risk-critical);}
+
+  .finding{background:var(--surface); border:1px solid var(--border); border-radius:3px;
+    padding:14px 18px; margin-bottom:12px; border-left-width:5px; border-left-style:solid;}
+  .finding.critical{border-left-color:var(--risk-critical);}
+  .finding.high{border-left-color:var(--risk-high);}
+  .finding-head{display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:6px;}
+  .finding-head h3{font-size:14.5px; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; font-weight:700;}
+  .badge{font-family:"SF Mono",monospace; font-size:10px;
+    letter-spacing:.08em; text-transform:uppercase; font-weight:700; padding:2px 7px; border-radius:2px; white-space:nowrap;}
+  .badge.critical{background:var(--risk-critical-bg); color:var(--risk-critical);}
+  .badge.high{background:var(--risk-high-bg); color:var(--risk-high);}
+  .finding p{font-size:14px; color:var(--ink);}
+  .finding .quote{color:var(--ink-muted); font-size:13px; font-style:italic; margin-top:8px; padding-left:12px; border-left:2px solid var(--border);}
+
+  .table-wrap{overflow-x:auto; border:1px solid var(--border); border-radius:3px;}
+  table{width:100%; border-collapse:collapse; font-size:13.5px; min-width:560px;}
+  th,td{text-align:left; padding:10px 12px; border-bottom:1px solid var(--border); vertical-align:top;}
+  th{background:var(--surface-2); font-family:"SF Mono",monospace;
+    font-size:11px; letter-spacing:.05em; text-transform:uppercase; color:var(--ink-muted); font-weight:600;}
+  tbody tr:last-child td{border-bottom:none;}
+  tbody tr:nth-child(odd){background:var(--surface);}
+  tbody tr:nth-child(even){background:var(--surface-2);}
+  td.result{font-weight:700;}
+  td.result.yes{color:var(--accent-2);}
+  td.result.no{color:var(--risk-critical);}
+  td.result.partial{color:var(--risk-high);}
+
+  .timeline{position:relative; margin:18px 0 4px; padding-left:26px; border-left:2px solid var(--border);}
+  .tl-item{position:relative; padding-bottom:20px;}
+  .tl-item:last-child{padding-bottom:0;}
+  .tl-item::before{content:""; position:absolute; left:-31px; top:3px; width:9px; height:9px; border-radius:50%;
+    background:var(--surface); border:2px solid var(--accent);}
+  .tl-item.risk::before{border-color:var(--risk-critical); background:var(--risk-critical);}
+  .tl-date{font-family:"SF Mono",monospace; font-size:12.5px; color:var(--accent); font-weight:700;}
+  .tl-item.risk .tl-date{color:var(--risk-critical);}
+  .tl-amt{font-weight:700; font-size:14.5px; margin:2px 0 4px;}
+  .tl-note{font-size:13.5px; color:var(--ink-muted);}
+
+  .checklist{list-style:none; margin:14px 0 0; padding:0;}
+  .checklist li{position:relative; padding:8px 0 8px 30px; border-bottom:1px solid var(--border); font-size:14.5px;}
+  .checklist li:last-child{border-bottom:none;}
+  .checklist li::before{content:"□"; position:absolute; left:0; top:8px; color:var(--accent); font-size:16px;}
+
+  .callout{background:var(--surface-2); border:1px solid var(--border); border-radius:3px; padding:14px 18px; font-size:14px;}
+  .callout strong{color:var(--accent);}
+
+  footer{margin-top:48px; padding-top:16px; border-top:1px solid var(--border);}
+  .src-list{list-style:none; margin:0; padding:0; font-size:12.5px; color:var(--ink-muted);}
+  .src-list li{margin-bottom:6px; padding-left:20px; text-indent:-20px;}
+  .src-list a{word-break:break-all;}
+  .disclaimer{margin-top:20px; font-size:12px; color:var(--ink-muted); font-style:italic;}
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <div class="backlinks">
+    <a class="backlink" href="football-agency-due-diligence.html">&larr; Due diligence memo</a>
+    <a class="backlink" href="to-geoff.html">&larr; Letter to Geoff</a>
+  </div>
+
+  <header class="cover">
+    <span class="eyebrow">Internal Review — Not for Geoff or Kartlos</span>
+    <h1>Reviewing Kartlos's reply and the Payment Agreement</h1>
+    <dl class="meta">
+      <dt>Re</dt><dd>Kartlos Rukhaia's written response, and a signature-ready Payment Agreement dated 11 Jul 2026</dd>
+      <dt>Source docs</dt><dd><span class="mono">Agent_JubheleandMpho.pdf</span>, <span class="mono">Agent_payment_agreement.pdf</span> (project root)</dd>
+      <dt>Purpose</dt><dd>Check what was actually granted against what was asked for in the due diligence memo and the letter to Geoff, and flag anything that changed without being said plainly</dd>
+      <dt>Prepared</dt><dd>12 July 2026, before any further payment or signature</dd>
+    </dl>
+  </header>
+
+  <div class="verdict">
+    <span class="rating">Proceeding — club flexibility now a deliberate choice, not an open risk</span>
+    <h2>Bottom line, updated 12 Jul 2026</h2>
+    <p>The family's own read on the club-change question has settled this, and it's a genuinely good piece of reasoning: FC Orbi is currently in a promotion fight, which means real pressure on the coach to field proven players rather than give minutes to an unproven 18-year-old newcomer. A club without that pressure is actually a better fit for what the family is optimizing for — development and game time, not a name on the shirt. Not being pinned to one specific club is now seen as a feature, in service of that same priority, not a red flag to resolve before moving forward. See "Resolved since this review" below for what that changes and what still stands.</p>
+  </div>
+
+  <section>
+    <span class="eyebrow">Section 1 — The club changed</span>
+    <h2>FC Orbi is gone from the paperwork</h2>
+    <p>Every hour of due diligence so far — the squad numbers, the foreign-player quota, the Khashuri-not-Tbilisi correction, the B-team risk — was built around FC Orbi specifically. The Payment Agreement no longer mentions FC Orbi anywhere. Clause 4 now reads:</p>
+    <div class="finding critical">
+      <div class="finding-head"><h3>"Club Placement" clause, as written</h3><span class="badge critical">Critical</span></div>
+      <p>"The Parents and Representative acknowledge and agree that the Player will be signed with one of the following clubs, depending on the final agreement and registration process: FC Iveria; FC Iberia 2010."</p>
+      <div class="quote">Signing this authorizes a placement with either club, before knowing which — none of the FC Orbi-specific research transfers automatically to either one.</div>
+    </div>
+    <p>Kartlos's letter explains the switch this way: <em>"The change from the previously discussed club option has been made after further evaluation in order to provide the Player with a stronger environment for development, better exposure, and a clearer pathway for progression."</em> Checked independently, that claim only holds for one of the two options.</p>
+    <div class="facts">
+      <div class="fact-card">
+        <h3>FC Iveria</h3>
+        <span class="sub">Khashuri — Liga 4 (Georgia's 4th tier)</span>
+        <ul>
+          <li>Plays at Grigol Jomartidze Stadium, Khashuri — the exact same ground FC Orbi uses</li>
+          <li>Promoted to Liga 4 after winning Regional League B in 2024</li>
+          <li>Most successful period was the early 1990s, in the old top-tier Umaglesi Liga, before relegation in 1997; has sat in lower divisions since</li>
+        </ul>
+        <div class="status-line warn">This is one division below FC Orbi's Liga 3, at the same stadium in the same town — the opposite of "a stronger environment," at least on paper.</div>
+      </div>
+      <div class="fact-card">
+        <h3>FC Iberia 2010</h3>
+        <span class="sub">Tbilisi — Liga 3 (Georgia's 3rd tier)</span>
+        <ul>
+          <li>Founded 2010; just won Liga 4 in 2025 and earned first-ever promotion to Liga 3, with games still to play when it was secured</li>
+          <li>Based in Tbilisi, matching the original cost-of-living/safety research (unlike FC Orbi, which turned out to be in Khashuri)</li>
+          <li>Same tier as FC Orbi, but no prior history at that level to judge against</li>
+        </ul>
+        <div class="status-line warn">Same division as FC Orbi, but an unproven club there — not yet independently verified to the depth FC Orbi was.</div>
+      </div>
+    </div>
+    <div class="callout" style="margin-top:16px;">
+      <strong>Original concern, now resolved deliberately rather than left open:</strong> this section's finding stands as fact — Iveria is a tier below, Iberia 2010 is unproven at Liga 3 — but the family's own reasoning below changes how much that matters.
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow">Resolved Since This Review</span>
+    <h2>Why staying flexible on the club is actually the right call</h2>
+    <p>FC Orbi is currently fighting for promotion. A club in that position has real pressure on the coach to put out his strongest, most proven side every week — not to blood an unproven 18-year-old still finding his feet. That's exactly the environment least likely to deliver what the family actually wants: real minutes, not a bench role at a "better" club on paper. A club without promotion pressure has less incentive to protect results at the expense of giving a newcomer a genuine look.</p>
+    <p>On that basis, the family is comfortable proceeding without pinning down FC Iveria vs. FC Iberia 2010 in advance — the point isn't which specific badge he wears, it's which environment actually gets him playing. The tier/quality gap flagged above is still true and still worth knowing, but it's no longer being treated as a blocker.</p>
+    <div class="callout">
+      <strong>Confirmed decisions, this update:</strong> registration is to proceed — with a written update from the agency once it happens. Amu's programme finishes the weekend of 17 Jul; rather than flying home as originally planned, he stays on and the family covers his accommodation and food through the rest of July (see Section 5 for the cost estimate). The 25 Jul FC Orbi fixture referenced in Section 3 no longer applies directly, since he won't be at FC Orbi — worth asking Kartlos for the equivalent date at whichever club he actually joins.
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow">Section 2 — What was actually granted</span>
+    <h2>Checked against every specific ask</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Ask</th><th>Result</th><th>Detail</th></tr></thead>
+        <tbody>
+          <tr><td>Two-payment structure, nothing up front</td><td class="result yes">Accepted</td><td>€6,750 by 31 Jul, €6,750 by 31 Aug — matches what was proposed almost exactly</td></tr>
+          <tr><td>Milestone-gated release, tied to registration/minutes</td><td class="result no">Not accepted</td><td>Payment Agreement releases both tranches by calendar date only, regardless of outcome</td></tr>
+          <tr><td>See the club employment contract before paying</td><td class="result no">Refused</td><td>"Not possible until part of the payment has been completed," per Kartlos's letter</td></tr>
+          <tr><td>Geoff's own compensation, agreed and written in</td><td class="result no">Unaddressed</td><td>Not mentioned in the reply at all — yet the Payment Agreement now makes Geoff a required co-signatory ("Player's Representative"), sharpening the conflict-of-interest question rather than resolving it</td></tr>
+          <tr><td>Explore another club if minutes don't come</td><td class="result partial">Declined</td><td>"Not realistic once the transfer window has closed" — offered a first-team/reserve hybrid instead, the same weaker B-team dynamic already flagged as a risk</td></tr>
+          <tr><td>Itemized breakdown of the €13,500</td><td class="result partial">Partial</td><td>Categorical breakdown given (negotiation, registration, accommodation admin, platform/support) — no actual numbers</td></tr>
+          <tr><td>Independent club communication, not routed through the agent</td><td class="result no">Declined</td><td>Letter states a "professional chain of command" — matters normally pass through the agent first</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow">Section 3 — The clock, from his own letter</span>
+    <h2>Real dates, worth verifying independently</h2>
+    <div class="timeline">
+      <div class="tl-item">
+        <div class="tl-date">22 Jun 2026</div>
+        <div class="tl-amt">Transfer window opened</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">25 Jul 2026</div>
+        <div class="tl-amt">Next official matches begin — for FC Orbi specifically</div>
+        <div class="tl-note">No longer directly relevant now that he isn't joining FC Orbi. Worth asking Kartlos for the actual fixture/registration-deadline date at whichever of Iveria or Iberia 2010 he joins instead.</div>
+      </div>
+      <div class="tl-item risk">
+        <div class="tl-date">31 Jul 2026</div>
+        <div class="tl-amt">First payment due — €6,750</div>
+        <div class="tl-note">Falls before the club has been confirmed, on the paperwork as currently written.</div>
+      </div>
+      <div class="tl-item risk">
+        <div class="tl-date">2 Aug 2026</div>
+        <div class="tl-amt">Transfer window closes</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">31 Aug 2026</div>
+        <div class="tl-amt">Second payment due — €6,750</div>
+      </div>
+    </div>
+    <p style="margin-top:14px;">These dates are stated as fact in Kartlos's letter but haven't been independently confirmed with GFF — worth doing before treating them as a hard deadline, the same way every other agency-supplied date in this process has been checked rather than taken on trust.</p>
+  </section>
+
+  <section>
+    <span class="eyebrow">Section 4 — Still worth getting in writing</span>
+    <h2>Not blockers anymore, but still worth asking</h2>
+    <ul class="checklist">
+      <li>Which of the two clubs it ends up being, once decided — not to gate anything on it, just so the family knows where he actually is</li>
+      <li>A clear answer on Geoff's own compensation, now that he's a required co-signatory on the Payment Agreement itself</li>
+      <li>The actual fixture and registration-deadline dates at whichever club he joins, replacing the now-moot 25 Jul FC Orbi date</li>
+      <li>A renewed ask for the milestone structure and pre-payment contract sight — both were declined once; still worth one more direct push even while proceeding</li>
+    </ul>
+  </section>
+
+  <section>
+    <span class="eyebrow">Section 5 — Covering the extra two weeks</span>
+    <h2>Accommodation and food, 17–31 July</h2>
+    <p>Amu's programme finishes the weekend of 17 July; instead of flying home as planned, he stays on while this is finalized. The agency has agreed to organize accommodation and food for that period, with the family covering the actual cost directly.</p>
+    <p>No confirmed quote from the agency yet — this is a planning estimate built from the same Tbilisi cost-of-living research in the due diligence memo (rent $400–700/month, meals $3–8 budget to $8–20 mid-range), prorated to roughly two weeks (17–31 Jul). If the eventual base turns out to be Khashuri (FC Iveria) rather than Tbilisi (FC Iberia 2010), real costs there are likely to run somewhat lower, as a smaller town.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Estimate</th><th>USD</th><th>EUR</th><th>ZAR</th></tr></thead>
+        <tbody>
+          <tr><td>Low</td><td class="num">$400</td><td class="num">€350</td><td class="num">R6,540</td></tr>
+          <tr><td>Mid — planning figure</td><td class="num">$550</td><td class="num">€482</td><td class="num">R8,990</td></tr>
+          <tr><td>High</td><td class="num">$700</td><td class="num">€613</td><td class="num">R11,445</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="margin-top:10px;">For arranging the payment alongside the first agency-fee instalment, <strong>~R9,000 (≈€480 / ≈$550)</strong> is a reasonable figure to plan around. Worth getting the agency's actual number before transferring, since they're the ones organizing it directly — this is a planning estimate, not a quote.</p>
+    <p style="font-size:13px;color:var(--ink-muted);margin-top:8px;">FX reference: 1 USD ≈ €0.876 / R16.35, mid-July 2026.</p>
+  </section>
+
+  <section>
+    <span class="eyebrow">Section 6 — What to say back to Kartlos</span>
+    <h2>Alongside confirming registration</h2>
+    <ul class="checklist">
+      <li>Registration can proceed — with a written update from the agency once it's done, not just a verbal confirmation</li>
+      <li>A thank-you, personally, for the time he's taken with the family's questions and for the interest he's shown in Amu — the tone of his reply was genuinely appreciated</li>
+      <li>A thank-you that the letter reached him via Geoff and got a considered response — a good sign the channel is working as intended</li>
+      <li>A request for a short introductory video or phone call once things are signed — the family would like to meet him directly, not only in writing</li>
+    </ul>
+  </section>
+
+  <footer>
+    <p class="disclaimer">Working analysis for family use only — not a legal opinion. Based on the two source PDFs plus independent verification of FC Iveria and FC Iberia 2010 via Wikipedia and Transfermarkt/Soccerway search results, 12 July 2026.</p>
+  </footer>
+
+</div>
+</body>
+</html>

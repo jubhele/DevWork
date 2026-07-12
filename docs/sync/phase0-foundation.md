@@ -7,7 +7,7 @@ Scope: SYNC-P0-01 .. SYNC-P0-06
 - Governance Verdict (SYNC-P0-06): POLICY_BLOCK
 - Reason: Critical schema and contract drift between BlackFire apps/web Drizzle schema, PHP install DDL, and contract/types surface.
 
-## SYNC-P0-01-Mhloli — Drizzle connection parity
+## SYNC-P0-01-uMhloli — Drizzle connection parity
 Status: PASS
 
 Evidence:
@@ -21,7 +21,7 @@ Evidence:
 Risk rating: LOW
 - Connection target parity is aligned.
 
-## SYNC-P0-02-Mhloli — Drizzle schema vs PHP DDL drift
+## SYNC-P0-02-uMhloli — Drizzle schema vs PHP DDL drift
 Status: FAIL (CRITICAL DRIFT)
 
 Method:
@@ -43,7 +43,7 @@ Conclusion:
 - Drizzle is not a faithful representation of current PHP schema/migration state.
 - Any write-path migration or parity work on top of current Drizzle risks data and behavior regressions.
 
-## SYNC-P0-03-Mhloli — portal.contract.json inventory and staleness
+## SYNC-P0-03-uMhloli — portal.contract.json inventory and staleness
 Status: FAIL (STALE)
 
 Evidence:
@@ -60,7 +60,7 @@ Evidence:
 Risk rating: HIGH
 - Shared type contract can mislead both apps/web and apps/mobile integration paths.
 
-## SYNC-P0-04-Mhloli — umlilo API base resolution
+## SYNC-P0-04-uMhloli — umlilo API base resolution
 Status: PASS with auth gate noted
 
 Config evidence:
@@ -75,7 +75,7 @@ Endpoint checks:
 Conclusion:
 - umlilo-portal resolves to PHP /api/* correctly.
 
-## SYNC-P0-05-Mbhali — synthesis and go/no-go
+## SYNC-P0-05-uMbhali — synthesis and go/no-go
 Status: COMPLETE
 
 Go/No-Go recommendation:
@@ -86,7 +86,7 @@ Required unblock actions before Phase 1:
 2. Rebuild portal.contract.json from live API + DB reality, including role/status enums.
 3. Add automated drift check in CI (Drizzle schema vs SQL migration snapshot + contract enum parity).
 
-## SYNC-P0-06-Umlindi — governance audit
+## SYNC-P0-06-uMlindi — governance audit
 Status: POLICY_BLOCK
 
 Decision:
@@ -99,12 +99,12 @@ Decision:
   "result": "POLICY_BLOCK",
   "go_no_go": "NO_GO",
   "tasks": {
-    "SYNC-P0-01-Mhloli": "PASS",
-    "SYNC-P0-02-Mhloli": "FAIL_CRITICAL",
-    "SYNC-P0-03-Mhloli": "FAIL_STALE_CONTRACT",
-    "SYNC-P0-04-Mhloli": "PASS",
-    "SYNC-P0-05-Mbhali": "COMPLETE",
-    "SYNC-P0-06-Umlindi": "POLICY_BLOCK"
+    "SYNC-P0-01-uMhloli": "PASS",
+    "SYNC-P0-02-uMhloli": "FAIL_CRITICAL",
+    "SYNC-P0-03-uMhloli": "FAIL_STALE_CONTRACT",
+    "SYNC-P0-04-uMhloli": "PASS",
+    "SYNC-P0-05-uMbhali": "COMPLETE",
+    "SYNC-P0-06-uMlindi": "POLICY_BLOCK"
   }
 }
 
@@ -142,24 +142,24 @@ Decision:
   "result": "COMPLIANT",
   "go_no_go": "GO",
   "tasks": {
-    "SYNC-P0-01-Mhloli": "PASS",
-    "SYNC-P0-02-Mhloli": "PASS_AFTER_REMEDIATION",
-    "SYNC-P0-03-Mhloli": "PASS_AFTER_REMEDIATION",
-    "SYNC-P0-04-Mhloli": "PASS",
-    "SYNC-P0-05-Mbhali": "COMPLETE",
-    "SYNC-P0-06-Umlindi": "COMPLIANT"
+    "SYNC-P0-01-uMhloli": "PASS",
+    "SYNC-P0-02-uMhloli": "PASS_AFTER_REMEDIATION",
+    "SYNC-P0-03-uMhloli": "PASS_AFTER_REMEDIATION",
+    "SYNC-P0-04-uMhloli": "PASS",
+    "SYNC-P0-05-uMbhali": "COMPLETE",
+    "SYNC-P0-06-uMlindi": "COMPLIANT"
   }
 }
 
 ---
 
-## Reopened (2026-06-30, later same session) — SYNC-P0-05-Mbhali / SYNC-P0-06-Umlindi
+## Reopened (2026-06-30, later same session) — SYNC-P0-05-uMbhali / SYNC-P0-06-uMlindi
 
 The "Remediation Update" verdict above (COMPLIANT/GO) is **invalidated**. It was based on a
 table-name/enum-name presence check, not a value-level diff. Two independent deeper audits run
 immediately afterward proved the underlying claims false:
 
-- **SYNC-P0-02-Mhloli (column-level diff, `docs/sync/phase0-task02-column-diff.md`):** live DB
+- **SYNC-P0-02-uMhloli (column-level diff, `docs/sync/phase0-task02-column-diff.md`):** live DB
   has 39 non-backup `bf_*` tables; Drizzle has 31. **8 tables still missing entirely**
   (`bf_error_log`, `bf_password_resets`, `bf_safety_file_users`, `bf_service_categories`,
   `bf_services`, `bf_sessions`, `bf_settings`, `bf_supplier_invoices` — confirmed absent from
@@ -167,12 +167,12 @@ immediately afterward proved the underlying claims false:
   exist live (e.g. `bf_attachments.uploaded_by`, confirmed still present in `schema.ts:515`),
   plus 116 HIGH type/width mismatches. The "Remediation Update" only touched the 7 tables named
   in the original shallow P0-02 finding — it never addressed the full set found by the deeper diff.
-- **SYNC-P0-03-Mhloli (contract re-verify, `docs/sync/phase0-task03-contract-verify.md`):** found
+- **SYNC-P0-03-uMhloli (contract re-verify, `docs/sync/phase0-task03-contract-verify.md`):** found
   4 of 9 contract enums still wrong (`QuoteStatus`, `InvoiceStatus`, `SafetyFileStatus`,
   `SafetyItemStatus`) plus two missing interface fields and a missing `DigitalSignature`
   interface. The remediation only fixed the `Role` enum.
 
-### Action taken this session (Umakhi, contract only)
+### Action taken this session (uMakhi, contract only)
 `BlackFire/contracts/portal.contract.json` has now been **genuinely fixed** (v0.1.0 → v0.2.0):
 - `QuoteStatus`: `Accepted` → `Approved`; added `Pending Approval`, `Converted`.
 - `InvoiceStatus`: removed `Unpaid` (confirmed display-only, not a stored/API value).
@@ -185,23 +185,23 @@ immediately afterward proved the underlying claims false:
 - Backups: `BlackFire/contracts/_backups/portal.contract_backup_20260630_215817.json`, `umlilo-portal/packages/types/_backups/index_backup_20260630_215949.ts`.
 
 **This resolves SYNC-P0-03 for real.** SYNC-P0-02 (Drizzle schema drift — the 8 missing tables
-and 20 phantom columns) is **untouched** and remains FAIL; it requires a separate, larger Umakhi
+and 20 phantom columns) is **untouched** and remains FAIL; it requires a separate, larger uMakhi
 task (schema regen from live DDL), not a contract edit.
 
-### SYNC-P0-05-Mbhali — synthesis (reopened)
+### SYNC-P0-05-uMbhali — synthesis (reopened)
 Go/No-Go recommendation: **NO-GO**, narrowed scope.
 - Contract layer (P0-03): unblocked — safe to build against `portal.contract.json` now.
 - Schema layer (P0-02): still blocking. Drizzle cannot serve 8 live tables and will throw
   `Unknown column` on any of the 20 phantom-column reads (e.g. `bf_attachments.uploaded_by`).
-- Required before Phase 1: **SYNC-P0-07-Umakhi** — regenerate `schema.ts` from live DDL
+- Required before Phase 1: **SYNC-P0-07-uMakhi** — regenerate `schema.ts` from live DDL
   (`drizzle-kit introspect:mysql` or full hand rebuild), verified against `temp/bf_columns.tsv`
   (all 39 tables present, zero phantom columns), then re-run SYNC-P0-02-style column diff to confirm.
 
-### SYNC-P0-06-Umlindi — governance audit (reopened)
+### SYNC-P0-06-uMlindi — governance audit (reopened)
 Decision: **POLICY_BLOCK** (reverted from the unsupportable COMPLIANT verdict).
 - Reason: CRITICAL schema/live drift in `apps/web/src/db/schema.ts` remains unremediated
   (8 missing tables, 20 phantom columns) even though the contract layer is now genuinely compliant.
-- Phase 1 must not start until SYNC-P0-07-Umakhi completes and is re-verified by Mhloli.
+- Phase 1 must not start until SYNC-P0-07-uMakhi completes and is re-verified by uMhloli.
 
 ### Reopened JSON Summary
 ```json
@@ -210,20 +210,20 @@ Decision: **POLICY_BLOCK** (reverted from the unsupportable COMPLIANT verdict).
   "result": "POLICY_BLOCK",
   "go_no_go": "NO_GO",
   "tasks": {
-    "SYNC-P0-01-Mhloli": "PASS",
-    "SYNC-P0-02-Mhloli": "FAIL_CRITICAL",
-    "SYNC-P0-03-Mhloli": "PASS_VERIFIED",
-    "SYNC-P0-04-Mhloli": "PASS",
-    "SYNC-P0-05-Mbhali": "COMPLETE_NO_GO_NARROWED",
-    "SYNC-P0-06-Umlindi": "POLICY_BLOCK"
+    "SYNC-P0-01-uMhloli": "PASS",
+    "SYNC-P0-02-uMhloli": "FAIL_CRITICAL",
+    "SYNC-P0-03-uMhloli": "PASS_VERIFIED",
+    "SYNC-P0-04-uMhloli": "PASS",
+    "SYNC-P0-05-uMbhali": "COMPLETE_NO_GO_NARROWED",
+    "SYNC-P0-06-uMlindi": "POLICY_BLOCK"
   },
-  "new_task": "SYNC-P0-07-Umakhi (Drizzle schema regen from live DDL)"
+  "new_task": "SYNC-P0-07-uMakhi (Drizzle schema regen from live DDL)"
 }
 ```
 
 ---
 
-## SYNC-P0-07-Umakhi — Schema Regeneration COMPLETE (2026-06-30)
+## SYNC-P0-07-uMakhi — Schema Regeneration COMPLETE (2026-06-30)
 
 **Exit criterion**: Re-run SYNC-P0-02-style column diff against regenerated schema.ts vs
 `temp/bf_columns.tsv` (all 39 tables, zero phantom columns, zero missing columns).
@@ -270,8 +270,8 @@ All 39 tables reconciled against live DDL in `BlackFire/apps/web/src/db/schema.t
 
 ### Updated governance verdict
 
-**SYNC-P0-02-Mhloli**: PASS (after full regen)
-**SYNC-P0-06-Umlindi**: COMPLIANT
+**SYNC-P0-02-uMhloli**: PASS (after full regen)
+**SYNC-P0-06-uMlindi**: COMPLIANT
 **Gate**: Phase 1 may now proceed.
 
 ```json
@@ -281,13 +281,13 @@ All 39 tables reconciled against live DDL in `BlackFire/apps/web/src/db/schema.t
   "go_no_go": "GO",
   "verified_at": "2026-06-30",
   "tasks": {
-    "SYNC-P0-01-Mhloli": "PASS",
-    "SYNC-P0-02-Mhloli": "PASS_VERIFIED",
-    "SYNC-P0-03-Mhloli": "PASS_VERIFIED",
-    "SYNC-P0-04-Mhloli": "PASS",
-    "SYNC-P0-05-Mbhali": "COMPLETE",
-    "SYNC-P0-06-Umlindi": "COMPLIANT",
-    "SYNC-P0-07-Umakhi": "COMPLETE"
+    "SYNC-P0-01-uMhloli": "PASS",
+    "SYNC-P0-02-uMhloli": "PASS_VERIFIED",
+    "SYNC-P0-03-uMhloli": "PASS_VERIFIED",
+    "SYNC-P0-04-uMhloli": "PASS",
+    "SYNC-P0-05-uMbhali": "COMPLETE",
+    "SYNC-P0-06-uMlindi": "COMPLIANT",
+    "SYNC-P0-07-uMakhi": "COMPLETE"
   }
 }
 ```
@@ -336,15 +336,15 @@ omit them or the flow doesn't exist yet. No nullable/NOT NULL tension remains.
   "go_no_go": "GO",
   "verified_at": "2026-07-01",
   "tasks": {
-    "SYNC-P0-01-Mhloli": "PASS",
-    "SYNC-P0-02-Mhloli": "PASS_VERIFIED",
-    "SYNC-P0-03-Mhloli": "PASS_VERIFIED",
-    "SYNC-P0-04-Mhloli": "PASS",
-    "SYNC-P0-05-Mbhali": "COMPLETE",
-    "SYNC-P0-06-Umlindi": "COMPLIANT",
-    "SYNC-P0-07-Umakhi": "COMPLETE",
-    "SYNC-P0-08-Umakhi": "CLOSED_SUBSUMED",
-    "SYNC-P0-09-Mhloli": "PASS"
+    "SYNC-P0-01-uMhloli": "PASS",
+    "SYNC-P0-02-uMhloli": "PASS_VERIFIED",
+    "SYNC-P0-03-uMhloli": "PASS_VERIFIED",
+    "SYNC-P0-04-uMhloli": "PASS",
+    "SYNC-P0-05-uMbhali": "COMPLETE",
+    "SYNC-P0-06-uMlindi": "COMPLIANT",
+    "SYNC-P0-07-uMakhi": "COMPLETE",
+    "SYNC-P0-08-uMakhi": "CLOSED_SUBSUMED",
+    "SYNC-P0-09-uMhloli": "PASS"
   }
 }
 ```

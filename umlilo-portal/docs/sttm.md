@@ -1,6 +1,6 @@
-﻿# System Technical Test Manual — Umlilo Portal
+# System Technical Test Manual — Umlilo Portal
 
-This STTM is maintained by Mbhali after production-stage QA passes.
+This STTM is maintained by uMbhali after production-stage QA passes.
 
 ## Baseline Checks
 

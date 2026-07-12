@@ -2,8 +2,12 @@
 Date: YYYY-MM-DD
 Provider: <Claude Code | GitHub Copilot | OpenAI Codex | Google Antigravity | Cursor | Kiro | Factory Droid | Other>
 Model: <model name>
-Project: _workspace
-Project Root: C:\DevWork\_workspace
+Project: <existing project | new project name | _workspace | UNRESOLVED>
+Project Root: <absolute path | UNRESOLVED>
+
+## Project Determination
+Status: <resolved | unresolved>
+Source: <cwd_project_signal | explicit_user_binding | new_project | unresolved reason>
 
 ## Goal
 <one paragraph — what was attempted this session>

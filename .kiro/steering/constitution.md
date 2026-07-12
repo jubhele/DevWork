@@ -23,6 +23,10 @@ Kiro must run the native hooks in `.kiro/hooks/constitution.json`: `SessionStart
 
 ## Mandatory: Session Logging
 
+At SessionStart, determine the owning project. If unclear, ask the user to choose an existing project, create a new named project, or explicitly select `_workspace`; block substantive work while unresolved. New projects use `scripts/governance/initialize-project.ps1` before artifact generation.
+
+All human-facing agent proper names use lowercase `u` plus the capitalized stem (`uSibali`, `uMlawuli`, `uMakhi`, `uMlindi`, etc.).
+
 Create or update a log in `c:\DevWork\sessions\` at session start and end.
 Format: `<chat-name>_YYYYMMDD_HHmmss.md`
 Sections: Goal, Provider, Model, Decisions, Work Done, **Agent Accountability**, Blockers/Next Steps, Learnings.
@@ -33,7 +37,7 @@ Mirror to: `G:\My Drive\JS\Agentic AI\sessions\<filename>.md.tbl.bk`
 | Task ID | Assigned Agent | Completed By | Status | Iterations | Note |
 |---------|---------------|--------------|--------|------------|------|
 
-Umlindi audits at close — any agent assigned with no COMPLETED entry is a HIGH governance violation.
+uMlindi audits at close — any agent assigned with no COMPLETED entry is a HIGH governance violation.
 
 **Goal Status field (mandatory in every session log):**
 ```

@@ -10,7 +10,7 @@ Follow `AGENTS.md` as the canonical repo constitution and `docs/multi-agent-work
 Required behavior:
 - Start or update `sessions/<chat-name>_YYYYMMDD_HHmmss.md` for substantive work.
 - Read memory from `memory/MEMORY.md` and workspace memory when available.
-- Apply Sibali cost-tier classification, Mlawuli routing, and the relevant Sebenza worker constraints.
+- Apply uSibali cost-tier classification, uMlawuli routing, and the relevant Sebenza worker constraints.
 - Keep provider entrypoints synchronized across `CLAUDE.md`, `AGENTS.md`, `.github/copilot-instructions.md`, and `.cursor/rules/constitution.mdc`.
 - Never commit secrets: `.env`, `.env.*`, `*.env`, `config.local.*`, or sensitive customer data.
 - Obey nested `AGENTS.md` files for `apps/web` and `apps/mobile`.

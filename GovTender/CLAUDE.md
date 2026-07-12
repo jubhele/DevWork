@@ -32,33 +32,33 @@ This project uses the full multi-agent workforce from `agents/`.
 
 | Task | Agent |
 |------|-------|
-| Code, DB, API, infrastructure | Umakhi |
-| Research (portal schemas, procurement taxonomy) | Mhloli |
-| Proposal templates, marketing copy | Nkanyezi |
-| Document generation, Word/PDF automation | Usiba |
-| UI/UX design specs | Umdwebi |
-| Functional QA, regression, integration testing | Mvavanyi |
-| Code QA, static review, test coverage | Umcwaningi |
-| UX/UI QA, visual regression, accessibility | Umbheki |
-| Governance, secrets audit, pre-deploy | Umlindi |
-| Docs, architecture maps, release notes | Mbhali |
+| Code, DB, API, infrastructure | uMakhi |
+| Research (portal schemas, procurement taxonomy) | uMhloli |
+| Proposal templates, marketing copy | uNkanyezi |
+| Document generation, Word/PDF automation | uSiba |
+| UI/UX design specs | uMdwebi |
+| Functional QA, regression, integration testing | uMvavanyi |
+| Code QA, static review, test coverage | uMcwaningi |
+| UX/UI QA, visual regression, accessibility | uMbheki |
+| Governance, secrets audit, pre-deploy | uMlindi |
+| Docs, architecture maps, release notes | uMbhali |
 
-All tasks route through Sibali (cost clearance) before reaching any worker.
+All tasks route through uSibali (cost clearance) before reaching any worker.
 
-**Hard caps** (max iterations before escalating to Mlawuli):
+**Hard caps** (max iterations before escalating to uMlawuli):
 
 | Agent | Cap |
 |-------|-----|
-| Nkanyezi | 3 |
-| Usiba | 2 |
-| Mhloli | 5 |
-| Umakhi | 3 |
-| Umdwebi | 2 |
-| Mvavanyi | 3 |
-| Umcwaningi | 3 |
-| Umbheki | 2 |
-| Umlindi | 2 |
-| Mbhali | 2 |
+| uNkanyezi | 3 |
+| uSiba | 2 |
+| uMhloli | 5 |
+| uMakhi | 3 |
+| uMdwebi | 2 |
+| uMvavanyi | 3 |
+| uMcwaningi | 3 |
+| uMbheki | 2 |
+| uMlindi | 2 |
+| uMbhali | 2 |
 
 ---
 
@@ -141,9 +141,9 @@ Additional GovTender-sensitive paths (never commit):
 
 A feature is done when:
 1. Code merged to `main`
-2. Mvavanyi (functional), Umcwaningi (code), Umbheki (UX) QA → all `"status": "PASS"` (golden path + edge cases)
-3. Umlindi audit → `"verdict": "COMPLIANT"`
-4. Mbhali updates `docs/guide.md`, `docs/sttm.md`, `docs/system_architecture.md`
+2. uMvavanyi (functional), uMcwaningi (code), uMbheki (UX) QA → all `"status": "PASS"` (golden path + edge cases)
+3. uMlindi audit → `"verdict": "COMPLIANT"`
+4. uMbhali updates `docs/guide.md`, `docs/sttm.md`, `docs/system_architecture.md`
 5. Session log complete — Goal + Decisions + Work Done + Learnings all filled
 6. No `⚠ Session Log Incomplete` warnings
 

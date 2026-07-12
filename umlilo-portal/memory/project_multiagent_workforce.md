@@ -1,4 +1,4 @@
-﻿# Multi-Agent Workforce — Umlilo Portal
+# Multi-Agent Workforce — Umlilo Portal
 
 The repo includes local provider mirrors and agent prompt files so it remains constitution-compliant even outside `C:\DevWork`.
 
@@ -9,7 +9,7 @@ The repo includes local provider mirrors and agent prompt files so it remains co
 - `.github/copilot-instructions.md` — GitHub Copilot mirror.
 - `.cursor/rules/constitution.mdc` — Cursor mirror.
 - `docs/multi-agent-workforce-architecture.md` — full architecture reference copied from the DevWork architecture document.
-- `agents/` — Sibali, Mlawuli, and Sebenza prompt files.
+- `agents/` — uSibali, uMlawuli, and Sebenza prompt files.
 
 ## Rule
 

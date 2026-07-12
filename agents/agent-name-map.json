@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "naming_rule": "Human-facing proper names use lowercase u plus the capitalized Zulu name stem. Machine IDs remain lowercase ASCII.",
+  "agents": [
+    { "id": "sibali", "display_name": "uSibali" },
+    { "id": "mlawuli", "display_name": "uMlawuli" },
+    { "id": "nkanyezi", "display_name": "uNkanyezi" },
+    { "id": "usiba", "display_name": "uSiba" },
+    { "id": "mhloli", "display_name": "uMhloli" },
+    { "id": "umakhi", "display_name": "uMakhi" },
+    { "id": "umdwebi", "display_name": "uMdwebi" },
+    { "id": "mvavanyi", "display_name": "uMvavanyi" },
+    { "id": "umcwaningi", "display_name": "uMcwaningi" },
+    { "id": "umbheki", "display_name": "uMbheki" },
+    { "id": "umlindi", "display_name": "uMlindi" },
+    { "id": "mbhali", "display_name": "uMbhali" }
+  ]
+}

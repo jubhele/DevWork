@@ -1,6 +1,6 @@
 ﻿# Umlilo Brand Tokens
 
-This file is the design-system handoff point for Umdwebi → Umakhi work.
+This file is the design-system handoff point for uMdwebi → uMakhi work.
 
 ## Token Sources
 

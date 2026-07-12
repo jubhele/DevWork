@@ -73,10 +73,14 @@ $decisionsOk = Test-SectionFilled $rawLines 'Decisions'
 $workDoneOk = Test-SectionFilled $rawLines 'Work Done'
 $learningsOk = Test-SectionFilled $rawLines 'Learnings'
 $modelOk = Test-SectionFilled $rawLines 'Model Recommendation'
+$projectDeterminationOk = Test-SectionFilled $rawLines 'Project Determination'
+$projectHeader = @($rawLines | Where-Object { $_ -match '^Project:\s*' } | Select-Object -First 1)
+$projectResolved = $projectHeader.Count -gt 0 -and $projectHeader[0] -notmatch '(?i)UNRESOLVED|<project'
 $hoursSinceWrite = (New-TimeSpan -Start $logItem.LastWriteTime -End (Get-Date)).TotalHours
 $userConfirmed = $goalStatus -eq 'ACHIEVED'
-$autoConfirm = (-not $userConfirmed) -and $hoursSinceWrite -ge $AUTO_CONFIRM_HOURS -and $decisionsOk -and $workDoneOk -and $learningsOk -and $modelOk
-$shouldSign = $userConfirmed -or $autoConfirm
+$autoConfirm = (-not $userConfirmed) -and $hoursSinceWrite -ge $AUTO_CONFIRM_HOURS -and $decisionsOk -and $workDoneOk -and $learningsOk -and $modelOk -and $projectDeterminationOk -and $projectResolved
+$coreComplete = $decisionsOk -and $workDoneOk -and $learningsOk -and $modelOk -and $projectDeterminationOk -and $projectResolved
+$shouldSign = ($userConfirmed -or $autoConfirm) -and $coreComplete
 
 if ($content -match '(?m)^> Completed by:') {
     Sync-IndexAndMirror $logFile
@@ -87,6 +91,7 @@ if ($content -match '(?m)^> Completed by:') {
 if (-not $shouldSign) {
     $missing = @()
     if (-not $modelOk) { $missing += 'Model Recommendation' }
+    if (-not $projectDeterminationOk -or -not $projectResolved) { $missing += 'Project Determination' }
     if (-not $decisionsOk) { $missing += 'Decisions' }
     if (-not $workDoneOk) { $missing += 'Work Done' }
     if (-not $learningsOk) { $missing += 'Learnings' }
@@ -103,7 +108,7 @@ if ($completed.Success) {
     $completedBy = $completed.Groups[3].Value.Trim()
 } else {
     $taskId = [IO.Path]::GetFileNameWithoutExtension($logFile)
-    $completedBy = "$provider (Mlawuli)"
+    $completedBy = "$provider (uMlawuli)"
 }
 
 if ($autoConfirm) {

@@ -1,6 +1,6 @@
 # Astute Insights — Operator & User Guide
 
-> Maintained by Mbhali. Updated automatically when Umakhi ships a production feature and Mvavanyi returns PASS.
+> Maintained by uMbhali. Updated automatically when uMakhi ships a production feature and uMvavanyi returns PASS.
 
 ## Overview
 
@@ -18,7 +18,7 @@ pnpm --filter mobile start
 
 ## Agent Workforce
 
-Submit tasks via Mlawuli. See `agents/mlawuli_system_prompt.md` for routing rules.
+Submit tasks via uMlawuli. See `agents/mlawuli_system_prompt.md` for routing rules.
 
 ## Session Logging
 

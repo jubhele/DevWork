@@ -5,7 +5,7 @@ Schema: 1.0
 
 | Kind | Locations | Files | Size (MB) | Latest |
 |------|-----------|------:|----------:|--------|
-| sessions | Not present | 0 | 0 | - |
+| sessions | `Homolemo In Europe\sessions` | 0 | 0 | - |
 | artifacts | Not present | 0 | 0 | - |
 | archive | Not present | 0 | 0 | - |
 | temp | Not present | 0 | 0 | - |

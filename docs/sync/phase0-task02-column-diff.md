@@ -1,4 +1,4 @@
-# SYNC-P0-02-Mhloli — Column-Level Drizzle vs Live bf_* Diff
+# SYNC-P0-02-uMhloli — Column-Level Drizzle vs Live bf_* Diff
 
 **Date:** 2026-06-30
 **Source of truth:** live MySQL `blackfm6w9f9_portal` (information_schema)
@@ -144,19 +144,19 @@ The four ⚠ rows are the highest insertion-failure risk: apps/web INSERTs will 
 
 ## Recommended next actions (for SYNC-P0-05/06 gate)
 
-1. **Block** Phase 5's "schema is done" assumption — update plan to add **SYNC-P0-07-Umakhi**: regenerate `schema.ts` from live DB via `drizzle-kit introspect:mysql` (or hand-rebuild). Backup current file. Verify all 39 non-backup tables present, no phantom columns.
+1. **Block** Phase 5's "schema is done" assumption — update plan to add **SYNC-P0-07-uMakhi**: regenerate `schema.ts` from live DB via `drizzle-kit introspect:mysql` (or hand-rebuild). Backup current file. Verify all 39 non-backup tables present, no phantom columns.
 2. **Block** Phase 3 — add prerequisite: Phase 0 schema regen must complete first. The current `bfDigitalSignatures` cannot serve `/sign/[token]`.
-3. **Add task SYNC-P0-08-Umakhi**: enum-case unification (lowercase wins) — coordinate with umlilo TS types and PHP constants.
-4. **Add task SYNC-P0-09-Mhloli**: confirm which platforms write nulls for the four ⚠ insertion-risk columns; decide whether to make Drizzle match live or make live match Drizzle.
+3. **Add task SYNC-P0-08-uMakhi**: enum-case unification (lowercase wins) — coordinate with umlilo TS types and PHP constants.
+4. **Add task SYNC-P0-09-uMhloli**: confirm which platforms write nulls for the four ⚠ insertion-risk columns; decide whether to make Drizzle match live or make live match Drizzle.
 
 ## JSON Envelope
 
 ```json
 {
-  "task_id": "SYNC-P0-02-Mhloli",
-  "agent": "Mhloli",
-  "supervisor": "Mlawuli",
-  "cost_clearance": { "by": "Sibali", "tier": "2-Medium", "model": "Claude Opus 4.7", "trust": 10 },
+  "task_id": "SYNC-P0-02-uMhloli",
+  "agent": "uMhloli",
+  "supervisor": "uMlawuli",
+  "cost_clearance": { "by": "uSibali", "tier": "2-Medium", "model": "Claude Opus 4.7", "trust": 10 },
   "status": "COMPLETED",
   "iterations": 1,
   "hard_cap": 5,
@@ -179,7 +179,7 @@ The four ⚠ rows are the highest insertion-failure risk: apps/web INSERTs will 
     "true_nullable_mismatches": 22,
     "plan_v2_invalidated": ["Phase 3 prerequisite", "Phase 5 scope"]
   },
-  "handoff": ["SYNC-P0-05-Mbhali", "SYNC-P0-06-Umlindi"],
-  "recommended_new_tasks": ["SYNC-P0-07-Umakhi (schema regen)", "SYNC-P0-08-Umakhi (enum-case unify)", "SYNC-P0-09-Mhloli (null-write audit)"]
+  "handoff": ["SYNC-P0-05-uMbhali", "SYNC-P0-06-uMlindi"],
+  "recommended_new_tasks": ["SYNC-P0-07-uMakhi (schema regen)", "SYNC-P0-08-uMakhi (enum-case unify)", "SYNC-P0-09-uMhloli (null-write audit)"]
 }
 ```

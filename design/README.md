@@ -1,6 +1,6 @@
 # Design Projects
 
-This folder is Umdwebi's domain — brand identity, design systems, and visual assets.
+This folder is uMdwebi's domain — brand identity, design systems, and visual assets.
 
 ## Structure
 
@@ -27,9 +27,9 @@ design/
 1. Open the Claude.ai artifact and download as HTML or copy the code.
 2. Save to `design/{project}/exports/{descriptive-name}_{YYYYMMDD}.html`
 3. Open `brand_tokens.md` for the project and verify the export uses the correct tokens.
-4. If tokens differ, flag as BRAND_DRIFT and reconcile before handing off to Umakhi.
+4. If tokens differ, flag as BRAND_DRIFT and reconcile before handing off to uMakhi.
 
-## Umdwebi Workflow
+## uMdwebi Workflow
 
 See `agents/umdwebi_system_prompt.md` for the full design agent process.
-Short version: Brief → Audit → Spec → Handoff to Umakhi → Review.
+Short version: Brief → Audit → Spec → Handoff to uMakhi → Review.

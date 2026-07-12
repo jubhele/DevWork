@@ -1,6 +1,6 @@
 # GovTender — System Technical Test Manual (STTM)
 
-*Maintained by Mbhali. Test cases added by Mvavanyi on each production delivery.*
+*Maintained by uMbhali. Test cases added by uMvavanyi on each production delivery.*
 
 ---
 

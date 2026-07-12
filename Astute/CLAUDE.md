@@ -31,16 +31,16 @@ This project uses the full multi-agent workforce from `agents/`.
 
 | Task | Agent |
 |------|-------|
-| Code, DB, API, infrastructure | Umakhi |
-| Research, competitive intelligence | Mhloli |
-| Content, proposals, copy | Nkanyezi |
-| Document generation, automation | Usiba |
-| UI/UX design specs, brand | Umdwebi |
-| Functional QA, regression, integration testing | Mvavanyi |
-| Code QA, static review, test coverage | Umcwaningi |
-| UX/UI QA, visual regression, accessibility | Umbheki |
-| Governance, secrets audit, pre-deploy | Umlindi |
-| Docs, architecture maps, release notes | Mbhali |
+| Code, DB, API, infrastructure | uMakhi |
+| Research, competitive intelligence | uMhloli |
+| Content, proposals, copy | uNkanyezi |
+| Document generation, automation | uSiba |
+| UI/UX design specs, brand | uMdwebi |
+| Functional QA, regression, integration testing | uMvavanyi |
+| Code QA, static review, test coverage | uMcwaningi |
+| UX/UI QA, visual regression, accessibility | uMbheki |
+| Governance, secrets audit, pre-deploy | uMlindi |
+| Docs, architecture maps, release notes | uMbhali |
 
 ---
 

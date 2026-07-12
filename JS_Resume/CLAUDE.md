@@ -29,11 +29,11 @@ All artifacts stay project-local and are mapped by `ARTIFACT_INDEX.md`; see `doc
 
 | Task | Agent |
 |------|-------|
-| Resume content, cover letters, narratives | Nkanyezi |
-| Document generation (.docx, .pdf) | Usiba |
-| Job market research, role intel | Mhloli |
-| Brand / visual layout | Umdwebi |
-| Governance, PII audit | Umlindi |
+| Resume content, cover letters, narratives | uNkanyezi |
+| Document generation (.docx, .pdf) | uSiba |
+| Job market research, role intel | uMhloli |
+| Brand / visual layout | uMdwebi |
+| Governance, PII audit | uMlindi |
 
 ---
 

@@ -2,8 +2,8 @@
 # AI WORKFORCE V3 (MULTI-AGENT PLATFORM)
 # ==========================================
 #
-# Agents:   Mlawuli (orchestrator) + Umakhi (builder) + Umlindi (security)
-#           + Mvavanyi (QA) + Sibali (cost routing) + Agent-SelfHeal
+# Agents:   uMlawuli (orchestrator) + uMakhi (builder) + uMlindi (security)
+#           + uMvavanyi (QA) + uSibali (cost routing) + Agent-SelfHeal
 # Queue:    task-queue.json (root)  <-- unified active queue for agent-v3 only
 # Sessions: c:\DevWork\sessions\
 # Models:   Tier 1 -> Ollama deepseek-coder (local, free)
@@ -97,7 +97,7 @@ function New-SessionLog {
         "# Session: Agent task -- $taskType",
         "Date: $date",
         "Provider: agent-v3.ps1 (Ollama / Claude API)",
-        "Model: Sibali-routed",
+        "Model: uSibali-routed",
         "",
         "## Goal",
         "Autonomous agent task: $taskType | payload: $payload | task_id: $taskId",
@@ -106,13 +106,13 @@ function New-SessionLog {
         "PENDING",
         "",
         "## Model Recommendation",
-        "Task tier: Sibali-classified",
+        "Task tier: uSibali-classified",
         "Recommended model: Tier 1->deepseek-coder, Tier 2->Haiku, Tier 3->Sonnet  Trust score: N/A",
-        "Active model: Sibali-routed  Status: correct",
+        "Active model: uSibali-routed  Status: correct",
         "",
         "## Decisions",
-        "- Routed through Mlawuli (Process-Tasks)",
-        "- Sibali assigned cost tier based on task type",
+        "- Routed through uMlawuli (Process-Tasks)",
+        "- uSibali assigned cost tier based on task type",
         "",
         "## Work Done",
         "-",
@@ -137,7 +137,7 @@ function Complete-SessionLog {
 
     $lines    = Get-Content $logPath -Encoding utf8
     $datetime = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-    $row      = "| $taskId | Mlawuli | $agent | $status | 1 | $note ($datetime) |"
+    $row      = "| $taskId | uMlawuli | $agent | $status | 1 | $note ($datetime) |"
     $goalVal  = if ($status -eq "COMPLETED") { "ACHIEVED" } else { "FAILED" }
 
     $out        = [System.Collections.Generic.List[string]]::new()
@@ -306,24 +306,24 @@ function Process-Tasks {
                 $build = Invoke-Umakhi $task
                 if ($build.status -eq "NO_CHANGES") {
                     $task.status = "done"
-                    Complete-SessionLog $logPath $task.id "Umakhi" "COMPLETED" "No changes to commit"
+                    Complete-SessionLog $logPath $task.id "uMakhi" "COMPLETED" "No changes to commit"
                     continue
                 }
 
                 $sec = Invoke-Umlindi
                 if ($sec.status -eq "BLOCK") {
-                    Write-Host "Umlindi BLOCK: $($sec.reason)"
+                    Write-Host "uMlindi BLOCK: $($sec.reason)"
                     $task.status = "blocked"
-                    Complete-SessionLog $logPath $task.id "Umlindi" "BLOCKED" $sec.reason
+                    Complete-SessionLog $logPath $task.id "uMlindi" "BLOCKED" $sec.reason
                     continue
                 }
 
                 $qa = Invoke-Mvavanyi
                 if ($qa.status -eq "FAIL") {
-                    Write-Host "Mvavanyi FAIL -- self-healing..."
+                    Write-Host "uMvavanyi FAIL -- self-healing..."
                     Invoke-SelfHeal $qa.error
                     $task.status = "retry"
-                    Complete-SessionLog $logPath $task.id "Mvavanyi" "FAILED" "QA failed; self-heal written to temp/auto-fix.txt"
+                    Complete-SessionLog $logPath $task.id "uMvavanyi" "FAILED" "QA failed; self-heal written to temp/auto-fix.txt"
                     continue
                 }
 
@@ -331,13 +331,13 @@ function Process-Tasks {
                 git push
                 Write-Host "Committed and pushed: $($build.commit)"
                 $task.status = "done"
-                Complete-SessionLog $logPath $task.id "Umakhi" "COMPLETED" "Committed: $($build.commit)"
+                Complete-SessionLog $logPath $task.id "uMakhi" "COMPLETED" "Committed: $($build.commit)"
             }
 
             default {
                 Write-Host "Unknown task type: $($task.type) -- skipping"
                 $task.status = "done"
-                Complete-SessionLog $logPath $task.id "Mlawuli" "COMPLETED" "Skipped unknown task type: $($task.type)"
+                Complete-SessionLog $logPath $task.id "uMlawuli" "COMPLETED" "Skipped unknown task type: $($task.type)"
             }
         }
     }

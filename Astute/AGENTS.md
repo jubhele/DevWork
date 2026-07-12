@@ -1,4 +1,4 @@
-﻿# Astute Insights â€” Agent Constitution (Provider-Neutral)
+# Astute Insights â€” Agent Constitution (Provider-Neutral)
 
 All AI providers operating in this repository follow this constitution.
 Provider-specific files (CLAUDE.md, .github/copilot-instructions.md, .cursor/rules/constitution.mdc) mirror this document.
@@ -16,7 +16,7 @@ Stack: Python 3.11+ (FastAPI, Celery, Playwright, SQLAlchemy) + Next.js 15 + Pos
 4. **Pattern 21 debug hook** â€” every Python module imports `from api.debug import log_debug` and logs all critical state transitions. `DEBUG_MODE=false` in production.
 5. **Modular & dynamic** â€” no hardcoded values. All modules accept config objects or parameters.
 6. **Agent routing** â€” see CLAUDE.md Â§3 for the full workforce routing table.
-7. **Definition of done** â€” Umakhi builds â†’ Mvavanyi/Umcwaningi/Umbheki test (functional/code/UX) â†’ Umlindi audits â†’ Mbhali documents. All must pass.
+7. **Definition of done** â€” uMakhi builds â†’ uMvavanyi/uMcwaningi/uMbheki test (functional/code/UX) â†’ uMlindi audits â†’ uMbhali documents. All must pass.
 
 ## Project-Local Artifacts (MANDATORY)
 
@@ -28,7 +28,7 @@ mapped by `ARTIFACT_INDEX.md`. Every new log includes `Project: astute` and this
 
 - `docs/architecture.md` â€” full system architecture
 - `docs/plan.md` â€” master build plan with all tasks
-- `docs/guide.md` â€” operator guide (Mbhali maintains)
+- `docs/guide.md` â€” operator guide (uMbhali maintains)
 - `docs/system_architecture.md` â€” Mermaid.js diagrams
 - `shared/db/migrations/` â€” all schema migrations
 - `crawler/portals/` â€” one file per government tender portal

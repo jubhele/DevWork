@@ -1,10 +1,13 @@
 param(
-    [ValidateSet('SessionStart', 'UserPromptSubmit', 'PreChange', 'PostChange', 'Stop', 'SessionEnd', 'PreInvocation')]
+    [ValidateSet('SessionStart', 'UserPromptSubmit', 'ProjectBind', 'ProjectCreate', 'PreChange', 'PostChange', 'Stop', 'SessionEnd', 'PreInvocation')]
     [string]$Event = 'UserPromptSubmit',
     [string]$Provider = 'Unknown',
     [string]$Model = 'Unknown',
     [string]$WorkspaceRoot = 'C:\DevWork',
-    [string]$MemoryPath = 'C:\Users\Jughele Shange\.claude\projects\c--DevWork\memory\MEMORY.md'
+    [string]$MemoryPath = 'C:\Users\Jughele Shange\.claude\projects\c--DevWork\memory\MEMORY.md',
+    [string]$SessionId = '',
+    [string]$RequestedProjectRoot = '',
+    [string]$ProjectName = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -35,7 +38,7 @@ function Get-InputValue {
 
 function Test-RequiredSections {
     param([string]$Content)
-    $required = @('Goal', 'Model Recommendation', 'Decisions', 'Work Done', 'Agent Accountability', 'Blockers / Next Steps', 'Learnings', 'Goal Status')
+    $required = @('Project Determination', 'Goal', 'Model Recommendation', 'Decisions', 'Work Done', 'Agent Accountability', 'Blockers / Next Steps', 'Learnings', 'Goal Status')
     $missing = @()
     foreach ($heading in $required) {
         if ($Content -notmatch ('(?m)^## ' + [regex]::Escape($heading) + '\s*$')) { $missing += $heading }
@@ -82,19 +85,19 @@ function Copy-SessionMirror {
 function Resolve-ProjectRoot {
     param([string]$WorkingDirectory)
     $workspace = [IO.Path]::GetFullPath($WorkspaceRoot).TrimEnd('\')
-    if ([string]::IsNullOrWhiteSpace($WorkingDirectory)) { return (Join-Path $workspace '_workspace') }
-    try { $candidate = [IO.Path]::GetFullPath($WorkingDirectory) } catch { return (Join-Path $workspace '_workspace') }
-    if (-not $candidate.StartsWith($workspace + '\', [StringComparison]::OrdinalIgnoreCase)) { return (Join-Path $workspace '_workspace') }
+    if ([string]::IsNullOrWhiteSpace($WorkingDirectory)) { return [pscustomobject]@{ status = 'unresolved'; root = (Join-Path $workspace '_workspace'); source = 'missing_cwd' } }
+    try { $candidate = [IO.Path]::GetFullPath($WorkingDirectory) } catch { return [pscustomobject]@{ status = 'unresolved'; root = (Join-Path $workspace '_workspace'); source = 'invalid_cwd' } }
+    if (-not $candidate.StartsWith($workspace + '\', [StringComparison]::OrdinalIgnoreCase)) { return [pscustomobject]@{ status = 'unresolved'; root = (Join-Path $workspace '_workspace'); source = 'outside_workspace' } }
     $relative = $candidate.Substring($workspace.Length).TrimStart('\')
-    if ([string]::IsNullOrWhiteSpace($relative)) { return (Join-Path $workspace '_workspace') }
+    if ([string]::IsNullOrWhiteSpace($relative)) { return [pscustomobject]@{ status = 'unresolved'; root = (Join-Path $workspace '_workspace'); source = 'workspace_root' } }
     $first = ($relative -split '\\')[0]
     $root = Join-Path $workspace $first
     $controlPlane = @('.agents', '.claude', '.codex', '.cursor', '.factory', '.git', '.github', '.gstack', '.kiro', '.memory', '.pnpm-store', '.venv', '.vscode', '_backups', '_workspace', 'agents', 'chatsessions', 'design', 'docs', 'logs', 'mysql-data', 'queue', 'scripts', 'sessions', 'temp', 'updates')
-    if ($controlPlane -contains $first.ToLowerInvariant()) { return (Join-Path $workspace '_workspace') }
+    if ($controlPlane -contains $first.ToLowerInvariant()) { return [pscustomobject]@{ status = 'unresolved'; root = (Join-Path $workspace '_workspace'); source = 'control_plane_cwd' } }
     foreach ($signal in @('.git', 'AGENTS.md', 'CLAUDE.md', 'package.json', 'pyproject.toml', 'composer.json', 'README.md')) {
-        if (Test-Path -LiteralPath (Join-Path $root $signal)) { return $root }
+        if (Test-Path -LiteralPath (Join-Path $root $signal)) { return [pscustomobject]@{ status = 'resolved'; root = $root; source = 'cwd_project_signal' } }
     }
-    return (Join-Path $workspace '_workspace')
+    return [pscustomobject]@{ status = 'unresolved'; root = (Join-Path $workspace '_workspace'); source = 'no_project_signal' }
 }
 
 $inputObject = Get-HookInput
@@ -109,19 +112,15 @@ if (-not [string]::IsNullOrWhiteSpace($nativeEvent)) {
     }
 }
 
-$nativeSessionId = Get-InputValue $inputObject @('session_id', 'sessionId', 'conversation_id', 'conversationId')
+$nativeSessionId = if (-not [string]::IsNullOrWhiteSpace($SessionId)) { $SessionId } else { Get-InputValue $inputObject @('session_id', 'sessionId', 'conversation_id', 'conversationId') }
 if ([string]::IsNullOrWhiteSpace($nativeSessionId)) { $nativeSessionId = $env:AGENT_SESSION_ID }
 if ([string]::IsNullOrWhiteSpace($nativeSessionId)) {
     $transcriptPath = Get-InputValue $inputObject @('transcript_path', 'transcriptPath')
     if (-not [string]::IsNullOrWhiteSpace($transcriptPath)) { $nativeSessionId = $transcriptPath }
 }
 if ([string]::IsNullOrWhiteSpace($nativeSessionId)) {
-    if ($Event -eq 'SessionStart' -or $Event -eq 'PreInvocation') {
-        $nativeSessionId = 'generated-' + [guid]::NewGuid().ToString('N')
-    } else {
-        Write-Error 'No native session ID or transcript path was supplied; refusing to guess the active session log.'
-        exit 1
-    }
+    Write-Error 'No stable session ID or transcript path was supplied. Configure the provider adapter or pass -SessionId; refusing to create an uncorrelatable session.'
+    exit 1
 }
 
 $nativeModel = Get-InputValue $inputObject @('model', 'model_name')
@@ -134,7 +133,11 @@ if (-not (Test-Path -LiteralPath $memoryPath)) {
     if (Test-Path -LiteralPath $repoMemory) { $memoryPath = $repoMemory }
 }
 $workingDirectory = Get-InputValue $inputObject @('cwd', 'working_directory', 'workingDirectory')
-$projectRoot = Resolve-ProjectRoot $workingDirectory
+$projectResolution = Resolve-ProjectRoot $workingDirectory
+$cwdProjectRoot = if ($projectResolution.status -eq 'resolved') { [string]$projectResolution.root } else { '' }
+$projectRoot = [string]$projectResolution.root
+$projectStatus = [string]$projectResolution.status
+$projectSource = [string]$projectResolution.source
 $projectSlug = if ((Split-Path $projectRoot -Leaf) -eq '_workspace') { '_workspace' } else { Get-SafeName (Split-Path $projectRoot -Leaf) }
 $sessionsDir = Join-Path $projectRoot 'sessions'
 $stateDir = Join-Path $WorkspaceRoot '_workspace\temp\constitution-hooks'
@@ -147,6 +150,15 @@ New-Item -ItemType Directory -Path $stateDir -Force | Out-Null
 $providerSlug = Get-SafeName $Provider
 $sessionSlug = Get-SafeName $nativeSessionId
 $statePath = Join-Path $stateDir ($providerSlug + '_' + $sessionSlug + '.json')
+$mutexBytes = [Text.Encoding]::UTF8.GetBytes($statePath.ToLowerInvariant())
+$mutexHash = ([Security.Cryptography.SHA256]::Create().ComputeHash($mutexBytes) | ForEach-Object { $_.ToString('x2') }) -join ''
+$stateMutex = New-Object Threading.Mutex($false, ('Global\DevWorkConstitution_' + $mutexHash.Substring(0, 24)))
+try {
+    $mutexAcquired = $stateMutex.WaitOne([TimeSpan]::FromSeconds(15))
+    if (-not $mutexAcquired) { throw "Timed out waiting for session-state lock: $statePath" }
+} catch [Threading.AbandonedMutexException] {
+    $mutexAcquired = $true
+}
 $state = $null
 if (Test-Path -LiteralPath $statePath) {
     try { $state = Get-Content -LiteralPath $statePath -Raw -Encoding utf8 | ConvertFrom-Json }
@@ -159,6 +171,15 @@ if ($null -eq $state) {
         catch { throw "Corrupt legacy constitution hook state: $legacyStatePath" }
     }
 }
+
+if ($null -ne $state -and $state.PSObject.Properties['project_status'] -and $state.project_status -eq 'resolved') {
+    $projectStatus = 'resolved'
+    $projectRoot = [string]$state.project_root
+    $projectSource = [string]$state.project_source
+    $projectSlug = Get-SafeName ([string]$state.project_name)
+    $sessionsDir = Join-Path $projectRoot 'sessions'
+}
+$projectDrift = -not [string]::IsNullOrWhiteSpace($cwdProjectRoot) -and $projectStatus -eq 'resolved' -and -not $cwdProjectRoot.Equals($projectRoot, [StringComparison]::OrdinalIgnoreCase)
 
 if ($null -eq $state -and ($Event -eq 'Stop' -or $Event -eq 'SessionEnd' -or $Event -eq 'PreChange' -or $Event -eq 'PostChange')) {
     Write-Error "No state mapping exists for $Provider session $nativeSessionId; refusing to create a session from $Event."
@@ -175,14 +196,18 @@ if ($null -eq $state) {
 Date: $(Get-Date -Format 'yyyy-MM-dd')
 Provider: $Provider
 Model: $Model
-Project: $projectSlug
-Project Root: $projectRoot
+Project: $(if ($projectStatus -eq 'resolved') { $projectSlug } else { 'UNRESOLVED' })
+Project Root: $(if ($projectStatus -eq 'resolved') { $projectRoot } else { 'UNRESOLVED' })
+
+## Project Determination
+Status: $projectStatus
+Source: $projectSource
 
 ## Goal
 $initialGoal
 
 ## Model Recommendation
-Pending first-prompt Sibali classification; the agent must fill this before substantive work.
+Pending first-prompt uSibali classification; the agent must fill this before substantive work.
 
 ## Decisions
 - Session created automatically by the SessionStart enforcement hook.
@@ -196,7 +221,7 @@ Pending first-prompt Sibali classification; the agent must fill this before subs
 |---------|---------------|--------------|--------|------------|------|
 
 ## Blockers / Next Steps
-- First response must classify the request through Sibali, route it through Mlawuli, and replace the Goal placeholder.
+- First response must classify the request through uSibali, route it through uMlawuli, and replace the Goal placeholder.
 
 ## Learnings
 - Pending Reflect phase.
@@ -209,9 +234,64 @@ PENDING
         provider = $Provider
         session_id = $nativeSessionId
         log_path = $logPath
+        project_status = $projectStatus
+        project_name = if ($projectStatus -eq 'resolved') { Split-Path $projectRoot -Leaf } else { 'UNRESOLVED' }
+        project_root = if ($projectStatus -eq 'resolved') { $projectRoot } else { '' }
+        project_source = $projectSource
+        binding_version = 1
+        binding_updated_at = ''
         prompt_count = 0
         created_at = (Get-Date).ToString('o')
         updated_at = (Get-Date).ToString('o')
+    }
+}
+
+if ($Event -eq 'ProjectCreate') {
+    if ([string]::IsNullOrWhiteSpace($ProjectName)) { throw 'ProjectCreate requires -ProjectName.' }
+    $initializer = Join-Path $WorkspaceRoot 'scripts\governance\initialize-project.ps1'
+    $created = & $initializer -ProjectName $ProjectName -WorkspaceRoot $WorkspaceRoot | Select-Object -Last 1 | ConvertFrom-Json
+    $RequestedProjectRoot = [string]$created.project_root
+    $Event = 'ProjectBind'
+}
+
+if ($Event -eq 'ProjectBind') {
+    if ([string]::IsNullOrWhiteSpace($RequestedProjectRoot)) { throw 'ProjectBind requires -RequestedProjectRoot.' }
+    $bindingRoot = [IO.Path]::GetFullPath($RequestedProjectRoot).TrimEnd('\')
+    $workspace = [IO.Path]::GetFullPath($WorkspaceRoot).TrimEnd('\')
+    $workspaceControl = Join-Path $workspace '_workspace'
+    $isControlPlane = $bindingRoot.Equals($workspaceControl, [StringComparison]::OrdinalIgnoreCase)
+    $isDirectProject = (Split-Path $bindingRoot -Parent).Equals($workspace, [StringComparison]::OrdinalIgnoreCase)
+    if (-not ($isControlPlane -or $isDirectProject)) { throw 'Project binding must be exact _workspace or a direct child project root.' }
+    if (-not (Test-Path -LiteralPath $bindingRoot -PathType Container)) { throw "Project root does not exist: $bindingRoot" }
+    if (-not $isControlPlane) {
+        $signals = @('.git', 'AGENTS.md', 'CLAUDE.md', 'package.json', 'pyproject.toml', 'composer.json', 'README.md')
+        if (-not ($signals | Where-Object { Test-Path -LiteralPath (Join-Path $bindingRoot $_) } | Select-Object -First 1)) {
+            throw "Project root has no recognized project signal: $bindingRoot"
+        }
+    }
+    $newSessions = Join-Path $bindingRoot 'sessions'
+    New-Item -ItemType Directory -Path $newSessions -Force | Out-Null
+    $oldLog = [string]$state.log_path
+    $newLog = Join-Path $newSessions (Split-Path $oldLog -Leaf)
+    if (-not $oldLog.Equals($newLog, [StringComparison]::OrdinalIgnoreCase)) {
+        if (Test-Path -LiteralPath $newLog) { throw "Target session log already exists: $newLog" }
+        Move-Item -LiteralPath $oldLog -Destination $newLog
+    }
+    $bindingName = if ($bindingRoot.Equals($workspaceControl, [StringComparison]::OrdinalIgnoreCase)) { '_workspace' } else { Split-Path $bindingRoot -Leaf }
+    $boundContent = Get-Content -LiteralPath $newLog -Raw -Encoding utf8
+    $boundContent = $boundContent -replace '(?m)^Project:.*$', ('Project: ' + $bindingName)
+    $boundContent = $boundContent -replace '(?m)^Project Root:.*$', ('Project Root: ' + $bindingRoot)
+    $boundContent = $boundContent -replace '(?ms)^## Project Determination\s*\r?\n.*?(?=^## )', "## Project Determination`r`nStatus: resolved`r`nSource: explicit_user_binding`r`n`r`n"
+    Set-Content -LiteralPath $newLog -Value $boundContent -Encoding utf8
+    $state.log_path = $newLog
+    $state.project_status = 'resolved'
+    $state.project_name = $bindingName
+    $state.project_root = $bindingRoot
+    $state.project_source = 'explicit_user_binding'
+    if ($state.PSObject.Properties['binding_updated_at']) {
+        $state.binding_updated_at = (Get-Date).ToString('o')
+    } else {
+        $state | Add-Member -NotePropertyName binding_updated_at -NotePropertyValue (Get-Date).ToString('o')
     }
 }
 
@@ -231,6 +311,14 @@ $missingSections = @(Test-RequiredSections $content)
 if ($missingSections.Count -gt 0) { throw ('Session log is missing mandatory sections: ' + ($missingSections -join ', ')) }
 
 if ($Event -eq 'PreChange') {
+    if (-not $state.PSObject.Properties['project_status'] -or $state.project_status -ne 'resolved') {
+        [Console]::Error.WriteLine('Project is unresolved. Ask the user to select an existing project, create a new named project, or explicitly choose _workspace control-plane scope.')
+        exit 2
+    }
+    if ($projectDrift) {
+        [Console]::Error.WriteLine("Project context changed from $projectRoot to $cwdProjectRoot. Ask the user whether to switch projects or start a new session.")
+        exit 2
+    }
     $toolInput = if ($null -ne $inputObject) { $inputObject.PSObject.Properties['tool_input'].Value } else { $null }
     $targetPath = Get-InputValue $toolInput @('file_path', 'filePath', 'path')
     if (-not [string]::IsNullOrWhiteSpace($targetPath)) {
@@ -239,6 +327,30 @@ if ($Event -eq 'PreChange') {
             if ([IO.Path]::IsPathRooted($targetPath)) { $candidate = [IO.Path]::GetFullPath($targetPath) }
             if ($candidate.Equals([IO.Path]::GetFullPath($logPath), [StringComparison]::OrdinalIgnoreCase)) { exit 0 }
         } catch { $candidate = $null }
+    }
+    if (-not $candidate) {
+        [Console]::Error.WriteLine('Mutation target path is missing or unparseable; refusing to fail open.')
+        exit 2
+    }
+    $mutationRoot = [string]$state.project_root
+    if ($state.project_name -eq '_workspace') {
+        $fullCandidate = [IO.Path]::GetFullPath($candidate)
+        $workspace = [IO.Path]::GetFullPath($WorkspaceRoot).TrimEnd('\')
+        $relativeCandidate = $fullCandidate.Substring($workspace.Length).TrimStart('\')
+        $firstSegment = ($relativeCandidate -split '\')[0]
+        $controlPlaneRoots = @('.agents', '.claude', '.codex', '.cursor', '.factory', '.github', '.kiro', '.vscode', '_workspace', 'agents', 'scripts', 'design')
+        $controlPlaneFiles = @('CLAUDE.md', 'AGENTS.md', 'Multi-Agent Workforce Architecture & System Prompts.md', 'WORKSPACE_INDEX.md', 'agent-v3.ps1', 'bootstrap-agent.ps1')
+        if (-not ($controlPlaneRoots -contains $firstSegment -or $controlPlaneFiles -contains $relativeCandidate)) {
+            [Console]::Error.WriteLine("Control-plane session cannot mutate project-owned path without separate authorization: $candidate")
+            exit 2
+        }
+        $mutationRoot = $workspace
+    }
+    $fullMutationRoot = [IO.Path]::GetFullPath($mutationRoot).TrimEnd('\')
+    $fullCandidate = [IO.Path]::GetFullPath($candidate)
+    if (-not ($fullCandidate.Equals($fullMutationRoot, [StringComparison]::OrdinalIgnoreCase) -or $fullCandidate.StartsWith(($fullMutationRoot + '\'), [StringComparison]::OrdinalIgnoreCase))) {
+        [Console]::Error.WriteLine("Mutation target is outside the bound project $($state.project_root): $candidate")
+        exit 2
     }
     $preflightMissing = @()
     foreach ($heading in @('Goal', 'Model Recommendation')) {
@@ -266,6 +378,7 @@ if ($Event -eq 'PreChange') {
 if ($Event -eq 'Stop') {
     $stopAlreadyActive = Get-InputValue $inputObject @('stop_hook_active', 'stopHookActive')
     $incomplete = @()
+    if (-not $state.PSObject.Properties['project_status'] -or $state.project_status -ne 'resolved') { $incomplete += 'Project Determination' }
     foreach ($heading in @('Goal', 'Model Recommendation', 'Decisions', 'Work Done', 'Learnings')) {
         if (-not (Test-SectionFilled $content $heading)) { $incomplete += $heading }
     }
@@ -320,9 +433,16 @@ if ($indexFailure) { throw $indexFailure }
 
 $relativeLog = $logPath.Substring($WorkspaceRoot.Length).TrimStart('\')
 if ($Event -eq 'SessionStart' -or $Event -eq 'UserPromptSubmit' -or $Event -eq 'PreInvocation') {
-    Write-Output "[constitution-hook] ACTIVE. Exact log: $relativeLog. Before substantive work: read CLAUDE.md and MEMORY.md; replace the Goal placeholder; run Sibali tier/model clearance; route through Mlawuli; record task IDs and accountability; back up existing files before edits; update Decisions, Work Done, Blockers, and Learnings; keep Goal Status PENDING until explicit user confirmation. This reminder applies to this prompt."
+    if (-not $state.PSObject.Properties['project_status'] -or $state.project_status -ne 'resolved') {
+        Write-Output "[constitution-hook] PROJECT UNRESOLVED. Before substantive work, ask the user: Which existing project does this belong to, is it a new named project, or is it genuine _workspace control-plane work? Then bind with ProjectBind or create with ProjectCreate. Exact bootstrap log: $relativeLog."
+    } elseif ($projectDrift) {
+        Write-Output "[constitution-hook] PROJECT CONTEXT CHANGED. This session is bound to $($state.project_root), but the current directory resolves to $cwdProjectRoot. Ask the user whether to switch projects or start a new session before substantive work."
+    } else {
+        Write-Output "[constitution-hook] ACTIVE. Project: $($state.project_name). Exact log: $relativeLog. Before substantive work: read CLAUDE.md and MEMORY.md; replace the Goal placeholder; run uSibali tier/model clearance; route through uMlawuli; record task IDs and accountability; back up existing files before edits; update Decisions, Work Done, Blockers, and Learnings; keep Goal Status PENDING until explicit user confirmation. This reminder applies to this prompt."
+    }
 } elseif ($Event -eq 'PostChange') {
     Write-Output "[constitution-hook] Change recorded. Update Work Done and verify the timestamped backup for every modified existing file. Exact log: $relativeLog."
 }
 
+if ($stateMutex) { try { $stateMutex.ReleaseMutex() } catch { }; $stateMutex.Dispose() }
 exit 0

@@ -1,8 +1,8 @@
 # PBI Integration And Release QA Report
 
 Date: 2026-07-09
-Owner: Mvavanyi
-Supporting owners: Umbheki, Umcwaningi, Umlindi
+Owner: uMvavanyi
+Supporting owners: uMbheki, uMcwaningi, uMlindi
 Source brief: `docs/pbi-session-briefs/integration-release-qa.md`
 
 ## Scope

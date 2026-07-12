@@ -21,7 +21,7 @@ Next.js + Expo monorepo for a multi-tenant B2B SaaS portal.
 
 ## Multi-Agent Workforce
 9 named agents (Zulu names) handle specialized domains:
-- **Sibali** — cost governance
-- **Mlawuli** — supervisor/routing
-- **Sebenza agents** (7): Nkanyezi, Usiba, Mhloli, Umakhi, Umdwebi, Mvavanyi, Umlindi
+- **uSibali** — cost governance
+- **uMlawuli** — supervisor/routing
+- **Sebenza agents** (7): uNkanyezi, uSiba, uMhloli, uMakhi, uMdwebi, uMvavanyi, uMlindi
 - System prompts: `c:\DevWork\agents\`
