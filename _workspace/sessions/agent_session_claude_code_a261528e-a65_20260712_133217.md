@@ -7,7 +7,7 @@ Project Root: c:\DevWork\Homolemo In Europe
 
 ## Project Determination
 Status: resolved
-Source: explicit_user_binding (file path under "Homolemo In Europe"; bound via ProjectBind)
+Source: explicit_user_binding
 
 ## Goal
 Review `Agent_payment_agreement.pdf` from LLC Sports Consulting Management (Kartlos Rukhaia, Tbilisi) in light of the user's clarification that the father, Jubhele Shange, is the sole financial committer and signatory. Deliver an assessment of the agreement's terms and risks before signing.

@@ -16,10 +16,7 @@ Identification / Registration No.: ______________________
 Passport / ID No.: ______________________
 (hereinafter the **"Paying Parent"**)
 
-**Mrs. MPHO ______________________** (Mother — consenting party only)
-Passport / ID No.: ______________________
-
-Parents/Guardians of **SHANGE HOMOLEMO AMUNENE** (the **"Player"**)
+Parent/Guardian of **SHANGE HOMOLEMO AMUNENE** (the **"Player"**)
 Passport No. A11383030
 Date of Birth: ______________________
 
@@ -37,7 +34,7 @@ The Agency is engaged to arrange and facilitate the placement of the Player with
 
 2.1 The total service fee payable to the Agency is **EUR 13,500 (Thirteen Thousand Five Hundred Euros)**.
 
-2.2 **The financial obligation under this Agreement is undertaken solely by the Paying Parent, Mr. Jubhele Shange.** Mrs. Mpho ____________ signs this Agreement as consenting parent/guardian only and assumes no payment obligation. The Representative assumes no payment obligation.
+2.2 **The financial obligation under this Agreement is undertaken solely by the Paying Parent, Mr. Jubhele Shange.** The Representative assumes no payment obligation.
 
 2.3 Payment schedule:
 
@@ -65,7 +62,7 @@ The Agency is engaged to arrange and facilitate the placement of the Player with
 
 ## 5. Authorization to Proceed
 
-By signing, the Parents and Representative authorize the Agency to: negotiate with the club named in Annex A; carry out registration and administrative processes; arrange accommodation; and finalize the Player's club contract on the terms in Section 6.
+By signing, the Paying Parent and Representative authorize the Agency to: negotiate with the club named in Annex A; carry out registration and administrative processes; arrange accommodation; and finalize the Player's club contract on the terms in Section 6.
 
 ## 6. Club Contract — Principal Terms
 
@@ -73,7 +70,7 @@ The club contract arranged by the Agency shall include:
 
 - **Duration:** Six (6) months, with an option for a further six (6) months based on performance, discipline, fitness, and contribution.
 - **Monthly salary:** Not less than 500 GEL, paid monthly.
-- **Accommodation:** Private apartment provided by the club at no cost to the Player or Parents.
+- **Accommodation:** Private apartment provided by the club at no cost to the Player or the Paying Parent.
 - **Transfermarkt:** The Player shall be listed on Transfermarkt within 30 days of registration.
 - **Salary review:** During any extension, the club may negotiate an increased monthly salary.
 
@@ -111,13 +108,8 @@ LLC SPORTS CONSULTING MANAGEMENT
 Director: KARTLOS RUKHAIA
 Signature: _______________________  Date: _______________
 
-**Paying Parent (Parent / Guardian 1)**
+**Paying Parent (Parent / Guardian)**
 Name: JUBHELE SHANGE
-Passport / ID No.: _______________________
-Signature: _______________________  Date: _______________
-
-**Consenting Parent (Parent / Guardian 2 — no payment obligation)**
-Name: MPHO _______________________
 Passport / ID No.: _______________________
 Signature: _______________________  Date: _______________
 

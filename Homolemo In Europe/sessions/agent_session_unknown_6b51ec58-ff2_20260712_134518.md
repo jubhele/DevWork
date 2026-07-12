@@ -3,7 +3,7 @@ Date: 2026-07-12
 Provider: Unknown
 Model: Unknown
 Project: Homolemo In Europe
-Project Root: c:\DevWork\Homolemo In Europe
+Project Root: C:\DevWork\Homolemo In Europe
 
 ## Project Determination
 Status: resolved

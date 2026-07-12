@@ -1,0 +1,14 @@
+﻿{
+    "provider":  "Claude Code",
+    "session_id":  "6b51ec58-ff28-464e-b2ee-9925d6192e3c",
+    "log_path":  "C:\\DevWork\\Homolemo In Europe\\sessions\\agent_session_claude_code_6b51ec58-ff2_20260712_134500.md",
+    "project_status":  "resolved",
+    "project_name":  "Homolemo In Europe",
+    "project_root":  "C:\\DevWork\\Homolemo In Europe",
+    "project_source":  "explicit_user_binding",
+    "binding_version":  1,
+    "binding_updated_at":  "2026-07-12T13:47:28.8620540+02:00",
+    "prompt_count":  1,
+    "created_at":  "2026-07-12T13:45:00.7397661+02:00",
+    "updated_at":  "2026-07-12T13:47:45.1396371+02:00"
+}
