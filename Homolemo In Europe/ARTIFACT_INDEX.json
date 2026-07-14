@@ -10,10 +10,10 @@
                                             "path":  "Homolemo In Europe\\sessions",
                                             "metric":  {
                                                            "exists":  true,
-                                                           "files":  0,
-                                                           "bytes":  0,
-                                                           "oldest":  null,
-                                                           "latest":  null
+                                                           "files":  9,
+                                                           "bytes":  15583,
+                                                           "oldest":  "2026-07-12T09:50:50.0447179Z",
+                                                           "latest":  "2026-07-13T20:44:43.0076921Z"
                                                        }
                                         }
                                     ],
@@ -30,7 +30,16 @@
 
                                 ],
                        "backups":  [
-
+                                       {
+                                           "path":  "Homolemo In Europe\\_backups",
+                                           "metric":  {
+                                                          "exists":  true,
+                                                          "files":  1,
+                                                          "bytes":  8200,
+                                                          "oldest":  "2026-07-12T12:07:10.7996550Z",
+                                                          "latest":  "2026-07-12T12:07:10.7996550Z"
+                                                      }
+                                       }
                                    ]
                    }
 }

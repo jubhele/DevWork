@@ -551,3 +551,32 @@ _Session ended: 2026-07-12 09:20:00 (Claude Code / claude-sonnet-5)_
 Incomplete at this stop: ## Goal Status (still PENDING -- user must set to ACHIEVED)
 
 _Session ended: 2026-07-12 11:35:00 (Claude Code / claude-sonnet-5)_
+
+## Resumed 2026-07-12 (Phase 23 — Signing decision: Jubhele alone signs the Payment Agreement)
+
+### Decisions (Phase 23)
+- User stated (twice, no response requested): "its the father who is making the financial commitment so Jubhele Shange will be signing it" — referring to `Agent_payment_agreement.pdf`. Jubhele Shange alone signs on the family side.
+- Mismatch flagged, not resolved: the agreement as drafted expects three family-side signatures — Parent/Guardian 1 (Jubhele), Parent/Guardian 2 (Mpho), and Geoff as "Player's Representative". The reply to Kartlos now asks him directly whether Jubhele's sole signature suffices as the paying parent or whether the signature page should be amended before signing.
+- Backed up both edited docs before change (timestamp 20260712_133521); README backed up 20260712_140710.
+
+### Work Done (Phase 23)
+- `docs/kartlos-response-review.html` — new "Signing decision (12 Jul)" callout in the Resolved Since This Review section (decision + three-signature mismatch to resolve)
+- `docs/to-kartlos.html` — new paragraph after the registration paragraph stating Jubhele signs as the paying parent and asking Kartlos to confirm/adjust the signature page; closing callout updated to "four live items" (registration, signing arrangement, accommodation cost, visit)
+- `README.md` — `to-kartlos.html` Contents row updated; new 2026-07-12 signing-decision bullet in Status
+- `docs/_backups/to-kartlos_backup_20260712_133521.html`, `docs/_backups/kartlos-response-review_backup_20260712_133521.html`, `_backups/README_backup_20260712_140710.md` — pre-edit backups (new)
+- Memory `project_homolemo_in_europe.md` — signing decision appended
+
+### Blockers / Next Steps (Phase 23)
+- Letter still a draft — family review, then send.
+- Kartlos to confirm: accommodation/food figure, written registration confirmation, and the signature-page question.
+
+### Agent Accountability (Phase 23)
+
+| Task ID | Assigned Agent | Completed By | Status | Iterations | Note |
+|---------|---------------|--------------|--------|------------|------|
+| homolemo_signing_decision_capture | Nkanyezi | Claude Code (as Mlawuli, §12.3) | COMPLETED | 1 | Decision captured across review doc, letter, README, memory; within Nkanyezi hard cap of 3 |
+
+## Warning: Session Log Incomplete
+Incomplete at this stop: ## Goal Status (still PENDING -- user must set to ACHIEVED)
+
+_Session ended: 2026-07-12 14:10:00 (Claude Code / claude-sonnet-5)_

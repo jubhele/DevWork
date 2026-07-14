@@ -1,9 +1,9 @@
-﻿# Session: Constitution-enforced Unknown session
-Date: 2026-07-12
-Provider: Unknown
-Model: Unknown
-Project: Homolemo In Europe
-Project Root: C:\DevWork\Homolemo In Europe
+﻿# Session: Constitution-enforced OpenAI Codex session
+Date: 2026-07-14
+Provider: OpenAI Codex
+Model: GPT-5 Codex
+Project: BlackFire
+Project Root: C:\DevWork\BlackFire
 
 ## Project Determination
 Status: resolved
@@ -34,6 +34,4 @@ Pending first-prompt uSibali classification; the agent must fill this before sub
 
 ## Goal Status
 PENDING
-
-
 
