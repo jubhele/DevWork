@@ -13,6 +13,7 @@ ob_start();
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/helpers.php';
+require_once __DIR__ . '/../includes/file_storage.php';
 
 $cfg = require __DIR__ . '/../config/config.php';
 date_default_timezone_set($cfg['timezone'] ?? 'Africa/Johannesburg');
@@ -190,7 +191,7 @@ if ($method === 'DELETE') {
         [(string)$id]
     );
     if ($att) {
-        $disk = dirname(__DIR__) . '/uploads/attachments/' . $att['stored_name'];
+        $disk = bf_attachment_disk_path($att['stored_name']);
         if (file_exists($disk)) unlink($disk);
         db_exec("DELETE FROM bf_attachments WHERE id = ?", [$att['id']]);
     }

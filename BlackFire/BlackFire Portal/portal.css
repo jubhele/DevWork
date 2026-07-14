@@ -1859,6 +1859,9 @@ textarea.saf-cmt { resize:vertical; min-height:28px; width:100% }
 
 /* Attachment modal */
 .att-ctx  { padding:8px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:2px;margin-bottom:12px;font-size:11px }
+.upgrade-call-copy{border:1px solid var(--border);background:var(--surface2);padding:12px 14px;margin-bottom:12px;font-size:13px;line-height:1.55;color:var(--text2)}
+.upgrade-call-copy p{margin:0 0 8px}
+.upgrade-call-copy p:last-child{margin-bottom:0}
 .att-slbl { font-family:'IBM Plex Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:8px }
 .att-row  { display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:2px;margin-bottom:6px }
 .att-icon { font-size:18px }

@@ -37,6 +37,7 @@ const CONTACTS = [
 ]
 
 const QUICK_LINKS = [
+  { href: '/clients', label: 'Clients', desc: 'Support-owned client records used by call logs, quotes, and invoices' },
   { href: '/safety', label: 'Safety Files', desc: 'View and upload compliance documents' },
   { href: '/admin/users', label: 'Users & Roles', desc: 'Manage portal access — Admins only', adminOnly: true },
   { href: '/admin/audit', label: 'Audit Log', desc: 'Full portal action history — Admins only', adminOnly: true },
@@ -52,6 +53,13 @@ export default async function SupportPage() {
     <div className="max-w-4xl">
       <h1 className="font-display text-5xl text-ink-text">Support</h1>
       <p className="mb-8 mt-2 text-sm uppercase tracking-[0.28em] text-ash">Platform overview and support resources</p>
+
+      <section className="mb-8 rounded border border-steel-dark bg-white p-6 shadow-sm">
+        <h2 className="font-display text-2xl text-ink-text mb-3">Support Ownership</h2>
+        <p className="text-sm leading-7 text-ash">
+          Site Timeline, Reports, and Clients belong in Support. Clients are available here now; timeline and report pages should stay grouped with Support whenever those routes are enabled in this Next portal.
+        </p>
+      </section>
 
       {/* Current session info */}
       <section className="mb-8 rounded border border-steel-dark bg-white p-6 shadow-sm">

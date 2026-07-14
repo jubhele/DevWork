@@ -25,9 +25,9 @@ type SecondaryNavItem = NavAccess & {
 
 const PRIMARY: PrimaryNavItem[] = [
   { href: '/dashboard', label: 'Dashboard', group: 'dashboard', matches: ['/dashboard'] },
-  { href: '/ops', label: 'Operations', group: 'operations', matches: ['/ops', '/tracker', '/callouts', '/quotes', '/clients'] },
-  { href: '/finance', label: 'Finance', group: 'finance', matches: ['/finance', '/invoices'] },
-  { href: '/support', label: 'Support', group: 'support', matches: ['/support', '/safety', '/admin'] },
+  { href: '/ops', label: 'Operations', group: 'operations', matches: ['/ops', '/tracker', '/callouts'] },
+  { href: '/finance', label: 'Finance', group: 'finance', matches: ['/finance', '/quotes', '/invoices'] },
+  { href: '/support', label: 'Support', group: 'support', matches: ['/support', '/clients', '/safety', '/admin'] },
 ]
 
 const SECONDARY: Record<string, SecondaryNavItem[]> = {
@@ -40,14 +40,13 @@ const SECONDARY: Record<string, SecondaryNavItem[]> = {
   operations: [
     { href: '/ops', label: 'Overview', roles: ['sysadmin', 'admin', 'manager'] },
     { href: '/tracker', label: 'Tracker', permission: 'task.view' },
-    { href: '/quotes', label: 'Quotes', permission: 'quote.view' },
-    { href: '/clients', label: 'Clients', permission: 'callout.view' },
     { href: '/ops/schedule', label: 'Schedule', roles: ['sysadmin', 'admin', 'manager'] },
     { href: '/ops/tasks', label: 'Task Planning', roles: ['sysadmin', 'admin', 'manager'] },
   ],
   finance: [
+    { href: '/finance', label: 'Overview', permission: 'finance.income' },
+    { href: '/quotes', label: 'Quote Log', permission: 'quote.view' },
     { href: '/invoices', label: 'Invoices', permission: 'invoice.view' },
-    { href: '/finance', label: 'Finance Overview', permission: 'finance.income' },
     { href: '/finance#ledger', label: 'Ledger', permission: 'finance.income' },
   ],
   hub: [
@@ -55,6 +54,7 @@ const SECONDARY: Record<string, SecondaryNavItem[]> = {
   ],
   support: [
     { href: '/support', label: 'Overview' },
+    { href: '/clients', label: 'Clients', permission: 'callout.view' },
     { href: '/safety', label: 'Safety Files', permission: 'safety.view' },
     { href: '/admin/users', label: 'Users & Roles', roles: ['sysadmin', 'admin'] },
     { href: '/admin/audit', label: 'Audit Log', roles: ['sysadmin', 'admin'] },

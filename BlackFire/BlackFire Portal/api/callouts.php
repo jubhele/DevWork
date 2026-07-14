@@ -250,9 +250,13 @@ if ($method === 'PUT') {
             json_err('Escalation request could not be saved');
         } catch (Throwable $error) {
             db_rollback();
+            error_log('[Callout escalation request] ' . $error->getMessage());
+            if (stripos($error->getMessage(), 'document_escalation') !== false || stripos($error->getMessage(), 'Unknown column') !== false) {
+                json_err('Call type upgrade needs the quote/invoice workflow database migration before it can be saved', 503);
+            }
             json_err('Escalation request could not be saved');
         }
-        audit($usr['username'], 'DOCUMENT_ESCALATION_REQUESTED', "Additional quote/invoice access requested for {$ref_id}: {$reason}");
+        audit($usr['username'], 'DOCUMENT_ESCALATION_REQUESTED', "Call type upgrade requested for {$ref_id}. Reason: {$reason}");
         json_ok(['data' => db_row("SELECT * FROM bf_callouts WHERE ref_id = ?", [$ref_id])], 'Administrator approval requested');
     }
 
@@ -260,12 +264,14 @@ if ($method === 'PUT') {
         $roles = !empty($usr['roles']) ? $usr['roles'] : [$usr['role']];
         if (!array_intersect($roles, ['sysadmin', 'admin'])) json_err('Only an administrator may decide call escalation', 403);
         $approved = $action === 'approve_document_escalation';
+        $reason = '';
 
         db_begin();
         try {
-            $callout = db_row("SELECT id, document_escalation_status FROM bf_callouts WHERE ref_id = ? FOR UPDATE", [$ref_id]);
+            $callout = db_row("SELECT id, document_escalation_status, document_escalation_reason FROM bf_callouts WHERE ref_id = ? FOR UPDATE", [$ref_id]);
             if (!$callout) throw new RuntimeException('not_found');
             if ($callout['document_escalation_status'] !== 'pending') throw new RuntimeException('not_pending');
+            $reason = trim((string)($callout['document_escalation_reason'] ?? ''));
             db_exec(
                 "UPDATE bf_callouts
                     SET document_escalation_status = ?, document_escalation_approved_by_user_id = ?,
@@ -281,9 +287,17 @@ if ($method === 'PUT') {
             json_err('Escalation decision could not be saved');
         } catch (Throwable $error) {
             db_rollback();
+            error_log('[Callout escalation decision] ' . $error->getMessage());
+            if (stripos($error->getMessage(), 'document_escalation') !== false || stripos($error->getMessage(), 'Unknown column') !== false) {
+                json_err('Call type upgrade needs the quote/invoice workflow database migration before it can be decided', 503);
+            }
             json_err('Escalation decision could not be saved');
         }
-        audit($usr['username'], $approved ? 'DOCUMENT_ESCALATION_APPROVED' : 'DOCUMENT_ESCALATION_REJECTED', "Additional quote/invoice access " . ($approved ? 'approved' : 'rejected') . " for {$ref_id}");
+        audit(
+            $usr['username'],
+            $approved ? 'DOCUMENT_ESCALATION_APPROVED' : 'DOCUMENT_ESCALATION_REJECTED',
+            "Call type upgrade " . ($approved ? 'approved' : 'rejected') . " for {$ref_id}" . ($reason !== '' ? ". Request reason: {$reason}" : '')
+        );
         json_ok(['data' => db_row("SELECT * FROM bf_callouts WHERE ref_id = ?", [$ref_id])], $approved ? 'Additional quote/invoice access approved' : 'Call escalation rejected');
     }
 

@@ -29,13 +29,17 @@ export type RootStackParamList = {
 export type OperationsTabParamList = {
   Tracker: undefined
   'Call Log': undefined
-  Quotes: undefined
+}
+
+export type FinanceTabParamList = {
+  Overview: undefined
+  'Quote Log': undefined
 }
 
 export type MainTabParamList = {
   Dashboard: undefined
   Operations: { screen?: keyof OperationsTabParamList }
-  Finance: undefined
+  Finance: { screen?: keyof FinanceTabParamList }
   Safety: undefined
   Support: undefined
 }
@@ -67,8 +71,27 @@ function OperationsNavigator() {
     >
       <OpsTab.Screen name="Tracker" component={TrackerScreen} />
       <OpsTab.Screen name="Call Log" component={CallLogScreen} />
-      <OpsTab.Screen name="Quotes" component={QuotesScreen} />
     </OpsTab.Navigator>
+  )
+}
+
+const FinanceTab = createBottomTabNavigator<FinanceTabParamList>()
+
+function FinanceNavigator() {
+  return (
+    <FinanceTab.Navigator
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        tabBarStyle: { backgroundColor: colors.charcoal, borderTopColor: colors.steelDark, height: 52 },
+        tabBarActiveTintColor: colors.fireOrange,
+        tabBarInactiveTintColor: colors.ash,
+        tabBarLabelStyle: { fontFamily: fonts.mono, fontSize: 9, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 4 },
+        tabBarLabel: route.name,
+      })}
+    >
+      <FinanceTab.Screen name="Overview" component={InvoicesScreen} />
+      <FinanceTab.Screen name="Quote Log" component={QuotesScreen} />
+    </FinanceTab.Navigator>
   )
 }
 
@@ -97,7 +120,7 @@ function MainNavigator() {
     >
       <Tab.Screen name="Dashboard" component={DashboardScreen} />
       <Tab.Screen name="Operations" component={OperationsNavigator} />
-      <Tab.Screen name="Finance" component={InvoicesScreen} />
+      <Tab.Screen name="Finance" component={FinanceNavigator} />
       <Tab.Screen name="Safety" component={SafetyScreen} />
       <Tab.Screen name="Support" component={SupportScreen} />
     </Tab.Navigator>

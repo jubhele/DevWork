@@ -257,6 +257,7 @@ document.addEventListener('click', function(e) {
     case 'openEditCalloutService': openEditCalloutService(el.dataset.id,el); break;
     case 'saveCalloutService':   saveCalloutService(el.dataset.id); break;
     case 'requestDocumentEscalation': requestDocumentEscalation(el.dataset.id); break;
+    case 'saveDocumentEscalationRequest': saveDocumentEscalationRequest(el.dataset.id); break;
     case 'approveDocumentEscalation': decideDocumentEscalation(el.dataset.id,true); break;
     case 'rejectDocumentEscalation': decideDocumentEscalation(el.dataset.id,false); break;
     case 'deleteCallout':        deleteCallout(el.dataset.id); break;
@@ -266,6 +267,9 @@ document.addEventListener('click', function(e) {
     case 'removeLine':           el.closest('tr').remove(); recalcQ(); break;
     case 'saveQuote':            saveQuote(); break;
     case 'previewQuote':         previewQuote(el.dataset.id); break;
+    case 'downloadQuotePdf':     downloadQuotePdf(el.dataset.id); break;
+    case 'openSendQuoteModal':   openSendQuoteModal(el.dataset.id); break;
+    case 'sendQuoteEmail':       sendQuoteEmail(el.dataset.id); break;
     case 'approveQuote':         approveQuote(el.dataset.id); break;
     case 'rejectQuote':          rejectQuote(el.dataset.id); break;
     case 'convertToInvoice':     convertToInvoice(el.dataset.id); break;
@@ -273,6 +277,7 @@ document.addEventListener('click', function(e) {
     // Operations — invoices
     case 'saveInvoice':          saveInvoice(); break;
     case 'previewInvoice':       previewInvoice(el.dataset.id); break;
+    case 'downloadInvoicePdf':   downloadInvoicePdf(el.dataset.id); break;
     case 'openSendInvoiceModal': openSendInvoiceModal(el.dataset.id); break;
     case 'markPaid':             markPaid(el.dataset.id); break;
     case 'deleteInvoice':        deleteInvoice(el.dataset.id); break;
@@ -782,6 +787,7 @@ function normalizeCallout(c) {
     quoteCount:        Number(c.quote_count) || 0,
     invoiceCount:      Number(c.invoice_count) || 0,
     documentEscalationStatus: c.document_escalation_status || 'none',
+    documentEscalationReason: c.document_escalation_reason || '',
   };
 }
 function normalizeQuote(q) {
@@ -790,6 +796,7 @@ function normalizeQuote(q) {
     id:             q.ref_id || q.id,
     quoteNo:        q.quote_no || q.ref_id || q.id,
     client:         q.client_name,
+    clientEmail:    q.client_email || '',
     clientId:       q.client_id ? Number(q.client_id) : null,
     items,
     status:         q.status,
@@ -1055,7 +1062,6 @@ const NAV_CONFIG = [
     page: 'p-ops-dashboard',
     items: [
       { id:'p-ops-dashboard', label:'Overview',  perm: null },
-      { id:'p-quotes',        label:'Quote Log', perm:'quote.view',   badge:'nb-qte' },
       { id:'p-tracker',       label:'Tracker',   perm:'task.view',    badge:'nb-co' },
     ],
   },
@@ -1064,6 +1070,7 @@ const NAV_CONFIG = [
     page: 'p-finance-dashboard',
     items: [
       { id:'p-finance-dashboard', label:'Overview',         perm: null },
+      { id:'p-quotes',            label:'Quote Log',        perm:'quote.view',           badge:'nb-qte' },
       { id:'p-invoices',          label:'Invoices',         perm:'invoice.view',         badge:'nb-inv' },
       { id:'p-statement',         label:'Statements',       perm:'finance.statement' },
       { id:'p-transactions',      label:'Transactions',     perm:'finance.transactions' },
@@ -2117,6 +2124,628 @@ const PAGE_INFO = {
   },
 };
 
+Object.assign(PAGE_INFO, {
+  'p-home': {
+    title: 'Portal Home',
+    sub: 'Start here',
+    purpose: 'A landing screen for moving into the main work areas: Dashboard, Operations, Finance, Support, service catalogue, and enquiries.',
+    steps: [
+      'Confirm the signed-in user and role in the top bar.',
+      'Use the primary navigation to open Dashboard, Operations, Finance, or Support.',
+      'Use the service and contact sections when you need reference information or a formal enquiry.',
+      'Use the help button on any page to open that page guide.',
+    ],
+    tips: [
+      'If a page is missing, your role probably does not have that permission.',
+      'The same record may appear in more than one context, but it should have one source record.',
+    ],
+    faqs: [
+      { q: 'Where should I start each day?', a: 'Use Dashboard first, then open Operations, Finance, or Support depending on your work.' },
+      { q: 'Why do other users see different pages?', a: 'Navigation is role-based. Admins can adjust access from Users & Roles.' },
+    ],
+    linked: 'All portal areas.',
+    access: ['admin','sysadmin','manager','admin_clerk','senior_tech','call_logger','viewer','client_support','junior_tech','safety_officer'],
+  },
+  'p-services': {
+    title: 'Service Catalogue',
+    sub: 'Service reference',
+    purpose: 'Reference the approved service categories used when logging work, preparing quotes, and reporting on activity.',
+    steps: [
+      'Browse the service category cards.',
+      'Use the category names to keep callout, quote, and invoice descriptions consistent.',
+      'Raise missing or unclear service types with an administrator instead of inventing new labels.',
+    ],
+    tips: [
+      'Consistent service wording improves reporting and billing review.',
+      'Use specific service names where possible, especially for quoted work.',
+    ],
+    faqs: [
+      { q: 'Can I add a service here?', a: 'No. Ask an administrator to update the catalogue.' },
+      { q: 'Why does the wording matter?', a: 'Finance and reports group work by service type.' },
+    ],
+    linked: 'Call Log, Quote Log, Reports.',
+    access: ['admin','sysadmin','manager','admin_clerk','senior_tech','call_logger','viewer','client_support','junior_tech','safety_officer'],
+  },
+  'p-contact': {
+    title: 'Enquiries',
+    sub: 'Contact and quote requests',
+    purpose: 'Capture a service enquiry or quote request when the work is not yet a confirmed operational call.',
+    steps: [
+      'Enter the contact and company details.',
+      'Select the closest service type.',
+      'Describe the requirement, site, timing, and urgency.',
+      'Submit the enquiry so the team can follow up.',
+    ],
+    tips: [
+      'Use this for early enquiries; use Call Log only when there is a real operational job.',
+      'Urgent security incidents should still be handled by phone.',
+    ],
+    faqs: [
+      { q: 'Is this a callout?', a: 'No. It is an enquiry until a job is confirmed and logged.' },
+      { q: 'Can existing clients use it?', a: 'Yes, especially for quote requests that are not yet operational work.' },
+    ],
+    linked: 'Clients, Quote Log, Call Log.',
+    access: ['admin','sysadmin','manager','admin_clerk','senior_tech','call_logger','viewer','client_support','junior_tech'],
+  },
+  'p-dashboard': {
+    title: 'Dashboard',
+    sub: 'Daily overview',
+    purpose: 'A cross-module snapshot of current work, finance status, compliance, and recent activity.',
+    steps: [
+      'Review open tasks and operational callouts separately.',
+      'Check urgent or overdue items first.',
+      'Review finance and safety summary panels for risks.',
+      'Open the linked page when a count needs action.',
+      'Use the audit feed for recent system activity.',
+    ],
+    tips: [
+      'Use Dashboard for triage, not detailed editing.',
+      'Refresh or revisit the page after major updates so counts reload.',
+    ],
+    faqs: [
+      { q: 'Why are tasks and callouts separate?', a: 'Internal company work belongs in Tracker streams; real client jobs belong in Call Log.' },
+      { q: 'Why did a number not change immediately?', a: 'Some panels refresh when the page is opened again.' },
+    ],
+    linked: 'Operations, Finance, Support.',
+    access: ['admin','sysadmin','manager','admin_clerk','senior_tech','call_logger','viewer','client_support','junior_tech','safety_officer'],
+  },
+  'p-ops-dashboard': {
+    title: 'Operations Overview',
+    sub: 'Operational workload',
+    purpose: 'A focused operations view for tasks, real callouts, technician workload, and operational follow-up.',
+    steps: [
+      'Review the tracker and callout workload.',
+      'Open Tracker to work Admin, Sales, General, or Call Log streams.',
+      'Use Call Log only for real client incidents and field jobs.',
+      'Move commercial quote review through Finance > Quote Log.',
+    ],
+    tips: [
+      'Quote Log now lives under Finance next to Overview.',
+      'Do not reopen a call just to create more documents; use Upgrade Call Type where appropriate.',
+    ],
+    faqs: [
+      { q: 'Where did Quote Log go?', a: 'Finance > Quote Log, directly next to Finance Overview.' },
+      { q: 'Where is Call Log?', a: 'Tracker has a Call Log tab for operational jobs.' },
+    ],
+    linked: 'Tracker, Call Log, Finance Quote Log.',
+    access: ['admin','sysadmin','manager','call_logger','senior_tech','junior_tech','client_support','admin_clerk','viewer'],
+  },
+  'p-tracker': {
+    title: 'Tracker',
+    sub: 'Tasks and call log',
+    purpose: 'Manage internal tasks in Admin, Sales, and General streams, plus operational callouts in the Call Log stream.',
+    steps: [
+      'Choose Admin, Sales, General, or Call Log.',
+      'Use internal streams for company work that is not a field job.',
+      'Use Call Log for real client service calls and incidents.',
+      'Open Record to manage schedule, descriptions, and files.',
+      'Use Upgrade Call Type from Call Log when additional quotes or invoices are needed.',
+    ],
+    tips: [
+      'A portal fix, payment follow-up, or internal admin action is a task, not a callout.',
+      'The Record popup preserves descriptions and files for audit traceability.',
+    ],
+    faqs: [
+      { q: 'When do I use Call Log?', a: 'Only for genuine operational jobs, incidents, or service work.' },
+      { q: 'Can I add files?', a: 'Yes. Use Files or the Record popup attachments area.' },
+    ],
+    linked: 'Dashboard, Quote Log, Invoices, Audit Log.',
+    access: ['admin','sysadmin','manager','admin_clerk','senior_tech','junior_tech','call_logger','viewer','safety_officer'],
+  },
+  'p-callouts': {
+    title: 'Call Log',
+    sub: 'Operational call records',
+    purpose: 'The auditable record of real client service jobs, incidents, site work, PO assignment, quotes, invoices, and supporting files.',
+    steps: [
+      'Search or filter the call list.',
+      'Expand a call to see assignment, PO, created details, location, and actions.',
+      'Use Update Status while the call is open or in progress.',
+      'Use Re-open Callout only for completed or invoiced calls that need lifecycle work reopened.',
+      'Use Upgrade Call Type when the same call legitimately needs more than one quote or invoice.',
+      'Enter a clear upgrade reason; it is saved and visible in the Audit Log.',
+    ],
+    tips: [
+      'Do not use Re-open Callout to unlock extra documents.',
+      'Standard calls allow one quote and one invoice; upgrades require administrator approval.',
+      'Assign a PO before invoicing where the client requires one.',
+    ],
+    faqs: [
+      { q: 'Why upgrade a call type?', a: 'Use it when a quote was declined and replaced, or when work is split into stages with separate commercial documents.' },
+      { q: 'Who approves an upgrade?', a: 'An administrator approves or rejects the pending upgrade request.' },
+      { q: 'Where can I see the reason?', a: 'The request reason is written into the Audit Log and stored on the call.' },
+    ],
+    linked: 'Tracker, Quote Log, Invoices, Audit Log.',
+    access: ['admin','sysadmin','manager','call_logger','senior_tech','junior_tech','client_support','admin_clerk','viewer'],
+  },
+  'p-quotes': {
+    title: 'Quote Log',
+    sub: 'Finance - quotations',
+    purpose: 'Manage quotes from draft through approval, rejection, and conversion to invoices. Quote Log is now part of Finance because it controls billable commercial documents.',
+    steps: [
+      'Open Finance > Quote Log.',
+      'Create a quote from a linked call log or review existing quotes.',
+      'Approve, reject, or convert eligible quotes based on your permissions.',
+      'If a call already has a quote and another is needed, request Upgrade Call Type from the Call Log.',
+      'Convert approved quotes to invoices when the quote is ready to bill.',
+    ],
+    tips: [
+      'Every quote must belong to exactly one call log.',
+      'Declined quotes stay on record; create another quote only after the call type is upgraded.',
+      'Use notes to explain scope and approval context.',
+    ],
+    faqs: [
+      { q: 'Why is Quote Log in Finance?', a: 'Quotes are commercial records that lead directly to invoices and revenue tracking.' },
+      { q: 'Can one call have multiple quotes?', a: 'Yes, but only after an administrator approves the Upgrade Call Type request.' },
+      { q: 'What happens to declined quotes?', a: 'They remain linked to the call for history and audit purposes.' },
+    ],
+    linked: 'Finance Overview, Call Log, Invoices, Audit Log.',
+    access: ['admin','sysadmin','manager','senior_tech','client_support','admin_clerk','viewer'],
+  },
+  'p-finance-dashboard': {
+    title: 'Finance Overview',
+    sub: 'Financial health',
+    purpose: 'A finance snapshot for quote flow, invoices, payments, outstanding balances, transactions, statements, and P&L review.',
+    steps: [
+      'Review outstanding and overdue invoices.',
+      'Open Quote Log from the Finance subnav when quote approval or conversion is needed.',
+      'Open Invoices to send invoices or mark them paid.',
+      'Open Transactions, Statements, P&L Ledger, Income Statement, or Reconciliation for deeper finance work.',
+    ],
+    tips: [
+      'Quote Log is next to Overview because quotes are the start of the billing chain.',
+      'Unpaid sent invoices should be followed up before they become overdue.',
+    ],
+    faqs: [
+      { q: 'Where do I approve quotes?', a: 'Finance > Quote Log.' },
+      { q: 'Where do I log received money?', a: 'Use Log Payment for invoice payments; use Transactions for raw bank movements.' },
+    ],
+    linked: 'Quote Log, Invoices, Transactions, Statements, P&L Ledger.',
+    access: ['admin','sysadmin','manager','admin_clerk'],
+  },
+  'p-invoices': {
+    title: 'Invoices',
+    sub: 'Billing records',
+    purpose: 'Create, review, send, and track invoices linked to approved quotes and their call logs.',
+    steps: [
+      'Review invoices by status, client, due date, and amount.',
+      'Create invoices from an approved quote or use New Invoice where permitted.',
+      'Confirm the invoice is linked to the correct quote and call log.',
+      'Use Send once the billing contact and amount are correct.',
+      'Use Mark Paid only after payment is confirmed.',
+    ],
+    tips: [
+      'Default invoice due date is 14 days after issue or submission, but it can be changed when different payment terms apply.',
+      'One quote may have one invoice. Multiple invoices on a call require multiple corresponding quotes.',
+    ],
+    faqs: [
+      { q: 'Can a call have multiple invoices?', a: 'Yes, when the call type is upgraded and each invoice has its corresponding quote.' },
+      { q: 'Can I use a custom due date?', a: 'Yes. The 14-day rule is only the default.' },
+    ],
+    linked: 'Quote Log, Call Log, Payments, Statements.',
+    access: ['admin','sysadmin','manager','client_support','admin_clerk','viewer'],
+  },
+  'p-new-invoice': {
+    title: 'New Invoice',
+    sub: 'Create from quote',
+    purpose: 'Create a draft invoice linked to one approved quote and one call log. This protects the quote-to-invoice audit chain.',
+    steps: [
+      'Select the client, linked call log, and approved quote.',
+      'Confirm the PO and invoice number if supplied.',
+      'Review the amount and status.',
+      'Use the default due date or enter a different due date if the payment terms require it.',
+      'Save the invoice and return to Invoices for sending or payment tracking.',
+    ],
+    tips: [
+      'The default due date is 14 days after the invoice issue date.',
+      'If the selected call already has an invoice, you may need an approved Upgrade Call Type before another invoice can be created.',
+    ],
+    faqs: [
+      { q: 'Why must I select a quote?', a: 'Every invoice must correspond to exactly one quote.' },
+      { q: 'Why can I not create another invoice?', a: 'The call may need an administrator-approved type upgrade first.' },
+    ],
+    linked: 'Invoices, Quote Log, Call Log.',
+    access: ['admin','sysadmin','manager','admin_clerk'],
+  },
+  'p-new-quote': {
+    title: 'New Quote',
+    sub: 'Draft quotation',
+    purpose: 'Create a quote for a selected call log. The quote can be approved, rejected, or converted into an invoice later.',
+    steps: [
+      'Select the client and linked call log.',
+      'Set the valid-until date.',
+      'Add itemised line items with quantity and unit price.',
+      'Add notes that explain scope, assumptions, or urgency.',
+      'Submit the quote for review or save according to your permission level.',
+    ],
+    tips: [
+      'A call can have a first quote normally. Additional quotes require an approved call type upgrade.',
+      'Keep declined quote history; do not overwrite it with the replacement scope.',
+    ],
+    faqs: [
+      { q: 'Can I quote without a call log?', a: 'No. Every quote must belong to one call log.' },
+      { q: 'Where will the quote appear?', a: 'Finance > Quote Log.' },
+    ],
+    linked: 'Quote Log, Call Log, Invoices.',
+    access: ['admin','sysadmin','manager','senior_tech'],
+  },
+  'p-log-payment': {
+    title: 'Log Payment',
+    sub: 'Invoice payment capture',
+    purpose: 'Record payment against one or more outstanding invoices and update invoice/payment history.',
+    steps: [
+      'Select the outstanding invoice or invoices being paid.',
+      'Enter the payment date, amount, and reference.',
+      'Add notes where the bank reference or allocation needs explanation.',
+      'Save the payment so invoice status and finance records update.',
+    ],
+    tips: [
+      'Only log cleared payments.',
+      'Use the exact bank reference so reconciliation is easier later.',
+    ],
+    faqs: [
+      { q: 'Can one payment cover multiple invoices?', a: 'Yes. Select the invoices covered by that payment.' },
+      { q: 'Should I also add a transaction manually?', a: 'No, use the payment flow for invoice payments so the invoice link is preserved.' },
+    ],
+    linked: 'Invoices, Transactions, Statements.',
+    access: ['admin','sysadmin','manager','admin_clerk'],
+  },
+  'p-transactions': {
+    title: 'Transactions',
+    sub: 'Bank movement log',
+    purpose: 'Track money in and money out for finance review, income statements, and reconciliation.',
+    steps: [
+      'Search or review transaction rows.',
+      'Log bank movements with date, description, reference, and amount where permitted.',
+      'Use invoice payment flows for invoice receipts rather than creating disconnected entries.',
+      'Review unusual or duplicate entries before month-end reporting.',
+    ],
+    tips: [
+      'Descriptions should identify the invoice, supplier, or reason.',
+      'Bank fees and supplier payments are expenses.',
+    ],
+    faqs: [
+      { q: 'Is this the same as Log Payment?', a: 'No. Log Payment updates invoice status; Transactions records bank movements.' },
+      { q: 'Can I correct a wrong transaction?', a: 'Ask an administrator if correction actions are not available to your role.' },
+    ],
+    linked: 'Invoices, Log Payment, Income Statement, Reconciliation.',
+    access: ['admin','sysadmin','manager','admin_clerk'],
+  },
+  'p-statement': {
+    title: 'Statements',
+    sub: 'Client account statements',
+    purpose: 'Generate and review statements showing invoices, payments, and outstanding balances.',
+    steps: [
+      'Select the client or statement context.',
+      'Review the invoices and balances included.',
+      'Generate or release the statement where permitted.',
+      'Use invoice and payment records to resolve discrepancies before sending.',
+    ],
+    tips: [
+      'Generate statements only after payments are captured.',
+      'Use this page for client account follow-up and dispute support.',
+    ],
+    faqs: [
+      { q: 'Why is a paid invoice still showing?', a: 'Check that its payment was logged against the correct invoice.' },
+      { q: 'Who can release statements?', a: 'Only roles with statement release permission.' },
+    ],
+    linked: 'Invoices, Payments, Clients.',
+    access: ['admin','sysadmin','manager','client_support','admin_clerk'],
+  },
+  'p-pl-ledger': {
+    title: 'P&L Ledger',
+    sub: 'Profit and loss detail',
+    purpose: 'Review income, supplier costs, remittances, bank confirmations, and monthly P&L detail for the account.',
+    steps: [
+      'Use the ledger tabs to switch views.',
+      'Compare sales invoices against remittances and bank-confirmed payments.',
+      'Review supplier costs and monthly profitability.',
+      'Investigate unreconciled items before relying on totals.',
+    ],
+    tips: [
+      'Bank-confirmed cash and invoice totals may differ because of timing.',
+      'Use this ledger for investigation, not quick daily billing actions.',
+    ],
+    faqs: [
+      { q: 'Why do totals differ between tabs?', a: 'Some tabs show invoiced amounts, while others show cash received or supplier costs.' },
+      { q: 'Where do I create invoices?', a: 'Use Invoices or Quote Log, not the ledger.' },
+    ],
+    linked: 'Invoices, Transactions, Income Statement, Reconciliation.',
+    access: ['admin','sysadmin','manager','admin_clerk'],
+  },
+  'p-income': {
+    title: 'Income Statement',
+    sub: 'Period result',
+    purpose: 'Summarise income and expenses for a selected period using captured finance data.',
+    steps: [
+      'Select the reporting period.',
+      'Review income, expenses, and net result.',
+      'Investigate unexpected values through Transactions or P&L Ledger.',
+      'Use the report after payments and expenses are captured.',
+    ],
+    tips: [
+      'Run this after reconciliation for the period.',
+      'Missing transactions produce misleading results.',
+    ],
+    faqs: [
+      { q: 'Does it include unpaid invoices?', a: 'It depends on the report basis shown in the page; verify against finance entries before sharing.' },
+      { q: 'Where do I fix wrong values?', a: 'Correct the underlying invoice, payment, or transaction record.' },
+    ],
+    linked: 'Transactions, P&L Ledger, Reconciliation.',
+    access: ['admin','sysadmin','manager','admin_clerk'],
+  },
+  'p-reconcile': {
+    title: 'Reconciliation',
+    sub: 'Compare portal to statement',
+    purpose: 'Compare portal finance data against external bank or client statements to find missing or duplicated entries.',
+    steps: [
+      'Enter or review the external statement balance.',
+      'Compare it to the portal-calculated balance.',
+      'Investigate any difference in Transactions, Payments, and Invoices.',
+      'Repeat after corrections until the difference is explained or cleared.',
+    ],
+    tips: [
+      'Reconcile before final reporting.',
+      'Keep notes for timing differences that will clear later.',
+    ],
+    faqs: [
+      { q: 'What if the difference is not zero?', a: 'Look for missing payments, duplicate transactions, or amounts captured against the wrong date.' },
+      { q: 'Does this replace accounting review?', a: 'No. It prepares cleaner data for accounting review.' },
+    ],
+    linked: 'Transactions, Log Payment, Income Statement.',
+    access: ['admin','sysadmin','manager','admin_clerk'],
+  },
+  'p-clients': {
+    title: 'Clients',
+    sub: 'Client master data',
+    purpose: 'Maintain client records used by callouts, quotes, invoices, statements, and reports.',
+    steps: [
+      'Search for the client before creating a new record.',
+      'Create or update client name, contact, billing email, and address details.',
+      'Keep billing details accurate before sending invoices or statements.',
+      'Deactivate rather than delete clients where history must remain.',
+    ],
+    tips: [
+      'Client data lives under Support because it supports every workflow.',
+      'Incorrect billing emails delay payment.',
+    ],
+    faqs: [
+      { q: 'Where are Clients now?', a: 'Support > Clients.' },
+      { q: 'Can I delete a client with history?', a: 'No. Preserve linked history and deactivate where appropriate.' },
+    ],
+    linked: 'Call Log, Quote Log, Invoices, Statements.',
+    access: ['admin','sysadmin','manager','admin_clerk','client_support'],
+  },
+  'p-support-dashboard': {
+    title: 'Support Overview',
+    sub: 'Support workspace',
+    purpose: 'A support hub for Site Timeline, Reports, Clients, Users & Roles, Safety Files, and Audit Log.',
+    steps: [
+      'Use the Support subnav to open timeline, reports, clients, users, safety files, or audit records.',
+      'Review support widgets for access, compliance, and recent activity.',
+      'Use Audit Log when you need to understand who changed what.',
+    ],
+    tips: [
+      'Site Timeline, Reports, and Clients now live under Support.',
+      'Support is for governance, visibility, records, and administration.',
+    ],
+    faqs: [
+      { q: 'Why are Clients under Support?', a: 'Client records support multiple workflows and are not only finance records.' },
+      { q: 'Where is Audit Log?', a: 'Support > Audit Log.' },
+    ],
+    linked: 'Site Timeline, Reports, Clients, Users & Roles, Safety Files, Audit Log.',
+    access: ['admin','sysadmin','manager','admin_clerk','viewer','client_support','safety_officer'],
+  },
+  'p-timeline': {
+    title: 'Site Timeline',
+    sub: 'Chronological activity',
+    purpose: 'Review site activity over time across operational and commercial records.',
+    steps: [
+      'Scroll through the timeline to see dated activity.',
+      'Open event summaries to understand what happened.',
+      'Use linked records to jump to Call Log or Quote Log when needed.',
+    ],
+    tips: [
+      'Timeline is read-only.',
+      'Use it to see activity patterns before drilling into records.',
+    ],
+    faqs: [
+      { q: 'Where is this page?', a: 'Support > Site Timeline.' },
+      { q: 'Can I edit records here?', a: 'No. Open the source record instead.' },
+    ],
+    linked: 'Call Log, Quote Log, Reports.',
+    access: ['admin','sysadmin','manager','call_logger','senior_tech','junior_tech','client_support','admin_clerk','viewer'],
+  },
+  'p-reports': {
+    title: 'Reports',
+    sub: 'Support reporting',
+    purpose: 'Open structured reports for support, activity, finance, safety, workforce, and uploaded document review.',
+    steps: [
+      'Choose the report view you need.',
+      'Use filters and exports where available.',
+      'Return to Support Overview to move to clients, timeline, safety, or audit pages.',
+    ],
+    tips: [
+      'Reports are under Support because they help review and explain operations.',
+      'Use source modules for edits; reports are for review.',
+    ],
+    faqs: [
+      { q: 'Where did Reports go?', a: 'Support > Reports.' },
+      { q: 'Why can I not edit from a report?', a: 'Reports summarize source data; edit the source page.' },
+    ],
+    linked: 'Support Overview, Site Timeline, Clients, Safety Files.',
+    access: ['admin','sysadmin','manager','client_support','admin_clerk','viewer'],
+  },
+  'p-users': {
+    title: 'Users & Roles',
+    sub: 'Access control',
+    purpose: 'Create users, manage roles, and keep access aligned with responsibilities.',
+    steps: [
+      'Review active users and roles.',
+      'Create new users only with the minimum access needed.',
+      'Edit roles or reset access where permitted.',
+      'Use Sign As carefully for support and verification tasks.',
+      'Review Audit Log for account changes.',
+    ],
+    tips: [
+      'Do not share accounts.',
+      'Deactivate accounts when access is no longer required.',
+    ],
+    faqs: [
+      { q: 'Who can manage users?', a: 'Only roles with security user permissions.' },
+      { q: 'Are user changes audited?', a: 'Yes. Account and role activity is written to Audit Log.' },
+    ],
+    linked: 'Audit Log, Support Overview.',
+    access: ['admin','sysadmin','manager','admin_clerk'],
+  },
+  'p-audit': {
+    title: 'Audit Log',
+    sub: 'System activity',
+    purpose: 'Review who did what and when, including call type upgrade requests and the reasons supplied.',
+    steps: [
+      'Search or filter the log for a user, action, reference, or reason.',
+      'Open recent entries to verify unexpected changes.',
+      'Check call type upgrade request entries for the submitted reason.',
+      'Use source pages to inspect the actual record.',
+    ],
+    tips: [
+      'Audit Log is read-only.',
+      'The upgrade reason is recorded so Finance and Support can understand why multiple documents were allowed.',
+    ],
+    faqs: [
+      { q: 'Can I edit audit entries?', a: 'No. Audit entries are evidence and must stay immutable.' },
+      { q: 'Why do I see upgrade reasons here?', a: 'They explain why a standard one quote and one invoice call was escalated.' },
+    ],
+    linked: 'Users & Roles, Call Log, Quote Log, Invoices.',
+    access: ['admin','sysadmin','manager','admin_clerk'],
+  },
+  'p-new-callout': {
+    title: 'Log New Call',
+    sub: 'Create call log',
+    purpose: 'Create a real operational call record for client incidents, service requests, and field jobs.',
+    steps: [
+      'Select the client and service.',
+      'Enter priority, schedule, location, and description.',
+      'Assign a technician if known.',
+      'Save the call so it appears in Tracker > Call Log.',
+    ],
+    tips: [
+      'Do not use this form for internal tasks.',
+      'Add enough detail for a technician or finance reviewer to understand the job later.',
+    ],
+    faqs: [
+      { q: 'Where does the call appear?', a: 'Tracker > Call Log.' },
+      { q: 'Can I add a quote after saving?', a: 'Yes, from the call actions when your role allows it.' },
+    ],
+    linked: 'Tracker, Call Log, Quote Log.',
+    access: ['admin','sysadmin','manager','call_logger','client_support'],
+  },
+  'p-new-task': {
+    title: 'New Task',
+    sub: 'Internal work item',
+    purpose: 'Create a task for internal Admin, Sales, or General work that is not a client callout.',
+    steps: [
+      'Choose the category stream.',
+      'Enter a clear title and description.',
+      'Set priority, owner, schedule, and due date.',
+      'Save the task so it appears in Tracker.',
+    ],
+    tips: [
+      'Tasks should have due dates so work does not disappear.',
+      'Use Call Log instead when the work is a real client job.',
+    ],
+    faqs: [
+      { q: 'Can a task have files?', a: 'Yes. Add files from the Tracker record popup after saving.' },
+      { q: 'Can I change the stream later?', a: 'Use the task record controls where permitted.' },
+    ],
+    linked: 'Tracker, Dashboard.',
+    access: ['admin','sysadmin','manager','admin_clerk','senior_tech','call_logger','junior_tech'],
+  },
+  'p-safety': {
+    title: 'Safety Files',
+    sub: 'Compliance records',
+    purpose: 'Manage safety file records, compliance status, review dates, and supporting documentation.',
+    steps: [
+      'Review safety file cards and status indicators.',
+      'Open a file to inspect its compliance detail and action plan.',
+      'Create a new audit where a formal review is required.',
+      'Use Audit Log for activity history where needed.',
+    ],
+    tips: [
+      'Expired or overdue safety files should be handled before field work continues.',
+      'Keep evidence attached to the file, not scattered across emails.',
+    ],
+    faqs: [
+      { q: 'Where do I start a safety audit?', a: 'Use + New Audit from Safety Files.' },
+      { q: 'Can support users view safety files?', a: 'Visibility depends on the safety permissions assigned to the role.' },
+    ],
+    linked: 'Safety Audit, Safety File Detail, Audit Log.',
+    access: ['admin','sysadmin','manager','senior_tech','junior_tech','call_logger','client_support','admin_clerk','viewer','safety_officer'],
+  },
+  'p-safety-audit': {
+    title: 'Safety Audit',
+    sub: 'Formal OHS review',
+    purpose: 'Capture a structured safety audit and produce a scored compliance record.',
+    steps: [
+      'Enter contractor, site, audit date, team, and scope.',
+      'Work through each checklist section.',
+      'Capture comments and non-compliance items.',
+      'Submit the audit to create or update the safety file detail.',
+    ],
+    tips: [
+      'Save evidence while you perform the audit.',
+      'Comments should explain the finding, not just repeat the score.',
+    ],
+    faqs: [
+      { q: 'Can I edit after submitting?', a: 'Only while the workflow permits it; approved records should remain controlled.' },
+      { q: 'Where do actions go?', a: 'They appear in the Safety File Detail action plan.' },
+    ],
+    linked: 'Safety Files, Safety File Detail, Audit Log.',
+    access: ['admin','sysadmin','manager','senior_tech','safety_officer'],
+  },
+  'p-safety-detail': {
+    title: 'Safety File Detail',
+    sub: 'Action plan and evidence',
+    purpose: 'Work through one safety file, its score, corrective actions, people, documents, and evidence.',
+    steps: [
+      'Review the score and section summaries.',
+      'Work through open action plan items.',
+      'Attach evidence and update action status.',
+      'Use generated documents or trackers where needed.',
+      'Approve only when critical evidence is complete.',
+    ],
+    tips: [
+      'Do not close findings without evidence.',
+      'Use notes to capture owner and due date for actions.',
+    ],
+    faqs: [
+      { q: 'What do the score colours mean?', a: 'Green is compliant, yellow needs monitoring, orange needs action, red is critical.' },
+      { q: 'Can I share the action plan?', a: 'Use the tracker/export options where available.' },
+    ],
+    linked: 'Safety Files, Safety Audit, Audit Log.',
+    access: ['admin','sysadmin','manager','senior_tech','safety_officer'],
+  },
+});
+
 /* Per-page permission capabilities (for role-specific guidance) */
 const PAGE_PERMS = {
   'p-callouts': [
@@ -2184,13 +2813,13 @@ const PAGE_PERMS = {
 /* Per-page quick navigation actions (filtered to user's permissions at render time) */
 const PAGE_ACTIONS = {
   'p-dashboard':         [{ label:'Operations', page:'p-ops-dashboard' }, { label:'Finance', page:'p-finance-dashboard' }, { label:'Support', page:'p-support-dashboard' }],
-  'p-ops-dashboard':     [{ label:'Tracker', page:'p-tracker', perm:'task.view' }, { label:'Quotes', page:'p-quotes', perm:'quote.view' }],
+  'p-ops-dashboard':     [{ label:'Tracker', page:'p-tracker', perm:'task.view' }],
   'p-timeline':          [{ label:'Tracker', page:'p-tracker', perm:'task.view' }, { label:'Quotes', page:'p-quotes', perm:'quote.view' }],
   'p-callouts':          [{ label:'Tracker', page:'p-tracker', perm:'task.view' }, { label:'+ Log Call', page:'p-new-callout', perm:'capture.new_callout' }],
   'p-tracker':           [{ label:'+ New Task', page:'p-new-task', perm:'task.create' }],
   'p-new-task':          [{ label:'Tracker', page:'p-tracker', perm:'task.view' }],
   'p-quotes':            [{ label:'+ Submit Quote', page:'p-new-quote', perm:'capture.new_quote' }, { label:'Tracker', page:'p-tracker', perm:'task.view' }, { label:'Invoices', page:'p-invoices', perm:'invoice.view' }],
-  'p-finance-dashboard': [{ label:'P&L Ledger', page:'p-pl-ledger', perm:'finance.income' }, { label:'Invoices', page:'p-invoices', perm:'invoice.view' }, { label:'Transactions', page:'p-transactions', perm:'finance.transactions' }],
+  'p-finance-dashboard': [{ label:'Quote Log', page:'p-quotes', perm:'quote.view' }, { label:'P&L Ledger', page:'p-pl-ledger', perm:'finance.income' }, { label:'Invoices', page:'p-invoices', perm:'invoice.view' }, { label:'Transactions', page:'p-transactions', perm:'finance.transactions' }],
   'p-pl-ledger':         [{ label:'Invoices', page:'p-invoices', perm:'invoice.view' }, { label:'Income Stmt', page:'p-income', perm:'finance.income' }, { label:'Reconciliation', page:'p-reconcile', perm:'finance.transactions' }],
   'p-invoices':          [{ label:'+ New Invoice', page:'p-new-invoice', perm:'capture.new_invoice' }, { label:'Log Payment', page:'p-log-payment', perm:'capture.log_payment' }, { label:'Statements', page:'p-statement', perm:'finance.statement' }],
   'p-statement':         [{ label:'Invoices', page:'p-invoices', perm:'invoice.view' }, { label:'Clients', page:'p-clients' }],
@@ -3884,10 +4513,41 @@ async function saveCalloutService(id){
 }
 
 async function requestDocumentEscalation(id){
-  const reason=prompt('Why is this call being upgraded for additional quotes or invoices?')?.trim();
-  if(!reason)return;
+  const c=proxyDB.callouts.find(x=>x.id===id);if(!c)return;
+  const existingReason=(c.documentEscalationReason||'').trim();
+  openModal(`Upgrade Call Type - ${esc(c.jobNo||c.id)}`,`
+    <div class="att-ctx mb-14">
+      <div class="mlbl-9 mb-4">Call Log</div>
+      <div class="fs-13 fw-600">${esc(c.service||'-')}</div>
+      <div class="fs-11 text-muted mt-2">${esc(c.id)}  -  ${esc(c.client||'')}  -  ${pillH(c.status)}</div>
+    </div>
+    <div class="upgrade-call-copy">
+      <p>Standard calls are kept to one quote and one invoice so the audit trail is simple: one scope, one approved price, one bill.</p>
+      <p>Use an upgrade only when this same call needs extra commercial documents, for example a declined quote that must be replaced, or work that is split into multiple stages. The request goes to an administrator before more quotes or invoices are unlocked.</p>
+      <p>The reason you enter here is saved on the call and written to the Audit Log, so the finance and support teams can understand why the normal one-to-one rule was changed.</p>
+    </div>
+    <div class="fgrid mt-12">
+      <div class="fgroup"><label class="flbl">Current quotes</label><input class="finput" value="${Number(c.quoteCount)||0}" disabled></div>
+      <div class="fgroup"><label class="flbl">Current invoices</label><input class="finput" value="${Number(c.invoiceCount)||0}" disabled></div>
+    </div>
+    <div class="fgroup mt2">
+      <label class="flbl">Reason for upgrade <span class="req">*</span></label>
+      <textarea class="finput" id="doc-escalation-reason" rows="5" maxlength="500" placeholder="Example: First quote was declined by client; creating revised scope for stage 2.">${esc(existingReason)}</textarea>
+      <div class="ro-note mt-4">Be specific. This reason appears in the audit record and helps administrators approve or reject the request.</div>
+    </div>
+    <div class="modal-actions-row">
+      <button class="btn btn-g" data-action="closeModalDirect">Cancel</button>
+      <button class="btn btn-p" data-action="saveDocumentEscalationRequest" data-id="${esc(c.id)}">Send for Approval</button>
+    </div>`);
+  setTimeout(()=>document.getElementById('doc-escalation-reason')?.focus(),0);
+}
+
+async function saveDocumentEscalationRequest(id){
+  const reason=document.getElementById('doc-escalation-reason')?.value.trim()||'';
+  if(!reason){toast('Enter the reason for upgrading this call type','err');return;}
   const r=await api('PUT',`callouts.php?id=${encodeURIComponent(id)}`,{action:'request_document_escalation',reason});
   if(!r.success){toast(r.error||'Call type upgrade request failed','err');return;}
+  closeModalDirect();
   await refreshCallouts();
   renderCallouts(document.getElementById('co-search')?.value||'',document.getElementById('co-filter')?.value||'');
   toast('Call type upgrade sent for administrator approval','ok');
@@ -4106,6 +4766,7 @@ function renderQuotes(search='',filter=''){
   const canApprove=can('quote.approve');
   const canConvert=can('quote.convert');
   const canDel=can('quote.delete');
+  const canSend=can('quote.update');
 
   const btn=document.getElementById('btn-newq');
   if(btn){ can('capture.new_quote')?$show(btn):$hide(btn); }
@@ -4116,7 +4777,9 @@ function renderQuotes(search='',filter=''){
     const submitterCell=submitter?`${esc(submitter.name)}<div class="mlbl-9 mt-2">${esc(ROLE_LABELS[submitter.role]||submitter.role)}</div>`:'<span class="text-muted">-</span>';
     const actions=[];
     actions.push(`<button class="btn btn-g btn-s" data-action="previewQuote" data-id="${esc(q.id)}">View</button>`);
+    actions.push(`<button class="btn btn-g btn-s" data-action="downloadQuotePdf" data-id="${esc(q.id)}">PDF</button>`);
     actions.push(`<button class="btn btn-g btn-s" data-action="openAttachmentsModal" data-entity-type="quote" data-entity-ref="${esc(q.id)}">Files</button>`);
+    if(canSend&&q.status!=='Draft'&&q.status!=='Rejected'&&q.status!=='Declined') actions.push(`<button class="btn btn-p btn-s" data-action="openSendQuoteModal" data-id="${esc(q.id)}">Send</button>`);
     if(canApprove&&q.approvalStatus==='pending'){
       actions.push(`<button class="btn btn-s bg-grn" data-action="approveQuote" data-id="${esc(q.id)}">Approve</button>`);
       actions.push(`<button class="btn btn-s bg-emb" data-action="rejectQuote" data-id="${esc(q.id)}">Decline</button>`);
@@ -4133,6 +4796,42 @@ function renderQuotes(search='',filter=''){
       <td><div class="bgrp">${actions.join('')}</div></td>
     </tr>`;
   }).join(''):'<tr><td colspan="7" class="tc-empty">No quotes</td></tr>';
+}
+
+function openSendQuoteModal(id){
+  const q=proxyDB.quotes.find(x=>x.id===id);if(!q)return;
+  const {total}=quoteTotals(q);
+  if(total<=0){toast('Set the quote total before sending','err');return;}
+  openModal(`Send Quote - ${q.id}`,`
+    <div class="att-ctx mb-14">
+      <div class="fs-12 fw-600">${esc(q.id)} - ${esc(q.client)}</div>
+      <div class="fs-11 text-muted mt-2">Total: R ${Number(total).toLocaleString('en-ZA',{minimumFractionDigits:2})} - Valid until: ${fmtD(q.validUntil)}</div>
+    </div>
+    <div class="fgroup">
+      <label class="flbl">Send to (email address) <span class="text-ember">*</span></label>
+      <input class="finput" id="sq-email" type="email" value="${esc(q.clientEmail||'')}" placeholder="client@company.co.za">
+    </div>
+    <div class="fs-10 text-muted mt-4 mb-14">
+      The quote will be emailed with a generated PDF attachment and the action will be recorded in the Audit Log.
+    </div>
+    <div class="mt3 flex-end"><button class="btn btn-p" data-action="sendQuoteEmail" data-id="${esc(q.id)}">Send Quote</button></div>
+  `);
+}
+
+async function sendQuoteEmail(id){
+  const email=document.getElementById('sq-email')?.value?.trim();
+  if(!email){toast('Email address required','err');return;}
+  const r=await api('PUT',`quotes.php?id=${id}`,{action:'send_quote',to_email:email});
+  if(!r.success){toast(r.error||'Error sending quote','err');return;}
+  await refreshQuotes();
+  renderQuotes('');
+  closeModalDirect();
+  toast(`Quote ${id} sent to ${email}`,'ok');
+}
+
+function downloadQuotePdf(id){
+  if(!id){toast('Quote reference missing','err');return;}
+  window.open(`${API_BASE}/quotes.php?action=download_pdf&id=${encodeURIComponent(id)}`,'_blank','noopener');
 }
 
 function approveQuote(id){
@@ -4178,6 +4877,7 @@ function previewQuote(id){
       </div>
       <div class="doc-note">${esc(co.name||'BlackFire Solutions')}${co.reg?` · Reg: ${esc(co.reg)}`:''}${co.vat?` · VAT: ${esc(co.vat)}`:''}</div>
     </div>
+    <div class="mt-12 flex-end"><button class="btn btn-g" data-action="downloadQuotePdf" data-id="${esc(id)}">Download PDF</button></div>
     <div id="attach-modal-area" class="inv-att-area"></div>`);
   loadAttachments('quote', id);
 }
@@ -4265,6 +4965,7 @@ function renderInvoices(search='',filter=''){
     <tr><td class="mono">${esc(inv.invoiceNo)}${inv.invoiceNo!==inv.id?`<div class="mlbl-9 mt-2 text-muted">${esc(inv.id)}</div>`:''}</td><td>${esc(inv.client)}</td><td class="amt">${fmt(inv.amount)}</td><td class="tc-11 nowrap">${fmtD(inv.dueDate)}</td><td>${pillH(inv.status)}</td>
     <td><div class="bgrp">
       <button class="btn btn-g btn-s" data-action="previewInvoice" data-id="${esc(inv.id)}">View</button>
+      <button class="btn btn-g btn-s" data-action="downloadInvoicePdf" data-id="${esc(inv.id)}">PDF</button>
       ${inv.calloutRef?`<button class="btn btn-g btn-s" data-action="openRecordChain" data-id="${esc(inv.calloutRef)}">Callout</button>`:'<span class="pill overdue">Missing Callout</span>'}
       <button class="btn btn-g btn-s" data-action="openAttachmentsModal" data-entity-type="invoice" data-entity-ref="${esc(inv.id)}">Files</button>
       ${canSend&&inv.status!=='Paid'&&inv.status!=='Cancelled'&&inv.amount>0?`<button class="btn btn-p btn-s" data-action="openSendInvoiceModal" data-id="${esc(inv.id)}">Send</button>`:''}
@@ -4286,7 +4987,7 @@ function openSendInvoiceModal(id){
       <input class="finput" id="si-email" type="email" value="${esc(inv.clientEmail||'')}" placeholder="client@company.co.za">
     </div>
     <div class="fs-10 text-muted mt-4 mb-14">
-      The invoice will be sent from noreply@blackfiresolutions.co.za and the invoice status will change to Sent.
+      The invoice will be emailed with a generated PDF attachment and the invoice status will change to Sent.
     </div>
     <div class="mt3 flex-end"><button class="btn btn-p" data-action="sendInvoiceEmail" data-id="${esc(inv.id)}">Send Invoice</button></div>
   `);
@@ -4301,6 +5002,11 @@ async function sendInvoiceEmail(id){
   renderInvoices('');
   closeModalDirect();
   toast(`Invoice ${id} sent to ${email}`,'ok');
+}
+
+function downloadInvoicePdf(id){
+  if(!id){toast('Invoice reference missing','err');return;}
+  window.open(`${API_BASE}/invoices.php?action=download_pdf&id=${encodeURIComponent(id)}`,'_blank','noopener');
 }
 
 function previewInvoice(id){
@@ -4327,6 +5033,7 @@ function previewInvoice(id){
       <div class="mt-12">${pillH(inv.status)}</div>
       <div class="doc-note">${esc(co2.name||'BlackFire Solutions')}${co2.reg?` · Reg: ${esc(co2.reg)}`:''}${co2.vat?` · VAT: ${esc(co2.vat)}`:''}</div>
     </div>
+    <div class="mt-12 flex-end"><button class="btn btn-g" data-action="downloadInvoicePdf" data-id="${esc(id)}">Download PDF</button></div>
     <div id="attach-modal-area" class="inv-att-area"></div>`);
   loadAttachments('invoice', id);
 }
@@ -7603,6 +8310,7 @@ function _buildTrackerHTML(o) {
   const origApplicable    = o.origApplicable;
   const baselineScore     = base;
   const storageKey        = 'bf_tracker_' + o.fileId;
+  const storageKeyJson    = JSON.stringify(storageKey);
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -7875,10 +8583,27 @@ const TOTAL_APPLICABLE = ${totalApplicable};
 const ORIG_PASS = ${origPass};
 const ORIG_APPLICABLE = ${origApplicable};
 const BASELINE = ${baselineScore};
-const KEY = '${storageKey}';
+const KEY = ${storageKeyJson};
 
-function loadState(){ try{ return JSON.parse(localStorage.getItem(KEY)||'{}'); } catch{ return {}; } }
-function saveState(s){ localStorage.setItem(KEY, JSON.stringify(s)); }
+let memoryState = {};
+let storageAvailable = true;
+function loadState(){
+  try{
+    const raw = window.localStorage ? window.localStorage.getItem(KEY) : null;
+    return raw ? JSON.parse(raw) : memoryState;
+  } catch(e){
+    storageAvailable = false;
+    return memoryState;
+  }
+}
+function saveState(s){
+  memoryState = {...s};
+  try{
+    if(window.localStorage) window.localStorage.setItem(KEY, JSON.stringify(s));
+  } catch(e){
+    storageAvailable = false;
+  }
+}
 let state = { ...INITIAL_STATE, ...loadState() };
 saveState(state);
 function getStatus(id)     { return state[id]?.status     ||'open'; }
@@ -7902,7 +8627,7 @@ function render(){
     sec.items.forEach(item=>{
       const tr=document.createElement('tr');
       tr.className='p-'+item.priority; tr.dataset.id=item.id; tr.dataset.section=sec.id;
-      tr.dataset.criteria=item.criteria.toLowerCase(); tr.dataset.comment=(item.comment||'').toLowerCase();
+      tr.dataset.criteria=String(item.criteria||'').toLowerCase(); tr.dataset.comment=String(item.comment||'').toLowerCase();
       const st=getStatus(item.id); const nt=getNotes(item.id); const rj=getRejection(item.id);
       tr.innerHTML='<td class="num"><span class="dot"></span>'+item.id+'</td>'
         +'<td style="font-size:9px;color:var(--muted);white-space:nowrap">'+escH(item.ref)+'</td>'
@@ -7951,13 +8676,15 @@ function updateScore(){
   rf.style.stroke=color; rp.style.color=color; rp.textContent=projectedScore.toFixed(1)+'%'; rt.textContent=tag; rt.style.color=color;
   pb.style.width=pct+'%'; pb.style.background=color;
   const sub=state._submission;
+  const storageLine=storageAvailable?'':'<br><span style="color:var(--amber)">Browser storage is blocked. Progress is kept only while this tracker tab remains open.</span>';
   const subLine=sub?'Submitted: <strong style="color:var(--green)">'+sub.score.toFixed(1)+'% ('+sub.tag+')</strong> on '+fmtDate(sub.at)+'<br>':'';
   se.innerHTML='Projected score: <strong>'+projectedScore.toFixed(1)+'%</strong> ('+tag+')<br>'
     +'Baseline audit: <strong>'+BASELINE+'%</strong><br>'
     +subLine
     +'Fixed: <strong style="color:var(--green)">'+done+'</strong> / '+TOTAL_APPLICABLE
     +' &nbsp;WIP: <strong style="color:var(--amber)">'+wip+'</strong>'
-    +' &nbsp;Open: <strong style="color:var(--red)">'+open+'</strong>';
+    +' &nbsp;Open: <strong style="color:var(--red)">'+open+'</strong>'
+    +storageLine;
 }
 
 function fmtDate(iso){ const d=new Date(iso); return d.toLocaleDateString('en-ZA',{day:'numeric',month:'short',year:'numeric'})+' '+d.toLocaleTimeString('en-ZA',{hour:'2-digit',minute:'2-digit'}); }
@@ -8016,11 +8743,23 @@ function toggleGuide(){
   document.getElementById('guideOverlay').classList.toggle('open');
 }
 
-render();
-renderSubmission();
-document.getElementById('filterSection').value = '';
-document.getElementById('filterStatus').value = '';
-applyFilters();
+function showFatal(err){
+  console.error('Action tracker failed to load', err);
+  const c=document.getElementById('content');
+  if(c) c.innerHTML='<div style="margin:24px;padding:18px;border:1px solid var(--red-bdr);background:var(--red-bg);color:var(--red);border-radius:6px"><strong>Action tracker could not load.</strong><br><span style="color:var(--text2)">Please send this error to support: '+escH(err&&err.message?err.message:String(err))+'</span></div>';
+  const se=document.getElementById('scoreMeta');
+  if(se) se.textContent='Load failed - see error below';
+}
+
+try{
+  render();
+  renderSubmission();
+  document.getElementById('filterSection').value = '';
+  document.getElementById('filterStatus').value = '';
+  applyFilters();
+} catch(err) {
+  showFatal(err);
+}
 </script>
 </body>
 </html>`;

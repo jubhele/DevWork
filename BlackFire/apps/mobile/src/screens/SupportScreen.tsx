@@ -39,7 +39,7 @@ export default function SupportScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Text style={styles.heading}>Support</Text>
-      <Text style={styles.sub}>Account and assistance</Text>
+      <Text style={styles.sub}>Clients, reports, timeline and assistance</Text>
 
       <Text style={styles.section}>My Account</Text>
       <View style={styles.card}>
@@ -50,6 +50,15 @@ export default function SupportScreen() {
         <InfoRow label="Email" value={user?.email ?? '—'} />
         <View style={styles.divider} />
         <InfoRow label="Role" value={ROLE_DISPLAY[user?.role ?? ''] ?? (user?.role ?? '—')} />
+      </View>
+
+      <Text style={styles.section}>Support Areas</Text>
+      <View style={styles.card}>
+        <InfoRow label="Clients" value="Support-owned records for jobs, quotes and invoices" />
+        <View style={styles.divider} />
+        <InfoRow label="Reports" value="Support-owned oversight and reporting area" />
+        <View style={styles.divider} />
+        <InfoRow label="Site Timeline" value="Support-owned site history and activity view" />
       </View>
 
       <Text style={styles.section}>Contacts</Text>

@@ -20,7 +20,29 @@ $user   = require_auth();
 $method = $_SERVER['REQUEST_METHOD'];
 $ref_id = clean($_GET['id'] ?? '', 20);
 
+function stream_pdf_attachment(array $attachment): void {
+    while (ob_get_level()) ob_end_clean();
+    $filename = basename((string)($attachment['filename'] ?? 'document.pdf'));
+    $content = (string)($attachment['content'] ?? '');
+    header('Content-Type: application/pdf');
+    header('Content-Disposition: attachment; filename="' . str_replace(['"', '\\'], '', $filename) . '"');
+    header('Content-Length: ' . strlen($content));
+    header('X-Content-Type-Options: nosniff');
+    header('Cache-Control: private, no-cache');
+    echo $content;
+    exit;
+}
+
 // ── GET — List ─────────────────────────────────────────
+if ($method === 'GET' && clean($_GET['action'] ?? '', 30) === 'download_pdf') {
+    require_perm('invoice.view');
+    if (!$ref_id) json_err('Missing id');
+    $inv = db_row("SELECT * FROM bf_invoices WHERE ref_id = ?", [$ref_id]);
+    if (!$inv) json_err('Invoice not found', 404);
+    require_once __DIR__ . '/../includes/mailer.php';
+    stream_pdf_attachment(invoice_pdf_attachment($inv));
+}
+
 if ($method === 'GET') {
     require_perm('invoice.view');
     $pg     = get_pagination();

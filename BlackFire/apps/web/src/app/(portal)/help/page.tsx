@@ -106,7 +106,7 @@ const SECTIONS = [
     purpose:
       'Create, track, and approve service quotations. Every approved quote can convert directly into an invoice, eliminating manual re-entry.',
     steps: [
-      'Navigate to Operations → Quotes, then click + Submit Quote.',
+      'Navigate to Finance -> Quote Log, then click + Submit Quote.',
       'Select the client, set a valid-until date, and add an internal reference note.',
       'Add line items: description, quantity, and unit rate. Keep labour and materials as separate lines.',
       'Submit — the quote moves to Pending Approval and the approver is notified.',
@@ -221,6 +221,69 @@ const SECTIONS = [
     ],
   },
 ]
+
+const guideOverrides = {
+  quotes: {
+    purpose:
+      'Create, track, and approve service quotations from Finance. Standard calls keep one quote and one matching invoice; upgraded call types can carry multiple quotes or staged invoices while keeping the original call log as the source record.',
+    steps: [
+      'Navigate to Finance -> Quote Log, then click + Submit Quote.',
+      'Select the client, set a valid-until date, and add an internal reference note.',
+      'Add line items: description, quantity, and unit rate. Keep labour and materials as separate lines.',
+      'Submit the quote for approval.',
+      'A Manager or Admin reviews: Approved unlocks Convert to Invoice; Declined returns with a reason.',
+      'If the same call needs another quote because work was declined, split, or staged, use Upgrade Call Type from the call log and enter a clear reason.',
+    ],
+    faqs: [
+      { q: 'Why is Quote Log under Finance?', a: 'Quotes are commercial documents, so the quote lifecycle now sits with Finance beside Overview and Invoices. Operations keeps only the work execution tracker.' },
+      { q: 'Can one call log have multiple quotes?', a: 'Only after an Administrator approves Upgrade Call Type. The reason is saved against the call and written to the Audit Log.' },
+      { q: 'What happens when a quote expires?', a: 'It is automatically marked Expired. A new quote must be raised with an updated valid-until date.' },
+    ],
+  },
+  invoices: {
+    purpose:
+      'Create invoices from scratch, from approved quotes, or from callouts where billing is allowed. New invoices default to a due date 14 days after issue/submission, but the due date can be changed for agreed exceptions.',
+    steps: [
+      'Navigate to Finance -> Invoices to see all open and paid invoices.',
+      'Click + New Invoice to create from scratch, or use Convert to Invoice from an approved quote or allowed callout.',
+      'Review the due date. The default is issue/submission date + 14 days, but you may override it for agreed exceptions.',
+      'Send or download the invoice once line items and totals are correct.',
+      'When payment is received, click Log Payment to record it against the invoice. Partial payments are supported.',
+    ],
+    faqs: [
+      { q: 'Can I edit an invoice after sending?', a: 'Minor edits are allowed by Admins if no payment has been logged. Once a payment exists, the invoice is locked for audit integrity.' },
+      { q: 'Can a call log have multiple invoices?', a: 'Yes, after Upgrade Call Type approval. Each invoice should still correspond to its matching quote or billing stage so the commercial audit trail remains clear.' },
+      { q: 'What are Overdue Invoices on the dashboard?', a: 'Invoices where the due date has passed and no full payment is recorded. These should be chased immediately.' },
+    ],
+  },
+  finance: {
+    purpose:
+      'A real-time financial snapshot for Quote Log, invoices, collections, outstanding balances, and transaction activity. Use this daily to stay on top of cash flow.',
+    steps: [
+      'Navigate to Finance -> Overview.',
+      'Use Finance -> Quote Log for quotations and Finance -> Invoices for billing.',
+      'Review the KPI row: Total Invoiced, Total Collected, Outstanding Balance, and Overdue amount.',
+      'Use Ledger to verify that payments and transactions are being logged correctly.',
+    ],
+  },
+  support: {
+    sub: 'Clients, site records, reports, users, access, and audit',
+    purpose:
+      'Manage Support-owned reference and oversight areas: Clients, Site Timeline, Reports, users, roles, safety files, and the full Audit Log. Only Admins and Sysadmins can create or modify users.',
+    steps: [
+      'Navigate to Support -> Clients for client records used by call logs, quotes, and invoices.',
+      'Keep Site Timeline and Reports grouped under Support whenever those pages are enabled.',
+      'Navigate to Support -> Users & Roles to view all portal users.',
+      'Navigate to Support -> Audit Log to search all recorded actions across the portal.',
+      'Filter the Audit Log by user, date range, or action type to investigate Upgrade Call Type reasons and approvals.',
+    ],
+  },
+} as const
+
+SECTIONS.forEach(section => {
+  const override = guideOverrides[section.id as keyof typeof guideOverrides]
+  if (override) Object.assign(section, override)
+})
 
 function Section({ s }: { s: (typeof SECTIONS)[0] }) {
   return (

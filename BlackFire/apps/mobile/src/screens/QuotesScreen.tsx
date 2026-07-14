@@ -59,8 +59,8 @@ export default function QuotesScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.heading}>Quotes</Text>
-        <Text style={styles.sub}>Service quotations</Text>
+        <Text style={styles.heading}>Quote Log</Text>
+        <Text style={styles.sub}>Finance - service quotations</Text>
       </View>
 
       {loading && <ActivityIndicator color={colors.fireOrange} style={{ marginTop: spacing.xl }} />}

@@ -6,6 +6,7 @@
  * into a safety file section without needing a portal account.
  */
 require_once __DIR__ . '/includes/db.php';
+require_once __DIR__ . '/includes/file_storage.php';
 $cfg = require __DIR__ . '/config/config.php';
 date_default_timezone_set($cfg['timezone'] ?? 'Africa/Johannesburg');
 
@@ -75,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $rec && !$error) {
             } else {
                 $ext    = $mime_ext_map[$mime] ?? 'bin';
                 $stored = bin2hex(random_bytes(16)) . '.' . $ext;
-                $dir    = __DIR__ . '/uploads/attachments';
+                $dir    = bf_upload_dir();
                 if (!is_dir($dir)) mkdir($dir, 0755, true);
 
                 if (!move_uploaded_file($f['tmp_name'], $dir . '/' . $stored)) {

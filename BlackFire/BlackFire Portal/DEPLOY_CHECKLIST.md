@@ -128,6 +128,15 @@ public_html/
     └── attachments/    ← Create this, set permissions to 755
 ```
 
+If the live host is using the deployed `opload` folder instead, set `BF_UPLOAD_PATH` in cPanel to one of:
+
+```
+opload/attachments
+opload
+```
+
+The portal resolves existing attachment records from both `opload` and `uploads/attachments`, but new uploads are saved to `BF_UPLOAD_PATH` when it is configured.
+
 ---
 
 ## Step 7 — Verify

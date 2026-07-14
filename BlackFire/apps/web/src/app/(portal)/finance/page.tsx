@@ -41,6 +41,23 @@ export default async function FinancePage() {
             <KpiCard label="Overdue Amount" value={rnd(summary.overdue_amount)} tone="danger" />
           </KpiGrid>
 
+          <SectionCard title="Finance Workspace">
+            <div className="grid gap-4 p-5 md:grid-cols-3">
+              <Link href="/quotes" className="block border border-steel-dark bg-white p-5 transition-colors hover:border-fire-orange">
+                <p className="text-[11px] uppercase tracking-[0.22em] text-fire-orange">Quote Log</p>
+                <p className="mt-2 text-sm leading-6 text-ash">Create, review, approve, decline, and convert quotations.</p>
+              </Link>
+              <Link href="/invoices" className="block border border-steel-dark bg-white p-5 transition-colors hover:border-fire-orange">
+                <p className="text-[11px] uppercase tracking-[0.22em] text-fire-orange">Invoices</p>
+                <p className="mt-2 text-sm leading-6 text-ash">Issue invoices, track 14-day default due dates, and log payments.</p>
+              </Link>
+              <Link href="/finance#ledger" className="block border border-steel-dark bg-white p-5 transition-colors hover:border-fire-orange">
+                <p className="text-[11px] uppercase tracking-[0.22em] text-fire-orange">Ledger</p>
+                <p className="mt-2 text-sm leading-6 text-ash">Review credits, debits, and the transaction audit feed.</p>
+              </Link>
+            </div>
+          </SectionCard>
+
           <section id="ledger" className="space-y-6 scroll-mt-40">
             <div className="flex flex-col gap-2">
               <p className="text-[11px] uppercase tracking-[0.28em] text-ash">Ledger Deep-Dive</p>

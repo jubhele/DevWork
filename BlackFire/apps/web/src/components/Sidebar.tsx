@@ -14,11 +14,11 @@ interface NavItem {
 const NAV: NavItem[] = [
   { href: '/dashboard',         label: 'Dashboard' },
   { href: '/callouts',          label: 'Callouts',       permission: 'callout.view' },
-  { href: '/quotes',            label: 'Quotes',         permission: 'quote.view' },
-  { href: '/invoices',          label: 'Invoices',       permission: 'invoice.view' },
-  { href: '/safety',            label: 'Safety Files',   permission: 'safety.view' },
-  { href: '/clients',           label: 'Clients',        permission: 'callout.view' },
   { href: '/finance',           label: 'Finance',        permission: 'finance.income' },
+  { href: '/quotes',            label: 'Quote Log',      permission: 'quote.view' },
+  { href: '/invoices',          label: 'Invoices',       permission: 'invoice.view' },
+  { href: '/clients',           label: 'Clients',        permission: 'callout.view' },
+  { href: '/safety',            label: 'Safety Files',   permission: 'safety.view' },
   { href: '/admin/users',       label: 'Users',          permission: 'security.users' },
   { href: '/admin/audit',       label: 'Audit Log',      roles: ['sysadmin', 'admin'] },
 ]

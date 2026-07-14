@@ -98,6 +98,7 @@ function smtp_send(string $to, string $subject, string $body, bool $html = false
     $encName = '=?UTF-8?B?' . base64_encode($fromName) . '?=';
     $encSubj = '=?UTF-8?B?' . base64_encode($subject)  . '?=';
     $ctype   = $html ? 'text/html' : 'text/plain';
+    $attachments = mailer_normalize_attachments($options['attachments'] ?? []);
 
     $encReply = '=?UTF-8?B?' . base64_encode($replyTo) . '?=';
 
@@ -108,15 +109,61 @@ function smtp_send(string $to, string $subject, string $body, bool $html = false
     $msg .= "Subject: $encSubj\r\n";
     $msg .= "Message-ID: $msgId\r\n";
     $msg .= "MIME-Version: 1.0\r\n";
-    $msg .= "Content-Type: $ctype; charset=UTF-8\r\n";
-    $msg .= "Content-Transfer-Encoding: quoted-printable\r\n";
-    $msg .= "\r\n";
-    $msg .= quoted_printable_encode($body) . "\r\n.";
+    if ($attachments) {
+        $boundary = 'bf_mixed_' . bin2hex(random_bytes(12));
+        $msg .= "Content-Type: multipart/mixed; boundary=\"{$boundary}\"\r\n";
+        $msg .= "\r\n";
+        $msg .= "--{$boundary}\r\n";
+        $msg .= "Content-Type: $ctype; charset=UTF-8\r\n";
+        $msg .= "Content-Transfer-Encoding: quoted-printable\r\n\r\n";
+        $msg .= quoted_printable_encode($body) . "\r\n";
+        foreach ($attachments as $att) {
+            $filename = mailer_header_filename($att['filename']);
+            $mime = $att['mime_type'];
+            $msg .= "--{$boundary}\r\n";
+            $msg .= "Content-Type: {$mime}; name=\"{$filename}\"\r\n";
+            $msg .= "Content-Transfer-Encoding: base64\r\n";
+            $msg .= "Content-Disposition: attachment; filename=\"{$filename}\"\r\n\r\n";
+            $msg .= chunk_split(base64_encode($att['content']), 76, "\r\n");
+        }
+        $msg .= "--{$boundary}--\r\n.";
+    } else {
+        $msg .= "Content-Type: $ctype; charset=UTF-8\r\n";
+        $msg .= "Content-Transfer-Encoding: quoted-printable\r\n";
+        $msg .= "\r\n";
+        $msg .= quoted_printable_encode($body) . "\r\n.";
+    }
 
     $expect($cmd($msg), '250');
     $cmd('QUIT');
     fclose($sock);
     return true;
+}
+
+function mailer_header_filename(string $filename): string {
+    $filename = basename(str_replace(["\r", "\n", '"'], '', $filename));
+    return $filename !== '' ? $filename : 'document.pdf';
+}
+
+function mailer_normalize_attachments(array $attachments): array {
+    $out = [];
+    foreach ($attachments as $att) {
+        $filename = mailer_header_filename((string)($att['filename'] ?? 'document.pdf'));
+        $mime = (string)($att['mime_type'] ?? 'application/octet-stream');
+        $content = null;
+        if (array_key_exists('content', $att)) {
+            $content = (string)$att['content'];
+        } elseif (!empty($att['path']) && is_readable($att['path'])) {
+            $content = file_get_contents($att['path']);
+        }
+        if ($content === null || $content === '') continue;
+        $out[] = [
+            'filename' => $filename,
+            'mime_type' => $mime,
+            'content' => $content,
+        ];
+    }
+    return $out;
 }
 
 /**
@@ -126,15 +173,121 @@ function send_mail(
     string $to,
     string $subject,
     string $html_body,
-    ?string $reply_to = null
+    ?string $reply_to = null,
+    array $attachments = []
 ): bool {
     try {
         $opts = $reply_to ? ['reply_to' => $reply_to] : [];
+        if ($attachments) $opts['attachments'] = $attachments;
         return smtp_send($to, $subject, $html_body, true, $opts);
     } catch (RuntimeException $e) {
         error_log('send_mail SMTP error: ' . $e->getMessage());
         return false;
     }
+}
+
+function pdf_escape_text(string $text): string {
+    $text = str_replace(["\r\n", "\r"], "\n", $text);
+    $text = preg_replace('/[^\P{C}\n\t]/u', '', $text);
+    return str_replace(['\\', '(', ')'], ['\\\\', '\\(', '\\)'], $text);
+}
+
+function make_simple_pdf(string $title, array $lines): string {
+    $safeTitle = pdf_escape_text($title);
+    $content = "BT\n/F1 18 Tf\n50 790 Td\n({$safeTitle}) Tj\n/F1 10 Tf\n0 -28 Td\n";
+    $lineCount = 0;
+    foreach ($lines as $line) {
+        $parts = explode("\n", wordwrap((string)$line, 95, "\n", true));
+        foreach ($parts as $part) {
+            if ($lineCount >= 48) break 2;
+            $content .= '(' . pdf_escape_text($part) . ") Tj\n0 -14 Td\n";
+            $lineCount++;
+        }
+        if ($lineCount < 48) {
+            $content .= "0 -4 Td\n";
+            $lineCount++;
+        }
+    }
+    $content .= "ET";
+
+    $objects = [
+        "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n",
+        "2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n",
+        "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>\nendobj\n",
+        "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n",
+        "5 0 obj\n<< /Length " . strlen($content) . " >>\nstream\n{$content}\nendstream\nendobj\n",
+    ];
+
+    $pdf = "%PDF-1.4\n";
+    $offsets = [0];
+    foreach ($objects as $object) {
+        $offsets[] = strlen($pdf);
+        $pdf .= $object;
+    }
+    $xref = strlen($pdf);
+    $pdf .= "xref\n0 " . (count($objects) + 1) . "\n";
+    $pdf .= "0000000000 65535 f \n";
+    for ($i = 1; $i <= count($objects); $i++) {
+        $pdf .= sprintf("%010d 00000 n \n", $offsets[$i]);
+    }
+    $pdf .= "trailer\n<< /Size " . (count($objects) + 1) . " /Root 1 0 R >>\n";
+    $pdf .= "startxref\n{$xref}\n%%EOF";
+    return $pdf;
+}
+
+function quote_pdf_attachment(array $quote): array {
+    $ref = $quote['ref_id'] ?? $quote['quote_no'] ?? 'quote';
+    $items = $quote['items'] ?? [];
+    if (!$items && function_exists('db_select') && !empty($quote['id'])) {
+        $items = db_select("SELECT description, qty, unit_price FROM bf_quote_items WHERE quote_id = ? ORDER BY id", [(int)$quote['id']]);
+    }
+
+    $lines = [
+        'Client: ' . ($quote['client_name'] ?? ''),
+        'Quote Reference: ' . $ref,
+        'Quote Number: ' . ($quote['quote_no'] ?? $ref),
+        'Quote Date: ' . ($quote['quote_date'] ?? ''),
+        'Valid Until: ' . ($quote['valid_until'] ?? ''),
+        'Call Log: ' . ($quote['callout_ref'] ?? ''),
+        '',
+        'Line Items:',
+    ];
+    foreach ($items as $item) {
+        $qty = (float)($item['qty'] ?? 1);
+        $unit = (float)($item['unit_price'] ?? $item['unit'] ?? 0);
+        $lines[] = '- ' . ($item['description'] ?? $item['desc'] ?? '') . ' | Qty ' . $qty . ' | Unit R ' . number_format($unit, 2) . ' | Total R ' . number_format($qty * $unit, 2);
+    }
+    $lines[] = '';
+    $lines[] = 'Total: R ' . number_format((float)($quote['total_amount'] ?? $quote['total'] ?? 0), 2);
+    if (!empty($quote['notes'])) $lines[] = 'Notes: ' . $quote['notes'];
+
+    return [
+        'filename' => 'Quote_' . preg_replace('/[^A-Za-z0-9_-]/', '_', (string)$ref) . '.pdf',
+        'mime_type' => 'application/pdf',
+        'content' => make_simple_pdf('Quote ' . $ref, $lines),
+    ];
+}
+
+function invoice_pdf_attachment(array $invoice): array {
+    $ref = $invoice['ref_id'] ?? $invoice['invoice_no'] ?? 'invoice';
+    $lines = [
+        'Client: ' . ($invoice['client_name'] ?? ''),
+        'Invoice Reference: ' . $ref,
+        'Invoice Number: ' . ($invoice['invoice_no'] ?? $ref),
+        'Invoice Date: ' . ($invoice['invoice_date'] ?? ''),
+        'Due Date: ' . ($invoice['due_date'] ?? ''),
+        'Quote Reference: ' . ($invoice['quote_ref'] ?? ''),
+        'Call Log: ' . ($invoice['callout_ref'] ?? ''),
+        'Purchase Order: ' . ($invoice['po'] ?? ''),
+        '',
+        'Amount Due: R ' . number_format((float)($invoice['amount'] ?? 0), 2),
+    ];
+
+    return [
+        'filename' => 'Invoice_' . preg_replace('/[^A-Za-z0-9_-]/', '_', (string)$ref) . '.pdf',
+        'mime_type' => 'application/pdf',
+        'content' => make_simple_pdf('Invoice ' . $ref, $lines),
+    ];
 }
 
 function send_approval_request(
@@ -225,7 +378,7 @@ function send_invoice_email(array $invoice, string $to_email): bool {
     $html  = "<html><body style='font-family:Arial,sans-serif;color:#333'>";
     $html .= "<h2>{$company} — Invoice {$ref}</h2>";
     $html .= "<p>Dear " . htmlspecialchars($invoice['client_name'] ?? 'Client') . ",</p>";
-    $html .= "<p>Please find your invoice details below.</p>";
+    $html .= "<p>Please find your invoice attached as a PDF. The key details are also shown below for quick reference.</p>";
     $html .= "<div style='border:1px solid #ddd;padding:14px;margin:16px 0;background:#f9f9f9'>";
     $html .= "<p><strong>Invoice Reference:</strong> {$ref}</p>";
     $html .= "<p><strong>Invoice Date:</strong> " . htmlspecialchars($invoice['invoice_date'] ?? '') . "</p>";
@@ -242,7 +395,40 @@ function send_invoice_email(array $invoice, string $to_email): bool {
     $html .= "<hr><p style='font-size:11px;color:#888'>{$company} — automated notification. Do not reply to this email.</p>";
     $html .= "</body></html>";
 
-    return send_mail($to_email, "Invoice {$ref} from {$company}", $html);
+    return send_mail($to_email, "Invoice {$ref} from {$company}", $html, $co_email, [
+        invoice_pdf_attachment($invoice),
+    ]);
+}
+
+/**
+ * Send a specific quote to a client by email with a PDF attachment.
+ */
+function send_quote_email(array $quote, string $to_email): bool {
+    $cfg      = require __DIR__ . '/../config/config.php';
+    $company  = $cfg['company_name'] ?? 'BlackFire Solutions';
+    $co_email = $cfg['company_email'] ?? 'info@blackfiresolutions.co.za';
+    $ref      = $quote['ref_id'] ?? '';
+
+    $html  = "<html><body style='font-family:Arial,sans-serif;color:#333'>";
+    $html .= "<h2>{$company} - Quote {$ref}</h2>";
+    $html .= "<p>Dear " . htmlspecialchars($quote['client_name'] ?? 'Client') . ",</p>";
+    $html .= "<p>Please find your quote attached as a PDF. The key details are also shown below for quick reference.</p>";
+    $html .= "<div style='border:1px solid #ddd;padding:14px;margin:16px 0;background:#f9f9f9'>";
+    $html .= "<p><strong>Quote Reference:</strong> " . htmlspecialchars($ref) . "</p>";
+    $html .= "<p><strong>Quote Date:</strong> " . htmlspecialchars($quote['quote_date'] ?? '') . "</p>";
+    $html .= "<p><strong>Valid Until:</strong> " . htmlspecialchars($quote['valid_until'] ?? '') . "</p>";
+    if (!empty($quote['callout_ref'])) {
+        $html .= "<p><strong>Call Log:</strong> " . htmlspecialchars($quote['callout_ref']) . "</p>";
+    }
+    $html .= "<p><strong>Total:</strong> R " . number_format((float)($quote['total_amount'] ?? 0), 2) . "</p>";
+    $html .= "</div>";
+    $html .= "<p>Please review the attached quote. For queries contact <a href='mailto:{$co_email}'>{$co_email}</a>.</p>";
+    $html .= "<hr><p style='font-size:11px;color:#888'>{$company} - automated notification. Do not reply to this email.</p>";
+    $html .= "</body></html>";
+
+    return send_mail($to_email, "Quote {$ref} from {$company}", $html, $co_email, [
+        quote_pdf_attachment($quote),
+    ]);
 }
 
 /**

@@ -30,6 +30,12 @@ Active model: GPT-5 Codex with reasoning (Codex complex-task trust 8/10) — Sta
 - Invoice due dates now default to issue/submission date plus 14 days, while manually supplied due dates remain supported.
 - `Q-140125-0001` was checked in the database: it is a rejected AECI competitor benchmark quote with no current callout link; its notes name `CO-2025-0001` / `CP0934` and `CO-2025-0003` / `CP1028` as comparable BlackFire work, but the migration was not applied because preflight still contains unresolved orphan records.
 - The session close-hook compatibility path `C:\DevWork\scripts\session-log-update.ps1` should exist and delegate to the canonical `C:\DevWork\.claude\scripts\session-log-update.ps1` script.
+- Quote Log ownership must be consistent across platforms: PHP portal, Next web, and mobile app all place Quote Log in Finance, not Operations.
+- Upgrade Call Type must use an explanatory modal, require a reason, and include that reason in administrator audit history.
+- Help/page-guide content must be updated on every active platform surface so users see the same process rules regardless of PHP, Next, or app entry point.
+- Uploaded file links must resolve through the related record and tolerate the deployed server upload folder (`opload`) as well as legacy `uploads/attachments`.
+- Quote and invoice send actions must email the client with a generated PDF attachment, not only an HTML email body.
+- The standalone BF-SHE-FRM-010 action tracker must either render its rows or show a visible load error; it must not sit indefinitely at 0% / Loading with a blank grid.
 
 ## Work Done
 - Constitution, memory index, and session-log schema verified at session start.
@@ -43,6 +49,25 @@ Active model: GPT-5 Codex with reasoning (Codex complex-task trust 8/10) — Sta
 - Created a clean cPanel-restorable pre-migration database backup at `BlackFire Portal\_backups\portal_db_pre_quote_workflow_migration_clean_20260714_233130.sql`.
 - Re-ran PHP lint, `node --check`, all three quote/call/invoice regressions, and SELECT-only migration preflight. Code checks pass; migration preflight still blocks on orphan quotes and missing canonical quote rows for four legacy invoices.
 - Added `C:\DevWork\scripts\session-log-update.ps1` as a compatibility wrapper around the canonical `.claude` close-hook script and verified both paths return `[session-log] Not signed. Incomplete: Goal Status PENDING` for this pending session.
+- Replaced the PHP portal browser prompt for Upgrade Call Type with a branded modal explaining why upgrades are needed, the one-quote/one-invoice standard rule, and the audit impact; the submitted reason is now required.
+- Updated `api/callouts.php` so upgrade requests, approvals, and rejections include the submitted reason in the Audit Log and return a clearer migration-needed message if the new database columns are not present.
+- Moved PHP Quote Log navigation from Operations to Finance beside Overview; kept Site Timeline, Reports, and Clients under Support; refreshed portal page-guide content for all active portal pages.
+- Updated Next web navigation so Operations no longer owns Quotes/Clients, Finance shows Overview -> Quote Log -> Invoices, and Support owns Clients plus copy for Site Timeline/Reports.
+- Updated the Next Finance, Support, Quote Log, Operations, Sidebar, and Help pages to reflect Finance-owned Quote Log, Support-owned Clients/Reports/Timeline, 14-day invoice due defaults, and audited Upgrade Call Type reasons.
+- Updated the mobile app so Quote Log is removed from the Operations nested tabs and added as a Finance nested tab beside Finance Overview; mobile Finance and Support copy now reflects 14-day due defaults and Support-owned Clients/Reports/Timeline.
+- Created source backups under `BlackFire\_backups\multi_platform_quote_finance_20260715_004344217` before modifying Next/mobile files.
+- Re-ran PHP portal verification: `node --check portal.js`, `php -l api/callouts.php`, `quote-invoice-workflow-regression.ps1`, `invoice-callout-regression-1.ps1`, and `calllog-reopen-history-regression.ps1` all passed.
+- Re-ran platform checks: `pnpm --filter web typecheck` and `pnpm --filter mobile exec tsc --noEmit` passed. `pnpm --filter web test:portal-parity` could not run because the Next dev server was not running at `http://localhost:3000`.
+- Added shared attachment storage helpers in `includes/file_storage.php`; `api/files.php`, `external_upload.php`, and safety compliance delete now resolve attachment disk paths through the shared helper.
+- `api/files.php` now resolves attachments from configured `BF_UPLOAD_PATH`, `opload/attachments`, `opload`, or legacy `uploads/attachments`, and returns view/download URL metadata for listed attachments.
+- Attachment viewing now follows the related module permission (`quote.view`, `invoice.view`, `safety.view`) so users who can open a record can also open its uploaded files.
+- `includes/mailer.php` now supports multipart/mixed SMTP messages with attachments and generates simple server-side PDF bytes for invoices and quotes.
+- Invoice send now attaches a generated invoice PDF. Quote send was added to `api/quotes.php` and the PHP Quote Log UI now has a Send Quote modal/action.
+- Updated deployment guidance to document `BF_UPLOAD_PATH=opload/attachments` or `BF_UPLOAD_PATH=opload` for cPanel deployments that use the live `opload` folder.
+- Re-ran PHP lint for `file_storage.php`, `mailer.php`, `files.php`, `quotes.php`, `invoices.php`, `safety_compliance.php`, `external_upload.php`, and `config.php`; all passed. `node --check portal.js` and all three local regressions passed.
+- Hardened the generated standalone safety action tracker in `portal.js`: the storage key is JSON-encoded before injection, localStorage failures fall back to in-memory state, missing criteria text is guarded, and first render is wrapped with a visible fatal-error panel.
+- Added `tests/safety-tracker-standalone-regression.ps1` to verify the standalone tracker load contracts.
+- Re-ran `node --check portal.js`, the new standalone tracker regression, quote/invoice workflow regression, invoice/callout regression, and call-log reopen regression; all passed.
 
 ## Agent Accountability
 
@@ -63,6 +88,10 @@ Active model: GPT-5 Codex with reasoning (Codex complex-task trust 8/10) — Sta
 - Contain the application-only changes already pushed in commits `8cd1d49` and `42592e1` until application and schema can release together.
 - Treat pushed commit `3fde452` as a potential sensitive-data incident: restrict access, audit remote access, rotate applicable credentials/reset tokens, and remove the dump from Git history through an approved incident/history-rewrite process.
 - After migration, rerun integration tests and smoke-test `CO-BF-CP1723` and `CO-040726-0131`.
+- If parity screenshots are required, start the Next dev server (`pnpm -C C:\DevWork\BlackFire\apps\web dev`) and rerun `pnpm --filter web test:portal-parity`.
+- Set `BF_UPLOAD_PATH` on cPanel to the actual deployed upload folder before uploading this change; recommended value is `opload/attachments` if that is the server folder in use.
+- SMTP attachment behavior still needs a live-mail smoke test with real cPanel SMTP credentials because local tests cannot send mail without production SMTP configuration.
+- Re-upload the updated `portal.js` to cPanel and regenerate/open the action tracker again. If anything still fails, the tracker will now show the exact load error in the page instead of silently staying blank.
 
 ## Learnings
 - Application code and required schema must be released atomically; pushing APIs that reference unapplied columns creates immediate runtime risk.
@@ -72,6 +101,11 @@ Active model: GPT-5 Codex with reasoning (Codex complex-task trust 8/10) — Sta
 - Concurrent sessions require hash custody and a final live-file reread because tested files can be overwritten without merge conflicts.
 - Backup verification must confirm table count and actual `CREATE TABLE` / `INSERT INTO` content; a header-only dump is not a usable cPanel restore file.
 - Keep one canonical session-close implementation under `.claude\scripts`; additional provider/constitution paths should be wrappers so close-hook behavior cannot drift.
+- Cross-platform process changes should be treated as one product rule and verified in PHP, Next, and mobile together; otherwise navigation and guide copy diverge quickly.
+- Branded modals are safer than browser prompts for audited workflow decisions because they can explain business rules, show the affected record, and capture required reason text consistently.
+- Attachment storage should never be hardcoded in individual endpoints; a single resolver prevents cPanel folder-name drift from breaking file links.
+- Email send paths should generate the attachment on the server at send time so the client receives the actual commercial document even when they never log into the portal.
+- Blob-based standalone tools need defensive bootstrapping because storage/security/runtime errors otherwise leave static chrome visible while the data table never renders.
 
 ## Goal Status
 PENDING

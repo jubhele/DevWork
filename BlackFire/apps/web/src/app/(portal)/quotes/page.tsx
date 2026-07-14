@@ -24,7 +24,7 @@ export default async function QuotesPage() {
       <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="font-display text-5xl tracking-tight text-ink-text">Quote Log</h1>
-          <p className="mt-2 text-sm uppercase tracking-[0.28em] text-ash">Service quotations and approvals</p>
+          <p className="mt-2 text-sm uppercase tracking-[0.28em] text-ash">Finance - service quotations and approvals</p>
         </div>
         {canCreate && (
           <Link href="/quotes/new" className="rounded border border-fire-orange bg-fire-orange px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-white">

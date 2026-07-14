@@ -18,6 +18,7 @@ require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/helpers.php';
 require_once __DIR__ . '/../includes/tracker_records.php';
+require_once __DIR__ . '/../includes/file_storage.php';
 
 $cfg = require __DIR__ . '/../config/config.php';
 date_default_timezone_set($cfg['timezone'] ?? 'Africa/Johannesburg');
@@ -43,14 +44,21 @@ const ALLOWED_TYPES = [
 
 const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
 
-function attach_dir(): string {
-    return dirname(__DIR__) . '/uploads/attachments';
-}
-
 function attachment_can_view(array $user, array $attachment): bool {
     if (in_array($attachment['entity_type'], ['task', 'callout'], true)) {
         $record = tracker_record($attachment['entity_type'], $attachment['entity_ref']);
         return $record && tracker_can_view($user, $attachment['entity_type'], $record);
+    }
+    $perm_map = [
+        'quote'             => 'quote.view',
+        'invoice'           => 'invoice.view',
+        'payment'           => 'invoice.view',
+        'safety_file'       => 'safety.view',
+        'safety_compliance' => 'safety.view',
+        'safety_item'       => 'safety.view',
+    ];
+    if (isset($perm_map[$attachment['entity_type']]) && can($perm_map[$attachment['entity_type']])) {
+        return true;
     }
     $roles = task_user_roles($user);
     return count(array_intersect($roles, ['sysadmin', 'admin', 'manager'])) > 0
@@ -67,11 +75,21 @@ if ($method === 'GET' && $action === 'list') {
         $record = tracker_record($entity_type, $entity_ref);
         if (!$record) json_err('Tracker record not found', 404);
         if (!tracker_can_view($user, $entity_type, $record)) json_err('Permission denied', 403);
+    } else {
+        $perm_map = [
+            'quote'             => 'quote.view',
+            'invoice'           => 'invoice.view',
+            'payment'           => 'invoice.view',
+            'safety_file'       => 'safety.view',
+            'safety_compliance' => 'safety.view',
+            'safety_item'       => 'safety.view',
+        ];
+        if (isset($perm_map[$entity_type]) && !can($perm_map[$entity_type])) json_err('Permission denied', 403);
     }
 
     api_headers();
     $rows = db_select(
-        "SELECT f.id, f.original_name, f.file_size, f.mime_type,
+        "SELECT f.id, f.original_name, f.stored_name, f.file_size, f.mime_type,
                 COALESCE(u.username, '') AS uploaded_by, f.created_at
            FROM bf_attachments f
            LEFT JOIN bf_users u ON u.id = f.uploaded_by_id
@@ -79,6 +97,12 @@ if ($method === 'GET' && $action === 'list') {
           ORDER BY f.created_at DESC",
         [$entity_type, $entity_ref]
     );
+    foreach ($rows as &$row) {
+        $row['view_url'] = 'api/files.php?action=view&id=' . (int)$row['id'];
+        $row['download_url'] = 'api/files.php?action=download&id=' . (int)$row['id'];
+        $row['direct_url'] = bf_attachment_url($row['stored_name'] ?? '');
+        unset($row['stored_name']);
+    }
     json_ok(['attachments' => $rows]);
 }
 
@@ -94,7 +118,7 @@ if ($method === 'GET' && ($action === 'download' || $action === 'view')) {
         api_headers(); json_err('Permission denied', 403);
     }
 
-    $path = attach_dir() . '/' . $row['stored_name'];
+    $path = bf_attachment_disk_path($row['stored_name']);
     if (!file_exists($path)) { api_headers(); json_err('File not on disk', 404); }
 
     // Flush output buffers — we're streaming binary, not JSON
@@ -205,7 +229,7 @@ if ($method === 'POST') {
 
     $ext    = ALLOWED_TYPES[$mime];
     $stored = bin2hex(random_bytes(16)) . '.' . $ext; // random, unguessable name
-    $dir    = attach_dir();
+    $dir    = bf_upload_dir();
     if (!is_dir($dir) && !mkdir($dir, 0755, true)) {
         json_err('Cannot create upload directory');
     }
@@ -229,6 +253,9 @@ if ($method === 'POST') {
             'original_name' => basename($f['name']),
             'file_size'     => (int)$f['size'],
             'mime_type'     => $mime,
+            'view_url'      => 'api/files.php?action=view&id=' . (int)$att_id,
+            'download_url'  => 'api/files.php?action=download&id=' . (int)$att_id,
+            'direct_url'    => bf_attachment_url($stored),
             'uploaded_by'   => $user['username'],
             'created_at'    => date('Y-m-d H:i:s'),
         ]
@@ -250,7 +277,7 @@ if ($method === 'DELETE') {
         json_err('Permission denied', 403);
     }
 
-    $path = attach_dir() . '/' . $row['stored_name'];
+    $path = bf_attachment_disk_path($row['stored_name']);
     if (file_exists($path)) unlink($path);
     db_exec("DELETE FROM bf_attachments WHERE id = ?", [$id]);
 

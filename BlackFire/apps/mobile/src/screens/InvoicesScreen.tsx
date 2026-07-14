@@ -206,8 +206,8 @@ export default function InvoicesScreen() {
   const header = (
     <View>
       <View style={styles.header}>
-        <Text style={styles.heading}>Finance</Text>
-        <Text style={styles.sub}>Revenue, invoices and payments</Text>
+        <Text style={styles.heading}>Finance Overview</Text>
+        <Text style={styles.sub}>Revenue, invoices, 14-day default due dates and payments</Text>
       </View>
 
       <View style={styles.summary}>

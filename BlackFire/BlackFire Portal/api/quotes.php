@@ -20,6 +20,19 @@ $user   = require_auth();
 $method = $_SERVER['REQUEST_METHOD'];
 $ref_id = clean($_GET['id'] ?? '', 20);
 
+function stream_pdf_attachment(array $attachment): void {
+    while (ob_get_level()) ob_end_clean();
+    $filename = basename((string)($attachment['filename'] ?? 'document.pdf'));
+    $content = (string)($attachment['content'] ?? '');
+    header('Content-Type: application/pdf');
+    header('Content-Disposition: attachment; filename="' . str_replace(['"', '\\'], '', $filename) . '"');
+    header('Content-Length: ' . strlen($content));
+    header('X-Content-Type-Options: nosniff');
+    header('Cache-Control: private, no-cache');
+    echo $content;
+    exit;
+}
+
 // Attach line items to a quote row
 function attach_items(array $quotes): array {
     if (!$quotes) return [];
@@ -33,6 +46,16 @@ function attach_items(array $quotes): array {
 }
 
 // ── GET — List ─────────────────────────────────────────
+if ($method === 'GET' && clean($_GET['action'] ?? '', 30) === 'download_pdf') {
+    require_perm('quote.view');
+    if (!$ref_id) json_err('Missing id');
+    $quote = db_row("SELECT * FROM bf_quotes WHERE ref_id = ?", [$ref_id]);
+    if (!$quote) json_err('Quote not found', 404);
+    $rows = attach_items([$quote]);
+    require_once __DIR__ . '/../includes/mailer.php';
+    stream_pdf_attachment(quote_pdf_attachment($rows[0] ?? $quote));
+}
+
 if ($method === 'GET') {
     require_perm('quote.view');
     $pg   = get_pagination();
@@ -196,6 +219,31 @@ if ($method === 'PUT') {
         );
         audit($usr['username'], 'APPROVE', "Quote $ref_id {$new_status}");
         json_ok([], "Quote $ref_id $new_status");
+    }
+
+    if ($action === 'send_quote') {
+        require_perm('quote.update');
+        $quote = db_row("SELECT * FROM bf_quotes WHERE ref_id = ?", [$ref_id]);
+        if (!$quote) json_err('Quote not found', 404);
+
+        $to = clean($b['to_email'] ?? $quote['client_email'] ?? '', 150);
+        if (!$to || !filter_var($to, FILTER_VALIDATE_EMAIL)) json_err('Valid recipient email required');
+        if ((float)($quote['total_amount'] ?? 0) <= 0) json_err('Quote total must be set before sending');
+
+        require_once __DIR__ . '/../includes/mailer.php';
+        $rows = attach_items([$quote]);
+        $quote = $rows[0] ?? $quote;
+        $sent = send_quote_email($quote, $to);
+        if (!$sent) json_err('Failed to send quote email - check SMTP settings');
+
+        db_exec(
+            "UPDATE bf_quotes SET status = CASE WHEN status = 'Draft' THEN 'Sent' ELSE status END, client_email = ? WHERE ref_id = ?",
+            [$to, $ref_id]
+        );
+        audit($usr['username'], 'QUOTE_SENT', "Quote {$ref_id} sent to {$to} with PDF attachment");
+        $row = db_row("SELECT * FROM bf_quotes WHERE ref_id = ?", [$ref_id]);
+        $rows = attach_items([$row]);
+        json_ok(['data' => $rows[0] ?? $row], "Quote {$ref_id} sent to {$to}");
     }
 
     // Convert approved quote to a draft invoice
