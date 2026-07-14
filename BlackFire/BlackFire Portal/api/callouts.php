@@ -21,6 +21,13 @@ $user   = require_auth();
 $method = $_SERVER['REQUEST_METHOD'];
 $ref_id = clean($_GET['id'] ?? '', 20);
 
+function callout_document_escalation_schema_missing(Throwable $error): bool {
+    $message = $error->getMessage();
+    return stripos($message, 'document_escalation') !== false
+        || stripos($message, 'Unknown column') !== false
+        || stripos($message, 'SQLSTATE[42S22]') !== false;
+}
+
 // ── GET — Chain lookup ─────────────────────────────────
 if ($method === 'GET' && ($_GET['action'] ?? '') === 'chain') {
     require_perm('callout.view');
@@ -243,15 +250,12 @@ if ($method === 'PUT') {
                 [$reason, (int)$usr['id'], (int)$callout['id']]
             );
             db_commit();
-        } catch (RuntimeException $error) {
-            db_rollback();
-            if ($error->getMessage() === 'not_found') json_err('Callout not found', 404);
-            if ($error->getMessage() === 'already_approved') json_err('Additional quote/invoice functionality is already approved', 409);
-            json_err('Escalation request could not be saved');
         } catch (Throwable $error) {
             db_rollback();
             error_log('[Callout escalation request] ' . $error->getMessage());
-            if (stripos($error->getMessage(), 'document_escalation') !== false || stripos($error->getMessage(), 'Unknown column') !== false) {
+            if ($error instanceof RuntimeException && $error->getMessage() === 'not_found') json_err('Callout not found', 404);
+            if ($error instanceof RuntimeException && $error->getMessage() === 'already_approved') json_err('Additional quote/invoice functionality is already approved', 409);
+            if (callout_document_escalation_schema_missing($error)) {
                 json_err('Call type upgrade needs the quote/invoice workflow database migration before it can be saved', 503);
             }
             json_err('Escalation request could not be saved');
@@ -280,15 +284,12 @@ if ($method === 'PUT') {
                 [$approved ? 'approved' : 'rejected', (int)$usr['id'], (int)$callout['id']]
             );
             db_commit();
-        } catch (RuntimeException $error) {
-            db_rollback();
-            if ($error->getMessage() === 'not_found') json_err('Callout not found', 404);
-            if ($error->getMessage() === 'not_pending') json_err('This call has no pending escalation request', 409);
-            json_err('Escalation decision could not be saved');
         } catch (Throwable $error) {
             db_rollback();
             error_log('[Callout escalation decision] ' . $error->getMessage());
-            if (stripos($error->getMessage(), 'document_escalation') !== false || stripos($error->getMessage(), 'Unknown column') !== false) {
+            if ($error instanceof RuntimeException && $error->getMessage() === 'not_found') json_err('Callout not found', 404);
+            if ($error instanceof RuntimeException && $error->getMessage() === 'not_pending') json_err('This call has no pending escalation request', 409);
+            if (callout_document_escalation_schema_missing($error)) {
                 json_err('Call type upgrade needs the quote/invoice workflow database migration before it can be decided', 503);
             }
             json_err('Escalation decision could not be saved');
