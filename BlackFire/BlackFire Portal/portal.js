@@ -314,6 +314,8 @@ document.addEventListener('click', function(e) {
     case 'submitSignAs':         submitSignAs(); break;
     // Dashboard
     case 'showDashEditor':       showDashEditor(); break;
+    case 'showEmailDigestSettings': showEmailDigestSettings(); break;
+    case 'saveEmailDigestSettings': saveEmailDigestSettings(); break;
     case 'saveDashEditorPrefs':  saveDashEditorPrefs(); break;
     case 'setDashDefaultForAll':  setDashDefaultForAll(); break;
     case 'resetDashLayoutForAll': resetDashLayoutForAll(); break;
@@ -3626,17 +3628,7 @@ function renderOpsDashboard() {
     </div>`;
   }).join('');
 
-  const assigneeCounts = {};
-  activeTasks.forEach(t => {
-    const names = taskAssigneeName(t).split(',').map(s => s.trim()).filter(Boolean);
-    (names.length ? names : ['Unassigned']).forEach(name => { assigneeCounts[name] = (assigneeCounts[name] || 0) + 1; });
-  });
-  const assigneeMax = Math.max(...Object.values(assigneeCounts), 1);
-  const assigneeRows = Object.entries(assigneeCounts).sort((a,b)=>b[1]-a[1]).slice(0,6).map(([name,count])=>`
-    <div class="ops-load-row">
-      <div><strong>${esc(name)}</strong><span>${count} active task${count===1?'':'s'}</span></div>
-      <div class="prog-bar"><div class="prog-fill" data-w="${Math.max(5,Math.round(count/assigneeMax*100))}" data-bg="var(--amber)"></div></div>
-    </div>`).join('') || `<div class="empty-note">No assignee load yet.</div>`;
+  const assigneeRows = buildAssigneeLoadRows(activeTasks, 6, 'var(--amber)', 'No assignee load yet.');
 
   const priorityCards = priorityTasks.length
     ? priorityTasks.map(t=>{
@@ -3923,6 +3915,35 @@ function taskAssigneeName(t) {
     : (t.assignee_name || t.assigned_to || 'Unassigned');
 }
 
+function taskAssigneeNames(t) {
+  if (t.assignees && t.assignees.length) return t.assignees.map(a => a.name).filter(Boolean);
+  return [t.assignee_name || t.assigned_to || 'Unassigned'];
+}
+
+function buildAssigneeLoadRows(tasks, limit, color, emptyMessage) {
+  const loads = {};
+  tasks.forEach(task => {
+    taskAssigneeNames(task).forEach(name => {
+      const label = String(name || 'Unassigned').trim() || 'Unassigned';
+      loads[label] ||= {total:0, statuses:{}};
+      loads[label].total++;
+      loads[label].statuses[task.status] = (loads[label].statuses[task.status] || 0) + 1;
+    });
+  });
+  const rows = Object.entries(loads).sort((a,b)=>b[1].total-a[1].total).slice(0,limit);
+  const max = Math.max(...rows.map(([,load])=>load.total), 1);
+  return rows.map(([name,load]) => {
+    const statuses = ['Open','In Progress']
+      .filter(status => load.statuses[status])
+      .map(status => `<span class="ops-load-status ${TASK_STATUS_BADGE[status]||''}">${esc(status)} <b>${load.statuses[status]}</b></span>`)
+      .join('');
+    return `<div class="ops-load-row">
+      <div class="ops-load-copy"><strong>${esc(name)}</strong><span>${load.total} active task${load.total===1?'':'s'}</span><div class="ops-load-statuses">${statuses}</div></div>
+      <div class="prog-bar"><div class="prog-fill" data-w="${Math.max(5,Math.round(load.total/max*100))}" data-bg="${color}"></div></div>
+    </div>`;
+  }).join('') || `<div class="empty-note">${esc(emptyMessage)}</div>`;
+}
+
 function taskDueValue(t) {
   return t.due_at || t.due_date || '';
 }
@@ -4011,17 +4032,7 @@ function renderTracker(cat) {
     { label:'Due Today', value:activeItems.filter(t=>taskDueState(t)==='Due today').length, sub:'Same-day action' },
   ].map(c=>`<div class="ops-mini-card"><span>${c.label}</span><strong>${c.value}</strong><em>${c.sub}</em></div>`).join('');
 
-  const assigneeCounts = {};
-  activeItems.forEach(t => {
-    const names = taskAssigneeName(t).split(',').map(s => s.trim()).filter(Boolean);
-    (names.length ? names : ['Unassigned']).forEach(name => { assigneeCounts[name] = (assigneeCounts[name] || 0) + 1; });
-  });
-  const assigneeMax = Math.max(...Object.values(assigneeCounts), 1);
-  const assigneeRows = Object.entries(assigneeCounts).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([name,count])=>`
-    <div class="ops-load-row">
-      <div><strong>${esc(name)}</strong><span>${count} active</span></div>
-      <div class="prog-bar"><div class="prog-fill" data-w="${Math.max(5,Math.round(count/assigneeMax*100))}" data-bg="var(--blue)"></div></div>
-    </div>`).join('') || `<div class="empty-note">No active assignee load.</div>`;
+  const assigneeRows = buildAssigneeLoadRows(activeItems, 5, 'var(--blue)', 'No active assignee load.');
 
   const taskCards = items.length ? [...items].sort((a,b)=>taskUrgencyRank(a)-taskUrgencyRank(b)).map(t => {
     const dotCls  = TASK_PRIORITY_DOT[t.priority]  || 'bg-muted';
@@ -6381,6 +6392,53 @@ function confirmDialog(msg, opts = {}) {
     overlay.classList.add('show');
     cancelBtn?.focus();
   });
+}
+
+async function showEmailDigestSettings(){
+  const response = await api('GET', 'task_digest.php');
+  if(!response.success){ toast(response.error || 'Could not load email digest settings', 'err'); return; }
+  const prefs = response.preferences || {};
+  const weekdays = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  const viewRows = (response.allowed_views || []).map(view => `
+    <label class="digest-view-row">
+      <input type="checkbox" value="${esc(view.id)}"${(prefs.views||[]).includes(view.id)?' checked':''}>
+      <span>${esc(view.label)}</span>
+    </label>`).join('');
+  const lastDelivery = response.last_sent_at ? fmtDT(response.last_sent_at) : 'Not sent yet';
+  openModal('Email Digest Settings', `
+    <p class="dash-editor-hint">Receive your active tasks plus selected dashboard sections. Only sections available to your role can be subscribed to.</p>
+    <div class="digest-email-note">Delivery address: <strong>${esc(response.email||'No email configured')}</strong></div>
+    <label class="digest-enable-row"><input type="checkbox" id="digest-enabled"${prefs.enabled?' checked':''}><span>Enable scheduled email digest</span></label>
+    <div class="fgrid digest-schedule-grid">
+      <div class="fgroup"><label class="flbl" for="digest-frequency">Frequency</label><select class="finput" id="digest-frequency"><option value="daily"${prefs.frequency==='daily'?' selected':''}>Daily</option><option value="weekly"${prefs.frequency==='weekly'?' selected':''}>Weekly</option></select></div>
+      <div class="fgroup" id="digest-weekday-group"><label class="flbl" for="digest-weekday">Day</label><select class="finput" id="digest-weekday">${weekdays.map((day,index)=>`<option value="${index+1}"${Number(prefs.weekday)===index+1?' selected':''}>${day}</option>`).join('')}</select></div>
+      <div class="fgroup"><label class="flbl" for="digest-send-time">Send time</label><input class="finput" type="time" id="digest-send-time" value="${esc(prefs.send_time||'07:00')}"></div>
+    </div>
+    <div class="flbl digest-section-label">Dashboard sections</div>
+    <div class="digest-view-list" id="digest-view-list">${viewRows||'<div class="empty-note">No dashboard sections are available for your role.</div>'}</div>
+    <div class="digest-last-run">Last delivery: ${esc(lastDelivery)}${response.last_error?' · Last delivery failed':''}</div>
+    <div class="flex-end gap-10 mt-18"><button class="btn btn-g btn-s" data-action="closeModalDirect">Cancel</button><button class="btn btn-p btn-s" data-action="saveEmailDigestSettings">Save Subscription</button></div>`);
+  const frequency = document.getElementById('digest-frequency');
+  const syncWeekday = () => document.getElementById('digest-weekday-group')?.classList.toggle('d-none', frequency?.value !== 'weekly');
+  frequency?.addEventListener('change', syncWeekday);
+  syncWeekday();
+}
+
+async function saveEmailDigestSettings(){
+  const button = document.querySelector('[data-action="saveEmailDigestSettings"]');
+  if(button) button.disabled = true;
+  const payload = {
+    enabled: document.getElementById('digest-enabled')?.checked || false,
+    frequency: document.getElementById('digest-frequency')?.value || 'daily',
+    weekday: Number(document.getElementById('digest-weekday')?.value || 1),
+    send_time: document.getElementById('digest-send-time')?.value || '07:00',
+    views: [...document.querySelectorAll('#digest-view-list input[type="checkbox"]:checked')].map(input=>input.value),
+  };
+  const response = await api('PUT', 'task_digest.php', payload);
+  if(button) button.disabled = false;
+  if(!response.success){ toast(response.error || 'Could not save email digest settings', 'err'); return; }
+  closeModalDirect();
+  toast(response.message || 'Email digest settings saved', 'ok');
 }
 
 /* ═══════════════════════════════════════════════════════

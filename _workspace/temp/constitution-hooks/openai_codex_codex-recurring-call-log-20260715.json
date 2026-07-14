@@ -1,0 +1,14 @@
+﻿{
+    "provider":  "OpenAI Codex",
+    "session_id":  "codex-recurring-call-log-20260715",
+    "log_path":  "C:\\DevWork\\_workspace\\sessions\\agent_session_openai_codex_codex-recurr_20260715_014709.md",
+    "project_status":  "unresolved",
+    "project_name":  "UNRESOLVED",
+    "project_root":  "",
+    "project_source":  "outside_workspace",
+    "binding_version":  1,
+    "binding_updated_at":  "",
+    "prompt_count":  0,
+    "created_at":  "2026-07-15T01:47:09.6816193+02:00",
+    "updated_at":  "2026-07-15T01:47:09.6900784+02:00"
+}
