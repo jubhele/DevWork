@@ -1,0 +1,14 @@
+﻿{
+    "provider":  "Unknown",
+    "session_id":  "BF-CALLLOG-001-FQA",
+    "log_path":  "C:\\DevWork\\BlackFire\\sessions\\agent_session_unknown_bf-calllog-0_20260714_184739.md",
+    "project_status":  "resolved",
+    "project_name":  "BlackFire",
+    "project_root":  "C:\\DevWork\\BlackFire",
+    "project_source":  "explicit_user_binding",
+    "binding_version":  1,
+    "binding_updated_at":  "2026-07-14T18:47:39.9781159+02:00",
+    "prompt_count":  0,
+    "created_at":  "2026-07-14T18:47:39.9205060+02:00",
+    "updated_at":  "2026-07-14T18:47:39.9781159+02:00"
+}

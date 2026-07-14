@@ -1,0 +1,14 @@
+﻿{
+    "provider":  "Unknown",
+    "session_id":  "codex-updating-quote-process-rules-20260714-001",
+    "log_path":  "C:\\DevWork\\BlackFire\\sessions\\agent_session_unknown_codex-updati_20260714_185105.md",
+    "project_status":  "resolved",
+    "project_name":  "BlackFire",
+    "project_root":  "C:\\DevWork\\BlackFire",
+    "project_source":  "explicit_user_binding",
+    "binding_version":  1,
+    "binding_updated_at":  "2026-07-14T18:51:26.6735585+02:00",
+    "prompt_count":  4,
+    "created_at":  "2026-07-14T18:51:05.7051995+02:00",
+    "updated_at":  "2026-07-14T22:42:34.0277813+02:00"
+}

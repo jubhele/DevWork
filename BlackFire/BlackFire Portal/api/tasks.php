@@ -196,7 +196,7 @@ if ($method === 'POST') {
     $title       = clean($body['title'] ?? '', 255);
     $description = clean($body['description'] ?? '', 2000);
     $priority    = clean($body['priority'] ?? 'Normal', 20);
-    $due_date    = valid_date($body['due_date'] ?? null) ? $body['due_date'] : null;
+    $due_date    = valid_date($body['due_date'] ?? null) ? $body['due_date'] : date('Y-m-d', strtotime('+1 day'));
     $start_at    = tracker_datetime($body['start_at'] ?? null);
     $end_at      = tracker_datetime($body['end_at'] ?? null);
     $due_at      = tracker_datetime($body['due_at'] ?? null);
@@ -320,7 +320,7 @@ if ($method === 'PUT') {
     }
     if (array_key_exists('due_date', $body)) {
         $set[]    = 'due_date = ?';
-        $params[] = valid_date($body['due_date'] ?? null) ? $body['due_date'] : null;
+        $params[] = valid_date($body['due_date'] ?? null) ? $body['due_date'] : date('Y-m-d', strtotime('+1 day'));
         $changed[] = 'due_date';
     }
     foreach (['start_at', 'end_at', 'due_at'] as $field) {
@@ -332,7 +332,7 @@ if ($method === 'PUT') {
             $changed[] = $field;
             if ($field === 'due_at') {
                 $set[] = 'due_date = ?';
-                $params[] = $value ? substr($value, 0, 10) : null;
+                $params[] = $value ? substr($value, 0, 10) : date('Y-m-d', strtotime('+1 day'));
             }
         }
     }

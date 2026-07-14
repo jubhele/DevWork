@@ -252,6 +252,10 @@ document.addEventListener('click', function(e) {
     case 'openInvoiceFromCallout': openInvoiceFromCallout(el.dataset.id); break;
     case 'openConfirmClosureModal': openConfirmClosureModal(el.dataset.id); break;
     case 'saveConfirmClosure':   saveConfirmClosure(el.dataset.id); break;
+    case 'toggleCalloutDetails': toggleCalloutDetails(el); break;
+    case 'reopenCallout':        reopenCallout(el.dataset.id); break;
+    case 'openEditCalloutService': openEditCalloutService(el.dataset.id,el); break;
+    case 'saveCalloutService':   saveCalloutService(el.dataset.id); break;
     case 'deleteCallout':        deleteCallout(el.dataset.id); break;
     case 'openRecordChain':      openRecordChain(el.dataset.id); break;
     // Operations — quotes
@@ -691,13 +695,10 @@ function populateLinkedDropdowns() {
   // Quote linked callout select (open/in-progress callouts that don't already have an approved quote)
   const nqCalloutEl = document.getElementById('nq-callout-ref');
   if (nqCalloutEl) {
-    const openCos = proxyDB.callouts.filter(c =>
-      ['Open','In Progress'].includes(c.status) &&
-      !proxyDB.quotes.some(q => q.calloutRef === c.id && q.status === 'Approved')
-    );
+    const openCos = proxyDB.callouts.filter(c => c.quoteCount === 0 || c.hasReopenHistory);
     const coOpts  = openCos.map(c => `<option value="${esc(c.id)}">${esc(c.id)} — ${esc(c.service)} (${esc(c.client)})</option>`).join('');
     const cur = nqCalloutEl.value;
-    nqCalloutEl.innerHTML = '<option value="">— None (standalone quote) —</option>' + coOpts;
+    nqCalloutEl.innerHTML = '<option value="">— Select Call Log —</option>' + coOpts;
     if (cur) nqCalloutEl.value = cur;
   }
 
@@ -708,16 +709,18 @@ function populateLinkedDropdowns() {
   if (niQuoteEl) {
     const niClientId  = parseInt(document.getElementById('ni-client')?.value) || 0;
     const niCalloutId = document.getElementById('ni-callout-ref')?.value || '';
-    const quotes = proxyDB.quotes.filter(q => {
-      if (niCalloutId && q.calloutRef === niCalloutId) return true;
-      return q.status === 'Approved' && (!niClientId || q.clientId === niClientId);
-    });
+    const invoicedQuoteRefs = new Set(proxyDB.invoices.map(i => i.ref));
+    const quotes = proxyDB.quotes.filter(q =>
+      q.status === 'Approved' && !invoicedQuoteRefs.has(q.id) &&
+      (!niCalloutId || q.calloutRef === niCalloutId) &&
+      (!niClientId || q.clientId === niClientId)
+    );
     const qOpts = quotes.map(q => {
       const note = q.status !== 'Approved' ? ` (${esc(q.status)})` : '';
       return `<option value="${esc(q.id)}">${esc(q.quoteNo)} — ${esc(q.client)}${note}</option>`;
     }).join('');
     const cur = niQuoteEl.value;
-    niQuoteEl.innerHTML = '<option value="">— None —</option>' + qOpts;
+    niQuoteEl.innerHTML = '<option value="">— Select Approved Quote —</option>' + qOpts;
     if (cur) niQuoteEl.value = cur;
   }
 
@@ -725,10 +728,13 @@ function populateLinkedDropdowns() {
   const niCalloutEl = document.getElementById('ni-callout-ref');
   if (niCalloutEl) {
     const niClientId = parseInt(document.getElementById('ni-client')?.value) || 0;
-    const callouts = proxyDB.callouts.filter(c => c.status === 'Completed' && (!niClientId || c.clientId === niClientId));
+    const callouts = proxyDB.callouts.filter(c =>
+      (!niClientId || c.clientId === niClientId) &&
+      (c.invoiceCount === 0 || c.hasReopenHistory)
+    );
     const coOpts2  = callouts.map(c => `<option value="${esc(c.id)}">${esc(c.id)} — ${esc(c.service)}</option>`).join('');
     const cur = niCalloutEl.value;
-    niCalloutEl.innerHTML = '<option value="">— Select Completed Callout —</option>' + coOpts2;
+    niCalloutEl.innerHTML = '<option value="">— Select Call Log —</option>' + coOpts2;
     if (cur) niCalloutEl.value = cur;
   }
 }
@@ -768,6 +774,9 @@ function normalizeCallout(c) {
     startAt:          c.start_at || '',
     endAt:            c.end_at || '',
     dueAt:            c.due_at || '',
+    hasReopenHistory: Number(c.has_reopen_history) === 1,
+    quoteCount:        Number(c.quote_count) || 0,
+    invoiceCount:      Number(c.invoice_count) || 0,
   };
 }
 function normalizeQuote(q) {
@@ -3638,8 +3647,8 @@ async function loadTrackerUpdates(entityType, refId, canEdit) {
   const area = document.getElementById('tracker-updates-area');
   if (!area) return;
   const r = await api('GET', `tracker_updates.php?entity_type=${entityType}&entity_ref=${encodeURIComponent(refId)}`);
-  const rows = r.data || [];
-  area.innerHTML = rows.length ? rows.map((row, index) => `<div class="panel mb-12"><div class="pb"><div class="flex-between fs-10 text-muted mb-12"><span>Record ${index+1} · ${esc(row.created_by||'')}</span><span>${Number(row.revision_count||0)} revision(s)</span></div><div class="fgroup"><label class="flbl">Label</label><input class="finput" id="tr-label-${row.id}" value="${esc(row.label)}" maxlength="120" ${canEdit?'':'disabled'}></div><div class="fgroup mt2"><label class="flbl">Description</label><textarea class="finput" id="tr-content-${row.id}" rows="4" maxlength="10000" ${canEdit?'':'disabled'}>${esc(row.content)}</textarea></div>${canEdit?`<div class="flex-end mt2"><button class="btn btn-g btn-s" data-action="saveTrackerUpdate" data-update-id="${row.id}">Save Edit</button></div>`:''}</div></div>`).join('') : '<div class="tc-empty">No description records yet.</div>';
+  const rows = (r.data || []).map(row => ({...row, systemImmutable:String(row.source_kind||'').startsWith('system_')}));
+  area.innerHTML = rows.length ? rows.map((row, index) => `<div class="panel mb-12"><div class="pb"><div class="flex-between fs-10 text-muted mb-12"><span>Record ${index+1} · ${esc(row.created_by||'')}</span><span>${row.systemImmutable?'System record - immutable':`${Number(row.revision_count||0)} revision(s)`}</span></div><div class="fgroup"><label class="flbl">Label</label><input class="finput" id="tr-label-${row.id}" value="${esc(row.label)}" maxlength="120" ${canEdit&&!row.systemImmutable?'':'disabled'}></div><div class="fgroup mt2"><label class="flbl">Description</label><textarea class="finput" id="tr-content-${row.id}" rows="4" maxlength="10000" ${canEdit&&!row.systemImmutable?'':'disabled'}>${esc(row.content)}</textarea></div>${canEdit&&!row.systemImmutable?`<div class="flex-end mt2"><button class="btn btn-g btn-s" data-action="saveTrackerUpdate" data-update-id="${row.id}">Save Edit</button></div>`:''}</div></div>`).join('') : '<div class="tc-empty">No description records yet.</div>';
 }
 
 async function saveTrackerSchedule(entityType, refId) {
@@ -3702,12 +3711,13 @@ function renderCallouts(search='',filter=''){
   const canTech=can('callout.assign_tech');
   const canDel=can('callout.delete');
   const canCreate=can('callout.create');
+  const isSysadmin=(SESSION?.roles?.length?SESSION.roles:[SESSION?.role]).includes('sysadmin');
 
   // Show/hide new callout button
   const btn=document.getElementById('btn-newco');if(btn){ canCreate?$show(btn):$hide(btn); }
 
-  const tbody=document.getElementById('co-table');
-  tbody.innerHTML=items.length?items.map(c=>{
+  const list=document.getElementById('co-table');
+  list.innerHTML=items.length?items.map(c=>{
     const poCell=c.po
       ?`<span class="mono fs-10">${esc(c.po)}</span>`
       :(canPO?`<button class="btn btn-g btn-s" data-action="openAssignPO" data-id="${esc(c.id)}">Assign</button>`:`<span class="text-muted fs-11">-</span>`);
@@ -3716,17 +3726,25 @@ function renderCallouts(search='',filter=''){
     const assignedDisplay=assignedUser?assignedUser.name:(c.tech||'-');
 
     const actions=[];
-    if(canStatus) actions.push(`<button class="btn btn-g btn-s" data-action="openStatusModal" data-id="${esc(c.id)}">Update Status</button>`);
+    if(isSysadmin) actions.push(`<button class="btn btn-g btn-s" data-action="openEditCalloutService" data-id="${esc(c.id)}">Edit Service</button>`);
+    if(canStatus&&!['Completed','Invoiced'].includes(c.status)) actions.push(`<button class="btn btn-g btn-s" data-action="openStatusModal" data-id="${esc(c.id)}">Update Status</button>`);
+    const canReopen=isSysadmin&&(['Completed','Invoiced'].includes(c.status)||((c.quoteCount>0||c.invoiceCount>0)&&!c.hasReopenHistory));
+    if(canReopen) actions.push(`<button class="btn btn-p btn-s" data-action="reopenCallout" data-id="${esc(c.id)}">Re-open Callout</button>`);
     if(canTech&&!c.assignedTo) actions.push(`<button class="btn btn-g btn-s" data-action="openAssignTech" data-id="${esc(c.id)}">Assign Tech</button>`);
-    const linkedQuote=proxyDB.quotes.find(q=>q.calloutRef===c.id);
-    const hasApprovedQuote=linkedQuote?.status==='Approved';
+    const linkedQuotes=proxyDB.quotes.filter(q=>q.calloutRef===c.id);
+    const linkedQuote=linkedQuotes[0];
+    const availableApprovedQuote=linkedQuotes.find(q=>q.status==='Approved'&&!proxyDB.invoices.some(i=>i.ref===q.id));
+    const hasApprovedQuote=!!availableApprovedQuote;
     if(!hasApprovedQuote&&(can('capture.new_quote')||can('quote.view'))){
       if(linkedQuote){
         const qLbl = linkedQuote.status==='Pending Approval' ? 'Quote (Pending)' : `Quote (${linkedQuote.status})`;
         actions.push(`<button class="btn btn-g btn-s" data-action="previewQuote" data-id="${esc(linkedQuote.id)}">${qLbl}</button>`);
-      } else if(can('capture.new_quote')&&!c.invoiceGenerated){
+      } else if(can('capture.new_quote')){
         actions.push(`<button class="btn btn-g btn-s" data-action="prefillQuoteFromJob" data-id="${esc(c.id)}">Quote</button>`);
       }
+    }
+    if(linkedQuotes.length>0&&c.hasReopenHistory&&can('capture.new_quote')){
+      actions.push(`<button class="btn btn-g btn-s" data-action="prefillQuoteFromJob" data-id="${esc(c.id)}">Add Quote</button>`);
     }
     actions.push(`<button class="btn btn-g btn-s" data-action="openRecordChain" data-id="${esc(c.id)}">View</button>`);
     actions.push(`<button class="btn btn-g btn-s" data-action="openTrackerRecord" data-entity-type="callout" data-id="${esc(c.id)}">Record</button>`);
@@ -3734,26 +3752,120 @@ function renderCallouts(search='',filter=''){
     if(can('callout.confirm_closure')&&c.status==='Completed'&&!c.closureConfirmed&&!c.invoiceGenerated){
       actions.push(`<button class="btn btn-p btn-s" data-action="openConfirmClosureModal" data-id="${esc(c.id)}">Confirm Closure</button>`);
     }
-    if(can('capture.new_invoice')&&c.status==='Completed'&&!c.invoiceGenerated){
+    if(can('capture.new_invoice')&&hasApprovedQuote&&(c.invoiceCount===0||c.hasReopenHistory)){
       actions.push(`<button class="btn ${hasApprovedQuote?'btn-p':'btn-g'} btn-s" data-action="openInvoiceFromCallout" data-id="${esc(c.id)}">Invoice</button>`);
     }
-    if(canDel) actions.push(`<button class="btn btn-g btn-s" data-action="deleteCallout" data-id="${esc(c.id)}">Del</button>`);
+    const isPermanentRecord=['Completed','Invoiced'].includes(c.status)||c.invoiceGenerated||c.closureConfirmed||c.hasReopenHistory;
+    if(canDel&&!isPermanentRecord) actions.push(`<button class="btn btn-g btn-s" data-action="deleteCallout" data-id="${esc(c.id)}">Del</button>`);
 
-    return`<tr>
-      <td class="mono">${esc(c.jobNo)}${c.jobNo!==c.id?`<div class="mlbl-9 mt-2 text-muted">${esc(c.id)}</div>`:''}</td>
-      <td class="tc-12 max-180">${esc(c.service)}<div class="mlbl-9 mt-2">${esc(c.location||'')}</div></td>
-      <td class="tc-11">${esc(assignedDisplay)}</td>
-      <td>${poCell}</td>
-      <td>${pillH(c.priority)}</td>
-      <td>${pillH(c.status)}</td>
-      <td class="fs-10 text-muted">${esc(loggedByUser?.name||c.loggedBy||'-')}</td>
-      <td class="tc-11 nowrap">${fmtDT(c.createdAt)}</td>
-      <td class="tc-11 nowrap">${fmtDT(c.startAt)}</td>
-      <td class="tc-11 nowrap">${fmtDT(c.endAt)}</td>
-      <td class="tc-11 nowrap">${fmtDT(c.dueAt)}</td>
-      <td><div class="bgrp">${actions.join('')}</div></td>
-    </tr>`;
-  }).join(''):'<tr><td colspan="12" class="tc-empty">'+(SESSION?.role==='junior_tech'||SESSION?.role==='senior_tech'?'No callouts assigned to you':'No callouts found')+'</td></tr>';
+    const detailId=`co-detail-${String(c.id).replace(/[^A-Za-z0-9_-]/g,'-')}`;
+    const field=(label,value,extraClass='')=>`<div class="calllog-field ${extraClass}"><span class="calllog-field-label">${label}</span><div class="calllog-field-value">${value}</div></div>`;
+    return`<article class="calllog-card" role="listitem" data-callout-id="${esc(c.id)}" aria-labelledby="${esc(detailId)}-job">
+      <div class="calllog-card-summary">
+        ${field('Job ID',`<span id="${esc(detailId)}-job" class="mono">${esc(c.jobNo)}</span>${c.jobNo!==c.id?`<span class="calllog-ref">${esc(c.id)}</span>`:''}`,'calllog-field-job')}
+        ${field('Service',esc(c.service),'calllog-field-service')}
+        ${field('Priority',pillH(c.priority))}
+        ${field('Status',pillH(c.status))}
+        ${field('Start',fmtDT(c.startAt))}
+        ${field('End',fmtDT(c.endAt))}
+        ${field('Due',fmtDT(c.dueAt))}
+        <button class="calllog-expander" type="button" data-action="toggleCalloutDetails" data-detail-id="${esc(detailId)}" data-job-id="${esc(c.jobNo)}" aria-expanded="false" aria-controls="${esc(detailId)}" aria-label="Show additional details for ${esc(c.jobNo)}"><span class="calllog-expander-icon" aria-hidden="true">&#9656;</span><span class="calllog-expander-label">Show details</span></button>
+      </div>
+      <div class="calllog-detail" id="${esc(detailId)}" hidden>
+        ${field('Assigned To',esc(assignedDisplay))}
+        ${field('PO #',poCell)}
+        ${field('Logged By',esc(loggedByUser?.name||c.loggedBy||'-'))}
+        ${field('Created',fmtDT(c.createdAt))}
+        ${field('Location',esc(c.location||'-'))}
+      </div>
+      <footer class="calllog-actions"><span class="calllog-section-label">Actions</span><div class="bgrp">${actions.join('')}</div></footer>
+    </article>`;
+  }).join(''):`<div class="tc-empty calllog-empty">${SESSION?.role==='junior_tech'||SESSION?.role==='senior_tech'?'No callouts assigned to you':'No callouts found'}</div>`;
+}
+
+function toggleCalloutDetails(button){
+  const detail=document.getElementById(button.dataset.detailId);if(!detail)return;
+  const expanded=button.getAttribute('aria-expanded')==='true';
+  button.setAttribute('aria-expanded',String(!expanded));
+  const jobId=button.dataset.jobId||'callout';
+  button.setAttribute('aria-label',`${expanded?'Show':'Hide'} additional details for ${jobId}`);
+  button.querySelector('.calllog-expander-icon').innerHTML=expanded?'&#9656;':'&#9662;';
+  button.querySelector('.calllog-expander-label').textContent=expanded?'Show details':'Hide details';
+  detail.hidden=expanded;
+}
+
+async function reopenCallout(id){
+  if(!await confirmDialog(`Re-open callout ${id}?\n\nIts status will be Open. The existing record and lifecycle history will be retained.`,{title:'Re-open Callout',confirmLabel:'Re-open'}))return;
+  const r=await api('PUT',`callouts.php?id=${encodeURIComponent(id)}`,{action:'reopen'});
+  if(!r.success){toast(r.error||'Callout could not be re-opened','err');return;}
+  await refreshCallouts();
+  updateBadges();
+  renderCallouts('');
+  renderDashboard();
+  toast(`${id} re-opened; the audit history was retained`,'ok');
+}
+
+let _calloutServiceReturnFocus=null;
+let _calloutServiceKeyHandler=null;
+
+function openEditCalloutService(id,trigger){
+  const c=proxyDB.callouts.find(callout=>callout.id===id);if(!c)return;
+  _calloutServiceReturnFocus=trigger||null;
+  openModal(`Edit Service - ${c.jobNo}`,`
+    <div class="fs-12 text-muted mb-14">Update the service description without replacing this call record. The change will be added to its permanent history.</div>
+    <div class="fgroup">
+      <label class="flbl" for="callout-service-input">Service <span class="req">*</span></label>
+      <input class="finput" id="callout-service-input" value="${esc(c.service)}" data-expected-service="${esc(c.service)}" maxlength="255" required aria-describedby="callout-service-help">
+      <div class="fs-10 text-muted" id="callout-service-help">Required. Maximum 255 characters.</div>
+    </div>
+    <div class="mt3 flex-end"><button class="btn btn-g mr-8" data-action="closeModalDirect">Cancel</button><button class="btn btn-p" data-action="saveCalloutService" data-id="${esc(c.id)}">Save Service</button></div>
+  `);
+  const dialog=document.querySelector('#modal-overlay .modal');
+  dialog?.setAttribute('role','dialog');
+  dialog?.setAttribute('aria-modal','true');
+  dialog?.setAttribute('aria-labelledby','modal-ttl');
+  document.querySelector('#modal-overlay .mclose')?.setAttribute('aria-label','Close Edit Service dialog');
+  const input=document.getElementById('callout-service-input');
+  input?.focus();
+  _calloutServiceKeyHandler=event=>{
+    if(event.key==='Escape'){
+      event.preventDefault();
+      closeModalDirect();
+      return;
+    }
+    if(event.key==='Enter'&&event.target===input){
+      event.preventDefault();
+      saveCalloutService(id);
+      return;
+    }
+    if(event.key!=='Tab'||!dialog)return;
+    const controls=[...dialog.querySelectorAll('button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),a[href],[tabindex]:not([tabindex="-1"])')];
+    if(!controls.length)return;
+    const first=controls[0];
+    const last=controls[controls.length-1];
+    if(event.shiftKey&&(document.activeElement===first||!dialog.contains(document.activeElement))){event.preventDefault();last.focus();}
+    else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
+  };
+  dialog?.addEventListener('keydown',_calloutServiceKeyHandler);
+}
+
+async function saveCalloutService(id){
+  const input=document.getElementById('callout-service-input');
+  const service=input?.value.trim()||'';
+  if(!service){toast('Service is required','err');input?.focus();return;}
+  if(service.length>255){toast('Service must be 255 characters or fewer','err');input?.focus();return;}
+  const expectedService=String(input?.dataset.expectedService??'');
+  const r=await api('PUT',`callouts.php?id=${encodeURIComponent(id)}`,{action:'edit_service',service,expected_service:expectedService});
+  if(!r.success){toast(r.error||'Service could not be updated','err');return;}
+  await refreshCallouts();
+  _calloutServiceReturnFocus=null;
+  closeModalDirect();
+  renderCallouts(document.getElementById('co-search')?.value||'',document.getElementById('co-filter')?.value||'');
+  const card=[...document.querySelectorAll('.calllog-card')].find(record=>record.dataset.calloutId===id);
+  const focusTarget=card?.querySelector('[data-action="openEditCalloutService"]')||card;
+  if(focusTarget===card&&!card.hasAttribute('tabindex'))card.setAttribute('tabindex','-1');
+  focusTarget?.focus();
+  toast(`Service updated for ${id}; history retained`,'ok');
 }
 
 function openStatusModal(id){
@@ -3894,7 +4006,7 @@ async function saveConfirmClosure(id){
 
 function prefillQuoteFromJob(id){
   const c=proxyDB.callouts.find(x=>x.id===id);if(!c)return;
-  if(proxyDB.quotes.some(q=>q.calloutRef===id&&q.status==='Approved'))return;
+  if(c.quoteCount>0&&!c.hasReopenHistory)return;
   showPortalPage('p-new-quote',null);
   setTimeout(()=>{
     const el=document.getElementById('nq-callout-ref');if(el)el.value=id;
@@ -4205,8 +4317,9 @@ function initNewInvoice() {
   _invoiceListenerAC = new AbortController();
   const sig = { signal: _invoiceListenerAC.signal };
 
-  const due = new Date(); due.setDate(due.getDate() + 30);
+  const due = new Date(); due.setDate(due.getDate() + 1);
   document.getElementById('ni-due').value = localDateStr(due);
+  document.getElementById('ni-callout-ref').disabled = false;
 
   const ctx = _invoiceContext;
   _invoiceContext = null;
@@ -4231,15 +4344,19 @@ function initNewInvoice() {
   }, sig);
 
   document.getElementById('ni-quote-ref')?.addEventListener('change', function () {
-    const qId = this.value; if (!qId) return;
+    const qId = this.value;
+    if (!qId) { document.getElementById('ni-callout-ref').disabled = false; return; }
     const q = proxyDB.quotes.find(x => x.id === qId); if (!q) return;
     if (q.clientId && !parseInt(document.getElementById('ni-client')?.value)) {
       document.getElementById('ni-client').value = q.clientId;
       populateLinkedDropdowns();
     }
     if (q.calloutRef) {
-      const linkedCo = proxyDB.callouts.find(c => c.id === q.calloutRef && c.status === 'Completed');
-      if (linkedCo) document.getElementById('ni-callout-ref').value = linkedCo.id;
+      const linkedCo = proxyDB.callouts.find(c => c.id === q.calloutRef);
+      if (linkedCo) {
+        document.getElementById('ni-callout-ref').value = linkedCo.id;
+        document.getElementById('ni-callout-ref').disabled = true;
+      }
     }
     const total = quoteTotals(q).total;
     if (total) document.getElementById('ni-amount').value = (Math.round(total * 100) / 100).toFixed(2);
@@ -4252,7 +4369,7 @@ function _applyInvoiceCalloutCtx(calloutId) {
   document.getElementById('ni-callout-ref').value = calloutId;
   if (co.po) { const poEl = document.getElementById('ni-po'); if (poEl) poEl.value = co.po; }
   populateLinkedDropdowns();
-  const linkedQ = proxyDB.quotes.find(q => q.calloutRef === calloutId);
+  const linkedQ = proxyDB.quotes.find(q => q.calloutRef === calloutId && q.status === 'Approved' && !proxyDB.invoices.some(i=>i.ref===q.id));
   if (linkedQ) {
     document.getElementById('ni-quote-ref').value = linkedQ.id;
     const total = quoteTotals(linkedQ).total;
@@ -4264,8 +4381,11 @@ function _applyInvoiceQuoteCtx(quoteId) {
   const q = proxyDB.quotes.find(x => x.id === quoteId); if (!q) return;
   if (q.clientId) document.getElementById('ni-client').value = q.clientId;
   if (q.calloutRef) {
-    const linkedCo = proxyDB.callouts.find(c => c.id === q.calloutRef && c.status === 'Completed');
-    if (linkedCo) document.getElementById('ni-callout-ref').value = linkedCo.id;
+    const linkedCo = proxyDB.callouts.find(c => c.id === q.calloutRef);
+    if (linkedCo) {
+      document.getElementById('ni-callout-ref').value = linkedCo.id;
+      document.getElementById('ni-callout-ref').disabled = true;
+    }
   }
   populateLinkedDropdowns(); // rebuild after client + callout are set
   document.getElementById('ni-quote-ref').value = quoteId;
@@ -5476,8 +5596,10 @@ function _readDashEditorState(){
    CONFIRM DIALOG
 ═══════════════════════════════════════════════════════ */
 function confirmDialog(msg, opts = {}) {
+  const opener=document.activeElement instanceof HTMLElement?document.activeElement:null;
   return new Promise(resolve => {
     const overlay  = document.getElementById('confirm-overlay');
+    const dialog   = overlay?.querySelector('.confirm-dialog');
     const ttlEl    = document.getElementById('confirm-ttl');
     const bdyEl    = document.getElementById('confirm-bdy');
     const okBtn    = document.getElementById('confirm-ok');
@@ -5488,11 +5610,35 @@ function confirmDialog(msg, opts = {}) {
       okBtn.textContent = opts.confirmLabel || 'Confirm';
       okBtn.className   = 'btn ' + (opts.danger === false ? 'btn-p' : 'btn-d');
     }
-    const done = v => { overlay.classList.remove('show'); resolve(v); };
+    let settled=false;
+    const done = v => {
+      if(settled)return;
+      settled=true;
+      dialog?.removeEventListener('keydown',onKeydown);
+      overlay.classList.remove('show');
+      if(opener?.isConnected)opener.focus();
+      resolve(v);
+    };
+    const onKeydown=event=>{
+      if(event.key==='Escape'){
+        event.preventDefault();
+        done(false);
+        return;
+      }
+      if(event.key!=='Tab'||!dialog)return;
+      const controls=[...dialog.querySelectorAll('button:not([disabled]),[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])')];
+      if(!controls.length)return;
+      const first=controls[0];
+      const last=controls[controls.length-1];
+      if(event.shiftKey&&(document.activeElement===first||!dialog.contains(document.activeElement))){event.preventDefault();last.focus();}
+      else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
+    };
     okBtn.onclick     = () => done(true);
     cancelBtn.onclick = () => done(false);
     overlay.onclick   = e => { if (e.target === overlay) done(false); };
+    dialog?.addEventListener('keydown',onKeydown);
     overlay.classList.add('show');
+    cancelBtn?.focus();
   });
 }
 
@@ -5591,7 +5737,12 @@ function openModal(title,html){
 }
 function closeModal(e){ if(e.target===document.getElementById('modal-overlay')) closeModalDirect(); }
 function closeModalDirect(){
+  const dialog=document.querySelector('#modal-overlay .modal');
+  if(_calloutServiceKeyHandler){dialog?.removeEventListener('keydown',_calloutServiceKeyHandler);_calloutServiceKeyHandler=null;}
   document.getElementById('modal-overlay').classList.remove('show');
+  const returnFocus=_calloutServiceReturnFocus;
+  _calloutServiceReturnFocus=null;
+  if(returnFocus?.isConnected)returnFocus.focus();
   if (_dvBlobUrl) { URL.revokeObjectURL(_dvBlobUrl); _dvBlobUrl = null; }
 }
 
@@ -5812,6 +5963,7 @@ async function saveQuote(){
 
   const calloutRef = document.getElementById('nq-callout-ref')?.value || '';
   const quoteNo    = document.getElementById('nq-quote-no')?.value?.trim() || '';
+  if (!calloutRef) { toast('Select the call log this quote belongs to', 'err'); if(btn)btn.disabled=false; return; }
   const r = await api('POST', 'quotes.php', { client_id: clientId, items, valid_until: validUntil, notes, callout_ref: calloutRef, quote_no: quoteNo });
   if (!r.success) { toast(r.error || 'Error saving quote', 'err'); if(btn)btn.disabled=false; return; }
   
@@ -5879,7 +6031,7 @@ async function saveInvoice(){
 
   if (!clientId) { toast('Please select a client', 'err'); if(btn)btn.disabled=false; return; }
   if (!amount || !dueDate) { toast('Fill in amount and due date', 'err'); if(btn)btn.disabled=false; return; }
-  if (!calloutRef) { toast('Select the completed callout this invoice belongs to', 'err'); if(btn)btn.disabled=false; return; }
+  if (!calloutRef || !quoteRef) { toast('Select the approved quote and call log this invoice belongs to', 'err'); if(btn)btn.disabled=false; return; }
 
   const linkedCo = proxyDB.callouts.find(x => x.id === calloutRef);
   if (!linkedCo?.po) { toast('A PO number must be assigned to the linked callout before generating an invoice', 'err'); if(btn)btn.disabled=false; return; }
@@ -5891,7 +6043,7 @@ async function saveInvoice(){
   await Promise.all([refreshInvoices(), refreshCallouts()]);
   updateBadges();
   showPortalPage('p-invoices', null);
-  toast(`Invoice ${r.data?.ref_id || ''} created — callout marked Invoiced`, 'ok');
+  toast(`Invoice ${r.data?.ref_id || ''} created and linked to ${calloutRef}`, 'ok');
 }
 
 /* ── Override: logPayment ────────────────────────────── */

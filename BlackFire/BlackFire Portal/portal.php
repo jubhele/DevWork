@@ -704,12 +704,7 @@ $companyLogoUrl = $baseUrl . '/' . ltrim($cfg['company_logo'] ?? 'blackfire_logo
           <select class="sinput sinput-narrow" id="co-filter"><option value="">All</option><option>Open</option><option>In Progress</option><option>Completed</option><option>Invoiced</option></select>
           <button class="btn btn-p btn-s" id="btn-newco" data-action="navPage" data-page="p-new-callout">+ Log Call</button>
         </div>
-        <div class="panel"><div class="tw">
-          <table>
-            <thead><tr><th>Job ID</th><th>Service</th><th>Assigned To</th><th>PO #</th><th>Priority</th><th>Status</th><th>Logged By</th><th>Created</th><th>Start</th><th>End</th><th>Due</th><th>Actions</th></tr></thead>
-            <tbody id="co-table"></tbody>
-          </table>
-        </div></div>
+        <div id="co-table" class="calllog-list" role="list" aria-label="Call log records"></div>
       </div>
     </div>
 
@@ -894,7 +889,7 @@ $companyLogoUrl = $baseUrl . '/' . ltrim($cfg['company_logo'] ?? 'blackfire_logo
         <div class="fgrid">
           <div class="fgroup"><label class="flbl">Client <span class="req">*</span></label><select class="finput" id="nq-client"><option value="">— Select Client —</option></select></div>
           <div class="fgroup"><label class="flbl">Valid Until <span class="req">*</span></label><input type="date" class="finput" id="nq-valid"></div>
-          <div class="fgroup"><label class="flbl">Linked Callout</label><select class="finput" id="nq-callout-ref"><option value="">— None (standalone quote) —</option></select></div>
+          <div class="fgroup"><label class="flbl">Linked Call Log <span class="req">*</span></label><select class="finput" id="nq-callout-ref" required><option value="">— Select Call Log —</option></select></div>
           <div class="fgroup" id="nq-status-group"><label class="flbl">Status</label><select class="finput" id="nq-status"><option>Draft</option><option>Sent</option></select></div>
           <div class="fgroup ffull"><label class="flbl">Quote No. <span class="flbl-hint">— number shown on your document (e.g. AI20042026); leave blank to auto-generate</span></label><input class="finput" id="nq-quote-no" placeholder="Auto-generated if blank"></div>
         </div>
@@ -918,8 +913,8 @@ $companyLogoUrl = $baseUrl . '/' . ltrim($cfg['company_logo'] ?? 'blackfire_logo
           <div class="fgroup"><label class="flbl">Due Date <span class="req">*</span></label><input type="date" class="finput" id="ni-due"></div>
           <div class="fgroup"><label class="flbl">Status</label><select class="finput" id="ni-status"><option>Draft</option><option>Sent</option></select></div>
           <div class="fgroup"><label class="flbl">PO Reference</label><input class="finput" id="ni-po" placeholder="PO number if applicable"></div>
-          <div class="fgroup"><label class="flbl">Linked Quote</label><select class="finput" id="ni-quote-ref"><option value="">— None —</option></select></div>
-          <div class="fgroup"><label class="flbl">Linked Callout <span class="req">*</span></label><select class="finput" id="ni-callout-ref" required><option value="">— Select Completed Callout —</option></select></div>
+          <div class="fgroup"><label class="flbl">Linked Quote <span class="req">*</span></label><select class="finput" id="ni-quote-ref" required><option value="">— Select Approved Quote —</option></select></div>
+          <div class="fgroup"><label class="flbl">Linked Call Log <span class="req">*</span></label><select class="finput" id="ni-callout-ref" required><option value="">— Select Call Log —</option></select></div>
           <div class="fgroup ffull"><label class="flbl">Invoice No. <span class="flbl-hint">— number shown on your document; leave blank to auto-generate</span></label><input class="finput" id="ni-invoice-no" placeholder="Auto-generated if blank"></div>
         </div>
         <div class="mt3 flex-end"><button class="btn btn-p" data-action="saveInvoice">Create Invoice</button></div>
@@ -1179,7 +1174,7 @@ $companyLogoUrl = $baseUrl . '/' . ltrim($cfg['company_logo'] ?? 'blackfire_logo
 
 <!-- CONFIRM DIALOG -->
 <div id="confirm-overlay">
-  <div class="confirm-dialog">
+  <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirm-ttl" aria-describedby="confirm-bdy">
     <div class="confirm-hdr"><div class="confirm-ttl" id="confirm-ttl">Confirm</div></div>
     <div class="confirm-bdy" id="confirm-bdy"></div>
     <div class="confirm-actions">

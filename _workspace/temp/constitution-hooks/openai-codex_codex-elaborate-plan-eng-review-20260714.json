@@ -1,0 +1,14 @@
+﻿{
+    "provider":  "OpenAI-Codex",
+    "session_id":  "codex-elaborate-plan-eng-review-20260714",
+    "log_path":  "C:\\DevWork\\_workspace\\sessions\\agent_session_openai-codex_codex-elabor_20260714_192217.md",
+    "project_status":  "resolved",
+    "project_name":  "_workspace",
+    "project_root":  "C:\\DevWork\\_workspace",
+    "project_source":  "explicit_user_binding",
+    "binding_version":  1,
+    "binding_updated_at":  "2026-07-14T19:22:19.1838697+02:00",
+    "prompt_count":  1,
+    "created_at":  "2026-07-14T19:22:17.8921995+02:00",
+    "updated_at":  "2026-07-14T19:23:47.3276357+02:00"
+}

@@ -35,30 +35,39 @@ if ($method === 'GET' && ($_GET['action'] ?? '') === 'chain') {
     if (!$co) json_err('Callout not found', 404);
     if (!tracker_can_view($user, 'callout', $co)) json_err('Forbidden', 403);
 
-    $quote = db_row(
+    $quotes = db_select(
         "SELECT q.*, COALESCE(u.name,'') AS submitted_by_name
            FROM bf_quotes q
            LEFT JOIN bf_users u ON u.id = q.submitted_by_user_id
-          WHERE q.callout_ref = ? OR q.callout_id = ? LIMIT 1",
+          WHERE q.callout_ref = ? OR q.callout_id = ?
+          ORDER BY q.quote_date, q.id",
         [$ref, (int)$co['id']]);
 
-    $items = $quote
-        ? db_select("SELECT * FROM bf_quote_items WHERE quote_id = ? ORDER BY id", [(int)$quote['id']])
-        : [];
+    $items = [];
+    if ($quotes) {
+        $quote_ids = array_map(fn($quote) => (int)$quote['id'], $quotes);
+        $placeholders = implode(',', array_fill(0, count($quote_ids), '?'));
+        $items = db_select("SELECT * FROM bf_quote_items WHERE quote_id IN ({$placeholders}) ORDER BY quote_id, id", $quote_ids);
+    }
 
-    $invoice = db_row(
-        "SELECT * FROM bf_invoices WHERE callout_ref = ? OR callout_id = ? LIMIT 1",
+    $invoices = db_select(
+        "SELECT * FROM bf_invoices WHERE callout_ref = ? OR callout_id = ? ORDER BY invoice_date, id",
         [$ref, (int)$co['id']]);
 
-    $payments = $invoice
-        ? db_select("SELECT * FROM bf_payments WHERE invoice_ref = ? ORDER BY payment_date", [$invoice['ref_id']])
-        : [];
+    $payments = [];
+    if ($invoices) {
+        $invoice_refs = array_column($invoices, 'ref_id');
+        $placeholders = implode(',', array_fill(0, count($invoice_refs), '?'));
+        $payments = db_select("SELECT * FROM bf_payments WHERE invoice_ref IN ({$placeholders}) ORDER BY payment_date", $invoice_refs);
+    }
 
     json_ok([
         'callout'     => $co,
-        'quote'       => $quote ?: null,
+        'quotes'      => $quotes,
+        'quote'       => $quotes[0] ?? null,
         'quote_items' => $items,
-        'invoice'     => $invoice ?: null,
+        'invoices'    => $invoices,
+        'invoice'     => $invoices[0] ?? null,
         'payments'    => $payments,
     ]);
 }
@@ -93,7 +102,12 @@ if ($method === 'GET') {
     $total = db_row("SELECT COUNT(*) AS n FROM bf_callouts $where", $params)['n'] ?? 0;
 
     $rows = db_select(
-        "SELECT c.*, COALESCE(u.username,'') AS logged_by
+        "SELECT c.*, COALESCE(u.username,'') AS logged_by,
+                (SELECT COUNT(*) FROM bf_quotes q WHERE q.callout_id = c.id OR q.callout_ref = c.ref_id) AS quote_count,
+                (SELECT COUNT(*) FROM bf_invoices i WHERE i.callout_id = c.id OR i.callout_ref = c.ref_id) AS invoice_count,
+                EXISTS(SELECT 1 FROM bf_tracker_updates tu
+                        WHERE tu.entity_type = 'callout' AND tu.entity_ref = c.ref_id
+                          AND LEFT(tu.source_kind, 14) = 'system_reopen_') AS has_reopen_history
            FROM bf_callouts c
            LEFT JOIN bf_users u ON u.id = c.logged_by_user_id
           $where ORDER BY c.callout_date DESC, c.created_at DESC LIMIT {$pg['limit']} OFFSET {$pg['offset']}",
@@ -210,6 +224,113 @@ if ($method === 'PUT') {
     $b      = get_body();
     $action = clean($b['action'] ?? '', 50);
 
+    if ($action === 'edit_service') {
+        $roles = !empty($usr['roles']) ? $usr['roles'] : [$usr['role']];
+        if (!in_array('sysadmin', $roles, true)) json_err('Only a system administrator may edit a callout service', 403);
+
+        $raw_service = $b['service'] ?? null;
+        if (!is_string($raw_service) && !is_numeric($raw_service)) json_err('Service is required');
+        $service = trim((string)$raw_service);
+        if ($service === '') json_err('Service is required');
+        $service_length = function_exists('mb_strlen') ? mb_strlen($service, 'UTF-8') : strlen($service);
+        if ($service_length > 255) json_err('Service must be 255 characters or fewer');
+
+        if (!array_key_exists('expected_service', $b)) {
+            json_err('This page is out of date and cannot safely save Service. Refresh the page and try again.', 409);
+        }
+        $raw_expected_service = $b['expected_service'];
+        if (!is_scalar($raw_expected_service)) json_err('Expected service is required');
+        $expected_service = (string)$raw_expected_service;
+        $expected_length = function_exists('mb_strlen') ? mb_strlen($expected_service, 'UTF-8') : strlen($expected_service);
+        if ($expected_length > 255) json_err('Expected service must be 255 characters or fewer');
+
+        db_begin();
+        try {
+            $callout = db_row("SELECT id, service FROM bf_callouts WHERE ref_id = ? FOR UPDATE", [$ref_id]);
+            if (!$callout) throw new RuntimeException('not_found');
+            $previous_service = (string)$callout['service'];
+            if ($previous_service !== $expected_service) throw new RuntimeException('conflict');
+            if ($previous_service === $service) throw new RuntimeException('unchanged');
+
+            $edited_at = date('Y-m-d H:i:s');
+            $source_kind = 'system_service_edit_' . bin2hex(random_bytes(8));
+            $content = "Service edited by {$usr['name']} ({$usr['username']}) at {$edited_at}. Previous service: {$previous_service}. New service: {$service}. The original callout and lifecycle history were retained.";
+            db_exec("UPDATE bf_callouts SET service = ? WHERE id = ?", [$service, (int)$callout['id']]);
+            db_insert(
+                "INSERT INTO bf_tracker_updates
+                 (entity_type, entity_ref, label, content, source_kind, created_by_user_id, created_by)
+                 VALUES ('callout', ?, 'System service edit event', ?, ?, ?, ?)",
+                [$ref_id, $content, $source_kind, (int)$usr['id'], $usr['name']]
+            );
+            db_commit();
+        } catch (RuntimeException $error) {
+            db_rollback();
+            if ($error->getMessage() === 'not_found') json_err('Callout not found', 404);
+            if ($error->getMessage() === 'conflict') json_err('Service changed after this form was opened. Refresh the call log and try again.', 409);
+            if ($error->getMessage() === 'unchanged') json_err('Service is unchanged', 409);
+            json_err('Service could not be updated');
+        } catch (Throwable $error) {
+            db_rollback();
+            json_err('Service could not be updated');
+        }
+
+        audit($usr['username'], 'CALLOUT_SERVICE_EDITED', "Callout {$ref_id} service changed from '{$previous_service}' to '{$service}'; original record retained");
+        json_ok(['data' => db_row("SELECT * FROM bf_callouts WHERE ref_id = ?", [$ref_id])], "Callout {$ref_id} service updated");
+    }
+
+    if ($action === 'reopen') {
+        $roles = !empty($usr['roles']) ? $usr['roles'] : [$usr['role']];
+        if (!in_array('sysadmin', $roles, true)) json_err('Only a system administrator may re-open a callout', 403);
+
+        db_begin();
+        try {
+            $callout = db_row(
+                "SELECT c.id, c.ref_id, c.status, c.end_at,
+                        (SELECT COUNT(*) FROM bf_quotes q WHERE q.callout_id = c.id OR q.callout_ref = c.ref_id) AS quote_count,
+                        (SELECT COUNT(*) FROM bf_invoices i WHERE i.callout_id = c.id OR i.callout_ref = c.ref_id) AS invoice_count,
+                        EXISTS(SELECT 1 FROM bf_tracker_updates tu
+                                WHERE tu.entity_type = 'callout' AND tu.entity_ref = c.ref_id
+                                  AND LEFT(tu.source_kind, 14) = 'system_reopen_') AS has_reopen_history
+                   FROM bf_callouts c WHERE c.ref_id = ? FOR UPDATE",
+                [$ref_id]
+            );
+            if (!$callout) throw new RuntimeException('not_found');
+            $closed_status = in_array($callout['status'], ['Completed', 'Invoiced'], true);
+            $has_documents = (int)$callout['quote_count'] > 0 || (int)$callout['invoice_count'] > 0;
+            if (!$closed_status && (!$has_documents || !empty($callout['has_reopen_history']))) {
+                throw new RuntimeException('not_eligible');
+            }
+
+            $reopened_at = date('Y-m-d H:i:s');
+            $previous_status = $callout['status'];
+            $previous_end = $callout['end_at'] ?: 'not recorded';
+            $source_kind = 'system_reopen_' . bin2hex(random_bytes(8));
+            $content = "Re-opened by {$usr['name']} ({$usr['username']}) at {$reopened_at}. Previous status: {$previous_status}. Previous end time: {$previous_end}. The original record and lifecycle history were retained.";
+            if ($callout['status'] !== 'Open' || $callout['end_at'] !== null) {
+                db_exec("UPDATE bf_callouts SET status = 'Open', end_at = NULL WHERE id = ?", [(int)$callout['id']]);
+            }
+            db_insert(
+                "INSERT INTO bf_tracker_updates
+                 (entity_type, entity_ref, label, content, source_kind, created_by_user_id, created_by)
+                 VALUES ('callout', ?, 'System re-open event', ?, ?, ?, ?)",
+                [$ref_id, $content, $source_kind, (int)$usr['id'], $usr['name']]
+            );
+            db_commit();
+        } catch (RuntimeException $error) {
+            db_rollback();
+            if ($error->getMessage() === 'not_found') json_err('Callout not found', 404);
+            if ($error->getMessage() === 'not_eligible') json_err('Only a Completed, Invoiced, or document-linked callout without prior re-open history may be re-opened', 409);
+            json_err('Callout could not be re-opened');
+        } catch (Throwable $error) {
+            db_rollback();
+            json_err('Callout could not be re-opened');
+        }
+
+        audit($usr['username'], 'CALLOUT_REOPENED', "Callout {$ref_id} re-opened from {$previous_status}; previous end {$previous_end}; original record retained");
+        $row = db_row("SELECT * FROM bf_callouts WHERE ref_id = ?", [$ref_id]);
+        json_ok(['data' => $row], "Callout {$ref_id} re-opened");
+    }
+
     // ── Action: confirm_closure ──────────────────────────────────────
     if ($action === 'confirm_closure') {
         require_perm('callout.confirm_closure');
@@ -217,8 +338,6 @@ if ($method === 'PUT') {
         if (!$callout) json_err('Callout not found', 404);
         if ($callout['status'] !== 'Completed') json_err('Callout must be in Completed status before confirming closure');
         if (!empty($callout['closure_confirmed'])) json_err('Closure already confirmed for this callout');
-        if (!empty($callout['invoice_generated'])) json_err('Invoice already generated for this callout');
-
         $closure_notes = clean($b['closure_notes'] ?? '', 2000);
         if (!$closure_notes) json_err('Closure notes are required');
 
@@ -229,37 +348,12 @@ if ($method === 'PUT') {
         );
         if (!$has_doc) json_err('A closure confirmation document must be uploaded to this callout first');
 
-        // Auto-create a Draft invoice
-        require_once __DIR__ . '/../includes/helpers.php';
-        $inv_ref  = next_ref_id('inv');
-        $due_date = date('Y-m-d', strtotime('+30 days'));
-
         db_exec("START TRANSACTION");
         try {
-            db_insert(
-                "INSERT INTO bf_invoices
-                 (ref_id, client_id, client_name, client_email, amount, due_date, status,
-                  callout_ref, callout_id, invoice_date, sent_by_user_id)
-                 VALUES (?,?,?,?,?,?,?,?,?,?,?)",
-                [
-                    $inv_ref,
-                    $callout['client_id'] ?? null,
-                    $callout['client_name'],
-                    $callout['client_email'] ?? '',
-                    0.00,
-                    $due_date,
-                    'Draft',
-                    $ref_id,
-                    $callout['id'],
-                    date('Y-m-d'),
-                    (int)$usr['id'],
-                ]
-            );
-
             db_exec(
                 "UPDATE bf_callouts
                  SET closure_confirmed = 1, closure_confirmed_by = ?, closure_confirmed_at = NOW(),
-                     closure_notes = ?, invoice_generated = 1, end_at = COALESCE(end_at, NOW())
+                     closure_notes = ?, end_at = COALESCE(end_at, NOW())
                  WHERE ref_id = ?",
                 [$usr['username'], $closure_notes, $ref_id]
             );
@@ -271,21 +365,21 @@ if ($method === 'PUT') {
         }
 
         audit($usr['username'], 'CLOSURE_CONFIRMED',
-              "Callout {$ref_id} closure confirmed by {$usr['username']}; Invoice {$inv_ref} created");
+              "Callout {$ref_id} closure confirmed by {$usr['username']}");
 
         $row = db_row("SELECT * FROM bf_callouts WHERE ref_id = ?", [$ref_id]);
-        json_ok(['data' => $row, 'invoice_ref' => $inv_ref],
-                "Closure confirmed. Draft invoice {$inv_ref} created.");
+        json_ok(['data' => $row], 'Closure confirmed. Create the invoice from an approved quote.');
     }
 
     // ── Standard field update ────────────────────────────────────────
     $allowed = [
-        'client_name', 'service', 'location', 'tech', 'assigned_to',
+        'client_name', 'location', 'tech', 'assigned_to',
         'priority', 'status', 'callout_date', 'callout_time', 'notes', 'po', 'job_no',
         'start_at', 'end_at', 'due_at'
     ];
 
     require_perm('callout.update');
+    if (array_key_exists('service', $b)) json_err('Use the system administrator service edit action', 403);
 
     // Techs may only update callouts assigned to them
     $usr_roles = !empty($usr['roles']) ? $usr['roles'] : [$usr['role']];
@@ -302,6 +396,10 @@ if ($method === 'PUT') {
 
     $current = db_row("SELECT * FROM bf_callouts WHERE ref_id = ?", [$ref_id]);
     if (!$current) json_err('Callout not found', 404);
+    if (in_array($current['status'], ['Completed', 'Invoiced'], true)
+        && isset($b['status']) && $b['status'] !== $current['status']) {
+        json_err('Completed and Invoiced callouts are terminal. Use Re-open Callout before changing status.', 403);
+    }
 
     $sets   = [];
     $params = [];
@@ -352,54 +450,6 @@ if ($method === 'PUT') {
     }
     audit($usr['username'], 'CALLOUT_UPDATE', "Updated {$ref_id}: " . implode(', ', array_values(array_unique($changed))));
 
-    // ── Post-update: auto-invoice when client closes callout ─────────
-    if (isset($b['status']) && $b['status'] === 'Completed') {
-        $callout = db_row("SELECT * FROM bf_callouts WHERE ref_id = ?", [$ref_id]);
-        if ($callout && empty($callout['invoice_generated']) && $usr['role'] === 'client') {
-            require_once __DIR__ . '/../includes/mailer.php';
-            $inv_ref  = next_ref_id('inv');
-            $due_date = date('Y-m-d', strtotime('+30 days'));
-
-            db_exec("START TRANSACTION");
-            try {
-                db_insert(
-                    "INSERT INTO bf_invoices
-                     (ref_id, client_id, client_name, client_email, amount, due_date, status,
-                      callout_ref, callout_id, invoice_date, sent_by_user_id)
-                     VALUES (?,?,?,?,?,?,?,?,?,?,?)",
-                    [
-                        $inv_ref,
-                        $callout['client_id'] ?? null,
-                        $callout['client_name'],
-                        $callout['client_email'] ?? '',
-                        0.00,
-                        $due_date,
-                        'Draft',
-                        $ref_id,
-                        $callout['id'],
-                        date('Y-m-d'),
-                        (int)$usr['id'],
-                    ]
-                );
-                db_exec("UPDATE bf_callouts SET invoice_generated = 1 WHERE ref_id = ?", [$ref_id]);
-                db_exec("COMMIT");
-            } catch (Exception $e) {
-                db_exec("ROLLBACK");
-                // Log the failure but don't abort the callout status update that already committed
-                error_log("Auto-invoice failed for callout {$ref_id}: " . $e->getMessage());
-                $inv_ref = null;
-            }
-
-            if ($inv_ref && !empty($callout['client_email'])) {
-                send_invoice_notification_email($callout['client_email'], $callout, $inv_ref);
-            }
-            if ($inv_ref) {
-                audit($usr['username'], 'INVOICE_AUTO',
-                      "Invoice {$inv_ref} auto-generated for client-closed callout {$ref_id}");
-            }
-        }
-    }
-
     $row = db_row("SELECT * FROM bf_callouts WHERE ref_id = ?", [$ref_id]);
     if (!$row) json_err('Callout not found', 404);
     json_ok(['data' => $row], "Callout $ref_id updated");
@@ -409,8 +459,37 @@ if ($method === 'PUT') {
 if ($method === 'DELETE') {
     $usr = require_perm('callout.delete');
     if (!$ref_id) json_err('Missing id');
-    $affected = db_exec("DELETE FROM bf_callouts WHERE ref_id = ?", [$ref_id]);
-    if (!$affected) json_err('Callout not found', 404);
+    db_begin();
+    try {
+        $callout = db_row(
+            "SELECT c.status, c.invoice_generated, c.closure_confirmed,
+                    EXISTS(SELECT 1 FROM bf_tracker_updates tu
+                            WHERE tu.entity_type = 'callout' AND tu.entity_ref = c.ref_id
+                              AND LEFT(tu.source_kind, 14) = 'system_reopen_') AS has_reopen_history
+             FROM bf_callouts c WHERE c.ref_id = ? FOR UPDATE",
+            [$ref_id]
+        );
+        if (!$callout) throw new RuntimeException('not_found');
+        if (in_array($callout['status'], ['Completed', 'Invoiced'], true)
+            || !empty($callout['invoice_generated'])
+            || !empty($callout['closure_confirmed'])
+            || !empty($callout['has_reopen_history'])) {
+            throw new RuntimeException('permanent_record');
+        }
+        $affected = db_exec("DELETE FROM bf_callouts WHERE ref_id = ?", [$ref_id]);
+        if (!$affected) throw new RuntimeException('not_found');
+        db_commit();
+    } catch (RuntimeException $error) {
+        db_rollback();
+        if ($error->getMessage() === 'not_found') json_err('Callout not found', 404);
+        if ($error->getMessage() === 'permanent_record') {
+            json_err('Completed, invoiced, or re-opened callouts are permanent records and cannot be deleted', 409);
+        }
+        json_err('Callout could not be deleted');
+    } catch (Throwable $error) {
+        db_rollback();
+        json_err('Callout could not be deleted');
+    }
     audit($usr['username'], 'DELETE', "Callout $ref_id deleted");
     json_ok([], "Callout $ref_id deleted");
 }

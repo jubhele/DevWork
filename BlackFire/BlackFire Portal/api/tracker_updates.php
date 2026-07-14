@@ -73,6 +73,9 @@ if ($method === 'PUT') {
     $id = (int)($_GET['id'] ?? 0);
     $update = db_row("SELECT * FROM bf_tracker_updates WHERE id = ?", [$id]);
     if (!$update) json_err('Description record not found', 404);
+    if (strpos((string)($update['source_kind'] ?? ''), 'system_') === 0) {
+        json_err('System records are immutable', 409);
+    }
     $record = tracker_record($update['entity_type'], $update['entity_ref']);
     if (!$record || !tracker_can_edit($user, $update['entity_type'], $record)) json_err('Forbidden', 403);
 

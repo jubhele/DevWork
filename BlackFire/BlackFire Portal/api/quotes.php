@@ -62,7 +62,7 @@ if ($method === 'GET') {
 if ($method === 'POST') {
     $usr = require_perm('quote.create');
     $b   = get_body();
-    require_fields($b, ['items']);
+    require_fields($b, ['items', 'callout_ref']);
 
     $items = is_array($b['items']) ? $b['items'] : [];
     if (!$items) json_err('Quote must have at least one line item');
@@ -97,20 +97,33 @@ if ($method === 'POST') {
         $approval_status = 'pending';
     }
 
-    // Resolve linked callout FK
     $callout_ref_str = clean($b['callout_ref'] ?? '', 30);
-    $callout_id_fk   = null;
-    if ($callout_ref_str) {
-        $co = db_row("SELECT id FROM bf_callouts WHERE ref_id = ? LIMIT 1", [$callout_ref_str]);
-        $callout_id_fk = $co ? (int)$co['id'] : null;
-    }
-
     $ref      = next_ref_id('q');
     $quote_no = clean($b['quote_no'] ?? '', 50);
     if (!$quote_no) $quote_no = $ref;
 
     try {
         db_begin();
+
+        $co = db_row(
+            "SELECT id, ref_id, client_id,
+                    EXISTS(SELECT 1 FROM bf_tracker_updates tu
+                            WHERE tu.entity_type = 'callout' AND tu.entity_ref = bf_callouts.ref_id
+                              AND LEFT(tu.source_kind, 14) = 'system_reopen_') AS has_reopen_history,
+                    (SELECT COUNT(*) FROM bf_quotes
+                      WHERE callout_id = bf_callouts.id OR callout_ref = bf_callouts.ref_id) AS quote_count
+               FROM bf_callouts WHERE ref_id = ? LIMIT 1 FOR UPDATE",
+            [$callout_ref_str]
+        );
+        if (!$co) throw new RuntimeException('invalid_callout');
+        if ($client_id && $co['client_id'] && (int)$co['client_id'] !== $client_id) {
+            throw new RuntimeException('client_mismatch');
+        }
+        if ((int)$co['quote_count'] > 0 && empty($co['has_reopen_history'])) {
+            throw new RuntimeException('reopen_required');
+        }
+        $callout_id_fk = (int)$co['id'];
+        $callout_ref_str = $co['ref_id'];
 
         $id = db_insert(
             "INSERT INTO bf_quotes
@@ -150,7 +163,13 @@ if ($method === 'POST') {
         }
         
         db_commit();
-    } catch (Exception $e) {
+    } catch (RuntimeException $error) {
+        db_rollback();
+        if ($error->getMessage() === 'invalid_callout') json_err('Quote must belong to a valid call log', 422);
+        if ($error->getMessage() === 'client_mismatch') json_err('Quote client must match the linked call log client', 422);
+        if ($error->getMessage() === 'reopen_required') json_err('Re-open the linked callout before adding another quote', 403);
+        json_err('Quote creation failed - no changes saved', 500);
+    } catch (Throwable $error) {
         db_rollback();
         json_err('Quote creation failed — no changes saved', 500);
     }
@@ -186,20 +205,7 @@ if ($method === 'PUT') {
     if ($action === 'convert') {
         require_perm('invoice.create');
 
-        $quote = db_row("SELECT * FROM bf_quotes WHERE ref_id = ?", [$ref_id]);
-        if (!$quote) json_err('Quote not found', 404);
-        if ($quote['status'] !== 'Approved') json_err('Only Approved quotes can be converted to invoices', 422);
-
-        $linked_callout = db_row(
-            "SELECT id, ref_id FROM bf_callouts WHERE ref_id = ? OR id = ? LIMIT 1",
-            [$quote['callout_ref'] ?? '', (int)($quote['callout_id'] ?? 0)]
-        );
-        if (!$linked_callout) json_err('Quote must be linked to a valid callout before conversion', 422);
-
-        $existing = db_row("SELECT ref_id FROM bf_invoices WHERE quote_ref = ? LIMIT 1", [$ref_id]);
-        if ($existing) json_err('Quote already converted — see Invoice ' . $existing['ref_id'], 409);
-
-        $due_date = (isset($b['due_date']) && valid_date($b['due_date'])) ? $b['due_date'] : date('Y-m-d', strtotime('+30 days'));
+        $due_date = (isset($b['due_date']) && valid_date($b['due_date'])) ? $b['due_date'] : date('Y-m-d', strtotime('+1 day'));
         $po       = clean($b['po'] ?? '', 100);
         $inv_ref  = next_ref_id('inv');
 

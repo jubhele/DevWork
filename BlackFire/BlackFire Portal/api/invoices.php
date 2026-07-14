@@ -104,7 +104,7 @@ if ($method === 'POST' && clean($_GET['action'] ?? '', 20) === 'payment') {
 if ($method === 'POST') {
     $usr = require_perm('invoice.create');
     $b   = get_body();
-    require_fields($b, ['amount', 'due_date']);
+    require_fields($b, ['amount', 'due_date', 'quote_ref', 'callout_ref']);
 
     $amount = (float)($b['amount'] ?? 0);
     if ($amount < 0) json_err('Amount cannot be negative');
@@ -129,10 +129,12 @@ if ($method === 'POST') {
     $quote_id_fk   = null;
     $callout_id_fk = null;
 
-    if ($quote_ref_str) {
-        $qrow = db_row("SELECT id FROM bf_quotes WHERE ref_id = ? LIMIT 1", [$quote_ref_str]);
-        $quote_id_fk = $qrow ? (int)$qrow['id'] : null;
-    }
+    $qrow = db_row(
+        "SELECT id, ref_id, client_id, status, callout_id, callout_ref
+           FROM bf_quotes WHERE ref_id = ? LIMIT 1",
+        [$quote_ref_str]
+    );
+    $quote_id_fk = $qrow ? (int)$qrow['id'] : null;
     $callout_id_fk = null;
     if ($co_ref_str) {
         $crow = db_row("SELECT id, ref_id FROM bf_callouts WHERE ref_id = ? LIMIT 1", [$co_ref_str]);
@@ -156,10 +158,30 @@ if ($method === 'POST') {
     if (!$quote_id_fk) {
         json_err('Cannot create invoice: a linked quote is required (quote_ref).');
     }
-    $qstat = db_row("SELECT status FROM bf_quotes WHERE id = ? LIMIT 1", [$quote_id_fk]);
-    if (!$qstat || !in_array($qstat['status'], ['Approved', 'Converted'], true)) {
+    if (!in_array($qrow['status'], ['Approved', 'Converted'], true)) {
         json_err('Cannot create invoice: the linked quote must be Approved before invoicing.');
     }
+    if ((int)$qrow['callout_id'] !== $callout_id_fk || $qrow['callout_ref'] !== $co_ref_str) {
+        json_err('Cannot create invoice: the linked quote belongs to a different call log.', 422);
+    }
+    if ($client_id && $qrow['client_id'] && (int)$qrow['client_id'] !== $client_id) {
+        json_err('Cannot create invoice: client must match the linked quote.', 422);
+    }
+    $existing_quote_invoice = db_row("SELECT ref_id FROM bf_invoices WHERE quote_id = ? OR quote_ref = ? LIMIT 1", [$quote_id_fk, $quote_ref_str]);
+    if ($existing_quote_invoice) json_err('This quote already has Invoice ' . $existing_quote_invoice['ref_id'], 409);
+    $callout_workflow = db_row(
+        "SELECT EXISTS(SELECT 1 FROM bf_tracker_updates tu
+                        WHERE tu.entity_type = 'callout' AND tu.entity_ref = bf_callouts.ref_id
+                          AND LEFT(tu.source_kind, 14) = 'system_reopen_') AS has_reopen_history,
+                (SELECT COUNT(*) FROM bf_invoices
+                  WHERE callout_id = bf_callouts.id OR callout_ref = bf_callouts.ref_id) AS invoice_count
+           FROM bf_callouts WHERE id = ?",
+        [$callout_id_fk]
+    );
+    if ((int)$callout_workflow['invoice_count'] > 0 && empty($callout_workflow['has_reopen_history'])) {
+        json_err('Re-open the linked callout before adding another invoice', 403);
+    }
+    if (!valid_date($b['due_date'])) json_err('A valid due date is required');
 
     $invoice_date = date('Y-m-d');
     try {
@@ -194,12 +216,7 @@ if ($method === 'POST') {
             'amount' => $amount,
             'invoice_date' => $invoice_date,
         ]);
-        if ($callout_id_fk) {
-            db_exec(
-                "UPDATE bf_callouts SET status = 'Invoiced', invoice_generated = 1 WHERE id = ?",
-                [$callout_id_fk]
-            );
-        }
+        db_exec("UPDATE bf_callouts SET invoice_generated = 1 WHERE id = ?", [$callout_id_fk]);
         db_commit();
     } catch (Exception $e) {
         db_rollback();
@@ -207,7 +224,7 @@ if ($method === 'POST') {
     }
 
     if ($callout_id_fk && $co_ref_str) {
-        audit($usr['username'], 'UPDATE', "Callout $co_ref_str marked Invoiced — Invoice $ref generated");
+        audit($usr['username'], 'UPDATE', "Invoice $ref linked to Callout $co_ref_str");
     }
     audit($usr['username'], 'CREATE', "Invoice $ref created (R" . number_format((float)$b['amount'], 2) . ")");
     $row = db_row("SELECT * FROM bf_invoices WHERE id = ?", [$id]);
