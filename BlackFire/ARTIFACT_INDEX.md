@@ -5,10 +5,10 @@ Schema: 1.0
 
 | Kind | Locations | Files | Size (MB) | Latest |
 |------|-----------|------:|----------:|--------|
-| sessions | `BlackFire\sessions` | 82 | 0.22 | 2026-07-14T20:11:45.6410123Z |
+| sessions | `BlackFire\sessions` | 88 | 0.25 | 2026-07-14T21:37:04.8526162Z |
 | artifacts | Not present | 0 | 0 | - |
 | archive | Not present | 0 | 0 | - |
-| temp | `BlackFire\temp`<br>`BlackFire\tmp` | 107 | 32.32 | 2026-07-14T19:00:51.8434238Z |
+| temp | `BlackFire\temp`<br>`BlackFire\tmp` | 108 | 32.33 | 2026-07-14T21:31:25.7958817Z |
 | logs | Not present | 0 | 0 | - |
 | backups | `BlackFire\_backups` | 427 | 22.13 | 2026-07-14T20:04:16.1776754Z |
 

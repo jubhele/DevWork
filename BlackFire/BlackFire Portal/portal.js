@@ -256,6 +256,9 @@ document.addEventListener('click', function(e) {
     case 'reopenCallout':        reopenCallout(el.dataset.id); break;
     case 'openEditCalloutService': openEditCalloutService(el.dataset.id,el); break;
     case 'saveCalloutService':   saveCalloutService(el.dataset.id); break;
+    case 'requestDocumentEscalation': requestDocumentEscalation(el.dataset.id); break;
+    case 'approveDocumentEscalation': decideDocumentEscalation(el.dataset.id,true); break;
+    case 'rejectDocumentEscalation': decideDocumentEscalation(el.dataset.id,false); break;
     case 'deleteCallout':        deleteCallout(el.dataset.id); break;
     case 'openRecordChain':      openRecordChain(el.dataset.id); break;
     // Operations — quotes
@@ -570,6 +573,7 @@ async function openDocViewer(id, name, mime) {
 const PERMS = {
   'callout.view':          ['admin','manager','call_logger','junior_tech','senior_tech','client_support','admin_clerk','viewer'],
   'callout.create':        ['admin','manager','call_logger','client_support'],
+  'callout.update':        ['admin','manager','call_logger','junior_tech','senior_tech','admin_clerk'],
   'callout.update_status': ['admin','manager','call_logger','junior_tech','senior_tech','admin_clerk'],
   'callout.assign_po':     ['admin','manager','admin_clerk'],
   'callout.assign_tech':   ['admin','manager','admin_clerk'],
@@ -692,10 +696,10 @@ function populateLinkedDropdowns() {
     if (cur) techEl.value = cur;
   }
 
-  // Quote linked callout select (open/in-progress callouts that don't already have an approved quote)
+  // Quote linked callout select
   const nqCalloutEl = document.getElementById('nq-callout-ref');
   if (nqCalloutEl) {
-    const openCos = proxyDB.callouts.filter(c => c.quoteCount === 0 || c.hasReopenHistory);
+    const openCos = proxyDB.callouts.filter(c => c.quoteCount === 0 || c.documentEscalationStatus === 'approved');
     const coOpts  = openCos.map(c => `<option value="${esc(c.id)}">${esc(c.id)} — ${esc(c.service)} (${esc(c.client)})</option>`).join('');
     const cur = nqCalloutEl.value;
     nqCalloutEl.innerHTML = '<option value="">— Select Call Log —</option>' + coOpts;
@@ -730,7 +734,7 @@ function populateLinkedDropdowns() {
     const niClientId = parseInt(document.getElementById('ni-client')?.value) || 0;
     const callouts = proxyDB.callouts.filter(c =>
       (!niClientId || c.clientId === niClientId) &&
-      (c.invoiceCount === 0 || c.hasReopenHistory)
+      (c.invoiceCount === 0 || c.documentEscalationStatus === 'approved')
     );
     const coOpts2  = callouts.map(c => `<option value="${esc(c.id)}">${esc(c.id)} — ${esc(c.service)}</option>`).join('');
     const cur = niCalloutEl.value;
@@ -777,6 +781,7 @@ function normalizeCallout(c) {
     hasReopenHistory: Number(c.has_reopen_history) === 1,
     quoteCount:        Number(c.quote_count) || 0,
     invoiceCount:      Number(c.invoice_count) || 0,
+    documentEscalationStatus: c.document_escalation_status || 'none',
   };
 }
 function normalizeQuote(q) {
@@ -1050,11 +1055,8 @@ const NAV_CONFIG = [
     page: 'p-ops-dashboard',
     items: [
       { id:'p-ops-dashboard', label:'Overview',  perm: null },
-      { id:'p-timeline',      label:'Timeline',  perm: null },
-      { id:'p-reports',       label:'Reports',   perm: null },
       { id:'p-quotes',        label:'Quote Log', perm:'quote.view',   badge:'nb-qte' },
       { id:'p-tracker',       label:'Tracker',   perm:'task.view',    badge:'nb-co' },
-      { id:'p-clients',       label:'Clients',   perm:'clients.view' },
     ],
   },
   {
@@ -1075,6 +1077,9 @@ const NAV_CONFIG = [
     page: 'p-support-dashboard',
     items: [
       { id:'p-support-dashboard', label:'Overview',      perm: null },
+      { id:'p-timeline',          label:'Site Timeline', perm: null },
+      { id:'p-reports',           label:'Reports',       perm: null },
+      { id:'p-clients',           label:'Clients',       perm:'clients.view' },
       { id:'p-users',             label:'Users & Roles', perm:'security.users' },
       { id:'p-safety',            label:'Safety Files',  perm: 'safety.view', badge:'nb-saf' },
       { id:'p-audit',             label:'Audit Log',     perm:'security.audit' },
@@ -1458,22 +1463,22 @@ const PAGE_INFO = {
     access: ['admin','sysadmin','manager','call_logger','senior_tech','junior_tech','client_support','admin_clerk','viewer'],
   },
   'p-reports': {
-    title: 'Operations Reports',
-    sub: 'Structured reporting for operations workflows',
-    purpose: 'A consolidated reporting surface for operations. It keeps the reporting view inside the portal so teams can move between live work, tracker activity, and formal reports without leaving the Operations area.',
+    title: 'Reports',
+    sub: 'Structured support reporting',
+    purpose: 'A consolidated reporting surface within Support for reviewing portal activity and formal reports.',
     steps: [
       'Review the report tabs to switch between safety, business activity, finance, workforce, and document upload views.',
       'Use the report filters and exports to drill into the data you need for a meeting or audit.',
-      'Return to Operations Overview when you need to jump back into live workflow pages.',
+      'Return to Support Overview when you need to open another support page.',
     ],
     tips: [
-      'This view embeds the standalone reports page so the navigation stays inside the Operations workspace.',
+      'This view embeds the standalone reports page so navigation stays inside the Support workspace.',
     ],
-    linked: 'Operations Overview, Tracker, Safety Files.',
+    linked: 'Support Overview, Site Timeline, Clients, Safety Files.',
     access: ['admin','sysadmin','manager','client_support','admin_clerk','viewer'],
   },
   'p-timeline': {
-    title: 'Timeline',
+    title: 'Site Timeline',
     sub: 'Chronological event view',
     purpose: 'A time-ordered view of all callouts and quotes plotted against a calendar axis. Use it to spot demand peaks, plan technician availability, and identify periods of unusual activity.',
     steps: [
@@ -2179,7 +2184,7 @@ const PAGE_PERMS = {
 /* Per-page quick navigation actions (filtered to user's permissions at render time) */
 const PAGE_ACTIONS = {
   'p-dashboard':         [{ label:'Operations', page:'p-ops-dashboard' }, { label:'Finance', page:'p-finance-dashboard' }, { label:'Support', page:'p-support-dashboard' }],
-  'p-ops-dashboard':     [{ label:'Tracker', page:'p-tracker', perm:'task.view' }, { label:'Quotes', page:'p-quotes', perm:'quote.view' }, { label:'Reports', page:'p-reports' }, { label:'Timeline', page:'p-timeline' }],
+  'p-ops-dashboard':     [{ label:'Tracker', page:'p-tracker', perm:'task.view' }, { label:'Quotes', page:'p-quotes', perm:'quote.view' }],
   'p-timeline':          [{ label:'Tracker', page:'p-tracker', perm:'task.view' }, { label:'Quotes', page:'p-quotes', perm:'quote.view' }],
   'p-callouts':          [{ label:'Tracker', page:'p-tracker', perm:'task.view' }, { label:'+ Log Call', page:'p-new-callout', perm:'capture.new_callout' }],
   'p-tracker':           [{ label:'+ New Task', page:'p-new-task', perm:'task.create' }],
@@ -2192,7 +2197,7 @@ const PAGE_ACTIONS = {
   'p-transactions':      [{ label:'Invoices', page:'p-invoices', perm:'invoice.view' }, { label:'Income Stmt', page:'p-income', perm:'finance.income' }],
   'p-income':            [{ label:'Transactions', page:'p-transactions', perm:'finance.transactions' }, { label:'Invoices', page:'p-invoices', perm:'invoice.view' }],
   'p-clients':           [{ label:'Invoices', page:'p-invoices', perm:'invoice.view' }, { label:'Statements', page:'p-statement', perm:'finance.statement' }],
-  'p-support-dashboard': [{ label:'Users', page:'p-users', perm:'security.users' }, { label:'Safety Files', page:'p-safety' }, { label:'Audit Log', page:'p-audit', perm:'security.audit' }],
+  'p-support-dashboard': [{ label:'Site Timeline', page:'p-timeline' }, { label:'Reports', page:'p-reports' }, { label:'Clients', page:'p-clients', perm:'clients.view' }, { label:'Users', page:'p-users', perm:'security.users' }, { label:'Safety Files', page:'p-safety' }, { label:'Audit Log', page:'p-audit', perm:'security.audit' }],
   'p-users':             [{ label:'Audit Log', page:'p-audit', perm:'security.audit' }],
   'p-safety':            [{ label:'+ New Audit', page:'p-safety-audit' }, { label:'Audit Log', page:'p-audit', perm:'security.audit' }],
   'p-safety-audit':      [{ label:'Safety Files', page:'p-safety' }],
@@ -3050,7 +3055,6 @@ function renderOpsDashboard() {
         ${can('task.create')?`<button class="btn btn-p" data-action="navPage" data-page="p-new-task">+ New Task</button>`:''}
         ${can('capture.new_callout')?`<button class="btn btn-p" data-action="navPage" data-page="p-new-callout">+ Log Call</button>`:''}
         ${can('capture.new_quote')?`<button class="btn btn-g" data-action="navPage" data-page="p-new-quote">+ Submit Quote</button>`:''}
-        <button class="btn btn-g" data-action="navPage" data-page="p-timeline">View Timeline →</button>
       </div>
     </div>` : ''}`;
   applyProgFills(el);
@@ -3711,7 +3715,9 @@ function renderCallouts(search='',filter=''){
   const canTech=can('callout.assign_tech');
   const canDel=can('callout.delete');
   const canCreate=can('callout.create');
-  const isSysadmin=(SESSION?.roles?.length?SESSION.roles:[SESSION?.role]).includes('sysadmin');
+  const userRoles=SESSION?.roles?.length?SESSION.roles:[SESSION?.role];
+  const isSysadmin=userRoles.includes('sysadmin');
+  const isAdministrator=userRoles.some(role=>role==='sysadmin'||role==='admin');
 
   // Show/hide new callout button
   const btn=document.getElementById('btn-newco');if(btn){ canCreate?$show(btn):$hide(btn); }
@@ -3728,7 +3734,7 @@ function renderCallouts(search='',filter=''){
     const actions=[];
     if(isSysadmin) actions.push(`<button class="btn btn-g btn-s" data-action="openEditCalloutService" data-id="${esc(c.id)}">Edit Service</button>`);
     if(canStatus&&!['Completed','Invoiced'].includes(c.status)) actions.push(`<button class="btn btn-g btn-s" data-action="openStatusModal" data-id="${esc(c.id)}">Update Status</button>`);
-    const canReopen=isSysadmin&&(['Completed','Invoiced'].includes(c.status)||((c.quoteCount>0||c.invoiceCount>0)&&!c.hasReopenHistory));
+    const canReopen=isSysadmin&&['Completed','Invoiced'].includes(c.status);
     if(canReopen) actions.push(`<button class="btn btn-p btn-s" data-action="reopenCallout" data-id="${esc(c.id)}">Re-open Callout</button>`);
     if(canTech&&!c.assignedTo) actions.push(`<button class="btn btn-g btn-s" data-action="openAssignTech" data-id="${esc(c.id)}">Assign Tech</button>`);
     const linkedQuotes=proxyDB.quotes.filter(q=>q.calloutRef===c.id);
@@ -3743,7 +3749,7 @@ function renderCallouts(search='',filter=''){
         actions.push(`<button class="btn btn-g btn-s" data-action="prefillQuoteFromJob" data-id="${esc(c.id)}">Quote</button>`);
       }
     }
-    if(linkedQuotes.length>0&&c.hasReopenHistory&&can('capture.new_quote')){
+    if(linkedQuotes.length>0&&c.documentEscalationStatus==='approved'&&can('capture.new_quote')){
       actions.push(`<button class="btn btn-g btn-s" data-action="prefillQuoteFromJob" data-id="${esc(c.id)}">Add Quote</button>`);
     }
     actions.push(`<button class="btn btn-g btn-s" data-action="openRecordChain" data-id="${esc(c.id)}">View</button>`);
@@ -3752,12 +3758,20 @@ function renderCallouts(search='',filter=''){
     if(can('callout.confirm_closure')&&c.status==='Completed'&&!c.closureConfirmed&&!c.invoiceGenerated){
       actions.push(`<button class="btn btn-p btn-s" data-action="openConfirmClosureModal" data-id="${esc(c.id)}">Confirm Closure</button>`);
     }
-    if(can('capture.new_invoice')&&hasApprovedQuote&&(c.invoiceCount===0||c.hasReopenHistory)){
+    if(can('capture.new_invoice')&&hasApprovedQuote&&(c.invoiceCount===0||c.documentEscalationStatus==='approved')){
       actions.push(`<button class="btn ${hasApprovedQuote?'btn-p':'btn-g'} btn-s" data-action="openInvoiceFromCallout" data-id="${esc(c.id)}">Invoice</button>`);
     }
-    const isPermanentRecord=['Completed','Invoiced'].includes(c.status)||c.invoiceGenerated||c.closureConfirmed||c.hasReopenHistory;
+    if((c.quoteCount>0||c.invoiceCount>0)&&['none','rejected'].includes(c.documentEscalationStatus)&&can('callout.update')){
+      actions.push(`<button class="btn btn-g btn-s" data-action="requestDocumentEscalation" data-id="${esc(c.id)}">Upgrade Call Type</button>`);
+    }
+    if(c.documentEscalationStatus==='pending'&&isAdministrator){
+      actions.push(`<button class="btn btn-p btn-s" data-action="approveDocumentEscalation" data-id="${esc(c.id)}">Approve Upgrade</button>`);
+      actions.push(`<button class="btn btn-g btn-s" data-action="rejectDocumentEscalation" data-id="${esc(c.id)}">Reject Upgrade</button>`);
+    }
+    const isPermanentRecord=['Completed','Invoiced'].includes(c.status)||c.invoiceGenerated||c.closureConfirmed||c.hasReopenHistory||c.quoteCount>0||c.invoiceCount>0;
     if(canDel&&!isPermanentRecord) actions.push(`<button class="btn btn-g btn-s" data-action="deleteCallout" data-id="${esc(c.id)}">Del</button>`);
 
+    const callTypeLabels={none:'Standard',pending:'Pending Upgrade',approved:'Upgraded',rejected:'Upgrade Rejected'};
     const detailId=`co-detail-${String(c.id).replace(/[^A-Za-z0-9_-]/g,'-')}`;
     const field=(label,value,extraClass='')=>`<div class="calllog-field ${extraClass}"><span class="calllog-field-label">${label}</span><div class="calllog-field-value">${value}</div></div>`;
     return`<article class="calllog-card" role="listitem" data-callout-id="${esc(c.id)}" aria-labelledby="${esc(detailId)}-job">
@@ -3769,6 +3783,7 @@ function renderCallouts(search='',filter=''){
         ${field('Start',fmtDT(c.startAt))}
         ${field('End',fmtDT(c.endAt))}
         ${field('Due',fmtDT(c.dueAt))}
+        ${field('Call Type',pillH(callTypeLabels[c.documentEscalationStatus]||'Standard'),'calllog-field-call-type')}
         <button class="calllog-expander" type="button" data-action="toggleCalloutDetails" data-detail-id="${esc(detailId)}" data-job-id="${esc(c.jobNo)}" aria-expanded="false" aria-controls="${esc(detailId)}" aria-label="Show additional details for ${esc(c.jobNo)}"><span class="calllog-expander-icon" aria-hidden="true">&#9656;</span><span class="calllog-expander-label">Show details</span></button>
       </div>
       <div class="calllog-detail" id="${esc(detailId)}" hidden>
@@ -3866,6 +3881,25 @@ async function saveCalloutService(id){
   if(focusTarget===card&&!card.hasAttribute('tabindex'))card.setAttribute('tabindex','-1');
   focusTarget?.focus();
   toast(`Service updated for ${id}; history retained`,'ok');
+}
+
+async function requestDocumentEscalation(id){
+  const reason=prompt('Why is this call being upgraded for additional quotes or invoices?')?.trim();
+  if(!reason)return;
+  const r=await api('PUT',`callouts.php?id=${encodeURIComponent(id)}`,{action:'request_document_escalation',reason});
+  if(!r.success){toast(r.error||'Call type upgrade request failed','err');return;}
+  await refreshCallouts();
+  renderCallouts(document.getElementById('co-search')?.value||'',document.getElementById('co-filter')?.value||'');
+  toast('Call type upgrade sent for administrator approval','ok');
+}
+
+async function decideDocumentEscalation(id,approve){
+  const action=approve?'approve_document_escalation':'reject_document_escalation';
+  const r=await api('PUT',`callouts.php?id=${encodeURIComponent(id)}`,{action});
+  if(!r.success){toast(r.error||'Call type upgrade decision failed','err');return;}
+  await refreshCallouts();
+  renderCallouts(document.getElementById('co-search')?.value||'',document.getElementById('co-filter')?.value||'');
+  toast(approve?'Call type upgraded':'Call type upgrade rejected',approve?'ok':'info');
 }
 
 function openStatusModal(id){
@@ -4006,7 +4040,7 @@ async function saveConfirmClosure(id){
 
 function prefillQuoteFromJob(id){
   const c=proxyDB.callouts.find(x=>x.id===id);if(!c)return;
-  if(c.quoteCount>0&&!c.hasReopenHistory)return;
+  if(c.quoteCount>0&&c.documentEscalationStatus!=='approved')return;
   showPortalPage('p-new-quote',null);
   setTimeout(()=>{
     const el=document.getElementById('nq-callout-ref');if(el)el.value=id;
@@ -4152,7 +4186,7 @@ function convertQtoInv(id){
   const q=proxyDB.quotes.find(x=>x.id===id);if(!q)return;
   const{total}=quoteTotals(q);
   const invId=nextId('inv');
-  const due=new Date();due.setDate(due.getDate()+30);
+  const due=new Date();due.setDate(due.getDate()+14);
   proxyDB.invoices.unshift({id:invId,client:q.client,amount:total,dueDate:localDateStr(due),status:'Draft',ref:q.id,po:'',date:localDateStr()});
   save();showPortalPage('p-invoices',null);toast(`Invoice ${invId} created from ${id}`,'ok');audit('CREATE',`Invoice ${invId} from ${id}`);
 }
@@ -4317,7 +4351,7 @@ function initNewInvoice() {
   _invoiceListenerAC = new AbortController();
   const sig = { signal: _invoiceListenerAC.signal };
 
-  const due = new Date(); due.setDate(due.getDate() + 1);
+  const due = new Date(); due.setDate(due.getDate() + 14);
   document.getElementById('ni-due').value = localDateStr(due);
   document.getElementById('ni-callout-ref').disabled = false;
 

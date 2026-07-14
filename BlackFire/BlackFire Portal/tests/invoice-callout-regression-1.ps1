@@ -18,20 +18,24 @@ foreach ($expected in @('pillH(q.status)', 'pillH(co.priority)', 'pillH(co.statu
     }
 }
 
-if (-not $portalJs.Contains("if (!calloutRef) { toast('Select the completed callout this invoice belongs to'")) {
-    throw 'The invoice form does not block submission without a linked callout.'
+if (-not $portalJs.Contains("if (!calloutRef || !quoteRef) { toast('Select the approved quote and call log this invoice belongs to'")) {
+    throw 'The invoice form does not block submission without linked quote and callout records.'
 }
 
 if (-not $portalPhp.Contains('id="ni-callout-ref" required')) {
     throw 'The invoice form does not mark Linked Callout as required.'
 }
 
-if (-not $invoiceApi.Contains("require_fields(`$b, ['amount', 'due_date', 'callout_ref'])")) {
-    throw 'The invoice API does not require callout_ref.'
+if (-not $invoiceApi.Contains("require_fields(`$b, ['amount', 'quote_ref', 'callout_ref'])")) {
+    throw 'The invoice API does not require quote_ref and callout_ref.'
 }
 
-if (-not $invoiceApi.Contains("json_err('Linked callout not found', 422)")) {
-    throw 'The invoice API does not reject an invalid callout reference.'
+if (-not $invoiceApi.Contains("strtotime(`$invoice_date . ' +14 days')")) {
+    throw 'The invoice API does not default due_date to issue date plus 14 days.'
+}
+
+if (-not $invoiceApi.Contains('the linked quote belongs to a different call log')) {
+    throw 'The invoice API does not reject a mismatched quote/callout chain.'
 }
 
 if (-not $quoteApi.Contains("json_err('Quote must be linked to a valid callout before conversion', 422)")) {

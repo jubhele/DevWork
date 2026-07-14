@@ -202,7 +202,7 @@ if ($method === 'PUT') {
     if ($action === 'convert') {
         require_perm('invoice.create');
 
-        $due_date = (isset($b['due_date']) && valid_date($b['due_date'])) ? $b['due_date'] : date('Y-m-d', strtotime('+1 day'));
+        $due_date = (isset($b['due_date']) && valid_date($b['due_date'])) ? $b['due_date'] : date('Y-m-d', strtotime('+14 days'));
         $po       = clean($b['po'] ?? '', 100);
         $inv_ref  = next_ref_id('inv');
 

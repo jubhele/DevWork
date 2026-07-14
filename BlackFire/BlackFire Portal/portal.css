@@ -574,8 +574,9 @@ tr:hover td{background:var(--row-hover)}
 .btn-s{padding:4px 9px;font-size:12px}
 .bgrp{display:flex;gap:6px;flex-wrap:wrap}
 .calllog-list{display:grid;gap:14px;min-width:0}
+.calllog-column-header{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1.5fr) repeat(2,minmax(0,.75fr)) repeat(4,minmax(0,1fr));padding:0 14px 7px;color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:1.4px;text-transform:uppercase}
 .calllog-card{min-width:0;overflow:hidden;background:var(--surface);border:1px solid var(--border);border-top:2px solid var(--accent);border-radius:2px}
-.calllog-card-summary{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1.5fr) repeat(2,minmax(0,.75fr)) repeat(3,minmax(0,1fr));gap:0;border-bottom:1px solid var(--border)}
+.calllog-card-summary{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1.5fr) repeat(2,minmax(0,.75fr)) repeat(4,minmax(0,1fr));gap:0;border-bottom:1px solid var(--border)}
 .calllog-field{min-width:0;padding:12px 14px}
 .calllog-field-label,.calllog-section-label{display:block;margin-bottom:5px;color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:1.4px;text-transform:uppercase}
 .calllog-field-value{min-width:0;color:var(--text2);font-size:12px;overflow-wrap:anywhere}
@@ -591,6 +592,7 @@ tr:hover td{background:var(--row-hover)}
 .calllog-actions .bgrp{gap:8px}
 .calllog-empty{padding:28px 16px;background:var(--surface);border:1px solid var(--border)}
 @media(max-width:1100px){
+  .calllog-column-header{display:none}
   .calllog-card-summary{grid-template-columns:repeat(4,minmax(0,1fr))}
   .calllog-field-service{grid-column:span 2}
   .calllog-detail{grid-template-columns:repeat(3,minmax(0,1fr))}

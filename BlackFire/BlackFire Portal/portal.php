@@ -704,6 +704,7 @@ $companyLogoUrl = $baseUrl . '/' . ltrim($cfg['company_logo'] ?? 'blackfire_logo
           <select class="sinput sinput-narrow" id="co-filter"><option value="">All</option><option>Open</option><option>In Progress</option><option>Completed</option><option>Invoiced</option></select>
           <button class="btn btn-p btn-s" id="btn-newco" data-action="navPage" data-page="p-new-callout">+ Log Call</button>
         </div>
+        <div class="calllog-column-header" aria-hidden="true"><span>Job ID</span><span>Service</span><span>Priority</span><span>Status</span><span>Start</span><span>End</span><span>Due</span><span>Call Type</span></div>
         <div id="co-table" class="calllog-list" role="list" aria-label="Call log records"></div>
       </div>
     </div>
@@ -1131,7 +1132,7 @@ $companyLogoUrl = $baseUrl . '/' . ltrim($cfg['company_logo'] ?? 'blackfire_logo
 
     <div id="p-reports" class="ppage">
       <div class="ptitle">Reports</div>
-      <div class="psub">OPERATIONS  ·  REPORTING</div>
+      <div class="psub">SUPPORT  ·  REPORTING</div>
       <div class="panel" style="padding:0;overflow:hidden">
         <iframe src="reports.php" title="Reports" style="display:block;width:100%;height:calc(100vh - 220px);min-height:760px;border:0;background:#fff"></iframe>
       </div>

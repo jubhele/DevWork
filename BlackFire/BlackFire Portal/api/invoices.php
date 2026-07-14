@@ -104,7 +104,7 @@ if ($method === 'POST' && clean($_GET['action'] ?? '', 20) === 'payment') {
 if ($method === 'POST') {
     $usr = require_perm('invoice.create');
     $b   = get_body();
-    require_fields($b, ['amount', 'due_date', 'quote_ref', 'callout_ref']);
+    require_fields($b, ['amount', 'quote_ref', 'callout_ref']);
 
     $amount = (float)($b['amount'] ?? 0);
     if ($amount < 0) json_err('Amount cannot be negative');
@@ -131,9 +131,8 @@ if ($method === 'POST') {
     $invoice_no = clean($b['invoice_no'] ?? '', 50);
     if (!$invoice_no) $invoice_no = $ref;
 
-    if (!valid_date($b['due_date'])) json_err('A valid due date is required');
-
     $invoice_date = date('Y-m-d');
+    $due_date = valid_date($b['due_date'] ?? null) ? $b['due_date'] : date('Y-m-d', strtotime($invoice_date . ' +14 days'));
     try {
         db_begin();
         $qrow = db_row(
@@ -183,7 +182,7 @@ if ($method === 'POST') {
                 $client_name,
                 $client_email,
                 $amount,
-                $b['due_date'],
+                $due_date,
                 clean($b['status'] ?? 'Draft'),
                 $quote_ref_str,
                 $quote_id_fk,

@@ -348,21 +348,13 @@ if ($method === 'PUT') {
         db_begin();
         try {
             $callout = db_row(
-                "SELECT c.id, c.ref_id, c.status, c.end_at,
-                        (SELECT COUNT(*) FROM bf_quotes q WHERE q.callout_id = c.id OR q.callout_ref = c.ref_id) AS quote_count,
-                        (SELECT COUNT(*) FROM bf_invoices i WHERE i.callout_id = c.id OR i.callout_ref = c.ref_id) AS invoice_count,
-                        EXISTS(SELECT 1 FROM bf_tracker_updates tu
-                                WHERE tu.entity_type = 'callout' AND tu.entity_ref = c.ref_id
-                                  AND LEFT(tu.source_kind, 14) = 'system_reopen_') AS has_reopen_history
+                "SELECT c.id, c.ref_id, c.status, c.end_at
                    FROM bf_callouts c WHERE c.ref_id = ? FOR UPDATE",
                 [$ref_id]
             );
             if (!$callout) throw new RuntimeException('not_found');
             $closed_status = in_array($callout['status'], ['Completed', 'Invoiced'], true);
-            $has_documents = (int)$callout['quote_count'] > 0 || (int)$callout['invoice_count'] > 0;
-            if (!$closed_status && (!$has_documents || !empty($callout['has_reopen_history']))) {
-                throw new RuntimeException('not_eligible');
-            }
+            if (!$closed_status) throw new RuntimeException('not_eligible');
 
             $reopened_at = date('Y-m-d H:i:s');
             $previous_status = $callout['status'];
@@ -382,7 +374,7 @@ if ($method === 'PUT') {
         } catch (RuntimeException $error) {
             db_rollback();
             if ($error->getMessage() === 'not_found') json_err('Callout not found', 404);
-            if ($error->getMessage() === 'not_eligible') json_err('Only a Completed, Invoiced, or document-linked callout without prior re-open history may be re-opened', 409);
+            if ($error->getMessage() === 'not_eligible') json_err('Only a Completed or Invoiced callout may be re-opened', 409);
             json_err('Callout could not be re-opened');
         } catch (Throwable $error) {
             db_rollback();
@@ -444,25 +436,34 @@ if ($method === 'PUT') {
     require_perm('callout.update');
     if (array_key_exists('service', $b)) json_err('Use the system administrator service edit action', 403);
 
-    // Techs may only update callouts assigned to them
     $usr_roles = !empty($usr['roles']) ? $usr['roles'] : [$usr['role']];
-    if (count(array_intersect($usr_roles, ['junior_tech', 'senior_tech'])) > 0
-        && count(array_intersect($usr_roles, ['admin', 'manager', 'sysadmin'])) === 0) {
-        $ownership = db_row("SELECT assigned_to FROM bf_callouts WHERE ref_id = ?", [$ref_id]);
-        if (!$ownership) json_err('Callout not found', 404);
-        if ($ownership['assigned_to'] !== $usr['username']) json_err('You can only update callouts assigned to you', 403);
+    if (array_key_exists('status', $b) && !can('callout.update_status')) json_err('No permission to update status', 403);
+    if (array_key_exists('po', $b) && !can('callout.assign_po')) json_err('No permission to assign PO', 403);
+    if (array_key_exists('status', $b)
+        && (!is_string($b['status']) || !in_array($b['status'], ['Open', 'In Progress', 'Completed', 'Invoiced'], true))) {
+        json_err('Invalid callout status', 422);
     }
 
-    // Permission gates on specific fields — use can() without role arg to check all user roles
-    if (isset($b['status']) && !can('callout.update_status')) json_err('No permission to update status', 403);
-    if (isset($b['po'])     && !can('callout.assign_po'))     json_err('No permission to assign PO', 403);
-
-    $current = db_row("SELECT * FROM bf_callouts WHERE ref_id = ?", [$ref_id]);
-    if (!$current) json_err('Callout not found', 404);
-    if (in_array($current['status'], ['Completed', 'Invoiced'], true)
-        && isset($b['status']) && $b['status'] !== $current['status']) {
-        json_err('Completed and Invoiced callouts are terminal. Use Re-open Callout before changing status.', 403);
+    $datetime_values = [];
+    foreach (['start_at', 'end_at', 'due_at'] as $field) {
+        if (!array_key_exists($field, $b)) continue;
+        $datetime_values[$field] = tracker_datetime($b[$field]);
+        if (!empty($b[$field]) && $datetime_values[$field] === null) json_err("Invalid {$field} date and time");
     }
+
+    db_begin();
+    try {
+        $current = db_row("SELECT * FROM bf_callouts WHERE ref_id = ? FOR UPDATE", [$ref_id]);
+        if (!$current) throw new RuntimeException('not_found');
+        if (count(array_intersect($usr_roles, ['junior_tech', 'senior_tech'])) > 0
+            && count(array_intersect($usr_roles, ['admin', 'manager', 'sysadmin'])) === 0
+            && $current['assigned_to'] !== $usr['username']) {
+            throw new RuntimeException('not_owner');
+        }
+        if (in_array($current['status'], ['Completed', 'Invoiced'], true)
+            && array_key_exists('status', $b) && $b['status'] !== $current['status']) {
+            throw new RuntimeException('terminal_status');
+        }
 
     $sets   = [];
     $params = [];
@@ -470,10 +471,8 @@ if ($method === 'PUT') {
     foreach ($allowed as $field) {
         if (array_key_exists($field, $b)) {
             if (in_array($field, ['start_at', 'end_at', 'due_at'], true)) {
-                $value = tracker_datetime($b[$field]);
-                if (!empty($b[$field]) && $value === null) json_err("Invalid {$field} date and time");
                 $sets[] = "$field = ?";
-                $params[] = $value;
+                $params[] = $datetime_values[$field];
                 $changed[] = $field;
                 continue;
             }
@@ -492,11 +491,9 @@ if ($method === 'PUT') {
         $changed[] = 'end_at';
     }
 
-    if (!$sets) json_err('No fields to update');
+    if (!$sets) throw new RuntimeException('no_fields');
     $params[] = $ref_id;
 
-    db_begin();
-    try {
         db_exec("UPDATE bf_callouts SET " . implode(', ', $sets) . " WHERE ref_id = ?", $params);
         if (array_key_exists('notes', $b) && clean($b['notes'], 2000) !== (string)($current['notes'] ?? '')) {
             db_insert(
@@ -507,6 +504,13 @@ if ($method === 'PUT') {
             );
         }
         db_commit();
+    } catch (RuntimeException $error) {
+        db_rollback();
+        if ($error->getMessage() === 'not_found') json_err('Callout not found', 404);
+        if ($error->getMessage() === 'not_owner') json_err('You can only update callouts assigned to you', 403);
+        if ($error->getMessage() === 'terminal_status') json_err('Completed and Invoiced callouts are terminal. Use Re-open Callout before changing status.', 403);
+        if ($error->getMessage() === 'no_fields') json_err('No fields to update');
+        json_err('Callout could not be updated');
     } catch (Throwable $error) {
         db_rollback();
         json_err('Callout could not be updated');
