@@ -126,66 +126,54 @@ if ($method === 'POST') {
     // Resolve linked quote FK
     $quote_ref_str = clean($b['quote_ref']   ?? '', 30);
     $co_ref_str    = clean($b['callout_ref'] ?? '', 30);
-    $quote_id_fk   = null;
-    $callout_id_fk = null;
-
-    $qrow = db_row(
-        "SELECT id, ref_id, client_id, status, callout_id, callout_ref
-           FROM bf_quotes WHERE ref_id = ? LIMIT 1",
-        [$quote_ref_str]
-    );
-    $quote_id_fk = $qrow ? (int)$qrow['id'] : null;
-    $callout_id_fk = null;
-    if ($co_ref_str) {
-        $crow = db_row("SELECT id, ref_id FROM bf_callouts WHERE ref_id = ? LIMIT 1", [$co_ref_str]);
-        if ($crow) {
-            $callout_id_fk = (int)$crow['id'];
-            $co_ref_str    = $crow['ref_id'];
-        } else {
-            $co_ref_str = '';
-        }
-    }
 
     $ref        = next_ref_id('inv');
     $invoice_no = clean($b['invoice_no'] ?? '', 50);
     if (!$invoice_no) $invoice_no = $ref;
 
-    // Workflow rule (mirrors DB trigger trg_invoice_require_chain):
-    // no invoice without a linked callout and an Approved/Converted quote.
-    if (!$callout_id_fk) {
-        json_err('Cannot create invoice: a linked callout is required (callout_ref).');
-    }
-    if (!$quote_id_fk) {
-        json_err('Cannot create invoice: a linked quote is required (quote_ref).');
-    }
-    if (!in_array($qrow['status'], ['Approved', 'Converted'], true)) {
-        json_err('Cannot create invoice: the linked quote must be Approved before invoicing.');
-    }
-    if ((int)$qrow['callout_id'] !== $callout_id_fk || $qrow['callout_ref'] !== $co_ref_str) {
-        json_err('Cannot create invoice: the linked quote belongs to a different call log.', 422);
-    }
-    if ($client_id && $qrow['client_id'] && (int)$qrow['client_id'] !== $client_id) {
-        json_err('Cannot create invoice: client must match the linked quote.', 422);
-    }
-    $existing_quote_invoice = db_row("SELECT ref_id FROM bf_invoices WHERE quote_id = ? OR quote_ref = ? LIMIT 1", [$quote_id_fk, $quote_ref_str]);
-    if ($existing_quote_invoice) json_err('This quote already has Invoice ' . $existing_quote_invoice['ref_id'], 409);
-    $callout_workflow = db_row(
-        "SELECT EXISTS(SELECT 1 FROM bf_tracker_updates tu
-                        WHERE tu.entity_type = 'callout' AND tu.entity_ref = bf_callouts.ref_id
-                          AND LEFT(tu.source_kind, 14) = 'system_reopen_') AS has_reopen_history,
-                (SELECT COUNT(*) FROM bf_invoices
-                  WHERE callout_id = bf_callouts.id OR callout_ref = bf_callouts.ref_id) AS invoice_count
-           FROM bf_callouts WHERE id = ?",
-        [$callout_id_fk]
-    );
-    if ((int)$callout_workflow['invoice_count'] > 0 && empty($callout_workflow['has_reopen_history'])) {
-        json_err('Re-open the linked callout before adding another invoice', 403);
-    }
     if (!valid_date($b['due_date'])) json_err('A valid due date is required');
 
     $invoice_date = date('Y-m-d');
     try {
         db_begin();
+        $qrow = db_row(
+            "SELECT id, ref_id, client_id, status, callout_id, callout_ref
+               FROM bf_quotes WHERE ref_id = ? LIMIT 1 FOR UPDATE",
+            [$quote_ref_str]
+        );
+        if (!$qrow) throw new RuntimeException('quote_required');
+
+        $crow = db_row(
+            "SELECT id, ref_id,
+                    EXISTS(SELECT 1 FROM bf_tracker_updates tu
+                            WHERE tu.entity_type = 'callout' AND tu.entity_ref = bf_callouts.ref_id
+                              AND LEFT(tu.source_kind, 14) = 'system_reopen_') AS has_reopen_history,
+                    (SELECT COUNT(*) FROM bf_invoices
+                      WHERE callout_id = bf_callouts.id OR callout_ref = bf_callouts.ref_id) AS invoice_count
+               FROM bf_callouts WHERE ref_id = ? LIMIT 1 FOR UPDATE",
+            [$co_ref_str]
+        );
+        if (!$crow) throw new RuntimeException('callout_required');
+        $quote_id_fk = (int)$qrow['id'];
+        $callout_id_fk = (int)$crow['id'];
+        $co_ref_str = $crow['ref_id'];
+
+        if (!in_array($qrow['status'], ['Approved', 'Converted'], true)) throw new RuntimeException('quote_not_approved');
+        if ((int)$qrow['callout_id'] !== $callout_id_fk || $qrow['callout_ref'] !== $co_ref_str) {
+            throw new RuntimeException('chain_mismatch');
+        }
+        if ($client_id && $qrow['client_id'] && (int)$qrow['client_id'] !== $client_id) {
+            throw new RuntimeException('client_mismatch');
+        }
+        $existing_quote_invoice = db_row(
+            "SELECT ref_id FROM bf_invoices WHERE quote_id = ? OR quote_ref = ? LIMIT 1",
+            [$quote_id_fk, $quote_ref_str]
+        );
+        if ($existing_quote_invoice) throw new RuntimeException('duplicate:' . $existing_quote_invoice['ref_id']);
+        if ((int)$crow['invoice_count'] > 0 && empty($crow['has_reopen_history'])) {
+            throw new RuntimeException('reopen_required');
+        }
+
         $id = db_insert(
             "INSERT INTO bf_invoices
              (ref_id, invoice_no, client_id, client_name, client_email, amount, due_date, status,

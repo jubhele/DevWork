@@ -224,6 +224,69 @@ if ($method === 'PUT') {
     $b      = get_body();
     $action = clean($b['action'] ?? '', 50);
 
+    if ($action === 'request_document_escalation') {
+        require_perm('callout.update');
+        $reason = clean($b['reason'] ?? '', 500);
+        if (!$reason) json_err('A reason is required to request additional quotes or invoices');
+
+        db_begin();
+        try {
+            $callout = db_row("SELECT id, document_escalation_status FROM bf_callouts WHERE ref_id = ? FOR UPDATE", [$ref_id]);
+            if (!$callout) throw new RuntimeException('not_found');
+            if ($callout['document_escalation_status'] === 'approved') throw new RuntimeException('already_approved');
+            db_exec(
+                "UPDATE bf_callouts
+                    SET document_escalation_status = 'pending', document_escalation_reason = ?,
+                        document_escalation_requested_by_user_id = ?, document_escalation_requested_at = NOW(),
+                        document_escalation_approved_by_user_id = NULL, document_escalation_approved_at = NULL
+                  WHERE id = ?",
+                [$reason, (int)$usr['id'], (int)$callout['id']]
+            );
+            db_commit();
+        } catch (RuntimeException $error) {
+            db_rollback();
+            if ($error->getMessage() === 'not_found') json_err('Callout not found', 404);
+            if ($error->getMessage() === 'already_approved') json_err('Additional quote/invoice functionality is already approved', 409);
+            json_err('Escalation request could not be saved');
+        } catch (Throwable $error) {
+            db_rollback();
+            json_err('Escalation request could not be saved');
+        }
+        audit($usr['username'], 'DOCUMENT_ESCALATION_REQUESTED', "Additional quote/invoice access requested for {$ref_id}: {$reason}");
+        json_ok(['data' => db_row("SELECT * FROM bf_callouts WHERE ref_id = ?", [$ref_id])], 'Administrator approval requested');
+    }
+
+    if ($action === 'approve_document_escalation' || $action === 'reject_document_escalation') {
+        $roles = !empty($usr['roles']) ? $usr['roles'] : [$usr['role']];
+        if (!array_intersect($roles, ['sysadmin', 'admin'])) json_err('Only an administrator may decide call escalation', 403);
+        $approved = $action === 'approve_document_escalation';
+
+        db_begin();
+        try {
+            $callout = db_row("SELECT id, document_escalation_status FROM bf_callouts WHERE ref_id = ? FOR UPDATE", [$ref_id]);
+            if (!$callout) throw new RuntimeException('not_found');
+            if ($callout['document_escalation_status'] !== 'pending') throw new RuntimeException('not_pending');
+            db_exec(
+                "UPDATE bf_callouts
+                    SET document_escalation_status = ?, document_escalation_approved_by_user_id = ?,
+                        document_escalation_approved_at = NOW()
+                  WHERE id = ?",
+                [$approved ? 'approved' : 'rejected', (int)$usr['id'], (int)$callout['id']]
+            );
+            db_commit();
+        } catch (RuntimeException $error) {
+            db_rollback();
+            if ($error->getMessage() === 'not_found') json_err('Callout not found', 404);
+            if ($error->getMessage() === 'not_pending') json_err('This call has no pending escalation request', 409);
+            json_err('Escalation decision could not be saved');
+        } catch (Throwable $error) {
+            db_rollback();
+            json_err('Escalation decision could not be saved');
+        }
+        audit($usr['username'], $approved ? 'DOCUMENT_ESCALATION_APPROVED' : 'DOCUMENT_ESCALATION_REJECTED', "Additional quote/invoice access " . ($approved ? 'approved' : 'rejected') . " for {$ref_id}");
+        json_ok(['data' => db_row("SELECT * FROM bf_callouts WHERE ref_id = ?", [$ref_id])], $approved ? 'Additional quote/invoice access approved' : 'Call escalation rejected');
+    }
+
     if ($action === 'edit_service') {
         $roles = !empty($usr['roles']) ? $usr['roles'] : [$usr['role']];
         if (!in_array('sysadmin', $roles, true)) json_err('Only a system administrator may edit a callout service', 403);
@@ -463,6 +526,8 @@ if ($method === 'DELETE') {
     try {
         $callout = db_row(
             "SELECT c.status, c.invoice_generated, c.closure_confirmed,
+                    (SELECT COUNT(*) FROM bf_quotes q WHERE q.callout_id = c.id OR q.callout_ref = c.ref_id) AS quote_count,
+                    (SELECT COUNT(*) FROM bf_invoices i WHERE i.callout_id = c.id OR i.callout_ref = c.ref_id) AS invoice_count,
                     EXISTS(SELECT 1 FROM bf_tracker_updates tu
                             WHERE tu.entity_type = 'callout' AND tu.entity_ref = c.ref_id
                               AND LEFT(tu.source_kind, 14) = 'system_reopen_') AS has_reopen_history
@@ -473,7 +538,9 @@ if ($method === 'DELETE') {
         if (in_array($callout['status'], ['Completed', 'Invoiced'], true)
             || !empty($callout['invoice_generated'])
             || !empty($callout['closure_confirmed'])
-            || !empty($callout['has_reopen_history'])) {
+            || !empty($callout['has_reopen_history'])
+            || (int)$callout['quote_count'] > 0
+            || (int)$callout['invoice_count'] > 0) {
             throw new RuntimeException('permanent_record');
         }
         $affected = db_exec("DELETE FROM bf_callouts WHERE ref_id = ?", [$ref_id]);
@@ -483,7 +550,7 @@ if ($method === 'DELETE') {
         db_rollback();
         if ($error->getMessage() === 'not_found') json_err('Callout not found', 404);
         if ($error->getMessage() === 'permanent_record') {
-            json_err('Completed, invoiced, or re-opened callouts are permanent records and cannot be deleted', 409);
+            json_err('Callouts with lifecycle history, quotes, or invoices are permanent records and cannot be deleted', 409);
         }
         json_err('Callout could not be deleted');
     } catch (Throwable $error) {

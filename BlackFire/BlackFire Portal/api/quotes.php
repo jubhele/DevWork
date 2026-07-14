@@ -106,10 +106,7 @@ if ($method === 'POST') {
         db_begin();
 
         $co = db_row(
-            "SELECT id, ref_id, client_id,
-                    EXISTS(SELECT 1 FROM bf_tracker_updates tu
-                            WHERE tu.entity_type = 'callout' AND tu.entity_ref = bf_callouts.ref_id
-                              AND LEFT(tu.source_kind, 14) = 'system_reopen_') AS has_reopen_history,
+            "SELECT id, ref_id, client_id, document_escalation_status,
                     (SELECT COUNT(*) FROM bf_quotes
                       WHERE callout_id = bf_callouts.id OR callout_ref = bf_callouts.ref_id) AS quote_count
                FROM bf_callouts WHERE ref_id = ? LIMIT 1 FOR UPDATE",
@@ -119,8 +116,8 @@ if ($method === 'POST') {
         if ($client_id && $co['client_id'] && (int)$co['client_id'] !== $client_id) {
             throw new RuntimeException('client_mismatch');
         }
-        if ((int)$co['quote_count'] > 0 && empty($co['has_reopen_history'])) {
-            throw new RuntimeException('reopen_required');
+        if ((int)$co['quote_count'] > 0 && $co['document_escalation_status'] !== 'approved') {
+            throw new RuntimeException('escalation_required');
         }
         $callout_id_fk = (int)$co['id'];
         $callout_ref_str = $co['ref_id'];
@@ -167,7 +164,7 @@ if ($method === 'POST') {
         db_rollback();
         if ($error->getMessage() === 'invalid_callout') json_err('Quote must belong to a valid call log', 422);
         if ($error->getMessage() === 'client_mismatch') json_err('Quote client must match the linked call log client', 422);
-        if ($error->getMessage() === 'reopen_required') json_err('Re-open the linked callout before adding another quote', 403);
+        if ($error->getMessage() === 'escalation_required') json_err('Additional quotes require administrator-approved call escalation', 403);
         json_err('Quote creation failed - no changes saved', 500);
     } catch (Throwable $error) {
         db_rollback();
@@ -211,6 +208,28 @@ if ($method === 'PUT') {
 
         try {
             db_begin();
+            $quote = db_row("SELECT * FROM bf_quotes WHERE ref_id = ? FOR UPDATE", [$ref_id]);
+            if (!$quote) throw new RuntimeException('quote_not_found');
+            if ($quote['status'] !== 'Approved') throw new RuntimeException('quote_not_approved');
+
+            $linked_callout = db_row(
+                "SELECT id, ref_id, document_escalation_status,
+                        (SELECT COUNT(*) FROM bf_invoices
+                          WHERE callout_id = bf_callouts.id OR callout_ref = bf_callouts.ref_id) AS invoice_count
+                   FROM bf_callouts
+                  WHERE id = ? AND ref_id = ? FOR UPDATE",
+                [(int)($quote['callout_id'] ?? 0), $quote['callout_ref'] ?? '']
+            );
+            if (!$linked_callout) throw new RuntimeException('invalid_callout');
+
+            $existing = db_row(
+                "SELECT ref_id FROM bf_invoices WHERE quote_id = ? OR quote_ref = ? LIMIT 1",
+                [(int)$quote['id'], $ref_id]
+            );
+            if ($existing) throw new RuntimeException('already_converted:' . $existing['ref_id']);
+            if ((int)$linked_callout['invoice_count'] > 0 && $linked_callout['document_escalation_status'] !== 'approved') {
+                throw new RuntimeException('escalation_required');
+            }
             db_insert(
                 "INSERT INTO bf_invoices
                  (ref_id, invoice_no, client_id, client_name, client_email, amount, due_date, status,
@@ -238,9 +257,19 @@ if ($method === 'PUT') {
             ]);
             db_exec("UPDATE bf_quotes SET status = 'Converted' WHERE ref_id = ?", [$ref_id]);
             db_commit();
-        } catch (Exception $e) {
+        } catch (RuntimeException $error) {
             db_rollback();
-            json_err('Quote conversion failed — no changes saved', 500);
+            if ($error->getMessage() === 'quote_not_found') json_err('Quote not found', 404);
+            if ($error->getMessage() === 'quote_not_approved') json_err('Only Approved quotes can be converted to invoices', 422);
+            if ($error->getMessage() === 'invalid_callout') json_err('Quote must be linked to a valid callout before conversion', 422);
+            if (strpos($error->getMessage(), 'already_converted:') === 0) {
+                json_err('Quote already converted - see Invoice ' . substr($error->getMessage(), 18), 409);
+            }
+            if ($error->getMessage() === 'escalation_required') json_err('Additional invoices require administrator-approved call escalation', 403);
+            json_err('Quote conversion failed - no changes saved', 500);
+        } catch (Throwable $error) {
+            db_rollback();
+            json_err('Quote conversion failed - no changes saved', 500);
         }
 
         audit($usr['username'], 'CONVERT', "Quote $ref_id converted to Invoice $inv_ref");
@@ -286,16 +315,25 @@ if ($method === 'DELETE') {
     $usr = require_perm('quote.delete');
     if (!$ref_id) json_err('Missing id');
     
-    $quote = db_row("SELECT id FROM bf_quotes WHERE ref_id = ?", [$ref_id]);
-    if (!$quote) json_err('Quote not found', 404);
-
     try {
         db_begin();
-        // Explicitly clear line items first to prevent orphans
-        db_exec("DELETE FROM bf_quote_items WHERE quote_id = ?", [$quote['id']]);
-        db_exec("DELETE FROM bf_quotes WHERE id = ?", [$quote['id']]);
+        $quote = db_row(
+            "SELECT q.id, q.status,
+                    (SELECT COUNT(*) FROM bf_invoices i WHERE i.quote_id = q.id OR i.quote_ref = q.ref_id) AS invoice_count
+               FROM bf_quotes q WHERE q.ref_id = ? FOR UPDATE",
+            [$ref_id]
+        );
+        if (!$quote) throw new RuntimeException('not_found');
+        if ($quote['status'] !== 'Draft' || (int)$quote['invoice_count'] > 0) throw new RuntimeException('permanent_record');
+        db_exec("DELETE FROM bf_quote_items WHERE quote_id = ?", [(int)$quote['id']]);
+        db_exec("DELETE FROM bf_quotes WHERE id = ?", [(int)$quote['id']]);
         db_commit();
-    } catch (Exception $e) {
+    } catch (RuntimeException $error) {
+        db_rollback();
+        if ($error->getMessage() === 'not_found') json_err('Quote not found', 404);
+        if ($error->getMessage() === 'permanent_record') json_err('Only an unused Draft quote may be deleted; declined, approved, converted, and invoiced quotes are retained', 409);
+        json_err('Failed to delete quote securely', 500);
+    } catch (Throwable $error) {
         db_rollback();
         json_err('Failed to delete quote securely', 500);
     }
