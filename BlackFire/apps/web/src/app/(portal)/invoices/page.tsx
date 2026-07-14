@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { getCurrentUser, can } from '@/lib/server-auth'
 import { getInvoices } from '@/lib/data/invoices'
+import { invoicePdfUrl } from '@blackfire/api-client'
 import type { Invoice } from '@blackfire/types'
 
 function Status({ value }: { value: string }) {
@@ -10,6 +11,10 @@ function Status({ value }: { value: string }) {
     value === 'Partial' ? 'bg-warning/10 text-warning' :
     'bg-info/10 text-info'
   return <span className={`inline-flex rounded px-2 py-1 text-xs font-medium ${tone}`}>{value}</span>
+}
+
+function invoicePdfRef(invoice: Invoice) {
+  return invoice.invoice_number || invoice.id
 }
 
 export default async function InvoicesPage() {
@@ -42,7 +47,7 @@ export default async function InvoicesPage() {
 
       <div className="overflow-hidden rounded border border-steel-dark bg-white shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1000px] text-sm">
+          <table className="w-full min-w-[1080px] text-sm">
             <thead className="border-b border-steel-dark bg-charcoal text-[11px] uppercase tracking-[0.18em] text-ash">
               <tr>
                 <th className="px-4 py-3 text-left">Invoice Ref</th>
@@ -51,6 +56,7 @@ export default async function InvoicesPage() {
                 <th className="px-4 py-3 text-left">Total</th>
                 <th className="px-4 py-3 text-left">Due Date</th>
                 <th className="px-4 py-3 text-left">Issued</th>
+                <th className="px-4 py-3 text-left">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -62,6 +68,16 @@ export default async function InvoicesPage() {
                   <td className="px-4 py-3 text-ash">R {Number(inv.total ?? 0).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}</td>
                   <td className="px-4 py-3 text-ash">{inv.due_date ? new Date(inv.due_date).toLocaleDateString('en-ZA') : '—'}</td>
                   <td className="px-4 py-3 text-ash">{inv.created_at ? new Date(inv.created_at).toLocaleDateString('en-ZA') : '—'}</td>
+                  <td className="px-4 py-3">
+                    <a
+                      href={invoicePdfUrl(invoicePdfRef(inv))}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex rounded border border-steel-dark bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-ash hover:border-fire-orange hover:text-fire-orange"
+                    >
+                      PDF
+                    </a>
+                  </td>
                 </tr>
               )) : (
                 <tr><td colSpan={7} className="px-4 py-14 text-center text-ash">No invoices found.</td></tr>

@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
   View, Text, StyleSheet, FlatList,
-  ActivityIndicator, RefreshControl,
+  ActivityIndicator, RefreshControl, TouchableOpacity, Linking,
 } from 'react-native'
 import { colors, fonts, spacing } from '@blackfire/ui-tokens'
-import { quotes } from '@blackfire/api-client'
+import { quotes, quotePdfUrl } from '@blackfire/api-client'
 import { useAuth } from '../context/AuthContext'
 import type { Quote } from '@blackfire/types'
 
@@ -14,6 +14,14 @@ const STATUS_COLOR: Record<string, string> = {
   'Accepted': colors.success,
   'Rejected': colors.danger,
   'Expired': colors.ash,
+}
+
+function quotePdfRef(item: Quote) {
+  return item.quote_number || item.id
+}
+
+function openQuotePdf(item: Quote) {
+  Linking.openURL(quotePdfUrl(quotePdfRef(item)))
 }
 
 function QuoteItem({ item }: { item: Quote }) {
@@ -28,6 +36,9 @@ function QuoteItem({ item }: { item: Quote }) {
         <Text style={styles.total}>R {Number(item.total ?? 0).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}</Text>
         <Text style={styles.meta}>Valid: {item.valid_until ? new Date(item.valid_until).toLocaleDateString('en-ZA') : '—'}</Text>
       </View>
+      <TouchableOpacity onPress={() => openQuotePdf(item)} style={styles.pdfButton}>
+        <Text style={styles.pdfButtonText}>Download PDF</Text>
+      </TouchableOpacity>
     </View>
   )
 }
@@ -92,6 +103,8 @@ const styles = StyleSheet.create({
   footer: { flexDirection: 'row', justifyContent: 'space-between', marginTop: spacing.sm },
   total: { fontFamily: fonts.display, fontSize: 16, color: colors.flameGold },
   meta: { fontFamily: fonts.body, fontSize: 11, color: colors.ash },
+  pdfButton: { marginTop: spacing.md, borderRadius: 8, borderWidth: 1, borderColor: colors.fireOrange, paddingVertical: spacing.sm, alignItems: 'center' },
+  pdfButtonText: { fontFamily: fonts.mono, fontSize: 10, color: colors.fireOrange, letterSpacing: 1.2, textTransform: 'uppercase' },
   empty: { fontFamily: fonts.body, fontSize: 13, color: colors.ash, textAlign: 'center', marginTop: spacing.xl },
   errorText: { fontFamily: fonts.body, fontSize: 13, color: colors.danger, textAlign: 'center', margin: spacing.lg },
 })

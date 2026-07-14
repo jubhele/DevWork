@@ -17,10 +17,18 @@ import type {
 } from '@blackfire/types'
 
 // Injected at build time — web uses session cookie, mobile passes Bearer token
-const API_BASE =
+export const API_BASE =
   process.env.EXPO_PUBLIC_API_BASE ??
   process.env.NEXT_PUBLIC_API_BASE ??
   'http://localhost:8080/api'
+
+export function quotePdfUrl(id: string | number) {
+  return `${API_BASE}/quotes.php?action=download_pdf&id=${encodeURIComponent(String(id))}`
+}
+
+export function invoicePdfUrl(id: string | number) {
+  return `${API_BASE}/invoices.php?action=download_pdf&id=${encodeURIComponent(String(id))}`
+}
 
 export class AuthError extends Error {
   constructor() { super('Unauthenticated') }

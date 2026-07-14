@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   View, Text, StyleSheet, FlatList,
-  ActivityIndicator, RefreshControl, TouchableOpacity,
+  ActivityIndicator, RefreshControl, TouchableOpacity, Linking,
 } from 'react-native'
 import { colors, fonts, spacing } from '@blackfire/ui-tokens'
-import { invoices, transactions } from '@blackfire/api-client'
+import { invoices, invoicePdfUrl, transactions } from '@blackfire/api-client'
 import { useAuth } from '../context/AuthContext'
 import type { Invoice } from '@blackfire/types'
 
@@ -35,6 +35,14 @@ function isCurrentMonth(value?: string | null) {
   return monthKey(value) === `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
 }
 
+function invoicePdfRef(item: Invoice) {
+  return item.invoice_number || item.id
+}
+
+function openInvoicePdf(item: Invoice) {
+  Linking.openURL(invoicePdfUrl(invoicePdfRef(item)))
+}
+
 type LedgerTransaction = {
   id: number
   transDate?: string
@@ -62,6 +70,9 @@ function InvoiceItem({ item }: { item: Invoice }) {
         <Text style={styles.total}>{fullMoney(item.total ?? item.amount ?? 0)}</Text>
         <Text style={styles.meta}>Due {item.due_date ? new Date(item.due_date).toLocaleDateString('en-ZA') : 'N/A'}</Text>
       </View>
+      <TouchableOpacity onPress={() => openInvoicePdf(item)} style={styles.pdfButton}>
+        <Text style={styles.pdfButtonText}>Download PDF</Text>
+      </TouchableOpacity>
     </View>
   )
 }
@@ -338,6 +349,8 @@ const styles = StyleSheet.create({
   footer: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.sm, marginTop: spacing.sm },
   total: { fontFamily: fonts.display, fontSize: 16, color: colors.flameGold },
   meta: { fontFamily: fonts.body, fontSize: 11, color: colors.ash },
+  pdfButton: { marginTop: spacing.md, borderRadius: 8, borderWidth: 1, borderColor: colors.fireOrange, paddingVertical: spacing.sm, alignItems: 'center' },
+  pdfButtonText: { fontFamily: fonts.mono, fontSize: 10, color: colors.fireOrange, letterSpacing: 1.2, textTransform: 'uppercase' },
   ledgerAmounts: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.sm, marginTop: spacing.sm, paddingTop: spacing.sm, borderTopWidth: 1, borderTopColor: colors.steelDark },
   ledgerCredit: { fontFamily: fonts.mono, fontSize: 11, color: colors.success },
   ledgerDebit: { fontFamily: fonts.mono, fontSize: 11, color: colors.warning },
