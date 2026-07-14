@@ -144,14 +144,11 @@ if ($method === 'POST') {
         if (!$qrow) throw new RuntimeException('quote_required');
 
         $crow = db_row(
-            "SELECT id, ref_id,
-                    EXISTS(SELECT 1 FROM bf_tracker_updates tu
-                            WHERE tu.entity_type = 'callout' AND tu.entity_ref = bf_callouts.ref_id
-                              AND LEFT(tu.source_kind, 14) = 'system_reopen_') AS has_reopen_history,
+            "SELECT id, ref_id, document_escalation_status,
                     (SELECT COUNT(*) FROM bf_invoices
                       WHERE callout_id = bf_callouts.id OR callout_ref = bf_callouts.ref_id) AS invoice_count
-               FROM bf_callouts WHERE ref_id = ? LIMIT 1 FOR UPDATE",
-            [$co_ref_str]
+               FROM bf_callouts WHERE id = ? AND ref_id = ? FOR UPDATE",
+            [(int)$qrow['callout_id'], $co_ref_str]
         );
         if (!$crow) throw new RuntimeException('callout_required');
         $quote_id_fk = (int)$qrow['id'];
@@ -170,8 +167,8 @@ if ($method === 'POST') {
             [$quote_id_fk, $quote_ref_str]
         );
         if ($existing_quote_invoice) throw new RuntimeException('duplicate:' . $existing_quote_invoice['ref_id']);
-        if ((int)$crow['invoice_count'] > 0 && empty($crow['has_reopen_history'])) {
-            throw new RuntimeException('reopen_required');
+        if ((int)$crow['invoice_count'] > 0 && $crow['document_escalation_status'] !== 'approved') {
+            throw new RuntimeException('escalation_required');
         }
 
         $id = db_insert(
@@ -206,7 +203,16 @@ if ($method === 'POST') {
         ]);
         db_exec("UPDATE bf_callouts SET invoice_generated = 1 WHERE id = ?", [$callout_id_fk]);
         db_commit();
-    } catch (Exception $e) {
+    } catch (RuntimeException $error) {
+        db_rollback();
+        if ($error->getMessage() === 'quote_required') json_err('Cannot create invoice: a linked quote is required', 422);
+        if ($error->getMessage() === 'callout_required' || $error->getMessage() === 'chain_mismatch') json_err('Cannot create invoice: the linked quote belongs to a different call log', 422);
+        if ($error->getMessage() === 'quote_not_approved') json_err('Cannot create invoice: the linked quote must be Approved before invoicing', 422);
+        if ($error->getMessage() === 'client_mismatch') json_err('Cannot create invoice: client must match the linked quote', 422);
+        if (strpos($error->getMessage(), 'duplicate:') === 0) json_err('This quote already has Invoice ' . substr($error->getMessage(), 10), 409);
+        if ($error->getMessage() === 'escalation_required') json_err('Additional invoices require administrator-approved call escalation', 403);
+        json_err('Invoice creation failed - no changes saved', 500);
+    } catch (Throwable $error) {
         db_rollback();
         json_err('Invoice creation failed - no changes saved', 500);
     }
@@ -300,6 +306,10 @@ if ($method === 'PUT') {
                 if ($val < 0) json_err('Amount cannot be negative');
                 $sets[]   = "$f = ?";
                 $params[] = $val;
+            } elseif ($f === 'due_date') {
+                if (!valid_date($b[$f] ?? null)) json_err('A valid due date is required');
+                $sets[]   = 'due_date = ?';
+                $params[] = $b[$f];
             } else {
                 $sets[]   = "$f = ?";
                 $params[] = clean($b[$f]);
