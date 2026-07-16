@@ -741,7 +741,7 @@ function populateLinkedDropdowns() {
     const niClientId = parseInt(document.getElementById('ni-client')?.value) || 0;
     const callouts = proxyDB.callouts.filter(c =>
       (!niClientId || c.clientId === niClientId) &&
-      (c.invoiceCount === 0 || c.documentEscalationStatus === 'approved')
+      ((c.invoiceCount === 0 && !(c.status === 'Invoiced' || c.invoiceGenerated)) || c.documentEscalationStatus === 'approved')
     );
     const coOpts2  = callouts.map(c => `<option value="${esc(c.id)}">${esc(c.id)} — ${esc(c.service)}</option>`).join('');
     const cur = niCalloutEl.value;
@@ -801,6 +801,7 @@ function normalizeQuote(q) {
     clientEmail:    q.client_email || '',
     clientId:       q.client_id ? Number(q.client_id) : null,
     items,
+    totalAmount:    q.total_amount != null ? Number(q.total_amount) : 0,
     status:         q.status,
     validUntil:     q.valid_until,
     date:           q.quote_date,
@@ -1313,8 +1314,10 @@ function qtot(items){const s=(items||[]).reduce((a,i)=>a+(+i.qty||0)*(+i.unit||0
 function quoteTotals(q){
   const items = q?.items || [];
   if (items.length) return qtot(items);
-  const base = parseFloat(q?.total_amount ?? q?.amount ?? 0) || 0;
-  return { sub: base, vat: base * 0.15, total: base * 1.15 };
+  // Stored total_amount is the VAT-inclusive final total: the API's convert action
+  // copies it verbatim to the invoice amount, and every legacy quote-invoice pair matches it.
+  const base = parseFloat(q?.totalAmount ?? q?.total_amount ?? q?.amount ?? 0) || 0;
+  return { sub: base / 1.15, vat: base - base / 1.15, total: base };
 }
 
 function toast(msg,type=''){
@@ -4126,7 +4129,7 @@ async function initNewTask() {
 async function saveNewTask() {
   const title = (document.getElementById('ntk-title')?.value || '').trim();
   const cat   = document.getElementById('ntk-category')?.value || '';
-  if (!title || !cat) { showToast('Title and category are required.', 'error'); return; }
+  if (!title || !cat) { toast('Title and category are required.', 'err'); return; }
 
   const assignSel = document.getElementById('ntk-assigned');
   const assigned_to_usernames = assignSel
@@ -4144,21 +4147,21 @@ async function saveNewTask() {
     due_at:                 document.getElementById('ntk-due')?.value || null,
   };
   const r = await api('POST', 'tasks.php', payload);
-  if (!r.success) { showToast(r.message || 'Failed to create task.', 'error'); return; }
+  if (!r.success) { toast(r.message || 'Failed to create task.', 'err'); return; }
 
   const refId = r.data?.ref_id;
   const fileIn = document.getElementById('ntk-file');
   if (refId && fileIn && fileIn.files.length) {
-    showToast('Task created. Uploading file…', 'success');
+    toast('Task created. Uploading file…', 'ok');
     const up = await apiUpload('task', refId, fileIn);
-    if (!up.success) showToast(up.error || 'File upload failed.', 'error');
-    else showToast('Task created with file attached.', 'success');
+    if (!up.success) toast(up.error || 'File upload failed.', 'err');
+    else toast('Task created with file attached.', 'ok');
   } else {
-    showToast('Task created.', 'success');
+    toast('Task created.', 'ok');
   }
 
   await refreshTasks();
-  navPage('p-tracker');
+  showPortalPage('p-tracker', null);
 }
 
 async function openTaskStatus(refId) {
@@ -4176,15 +4179,15 @@ async function openTaskStatus(refId) {
 async function setTaskStatus(refId, status) {
   closeModalDirect();
   const r = await api('PUT', `tasks.php?id=${encodeURIComponent(refId)}`, { status });
-  if (r.success) { await refreshTasks(); renderTracker(); showToast('Status updated.','success'); }
-  else showToast(r.message || 'Update failed.','error');
+  if (r.success) { await refreshTasks(); renderTracker(); updateBadges(); toast('Status updated.','ok'); }
+  else toast(r.message || 'Update failed.','err');
 }
 
 async function deleteTask(refId) {
   if (!confirm(`Delete task ${refId}? This cannot be undone.`)) return;
   const r = await api('DELETE', `tasks.php?id=${encodeURIComponent(refId)}`);
-  if (r.success) { await refreshTasks(); renderTracker(); showToast('Task deleted.','success'); }
-  else showToast(r.message || 'Delete failed.','error');
+  if (r.success) { await refreshTasks(); renderTracker(); updateBadges(); toast('Task deleted.','ok'); }
+  else toast(r.message || 'Delete failed.','err');
 }
 
 function trackerDateInput(value) {
@@ -4268,22 +4271,22 @@ async function loadTrackerFiles(entityType, refId, canEdit) {
 
 async function uploadTrackerFile(entityType, entityRef) {
   const inp = document.getElementById('tr-file-input');
-  if (!inp || !inp.files.length) { showToast('Select a file first.', 'error'); return; }
+  if (!inp || !inp.files.length) { toast('Select a file first.', 'err'); return; }
   const btn = document.querySelector('[data-action="uploadTrackerFile"]');
   if (btn) { btn.disabled = true; btn.textContent = 'Uploading…'; }
   const r = await apiUpload(entityType, entityRef, inp);
   if (btn) { btn.disabled = false; btn.textContent = 'Upload'; }
-  if (!r.success) { showToast(r.error || 'Upload failed.', 'error'); return; }
+  if (!r.success) { toast(r.error || 'Upload failed.', 'err'); return; }
   inp.value = '';
-  showToast('File attached.', 'success');
+  toast('File attached.', 'ok');
   await loadTrackerFiles(entityType, entityRef, true);
 }
 
 async function deleteTrackerFile(id, entityType, entityRef) {
   if (!await confirmDialog('Remove this attachment?\n\nThis cannot be undone.', { title: 'Remove File', confirmLabel: 'Remove' })) return;
   const r = await api('DELETE', `files.php?id=${id}`);
-  if (!r.success) { showToast(r.error || 'Delete failed.', 'error'); return; }
-  showToast('File removed.', 'success');
+  if (!r.success) { toast(r.error || 'Delete failed.', 'err'); return; }
+  toast('File removed.', 'ok');
   await loadTrackerFiles(entityType, entityRef, true);
 }
 
@@ -4307,21 +4310,21 @@ async function saveTrackerSchedule(entityType, refId) {
 async function addTrackerUpdate(entityType, refId) {
   const label = document.getElementById('tr-new-label')?.value.trim() || '';
   const content = document.getElementById('tr-new-content')?.value.trim() || '';
-  if (!label || !content) { showToast('Label and description are required.', 'error'); return; }
+  if (!label || !content) { toast('Label and description are required.', 'err'); return; }
   const r = await api('POST', 'tracker_updates.php', { entity_type: entityType, entity_ref: refId, label, content });
-  if (!r.success) { showToast(r.error || 'Description could not be added.', 'error'); return; }
+  if (!r.success) { toast(r.error || 'Description could not be added.', 'err'); return; }
   document.getElementById('tr-new-label').value = '';
   document.getElementById('tr-new-content').value = '';
   await loadTrackerUpdates(entityType, refId, true);
-  showToast('Description added and audited.', 'success');
+  toast('Description added and audited.', 'ok');
 }
 
 async function saveTrackerUpdate(updateId) {
   const label = document.getElementById(`tr-label-${updateId}`)?.value.trim() || '';
   const content = document.getElementById(`tr-content-${updateId}`)?.value.trim() || '';
-  if (!label || !content) { showToast('Label and description are required.', 'error'); return; }
+  if (!label || !content) { toast('Label and description are required.', 'err'); return; }
   const r = await api('PUT', `tracker_updates.php?id=${updateId}`, { label, content });
-  showToast(r.success ? 'Description edit saved with revision history.' : (r.error || 'Description could not be saved.'), r.success ? 'success' : 'error');
+  toast(r.success ? 'Description edit saved with revision history.' : (r.error || 'Description could not be saved.'), r.success ? 'ok' : 'err');
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -4381,11 +4384,14 @@ function renderCallouts(search='',filter=''){
     const linkedQuote=linkedQuotes[0];
     const availableApprovedQuote=linkedQuotes.find(q=>q.status==='Approved'&&!proxyDB.invoices.some(i=>i.ref===q.id));
     const hasApprovedQuote=!!availableApprovedQuote;
+    // Legacy callouts invoiced outside the portal have status/flag set but no bf_invoices row,
+    // so invoiceCount alone cannot be trusted as "not yet invoiced".
+    const alreadyInvoiced=c.status==='Invoiced'||c.invoiceGenerated;
     if(!hasApprovedQuote&&(can('capture.new_quote')||can('quote.view'))){
       if(linkedQuote){
         const qLbl = linkedQuote.status==='Pending Approval' ? 'Quote (Pending)' : `Quote (${linkedQuote.status})`;
         actions.push(`<button class="btn btn-g btn-s" data-action="previewQuote" data-id="${esc(linkedQuote.id)}">${qLbl}</button>`);
-      } else if(can('capture.new_quote')){
+      } else if(can('capture.new_quote')&&!alreadyInvoiced){
         actions.push(`<button class="btn btn-g btn-s" data-action="prefillQuoteFromJob" data-id="${esc(c.id)}">Quote</button>`);
       }
     }
@@ -4398,7 +4404,7 @@ function renderCallouts(search='',filter=''){
     if(can('callout.confirm_closure')&&c.status==='Completed'&&!c.closureConfirmed&&!c.invoiceGenerated){
       actions.push(`<button class="btn btn-p btn-s" data-action="openConfirmClosureModal" data-id="${esc(c.id)}">Confirm Closure</button>`);
     }
-    if(can('capture.new_invoice')&&hasApprovedQuote&&(c.invoiceCount===0||c.documentEscalationStatus==='approved')){
+    if(can('capture.new_invoice')&&hasApprovedQuote&&((c.invoiceCount===0&&!alreadyInvoiced)||c.documentEscalationStatus==='approved')){
       actions.push(`<button class="btn ${hasApprovedQuote?'btn-p':'btn-g'} btn-s" data-action="openInvoiceFromCallout" data-id="${esc(c.id)}">Invoice</button>`);
     }
     if((c.quoteCount>0||c.invoiceCount>0)&&['none','rejected'].includes(c.documentEscalationStatus)&&can('callout.update')){

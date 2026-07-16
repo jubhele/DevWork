@@ -1,0 +1,14 @@
+﻿{
+    "provider":  "Claude Code",
+    "session_id":  "39c43d09-e4f4-45eb-84d3-ad9d05ded697",
+    "log_path":  "C:\\DevWork\\BlackFire\\sessions\\agent_session_claude_code_39c43d09-e4f_20260716_171409.md",
+    "project_status":  "resolved",
+    "project_name":  "BlackFire",
+    "project_root":  "C:\\DevWork\\BlackFire",
+    "project_source":  "explicit_user_binding",
+    "binding_version":  1,
+    "binding_updated_at":  "2026-07-16T18:22:48.7814297+02:00",
+    "prompt_count":  3,
+    "created_at":  "2026-07-16T17:14:09.1259572+02:00",
+    "updated_at":  "2026-07-16T18:38:02.6669277+02:00"
+}

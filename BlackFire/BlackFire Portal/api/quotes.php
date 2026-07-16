@@ -109,6 +109,9 @@ if ($method === 'POST') {
     foreach ($items as $item) {
         $total += ((float)($item['qty'] ?? 1)) * ((float)($item['unit_price'] ?? $item['unit'] ?? 0));
     }
+    // Items are ex-VAT lines; total_amount is the VAT-inclusive final because the
+    // convert action bills it verbatim as the invoice amount.
+    $total = round($total * 1.15, 2);
 
     // Determine approval status
     $approval_status = null;
