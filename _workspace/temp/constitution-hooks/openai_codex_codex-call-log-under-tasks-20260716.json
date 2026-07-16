@@ -1,0 +1,14 @@
+﻿{
+    "provider":  "OpenAI Codex",
+    "session_id":  "codex-call-log-under-tasks-20260716",
+    "log_path":  "C:\\DevWork\\umlilo-portal\\sessions\\agent_session_openai_codex_codex-call-l_20260716_203041.md",
+    "project_status":  "resolved",
+    "project_name":  "umlilo-portal",
+    "project_root":  "C:\\DevWork\\umlilo-portal",
+    "project_source":  "cwd_project_signal",
+    "binding_version":  1,
+    "binding_updated_at":  "",
+    "prompt_count":  0,
+    "created_at":  "2026-07-16T20:30:41.9839678+02:00",
+    "updated_at":  "2026-07-16T20:32:02.3615579+02:00"
+}

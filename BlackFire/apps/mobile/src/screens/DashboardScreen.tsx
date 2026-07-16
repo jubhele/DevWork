@@ -66,7 +66,7 @@ export default function DashboardScreen() {
           <View style={styles.grid}>
             <Card label="Active Work" value={activeWork} />
             <Card label="Attention Items" value={attention} accent={attention > 0} />
-            <Card label="MTD Revenue" value={`R ${Number(kpis.mtd_revenue ?? 0).toLocaleString('en-ZA', { maximumFractionDigits: 0 })}`} />
+            <Card label="MTD Collected" value={`R ${Number(kpis.mtd_revenue ?? 0).toLocaleString('en-ZA', { maximumFractionDigits: 0 })}`} />
             <Card label="Active Clients" value={kpis.active_clients} />
           </View>
 

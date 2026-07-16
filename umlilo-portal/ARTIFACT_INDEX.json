@@ -10,10 +10,10 @@
                                             "path":  "umlilo-portal\\sessions",
                                             "metric":  {
                                                            "exists":  true,
-                                                           "files":  4,
-                                                           "bytes":  5060,
+                                                           "files":  5,
+                                                           "bytes":  7081,
                                                            "oldest":  "2026-06-09T15:21:22.0783194Z",
-                                                           "latest":  "2026-07-10T15:25:04.0389362Z"
+                                                           "latest":  "2026-07-16T18:32:04.7216501Z"
                                                        }
                                         }
                                     ],

@@ -201,6 +201,23 @@ if ($method === 'POST') {
     if (in_array($entity_type, ['task', 'callout'], true)) {
         $record = tracker_record($entity_type, $entity_ref);
         if (!$record || !tracker_can_edit($user, $entity_type, $record)) json_err('Permission denied', 403);
+    } else {
+        $upload_perm_map = [
+            'quote'             => ['quote.create', 'quote.update'],
+            'invoice'           => ['invoice.create'],
+            'payment'           => ['capture.log_payment'],
+            'safety_file'       => ['safety.create', 'safety.update'],
+            'safety_compliance' => ['safety.create', 'safety.update'],
+            'safety_item'       => ['safety.create', 'safety.update'],
+        ];
+        $allowed = false;
+        foreach ($upload_perm_map[$entity_type] ?? [] as $permission) {
+            if (can($permission)) {
+                $allowed = true;
+                break;
+            }
+        }
+        if (!$allowed) json_err('Permission denied', 403);
     }
 
     if (empty($_FILES['file']) || $_FILES['file']['error'] === UPLOAD_ERR_NO_FILE) {

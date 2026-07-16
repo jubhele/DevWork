@@ -10,10 +10,10 @@
                                             "path":  "BlackFire\\sessions",
                                             "metric":  {
                                                            "exists":  true,
-                                                           "files":  94,
-                                                           "bytes":  281683,
+                                                           "files":  101,
+                                                           "bytes":  328878,
                                                            "oldest":  "2026-06-21T17:18:56.7670315Z",
-                                                           "latest":  "2026-07-16T15:12:19.0123844Z"
+                                                           "latest":  "2026-07-16T19:09:25.0725846Z"
                                                        }
                                         }
                                     ],

@@ -43,7 +43,7 @@ const SECTIONS = [
     ],
     faqs: [
       { q: 'Why does Open Callouts only show some callouts?', a: 'Open Callouts counts only genuine operational field jobs in the Call Log stream. Internal tasks in Admin, Sales, and General are counted separately as Open Tasks.' },
-      { q: 'What does MTD Revenue mean?', a: 'Month-to-date revenue — the total amount invoiced since the first of the current month.' },
+      { q: 'What does MTD Collected mean?', a: 'Month-to-date collections — payments received and logged since the first of the current month.' },
     ],
   },
   {
@@ -189,7 +189,7 @@ const SECTIONS = [
     ],
     tips: [
       'Invoice Aging over 60 days signals a collection problem. Escalate these to a Manager.',
-      'MTD Revenue on the Dashboard reflects only the current calendar month. Finance Overview gives you a wider view.',
+      'MTD Collected on the Dashboard reflects payments received in the current calendar month. Finance Overview separately shows what was invoiced.',
     ],
     faqs: [
       { q: 'What is the difference between Invoiced and Collected?', a: 'Invoiced is the total amount billed to clients this period. Collected is what has actually been received and logged as a payment.' },

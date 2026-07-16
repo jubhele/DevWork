@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { getCurrentUser, can } from '@/lib/server-auth'
+import { cookies } from 'next/headers'
+import { getServerUser, can } from '@/lib/auth'
 import { TASK_CATEGORY_LABELS } from '@/lib/tracker'
 import TaskActions from './TaskActions'
 import TrackerRecordPanel from '@/components/TrackerRecordPanel'
@@ -8,7 +9,7 @@ import { getTask } from '@/lib/data/tasks'
 
 export default async function TaskPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const user = await getCurrentUser()
+  const user = await getServerUser((await cookies()).toString())
   if (!user) notFound()
 
   const task = await getTask(id).catch(() => null)

@@ -43,7 +43,7 @@ export default async function DashboardPage() {
           <KpiGrid>
             <KpiCard label="Active Work" value={kpis.open_tasks + kpis.open_callouts} sub="Tasks + callouts" />
             <KpiCard label="Attention Items" value={kpis.urgent_tasks + kpis.overdue_invoices + kpis.pending_quotes} sub="Urgent, overdue, approvals" tone={kpis.urgent_tasks + kpis.overdue_invoices + kpis.pending_quotes > 0 ? 'warning' : 'default'} />
-            <KpiCard label="MTD Revenue" value={`R${kpis.mtd_revenue.toLocaleString()}`} sub="Paid invoices this month" />
+            <KpiCard label="MTD Collected" value={`R${kpis.mtd_revenue.toLocaleString()}`} sub="Payments received this month" />
             <KpiCard label="Active Clients" value={kpis.active_clients} sub="Client accounts" />
           </KpiGrid>
           <div className="grid gap-5 xl:grid-cols-[1.25fr_0.75fr]">

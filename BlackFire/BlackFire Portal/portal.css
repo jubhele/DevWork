@@ -608,6 +608,19 @@ tr:hover td{background:var(--row-hover)}
   .calllog-detail .calllog-field:last-child{grid-column:1/-1}
 }
 .srow{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.finance-period-bar{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin:0 0 14px auto;width:100%}
+.finance-period-caption{margin-right:4px;color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:11px;white-space:nowrap}
+.finance-period-btn{appearance:none;border:1px solid var(--border);background:var(--surface);color:var(--text2);min-height:48px;padding:7px 13px;border-radius:2px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;letter-spacing:.4px;line-height:1.15;transition:background .15s,border-color .15s,color .15s}
+.finance-period-btn::after{content:attr(data-period-detail);display:block;margin-top:4px;color:var(--muted);font-size:9px;font-weight:400;letter-spacing:0;white-space:nowrap}
+.finance-period-btn:hover{border-color:var(--amber);color:var(--text)}
+.finance-period-btn.active{border-color:var(--accent);background:var(--accent);color:#fff;box-shadow:0 0 0 1px var(--accent)}
+.finance-period-btn.active::after{color:rgba(255,255,255,.78)}
+.finance-period-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media(max-width:600px){
+  .finance-period-bar{flex-wrap:wrap}
+  .finance-period-caption{flex-basis:100%;margin-right:0;text-align:right}
+  .finance-period-btn{flex:1;min-width:135px}
+}
 .sinput{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 12px;font-size:17px;border-radius:2px;outline:none;flex:1;min-width:160px}
 .sinput:focus{border-color:var(--accent)}
 .fgroup{display:flex;flex-direction:column;gap:5px;margin-bottom:14px}

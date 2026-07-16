@@ -211,6 +211,7 @@ document.addEventListener('click', function(e) {
     case 'navPage':              showPortalPage(el.dataset.page, null); break;
     case 'navSafety':            showPortalPage('p-safety', null); renderSafetyFiles(); break;
     case 'refreshPage':          refreshCurrentPage(el); break;
+    case 'setFinancePeriod':     setFinancePeriod(el.dataset.financePeriod); break;
     case 'scrollToTop':          scrollToTop(); break;
     case 'filterSvc':            filterSvc(el, el.dataset.cat, el.dataset.ctx); break;
     case 'pubNavCat':            pubNavCat(el); break;
@@ -383,7 +384,7 @@ document.addEventListener('input', function(e) {
   if (t.id === 'tx-search')    { renderTransactions(t.value); return; }
   if (t.id === 'inv-search')   { renderInvoices(t.value); return; }
   if (t.id === 'qte-search')   { renderQuotes(t.value); return; }
-  if (t.id === 'co-search')    { renderTracker('call_log'); return; }
+  if (t.id === 'co-search')    { renderCallouts(t.value); return; }
   if (t.id === 'cli-search')   { renderClients(t.value); return; }
   if (t.id === 'sf-search')    { renderSafetyFiles(t.value); return; }
   if (t.id === 'audit-search') { filterAudit(t.value); return; }
@@ -398,10 +399,9 @@ document.addEventListener('input', function(e) {
 
 document.addEventListener('change', function(e) {
   const t = e.target;
-  if (t.matches('.finance-period-select')) { setFinancePeriod(t.value); return; }
   if (t.id === 'inv-filter')       { renderInvoices('', t.value); return; }
   if (t.id === 'qte-filter')       { renderQuotes('', t.value); return; }
-  if (t.id === 'co-filter')        { renderTracker('call_log'); return; }
+  if (t.id === 'co-filter')        { renderCallouts('', t.value); return; }
   if (['tracker-date-scope','tracker-assignee','tracker-sort'].includes(t.id)) { renderTracker(); return; }
   if (t.id === 'sf-filter-status') { renderSafetyFiles(); return; }
   if (t.id === 'saf-det-upload')   { safDetailUpload(t); return; }
@@ -659,33 +659,63 @@ const FINANCE_PERIOD_KEY = 'bf_finance_period';
 
 function financePeriodValue() {
   const value = localStorage.getItem(FINANCE_PERIOD_KEY) || 'ytd';
-  return ['ytd','rolling6'].includes(value) ? value : 'ytd';
+  return ['rolling6','ytd','all','fytd'].includes(value) ? value : 'ytd';
 }
 
 function financeDateString(date) {
   return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
 }
 
+function financeAllTimeStartDate(now=new Date()) {
+  const dates = [
+    ...(proxyDB.invoices || []).map(row=>row.date),
+    ...(proxyDB.bank || []).map(row=>row.date),
+    ...(proxyDB.quotes || []).map(row=>row.date),
+  ].map(value=>String(value||'').slice(0,10)).filter(value=>/^\d{4}-\d{2}-\d{2}$/.test(value)).sort();
+  return dates.length ? new Date(`${dates[0]}T00:00:00`) : new Date(now.getFullYear(),0,1);
+}
+
 function financePeriodBounds(value=financePeriodValue(), now=new Date()) {
-  const start = value === 'rolling6' ? new Date(now.getFullYear(), now.getMonth()-5, 1) : new Date(now.getFullYear(), 0, 1);
-  return {value, from:financeDateString(start), to:financeDateString(now), start, end:now};
+  let start;
+  if (value === 'rolling6') start = new Date(now.getFullYear(), now.getMonth()-5, 1);
+  else if (value === 'fytd') start = new Date(now.getMonth()>=2?now.getFullYear():now.getFullYear()-1, 2, 1);
+  else if (value === 'all') start = financeAllTimeStartDate(now);
+  else start = new Date(now.getFullYear(), 0, 1);
+  return {value, from:value==='all'?'':financeDateString(start), to:financeDateString(now), start, end:now};
+}
+
+function financePeriodName(value=financePeriodValue()) {
+  return {rolling6:'Rolling 6 Months',ytd:'Year to Date',all:'All Time',fytd:'Financial YTD'}[value] || 'Year to Date';
+}
+
+function financePeriodShortName(value=financePeriodValue()) {
+  return {rolling6:'6M',ytd:'YTD',all:'All Time',fytd:'Fin YTD'}[value] || 'YTD';
+}
+
+function financePeriodDetail(value=financePeriodValue(), bounds=financePeriodBounds(value)) {
+  const month = date=>date.toLocaleDateString('en-ZA',{month:'short'});
+  if (value === 'rolling6') return `${month(bounds.start)} – ${month(bounds.end)}`;
+  if (value === 'ytd') return `1 Jan ${bounds.end.getFullYear()} – Present`;
+  if (value === 'all') return `${bounds.start.getFullYear()} – To Date`;
+  const fyEndYear = bounds.start.getFullYear()+1;
+  return `Mar ${bounds.start.getFullYear()} – Feb ${fyEndYear}`;
 }
 
 function financePeriodCaption(bounds=financePeriodBounds()) {
   const format = date => date.toLocaleDateString('en-ZA',{day:'numeric',month:'short',year:'numeric'});
-  return `${format(bounds.start)} – ${format(bounds.end)}`;
+  return bounds.value === 'all' ? `All records through ${format(bounds.end)}` : `${format(bounds.start)} – ${format(bounds.end)}`;
 }
 
 function financePeriodQuery() {
   const {from,to} = financePeriodBounds();
-  return `&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
+  return `${from?`&from=${encodeURIComponent(from)}`:''}&to=${encodeURIComponent(to)}`;
 }
 
 function financeRowsInPeriod(rows, dateSelector) {
   const {from,to} = financePeriodBounds();
   return (rows || []).filter(row => {
     const date = String(dateSelector(row) || '').slice(0,10);
-    return date >= from && date <= to;
+    return (!from || date >= from) && date <= to;
   });
 }
 
@@ -701,16 +731,24 @@ function financePeriodMonths() {
 function syncFinancePeriodControls() {
   const value = financePeriodValue();
   const caption = financePeriodCaption();
-  document.querySelectorAll('.finance-period-select').forEach(select => { select.value = value; });
+  document.querySelectorAll('.finance-period-btn').forEach(button => {
+    const active = button.dataset.financePeriod === value;
+    const detail = financePeriodDetail(button.dataset.financePeriod);
+    button.dataset.periodDetail = detail;
+    button.setAttribute('aria-label', `${button.textContent.trim()}: ${detail}`);
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-pressed', active ? 'true' : 'false');
+  });
   document.querySelectorAll('.finance-period-caption').forEach(el => { el.textContent = caption; });
 }
 
 function setFinancePeriod(value) {
-  if (!['ytd','rolling6'].includes(value)) return;
+  if (!['rolling6','ytd','all','fytd'].includes(value)) return;
   localStorage.setItem(FINANCE_PERIOD_KEY, value);
   syncFinancePeriodControls();
   const page = document.querySelector('.ppage.active')?.id;
   if (page === 'p-finance-dashboard') renderFinDashboard();
+  if (page === 'p-dashboard') renderDashboard();
   if (page === 'p-transactions') renderTransactions(document.getElementById('tx-search')?.value || '');
   if (page === 'p-pl-ledger') renderPLLedger();
   if (page === 'p-income') renderIncome();
@@ -831,7 +869,13 @@ function populateLinkedDropdowns() {
   }
 }
 async function refreshAll() {
-  const tasks = [refreshCallouts(), refreshQuotes(), refreshInvoices(), refreshTransactions(), refreshSafetyFiles(), refreshClients()];
+  const tasks = [];
+  if (can('callout.view')) tasks.push(refreshCallouts());
+  if (can('quote.view')) tasks.push(refreshQuotes());
+  if (can('invoice.view')) tasks.push(refreshInvoices());
+  if (can('finance.transactions')) tasks.push(refreshTransactions());
+  if (can('safety.view')) tasks.push(refreshSafetyFiles());
+  if (can('clients.view')) tasks.push(refreshClients());
   if (can('task.view')) tasks.push(refreshTasks());
   if (can('security.users')) tasks.push(refreshUsers());
   await Promise.all(tasks);
@@ -1146,7 +1190,8 @@ const NAV_CONFIG = [
     page: 'p-ops-dashboard',
     items: [
       { id:'p-ops-dashboard', label:'Overview',  perm: null },
-      { id:'p-tracker',       label:'Tracker',   perm:'task.view',    badge:'nb-co' },
+      { id:'p-tracker',       label:'Tracker',   perm:'task.view' },
+      { id:'p-callouts',      label:'Call Log',  perm:'callout.view', badge:'nb-co' },
     ],
   },
   {
@@ -1154,7 +1199,7 @@ const NAV_CONFIG = [
     page: 'p-finance-dashboard',
     items: [
       { id:'p-finance-dashboard', label:'Overview',         perm: null },
-      { id:'p-quotes',            label:'Quote Log',        perm:'quote.view',           badge:'nb-qte' },
+      { id:'p-quotes',            label:'Quote',        perm:'quote.view',           badge:'nb-qte' },
       { id:'p-invoices',          label:'Invoices',         perm:'invoice.view',         badge:'nb-inv' },
       { id:'p-statement',         label:'Statements',       perm:'finance.statement' },
       { id:'p-transactions',      label:'Transactions',     perm:'finance.transactions' },
@@ -1578,7 +1623,7 @@ const PAGE_INFO = {
       'The timeline loads with all available records plotted by their logged date.',
       'Scroll horizontally to move through time — older events are to the left, newer ones to the right.',
       'Each event block shows the reference number, client, and status. Colour coding indicates type: callouts in one colour, quotes in another.',
-      'Click any event block to see its summary. Use the link in the summary to open the full record in the Call Log or Quote Log.',
+      'Click any event block to see its summary. Use the link in the summary to open the full record in the Call Log or Quote.',
       'Use this view to identify busy periods and compare against current technician availability for scheduling.',
     ],
     tips: [
@@ -1597,16 +1642,15 @@ const PAGE_INFO = {
   },
   'p-tracker': {
     title: 'Tracker',
-    sub: 'Company workstreams and operational call log',
-    purpose: 'Use one workspace for all company work. Admin, Sales, and General contain internal tasks; Call Log contains only real client incidents, dispatched service work, and field jobs.',
+    sub: 'Company workstreams',
+    purpose: 'Use one workspace for internal company work. Admin, Sales, and General contain internal tasks; real client incidents, dispatched service work, and field jobs belong in the Call Log page next to Tracker.',
     steps: [
       'Choose the stream first: Admin for finance, compliance, recruitment, and office work; Sales for opportunities and proposals; General for internal systems, training, and cross-functional work.',
-      'Use Call Log only for a genuine operational event or client service job that may require dispatch, a quote, or an invoice.',
-      'Click + New Task while an internal stream is active. The selected stream is carried into the task form.',
+      'Use the Call Log page (next to Tracker in Operations) for any genuine operational event or client service job that may require dispatch, a quote, or an invoice.',
+      'Click + New Task while a stream is active. The selected stream is carried into the task form.',
       'Set an owner, priority, and Created, Start, End, and Due date/time values. Update status from Open to In Progress and then Done as work progresses.',
       'Open Record on any row to add a labelled description. Each description remains a separate table record and can be edited later.',
       'Use Files on any row to upload PDF, Word, Excel, JPEG, or PNG evidence and open it again from the same record.',
-      'Open the Call Log tab to search and manage operational jobs. Use + Log Call only from that stream.',
     ],
     tips: [
       'A banking change, payment follow-up, compliance document, job mailbox, portal fix, or team training item is a task, not a callout.',
@@ -1616,17 +1660,17 @@ const PAGE_INFO = {
     ],
     faqs: [
       { q: 'Why did the callout count drop?', a: 'Internal work logged as callouts was moved into the correct Tracker streams. Open Callouts now measures operational jobs only.' },
-      { q: 'Where is the old Call Log page?', a: 'Call Log is now the fourth tab inside Tracker. Existing links redirect to that tab.' },
+      { q: 'Where is the Call Log?', a: 'Call Log is its own page in Operations, right next to Tracker. Existing links open that page directly.' },
       { q: 'Can I overwrite the existing description?', a: 'Edit that description record and save it. The visible record changes, while the earlier version is preserved as a revision and the action is audited.' },
-      { q: 'Which stream should portal defects use?', a: 'Use General for internal portal defects and system improvements. Use Call Log only when the portal issue is itself part of a client operational job.' },
+      { q: 'Which stream should portal defects use?', a: 'Use General for internal portal defects and system improvements. Use the Call Log page only when the portal issue is itself part of a client operational job.' },
     ],
     linked: 'Dashboard, Quotes, Invoices, Clients.',
     access: ['admin','sysadmin','manager','admin_clerk','senior_tech','junior_tech','call_logger','viewer','safety_officer'],
   },
   'p-callouts': {
     title: 'Call Log',
-    sub: 'Incident & service callout tracker',
-    purpose: 'The Call Log tab inside Tracker is the complete, auditable record of every genuine security or service callout — incident type, location, assigned technician, PO number, status, and resolution.',
+    sub: 'Incident & service callout log',
+    purpose: 'The Call Log page is the complete, auditable record of every genuine security or service callout — incident type, location, assigned technician, PO number, status, and resolution.',
     steps: [
       'Click "+ Log Call" to create a new callout. Complete all required fields: client, site, service type, description, and priority.',
       'Use the search box to filter by client name, reference number, technician, or status. Combining filters narrows results quickly.',
@@ -1655,7 +1699,7 @@ const PAGE_INFO = {
     access: ['admin','sysadmin','manager','call_logger','senior_tech','junior_tech','client_support','admin_clerk','viewer'],
   },
   'p-quotes': {
-    title: 'Quote Log',
+    title: 'Quote',
     sub: 'Quotation management',
     purpose: 'Create, track, and approve service quotations. Every approved quote can convert directly into an invoice, eliminating manual re-entry. Declined quotes remain on record for reference.',
     steps: [
@@ -1746,7 +1790,7 @@ const PAGE_INFO = {
       'Use the Send button to email the invoice directly to the client\'s billing contact on record.',
       'When payment is received and confirmed in the bank, click Mark as Paid. The finance dashboard updates instantly.',
       'If a client pays partially, use Log Payment and enter the partial amount — the invoice will show remaining balance.',
-      'Invoices can also be generated automatically from an approved quote — use "Convert to Invoice" on the Quote Log.',
+      'Invoices can also be generated automatically from an approved quote — use "Convert to Invoice" on the Quote.',
       'To add supporting documentation (e.g. job completion report, delivery note), expand the invoice row and use the Attachments section.',
     ],
     tips: [
@@ -2118,7 +2162,7 @@ const PAGE_INFO = {
       { q: 'Can I submit a quote without line items?', a: 'No — at least one line item is required. A quote with no line items cannot be approved or converted to an invoice.' },
       { q: 'What if I submitted a quote with an error?', a: 'If it is still Pending Approval, contact the approver and ask them to decline it with a reason. Revise and resubmit. Admins can also edit pending quotes directly.' },
     ],
-    linked: 'Quote Log, Invoices, Clients.',
+    linked: 'Quote, Invoices, Clients.',
     access: ['admin','sysadmin','manager','senior_tech'],
   },
   'p-new-invoice': {
@@ -2249,7 +2293,7 @@ Object.assign(PAGE_INFO, {
       { q: 'Can I add a service here?', a: 'No. Ask an administrator to update the catalogue.' },
       { q: 'Why does the wording matter?', a: 'Finance and reports group work by service type.' },
     ],
-    linked: 'Call Log, Quote Log, Reports.',
+    linked: 'Call Log, Quote, Reports.',
     access: ['admin','sysadmin','manager','admin_clerk','senior_tech','call_logger','viewer','client_support','junior_tech','safety_officer'],
   },
   'p-contact': {
@@ -2270,7 +2314,7 @@ Object.assign(PAGE_INFO, {
       { q: 'Is this a callout?', a: 'No. It is an enquiry until a job is confirmed and logged.' },
       { q: 'Can existing clients use it?', a: 'Yes, especially for quote requests that are not yet operational work.' },
     ],
-    linked: 'Clients, Quote Log, Call Log.',
+    linked: 'Clients, Quote, Call Log.',
     access: ['admin','sysadmin','manager','admin_clerk','senior_tech','call_logger','viewer','client_support','junior_tech'],
   },
   'p-dashboard': {
@@ -2301,41 +2345,40 @@ Object.assign(PAGE_INFO, {
     purpose: 'A focused operations view for tasks, real callouts, technician workload, and operational follow-up.',
     steps: [
       'Review the tracker and callout workload.',
-      'Open Tracker to work Admin, Sales, General, or Call Log streams.',
+      'Open Tracker for Admin, Sales, and General streams, or Call Log for operational jobs.',
       'Use Call Log only for real client incidents and field jobs.',
-      'Move commercial quote review through Finance > Quote Log.',
+      'Move commercial quote review through Finance > Quote.',
     ],
     tips: [
-      'Quote Log now lives under Finance next to Overview.',
+      'Quote now lives under Finance next to Overview.',
       'Do not reopen a call just to create more documents; use Upgrade Call Type where appropriate.',
     ],
     faqs: [
-      { q: 'Where did Quote Log go?', a: 'Finance > Quote Log, directly next to Finance Overview.' },
-      { q: 'Where is Call Log?', a: 'Tracker has a Call Log tab for operational jobs.' },
+      { q: 'Where did Quote go?', a: 'Finance > Quote, directly next to Finance Overview.' },
+      { q: 'Where is Call Log?', a: 'Call Log is its own page next to Tracker in Operations.' },
     ],
-    linked: 'Tracker, Call Log, Finance Quote Log.',
+    linked: 'Tracker, Call Log, Finance Quote.',
     access: ['admin','sysadmin','manager','call_logger','senior_tech','junior_tech','client_support','admin_clerk','viewer'],
   },
   'p-tracker': {
     title: 'Tracker',
-    sub: 'Tasks and call log',
-    purpose: 'Manage internal tasks in Admin, Sales, and General streams, plus operational callouts in the Call Log stream.',
+    sub: 'Company task streams',
+    purpose: 'Manage internal tasks in Admin, Sales, and General streams. Operational callouts live in the Call Log page next to Tracker.',
     steps: [
-      'Choose Admin, Sales, General, or Call Log.',
+      'Choose Admin, Sales, or General.',
       'Use internal streams for company work that is not a field job.',
-      'Use Call Log for real client service calls and incidents.',
+      'Use the Call Log page for real client service calls and incidents.',
       'Open Record to manage schedule, descriptions, and files.',
-      'Use Upgrade Call Type from Call Log when additional quotes or invoices are needed.',
     ],
     tips: [
       'A portal fix, payment follow-up, or internal admin action is a task, not a callout.',
       'The Record popup preserves descriptions and files for audit traceability.',
     ],
     faqs: [
-      { q: 'When do I use Call Log?', a: 'Only for genuine operational jobs, incidents, or service work.' },
+      { q: 'When do I use Call Log?', a: 'Only for genuine operational jobs, incidents, or service work — open it from the Call Log button next to Tracker.' },
       { q: 'Can I add files?', a: 'Yes. Use Files or the Record popup attachments area.' },
     ],
-    linked: 'Dashboard, Quote Log, Invoices, Audit Log.',
+    linked: 'Dashboard, Quote, Invoices, Audit Log.',
     access: ['admin','sysadmin','manager','admin_clerk','senior_tech','junior_tech','call_logger','viewer','safety_officer'],
   },
   'p-callouts': {
@@ -2360,15 +2403,15 @@ Object.assign(PAGE_INFO, {
       { q: 'Who approves an upgrade?', a: 'An administrator approves or rejects the pending upgrade request.' },
       { q: 'Where can I see the reason?', a: 'The request reason is written into the Audit Log and stored on the call.' },
     ],
-    linked: 'Tracker, Quote Log, Invoices, Audit Log.',
+    linked: 'Tracker, Quote, Invoices, Audit Log.',
     access: ['admin','sysadmin','manager','call_logger','senior_tech','junior_tech','client_support','admin_clerk','viewer'],
   },
   'p-quotes': {
-    title: 'Quote Log',
+    title: 'Quote',
     sub: 'Finance - quotations',
-    purpose: 'Manage quotes from draft through approval, rejection, and conversion to invoices. Quote Log is now part of Finance because it controls billable commercial documents.',
+    purpose: 'Manage quotes from draft through approval, rejection, and conversion to invoices. Quote is now part of Finance because it controls billable commercial documents.',
     steps: [
-      'Open Finance > Quote Log.',
+      'Open Finance > Quote.',
       'Create a quote from a linked call log or review existing quotes.',
       'Approve, reject, or convert eligible quotes based on your permissions.',
       'If a call already has a quote and another is needed, request Upgrade Call Type from the Call Log.',
@@ -2380,7 +2423,7 @@ Object.assign(PAGE_INFO, {
       'Use notes to explain scope and approval context.',
     ],
     faqs: [
-      { q: 'Why is Quote Log in Finance?', a: 'Quotes are commercial records that lead directly to invoices and revenue tracking.' },
+      { q: 'Why is Quote in Finance?', a: 'Quotes are commercial records that lead directly to invoices and revenue tracking.' },
       { q: 'Can one call have multiple quotes?', a: 'Yes, but only after an administrator approves the Upgrade Call Type request.' },
       { q: 'What happens to declined quotes?', a: 'They remain linked to the call for history and audit purposes.' },
     ],
@@ -2393,19 +2436,19 @@ Object.assign(PAGE_INFO, {
     purpose: 'A finance snapshot for quote flow, invoices, payments, outstanding balances, transactions, statements, and P&L review.',
     steps: [
       'Review outstanding and overdue invoices.',
-      'Open Quote Log from the Finance subnav when quote approval or conversion is needed.',
+      'Open Quote from the Finance subnav when quote approval or conversion is needed.',
       'Open Invoices to send invoices or mark them paid.',
       'Open Transactions, Statements, P&L Ledger, Income Statement, or Reconciliation for deeper finance work.',
     ],
     tips: [
-      'Quote Log is next to Overview because quotes are the start of the billing chain.',
+      'Quote is next to Overview because quotes are the start of the billing chain.',
       'Unpaid sent invoices should be followed up before they become overdue.',
     ],
     faqs: [
-      { q: 'Where do I approve quotes?', a: 'Finance > Quote Log.' },
+      { q: 'Where do I approve quotes?', a: 'Finance > Quote.' },
       { q: 'Where do I log received money?', a: 'Use Log Payment for invoice payments; use Transactions for raw bank movements.' },
     ],
-    linked: 'Quote Log, Invoices, Transactions, Statements, P&L Ledger.',
+    linked: 'Quote, Invoices, Transactions, Statements, P&L Ledger.',
     access: ['admin','sysadmin','manager','admin_clerk'],
   },
   'p-invoices': {
@@ -2427,7 +2470,7 @@ Object.assign(PAGE_INFO, {
       { q: 'Can a call have multiple invoices?', a: 'Yes, when the call type is upgraded and each invoice has its corresponding quote.' },
       { q: 'Can I use a custom due date?', a: 'Yes. The 14-day rule is only the default.' },
     ],
-    linked: 'Quote Log, Call Log, Payments, Statements.',
+    linked: 'Quote, Call Log, Payments, Statements.',
     access: ['admin','sysadmin','manager','client_support','admin_clerk','viewer'],
   },
   'p-new-invoice': {
@@ -2449,7 +2492,7 @@ Object.assign(PAGE_INFO, {
       { q: 'Why must I select a quote?', a: 'Every invoice must correspond to exactly one quote.' },
       { q: 'Why can I not create another invoice?', a: 'The call may need an administrator-approved type upgrade first.' },
     ],
-    linked: 'Invoices, Quote Log, Call Log.',
+    linked: 'Invoices, Quote, Call Log.',
     access: ['admin','sysadmin','manager','admin_clerk'],
   },
   'p-new-quote': {
@@ -2469,9 +2512,9 @@ Object.assign(PAGE_INFO, {
     ],
     faqs: [
       { q: 'Can I quote without a call log?', a: 'No. Every quote must belong to one call log.' },
-      { q: 'Where will the quote appear?', a: 'Finance > Quote Log.' },
+      { q: 'Where will the quote appear?', a: 'Finance > Quote.' },
     ],
-    linked: 'Quote Log, Call Log, Invoices.',
+    linked: 'Quote, Call Log, Invoices.',
     access: ['admin','sysadmin','manager','senior_tech'],
   },
   'p-log-payment': {
@@ -2553,7 +2596,7 @@ Object.assign(PAGE_INFO, {
     ],
     faqs: [
       { q: 'Why do totals differ between tabs?', a: 'Some tabs show invoiced amounts, while others show cash received or supplier costs.' },
-      { q: 'Where do I create invoices?', a: 'Use Invoices or Quote Log, not the ledger.' },
+      { q: 'Where do I create invoices?', a: 'Use Invoices or Quote, not the ledger.' },
     ],
     linked: 'Invoices, Transactions, Income Statement, Reconciliation.',
     access: ['admin','sysadmin','manager','admin_clerk'],
@@ -2618,7 +2661,7 @@ Object.assign(PAGE_INFO, {
       { q: 'Where are Clients now?', a: 'Support > Clients.' },
       { q: 'Can I delete a client with history?', a: 'No. Preserve linked history and deactivate where appropriate.' },
     ],
-    linked: 'Call Log, Quote Log, Invoices, Statements.',
+    linked: 'Call Log, Quote, Invoices, Statements.',
     access: ['admin','sysadmin','manager','admin_clerk','client_support'],
   },
   'p-support-dashboard': {
@@ -2648,7 +2691,7 @@ Object.assign(PAGE_INFO, {
     steps: [
       'Scroll through the timeline to see dated activity.',
       'Open event summaries to understand what happened.',
-      'Use linked records to jump to Call Log or Quote Log when needed.',
+      'Use linked records to jump to Call Log or Quote when needed.',
     ],
     tips: [
       'Timeline is read-only.',
@@ -2658,7 +2701,7 @@ Object.assign(PAGE_INFO, {
       { q: 'Where is this page?', a: 'Support > Site Timeline.' },
       { q: 'Can I edit records here?', a: 'No. Open the source record instead.' },
     ],
-    linked: 'Call Log, Quote Log, Reports.',
+    linked: 'Call Log, Quote, Reports.',
     access: ['admin','sysadmin','manager','call_logger','senior_tech','junior_tech','client_support','admin_clerk','viewer'],
   },
   'p-reports': {
@@ -2721,7 +2764,7 @@ Object.assign(PAGE_INFO, {
       { q: 'Can I edit audit entries?', a: 'No. Audit entries are evidence and must stay immutable.' },
       { q: 'Why do I see upgrade reasons here?', a: 'They explain why a standard one quote and one invoice call was escalated.' },
     ],
-    linked: 'Users & Roles, Call Log, Quote Log, Invoices.',
+    linked: 'Users & Roles, Call Log, Quote, Invoices.',
     access: ['admin','sysadmin','manager','admin_clerk'],
   },
   'p-new-callout': {
@@ -2732,17 +2775,17 @@ Object.assign(PAGE_INFO, {
       'Select the client and service.',
       'Enter priority, schedule, location, and description.',
       'Assign a technician if known.',
-      'Save the call so it appears in Tracker > Call Log.',
+      'Save the call so it appears in the Call Log.',
     ],
     tips: [
       'Do not use this form for internal tasks.',
       'Add enough detail for a technician or finance reviewer to understand the job later.',
     ],
     faqs: [
-      { q: 'Where does the call appear?', a: 'Tracker > Call Log.' },
+      { q: 'Where does the call appear?', a: 'The Call Log page, next to Tracker in Operations.' },
       { q: 'Can I add a quote after saving?', a: 'Yes, from the call actions when your role allows it.' },
     ],
-    linked: 'Tracker, Call Log, Quote Log.',
+    linked: 'Tracker, Call Log, Quote.',
     access: ['admin','sysadmin','manager','call_logger','client_support'],
   },
   'p-new-task': {
@@ -2887,7 +2930,9 @@ const PAGE_PERMS = {
   ],
   'p-tracker':      [
     { perm: 'task.view',    label: 'View company task streams' },
-    { perm: 'callout.view', label: 'View the operational Call Log stream' },
+  ],
+  'p-callouts':     [
+    { perm: 'callout.view', label: 'View the operational Call Log' },
   ],
   'p-new-task':     [{ perm: 'task.create', label: 'Create new tasks' }],
   'p-new-callout':  [{ perm: 'capture.new_callout',  label: 'Log new callouts' }],
@@ -2899,13 +2944,13 @@ const PAGE_PERMS = {
 /* Per-page quick navigation actions (filtered to user's permissions at render time) */
 const PAGE_ACTIONS = {
   'p-dashboard':         [{ label:'Operations', page:'p-ops-dashboard' }, { label:'Finance', page:'p-finance-dashboard' }, { label:'Support', page:'p-support-dashboard' }],
-  'p-ops-dashboard':     [{ label:'Tracker', page:'p-tracker', perm:'task.view' }],
+  'p-ops-dashboard':     [{ label:'Tracker', page:'p-tracker', perm:'task.view' }, { label:'Call Log', page:'p-callouts', perm:'callout.view' }],
   'p-timeline':          [{ label:'Tracker', page:'p-tracker', perm:'task.view' }, { label:'Quotes', page:'p-quotes', perm:'quote.view' }],
   'p-callouts':          [{ label:'Tracker', page:'p-tracker', perm:'task.view' }, { label:'+ Log Call', page:'p-new-callout', perm:'capture.new_callout' }],
-  'p-tracker':           [{ label:'+ New Task', page:'p-new-task', perm:'task.create' }],
+  'p-tracker':           [{ label:'+ New Task', page:'p-new-task', perm:'task.create' }, { label:'Call Log', page:'p-callouts', perm:'callout.view' }],
   'p-new-task':          [{ label:'Tracker', page:'p-tracker', perm:'task.view' }],
   'p-quotes':            [{ label:'+ Submit Quote', page:'p-new-quote', perm:'capture.new_quote' }, { label:'Tracker', page:'p-tracker', perm:'task.view' }, { label:'Invoices', page:'p-invoices', perm:'invoice.view' }],
-  'p-finance-dashboard': [{ label:'Quote Log', page:'p-quotes', perm:'quote.view' }, { label:'P&L Ledger', page:'p-pl-ledger', perm:'finance.income' }, { label:'Invoices', page:'p-invoices', perm:'invoice.view' }, { label:'Transactions', page:'p-transactions', perm:'finance.transactions' }],
+  'p-finance-dashboard': [{ label:'Quote', page:'p-quotes', perm:'quote.view' }, { label:'P&L Ledger', page:'p-pl-ledger', perm:'finance.income' }, { label:'Invoices', page:'p-invoices', perm:'invoice.view' }, { label:'Transactions', page:'p-transactions', perm:'finance.transactions' }],
   'p-pl-ledger':         [{ label:'Invoices', page:'p-invoices', perm:'invoice.view' }, { label:'Income Stmt', page:'p-income', perm:'finance.income' }, { label:'Reconciliation', page:'p-reconcile', perm:'finance.transactions' }],
   'p-invoices':          [{ label:'+ New Invoice', page:'p-new-invoice', perm:'capture.new_invoice' }, { label:'Log Payment', page:'p-log-payment', perm:'capture.log_payment' }, { label:'Statements', page:'p-statement', perm:'finance.statement' }],
   'p-statement':         [{ label:'Invoices', page:'p-invoices', perm:'invoice.view' }, { label:'Clients', page:'p-clients' }],
@@ -2919,7 +2964,7 @@ const PAGE_ACTIONS = {
   'p-safety-detail':     [{ label:'Safety Files', page:'p-safety' }, { label:'+ New Audit', page:'p-safety-audit' }],
   'p-audit':             [{ label:'Users', page:'p-users', perm:'security.users' }, { label:'Support', page:'p-support-dashboard' }],
   'p-new-callout':       [{ label:'Tracker', page:'p-tracker', perm:'task.view' }],
-  'p-new-quote':         [{ label:'Quote Log', page:'p-quotes', perm:'quote.view' }],
+  'p-new-quote':         [{ label:'Quote', page:'p-quotes', perm:'quote.view' }],
   'p-new-invoice':       [{ label:'Invoices', page:'p-invoices', perm:'invoice.view' }],
   'p-log-payment':       [{ label:'Invoices', page:'p-invoices', perm:'invoice.view' }, { label:'Transactions', page:'p-transactions', perm:'finance.transactions' }],
 };
@@ -3261,10 +3306,6 @@ function goLogin(){
 function fillCreds(u,p){ document.getElementById('l-user').value=u; document.getElementById('l-pass').value=p; }
 
 function showPortalPage(id, el){
-  if(id === 'p-callouts') {
-    _trackerCat = 'call_log';
-    id = 'p-tracker';
-  }
   document.querySelectorAll('.ppage').forEach(p=>p.classList.remove('active'));
   const page=document.getElementById(id);
   if(page) page.classList.add('active');
@@ -3354,6 +3395,11 @@ function renderDashboard(){
   const prefs = getDashPrefs();
   const order = getDashWidgetOrder(prefs);
   const now   = new Date();
+  const periodInvoices = financeRowsInPeriod(proxyDB.invoices, i=>i.date);
+  const periodBank = financeRowsInPeriod(proxyDB.bank, b=>b.date);
+  const periodQuotes = financeRowsInPeriod(proxyDB.quotes, q=>q.date);
+  const periodLabel = financePeriodName();
+  const periodShortLabel = financePeriodShortName();
 
   // Pre-compute shared data once
   const openTasks      = proxyDB.tasks.filter(t=>t.status==='Open'||t.status==='In Progress').length;
@@ -3361,20 +3407,19 @@ function renderDashboard(){
   const tasksDueToday  = proxyDB.tasks.filter(t=>t.due_date===localDateStr()&&(t.status==='Open'||t.status==='In Progress')).length;
   const open           = proxyDB.callouts.filter(c=>c.status==='Open'||c.status==='In Progress').length;
   const pq             = proxyDB.quotes.filter(q=>q.status==='Draft'||q.status==='Sent'||q.status==='Pending Approval').length;
-  const mtd            = proxyDB.invoices.filter(i=>{const d=new Date(i.date+'T00:00:00');return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();}).reduce((a,i)=>a+i.amount,0);
-  const net            = proxyDB.bank.reduce((a,b)=>a+(b.credit||0)-(b.debit||0),0);
+  const mtd            = periodInvoices.reduce((a,i)=>a+i.amount,0);
+  const net            = periodBank.reduce((a,b)=>a+(b.credit||0)-(b.debit||0),0);
   const completedMTD   = proxyDB.callouts.filter(c=>{const cd=new Date(c.date+'T00:00:00');return (c.status==='Completed'||c.status==='Invoiced')&&cd.getMonth()===now.getMonth()&&cd.getFullYear()===now.getFullYear();}).length;
-  const outstandingVal = proxyDB.invoices.filter(i=>i.status==='Sent'||i.status==='Overdue').reduce((a,i)=>a+i.amount,0);
-  const ytd            = invoicePaymentRevenue(now.getFullYear());
-  const quotePipeVal   = proxyDB.quotes.filter(q=>q.status==='Sent'||q.status==='Pending Approval').reduce((a,q)=>a+((q.items||[]).reduce((s,it)=>s+((it.qty||0)*(it.unit||0)),0)),0);
-  const overdue        = proxyDB.invoices.filter(i=>i.status==='Overdue').length;
+  const outstandingVal = periodInvoices.filter(i=>i.status==='Sent'||i.status==='Overdue').reduce((a,i)=>a+i.amount,0);
+  const ytd            = periodBank.filter(b=>b.cat==='Invoice Payment'&&b.credit>0).reduce((a,b)=>a+b.credit,0);
+  const quotePipeVal   = periodQuotes.filter(q=>q.status==='Sent'||q.status==='Pending Approval').reduce((a,q)=>a+(q.totalAmount||((q.items||[]).reduce((s,it)=>s+((it.qty||0)*(it.unit||0)),0))),0);
+  const overdue        = periodInvoices.filter(i=>i.status==='Overdue').length;
   const urgent         = proxyDB.callouts.filter(c=>(c.priority==='Urgent'||c.priority==='Emergency')&&(c.status==='Open'||c.status==='In Progress')).length;
   const pendingQA      = proxyDB.quotes.filter(q=>q.approvalStatus==='pending').length;
-  const months=[];
-  for(let i=5;i>=0;i--){const dt=new Date(now.getFullYear(),now.getMonth()-i,1);months.push({lbl:dt.toLocaleDateString('en-ZA',{month:'short'}),m:dt.getMonth(),y:dt.getFullYear()});}
-  const revData = months.map(m=>invoicePaymentRevenue(m.y, m.m));
+  const months = financePeriodMonths();
+  const revData = months.map(m=>periodBank.filter(b=>b.cat==='Invoice Payment'&&b.credit>0&&String(b.date||'').slice(0,7)===m.ym).reduce((a,b)=>a+b.credit,0));
 
-  const d = { now, openTasks, urgentTasks, tasksDueToday, open, pq, mtd, net, completedMTD, outstandingVal, ytd, quotePipeVal, overdue, urgent, pendingQA, months, revData };
+  const d = { now, openTasks, urgentTasks, tasksDueToday, open, pq, mtd, net, completedMTD, outstandingVal, ytd, quotePipeVal, overdue, urgent, pendingQA, months, revData, periodInvoices, periodLabel, periodShortLabel };
 
   let html = _dashExecutiveSummary(d);
   let hasContent = false;
@@ -3392,7 +3437,7 @@ function renderDashboard(){
   applyProgFills(container);
 
   // Nav badges (always update regardless of widget visibility)
-  const nbCo=document.getElementById('nb-co');if(nbCo)nbCo.textContent=openTasks+open;
+  const nbCo=document.getElementById('nb-co');if(nbCo)nbCo.textContent=open;
   const nbInv=document.getElementById('nb-inv');if(nbInv)nbInv.textContent=proxyDB.invoices.filter(i=>i.status==='Sent'||i.status==='Overdue').length;
   const nbQte=document.getElementById('nb-qte');if(nbQte)nbQte.textContent=proxyDB.quotes.filter(q=>q.status==='Pending Approval').length;
 }
@@ -3433,12 +3478,12 @@ function _dashExecutiveSummary(d){
     <div class="exec-kpi-grid">
       <div class="exec-kpi"><span>Active Work</span><strong>${activeWork}</strong><em>Tasks + callouts</em></div>
       <div class="exec-kpi"><span>Attention Items</span><strong>${attention}</strong><em>Urgent, overdue, approvals</em></div>
-      <div class="exec-kpi"><span>MTD Revenue</span><strong>${fmt(d.mtd)}</strong><em>Invoiced this month</em></div>
+      <div class="exec-kpi"><span>Invoiced ${d.periodShortLabel}</span><strong>${fmt(d.mtd)}</strong><em>${d.periodLabel}</em></div>
       <div class="exec-kpi"><span>Active Clients</span><strong>${proxyDB.clients.filter(c=>c.active!==false).length}</strong><em>Client accounts</em></div>
     </div>
     <div class="exec-trend-row">
       <div class="panel exec-panel">
-        <div class="ph"><div class="ph-title">Revenue Trend</div><span class="ph-badge">Rolling 6 Months</span></div>
+        <div class="ph"><div class="ph-title">Revenue Trend</div><span class="ph-badge">${d.periodLabel}</span></div>
         <div class="exec-trend-chart">${revBars}</div>
       </div>
       <div class="panel exec-panel">
@@ -3504,27 +3549,27 @@ function _dashBlockOps(d){
 
 function _dashBlockFin(d){
   if(!can('invoice.view')&&!can('finance.income')) return '';
-  const {mtd, net, ytd, outstandingVal, quotePipeVal, months, revData} = d;
+  const {mtd, net, ytd, outstandingVal, quotePipeVal, months, revData, periodInvoices, periodLabel, periodShortLabel} = d;
   const kv = v => String(v).length>8 ? ' kval--compact' : '';
   const fmtMtd=fmt(mtd), fmtNet=fmt(net), fmtYtd=fmt(ytd), fmtOut=fmt(outstandingVal), fmtQpv=fmt(quotePipeVal);
 
   const kpiCards = [
-    can('invoice.view')    ? `<div class="kcard k2"><div class="klbl">Invoiced MTD</div><div class="kval${kv(fmtMtd)}">${fmtMtd}</div><div class="ksub">Month to date</div></div>` : '',
-    can('finance.income')  ? `<div class="kcard k4"><div class="klbl">Net Balance</div><div class="kval${kv(fmtNet)}">${fmtNet}</div><div class="ksub">Credits − Debits</div></div>` : '',
-    can('finance.income')  ? `<div class="kcard k1"><div class="klbl">YTD Revenue</div><div class="kval${kv(fmtYtd)}">${fmtYtd}</div><div class="ksub">Paid invoices this year</div></div>` : '',
-    can('finance.income')  ? `<div class="kcard k2"><div class="klbl">Outstanding</div><div class="kval${kv(fmtOut)}">${fmtOut}</div><div class="ksub">Unpaid invoices total</div></div>` : '',
-    (can('quote.view')&&quotePipeVal>0) ? `<div class="kcard k3"><div class="klbl">Quote Pipeline</div><div class="kval${kv(fmtQpv)}">${fmtQpv}</div><div class="ksub">Active quotes value</div></div>` : '',
+    can('invoice.view')    ? `<div class="kcard k2"><div class="klbl">Invoiced ${periodShortLabel}</div><div class="kval${kv(fmtMtd)}">${fmtMtd}</div><div class="ksub">${periodLabel}</div></div>` : '',
+    can('finance.income')  ? `<div class="kcard k4"><div class="klbl">Net Balance</div><div class="kval${kv(fmtNet)}">${fmtNet}</div><div class="ksub">Period credits − debits</div></div>` : '',
+    can('finance.income')  ? `<div class="kcard k1"><div class="klbl">${periodShortLabel} Revenue</div><div class="kval${kv(fmtYtd)}">${fmtYtd}</div><div class="ksub">Payments received in period</div></div>` : '',
+    can('finance.income')  ? `<div class="kcard k2"><div class="klbl">Outstanding</div><div class="kval${kv(fmtOut)}">${fmtOut}</div><div class="ksub">Unpaid invoices in period</div></div>` : '',
+    (can('quote.view')&&quotePipeVal>0) ? `<div class="kcard k3"><div class="klbl">Quote Pipeline</div><div class="kval${kv(fmtQpv)}">${fmtQpv}</div><div class="ksub">Active quotes in period</div></div>` : '',
   ].filter(Boolean).join('');
   if(!kpiCards) return '';
 
   const maxRev = Math.max(...revData,1);
   const chartBars = revData.map((v,i)=>`<div class="cbar-w"><div class="cval">${v>0?'R'+Math.round(v/1000)+'K':''}</div><div class="cbar" data-h="${Math.max(4,Math.round((v/maxRev)*100))}" title="${fmt(v)}"></div><div class="clbl">${months[i].lbl}</div></div>`).join('');
 
-  const invPaid=proxyDB.invoices.filter(i=>i.status==='Paid');
-  const invSent=proxyDB.invoices.filter(i=>i.status==='Sent');
-  const invOverdue=proxyDB.invoices.filter(i=>i.status==='Overdue');
-  const invDraft=proxyDB.invoices.filter(i=>i.status==='Draft');
-  const invTotal=Math.max(proxyDB.invoices.length,1);
+  const invPaid=periodInvoices.filter(i=>i.status==='Paid');
+  const invSent=periodInvoices.filter(i=>i.status==='Sent');
+  const invOverdue=periodInvoices.filter(i=>i.status==='Overdue');
+  const invDraft=periodInvoices.filter(i=>i.status==='Draft');
+  const invTotal=Math.max(periodInvoices.length,1);
   const agingBars=[
     {lbl:'Paid',   cnt:invPaid.length,   val:fmt(invPaid.reduce((a,i)=>a+i.amount,0)),   col:'var(--green)'},
     {lbl:'Sent',   cnt:invSent.length,   val:fmt(invSent.reduce((a,i)=>a+i.amount,0)),   col:'var(--amber)'},
@@ -3532,8 +3577,8 @@ function _dashBlockFin(d){
     {lbl:'Draft',  cnt:invDraft.length,  val:fmt(invDraft.reduce((a,i)=>a+i.amount,0)),  col:'var(--muted)'},
   ].map(r=>`<div class="mb-14"><div class="flex-sb mb-5"><span class="mlbl-xs">${r.lbl} (${r.cnt})</span><span class="mlbl-sm">${r.val}</span></div><div class="prog-bar"><div class="prog-fill" data-w="${Math.round(r.cnt/invTotal*100)}" data-bg="${r.col}"></div></div></div>`).join('');
 
-  const panelRev  = can('finance.income') ? `<div class="panel"><div class="ph"><div class="ph-title">Revenue — Rolling 6 Months</div></div><div class="rev-chart-wrap"><div class="chart-bars">${chartBars}</div></div></div>` : null;
-  const panelAging= can('invoice.view')   ? `<div class="panel"><div class="ph"><div class="ph-title">Invoice Aging</div><button class="btn btn-g btn-s" data-action="navPage" data-page="p-invoices">View All</button></div><div class="pb">${agingBars}</div></div>` : null;
+  const panelRev  = can('finance.income') ? `<div class="panel"><div class="ph"><div class="ph-title">Revenue — ${periodLabel}</div></div><div class="rev-chart-wrap"><div class="chart-bars">${chartBars}</div></div></div>` : null;
+  const panelAging= can('invoice.view')   ? `<div class="panel"><div class="ph"><div class="ph-title">Invoice Aging — ${periodShortLabel}</div><button class="btn btn-g btn-s" data-action="navPage" data-page="p-invoices">View All</button></div><div class="pb">${agingBars}</div></div>` : null;
 
   const panels = [panelRev, panelAging].filter(Boolean);
   const panelsHtml = panels.length===2 ? `<div class="twocol">${panels.join('')}</div>` : (panels[0]||'');
@@ -3612,16 +3657,16 @@ function buildPeriodComparison(now, showOps) {
   }
 
   let cards = '';
-  cards += cmpCard('MTD Revenue',    mtdRev,   pyMtdRev,   true,  `${monthName} ${py}`);
-  cards += cmpCard('YTD Revenue',    ytdRev,   pyYtdRev,   true,  `${ytdLbl} ${py}`);
-  cards += cmpCard(`Q${curQ+1} Revenue`, qtdRev, pyQtdRev, true,  `Q${curQ+1} ${py}`);
+  cards += cmpCard('MTD Collected',    mtdRev,   pyMtdRev,   true,  `${monthName} ${py}`);
+  cards += cmpCard('YTD Collected',    ytdRev,   pyYtdRev,   true,  `${ytdLbl} ${py}`);
+  cards += cmpCard(`Q${curQ+1} Collected`, qtdRev, pyQtdRev, true,  `Q${curQ+1} ${py}`);
   if(showOps && can('callout.view'))
     cards += cmpCard('Callouts MTD', coMtd, pyCoMtd, false, `${monthName} ${py}`);
 
   return `<div class="panel mt2">
     <div class="ph">
-      <div class="ph-title">Period Comparisons</div>
-      <span class="ph-badge">vs Prior Year</span>
+      <div class="ph-title">Cash Collected Comparisons</div>
+      <span class="ph-badge">Payments vs Prior Year</span>
     </div>
     <div class="pb pcomp-grid">${cards}</div>
   </div>`;
@@ -3775,7 +3820,7 @@ async function renderFinDashboard() {
   el.innerHTML = `<div class="kgrid kgrid--4" id="fin-dash-kpis"><div class="kcard k4"><div class="klbl">Loading…</div></div></div><div id="fin-dash-body"></div>`;
 
   const periodQuery = financePeriodQuery();
-  const periodLabel = financePeriodValue() === 'ytd' ? 'January to Today' : 'Rolling 6 Months';
+  const periodLabel = financePeriodName();
   let plsData = null;
   try { plsData = await api('GET',`pl_ledger.php?action=summary${periodQuery}`); } catch(e) {}
 
@@ -3791,11 +3836,13 @@ async function renderFinDashboard() {
   const grossMargin = plsData?.gross_margin      ?? 0;
   const totalInv    = plsData?.total_invoiced    ?? periodInvoices.reduce((a,i)=>a+i.amount,0);
 
-  // Monthly P&L chart (bank-confirmed receipts per month, last 6 months)
-  const months = financePeriodMonths();
+  let months = financePeriodMonths();
 
   let mplData = null;
   try { mplData = await api('GET',`pl_ledger.php?action=monthly_pl${periodQuery}`); } catch(e) {}
+  if (financePeriodValue()==='all' && (mplData?.rows||[]).length) {
+    months = mplData.rows.map(row=>({ym:row.ym,lbl:new Date(`${row.ym}-01T00:00:00`).toLocaleDateString('en-ZA',{month:'short',year:'2-digit'})}));
+  }
   const mplMap = {};
   (mplData?.rows||[]).forEach(r=>{ mplMap[r.ym]=r; });
   const revData  = months.map(m=>mplMap[m.ym]?.cash_received||0);
@@ -4059,9 +4106,7 @@ function visibleTaskCategories() {
 }
 
 function visibleTrackerStreams() {
-  const streams = visibleTaskCategories();
-  if (can('callout.view')) streams.push('call_log');
-  return streams;
+  return visibleTaskCategories();
 }
 
 function syncTrackerAssigneeFilter() {
@@ -4165,18 +4210,10 @@ function renderTracker(cat) {
 
   // New task button
   const btnNew = document.getElementById('btn-new-task');
-  if (btnNew) { can('task.create') && cat !== 'call_log' ? $show(btnNew) : $hide(btnNew); }
+  if (btnNew) { can('task.create') ? $show(btnNew) : $hide(btnNew); }
 
   const taskView = document.getElementById('tracker-task-view');
-  const callLogView = document.getElementById('tracker-calllog-view');
-  if (taskView) taskView.hidden = cat === 'call_log';
-  if (callLogView) callLogView.hidden = cat !== 'call_log';
-  if (cat === 'call_log') {
-    const search = document.getElementById('co-search')?.value || '';
-    const filter = document.getElementById('co-filter')?.value || '';
-    renderCallouts(search, filter);
-    return;
-  }
+  if (taskView) taskView.hidden = false;
 
   // Category filter select
   const catSel = document.getElementById('ntk-category');
@@ -4928,8 +4965,7 @@ function saveCallout(){
   save();
   toast(`${id} logged`,'ok');
   audit('CREATE',`New callout: ${id}  -  ${service}`);
-  _trackerCat = 'call_log';
-  showPortalPage('p-tracker',null);
+  showPortalPage('p-callouts',null);
 }
 
 async function delCo(id){
@@ -6805,9 +6841,8 @@ function updateBadges(){
   if(nbInv) nbInv.textContent=proxyDB.invoices.filter(i=>i.status==='Sent'||i.status==='Overdue').length||'';
   if(nbQte) nbQte.textContent=proxyDB.quotes.filter(q=>q.status==='Pending Approval').length||'';
   if(nbCo) {
-    const openTasks = proxyDB.tasks.filter(t=>t.status==='Open'||t.status==='In Progress').length;
     const openCalls = proxyDB.callouts.filter(c=>c.status==='Open'||c.status==='In Progress').length;
-    nbCo.textContent=(openTasks+openCalls)||'';
+    nbCo.textContent=openCalls||'';
   }
   const nbSaf=document.getElementById('nb-saf');
   if(nbSaf) nbSaf.textContent=typeof safBadgeCount==='function'?safBadgeCount()||'':'';
@@ -6850,8 +6885,7 @@ async function saveCallout(){
   
   await refreshCallouts();
   updateBadges();
-  _trackerCat = 'call_log';
-  showPortalPage('p-tracker', null);
+  showPortalPage('p-callouts', null);
   toast(`Callout ${r.data?.ref_id || ''} logged — expand the row to assign a technician and PO`, 'ok');
   audit('CREATE', r.data?.ref_id || 'Callout created');
 }

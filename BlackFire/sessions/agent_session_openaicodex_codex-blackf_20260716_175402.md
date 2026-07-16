@@ -26,6 +26,10 @@ Tier 3 (Complex). Active OpenAI GPT-5 reasoning model is appropriate for multi-s
 - Preserved the concurrent unrelated commit `933bf93` and did not attribute its quote/invoice changes to this QA work.
 - Reopened QA when the user clarified that backend-backed uploads, downloads, previews, and document generation were required; retained an explicitly labelled financial chain because audit-protected records are not safely disposable after approval/payment.
 - Applied the existing localhost ledger migration and added schema smoke coverage instead of weakening backend linkage requirements.
+- Removed the unrecoverable First Aid Certificate metadata through the task Files modal after the user authorized fixing all remaining concerns.
+- Realigned all nine environment-backed accounts through the localhost password utility; mapped the stale AECI credential key to confirmed user `z.myeza` rather than creating an unconfirmed account.
+- Rotated manager, call-logger, and sysadmin local test credentials where missing or exposed, then synchronized the ignored mirrors and encrypted workspace vault.
+- Treated the reported login statuses as separate failure classes: CAPTCHA validation (400), credential validation (401), and local service availability (connection refused); no source change was made without evidence of an application defect.
 
 ## Work Done
 - Constitution, memory index, and session-log schema verified at session start.
@@ -48,6 +52,13 @@ Tier 3 (Complex). Active OpenAI GPT-5 reasoning model is appropriate for multi-s
 - Created `INV-160726-0129` from `Q-160726-0114`/`CO-160726-0137`, reversed its first payment through the new button, then logged `PAY-160726-0108` with a remittance through Log Payment. Remittance upload, View, and Download each returned HTTP 200.
 - Re-ran the final task, call-log, safety, invoice, decimal amount, payment reversal, remittance upload/history, database smoke, digest, PHP lint, and JavaScript syntax checks; all passed.
 - Captured final browser evidence of the remittance preview and download control in `screenshots/documents/payment-remittance-view.png`.
+- Completed the nine-account role matrix: finance document View/Download, safety listing, and task attachment boundaries returned the expected HTTP 200/403 results for each role.
+- Found and fixed unrestricted non-task attachment uploads in `f0feda9`; a call-logger payment-remittance POST now returns HTTP 403.
+- Found and fixed permission-blind initial data refreshes in `db5eeba`; a call-logger reload is console-clean.
+- Removed the transient 67-byte role-probe upload accidentally included by concurrent finance commit `63402d3` in cleanup commit `4459b04`.
+- Re-ran 13 PowerShell regressions, the PHP digest regression, three PHP syntax checks, JavaScript syntax validation, and the database smoke test after the follow-up fixes; all passed.
+- Confirmed port 8080 had no listener after the prior QA server shutdown, restarted the PHP/Next/Expo stack, and verified the portal and CAPTCHA endpoint both returned HTTP 200.
+- Reproduced a 401 when a simplistic credential reader included the manager username line's inline annotation, then repeated the login through the website controls with standard dotenv comment handling. Login and `/api/auth.php?action=me` returned HTTP 200 with role `manager`; all initial portal requests returned HTTP 200 and the browser console was clean.
 
 ## Agent Accountability
 
@@ -60,15 +71,14 @@ Tier 3 (Complex). Active OpenAI GPT-5 reasoning model is appropriate for multi-s
 | BF-QA-GOV-20260716 | uMlindi | uMlawuli (OpenAI Codex) | COMPLETED | 1/2 | Secrets excluded from Git; the retained financial audit chain is labelled; concurrent work preserved. |
 | BF-QA-DOCS-20260716 | uMvavanyi | uMlawuli (OpenAI Codex) | COMPLETED | 2/3 | Upload, preview, download, generated-document, PO, and remittance browser paths exercised. |
 | BF-QA-BACKEND-20260716 | uMakhi | uMlawuli (OpenAI Codex) | COMPLETED | 3/3 | Invoice schema, reversal, remittance storage, error feedback, and history access repaired. |
+| BF-QA-RBAC-20260716 | uMvavanyi | uMlawuli (OpenAI Codex) | COMPLETED | 3/3 | Nine configured accounts authenticated and document permission boundaries were browser-verified. |
+| BF-QA-RBAC-FIX-20260716 | uMakhi | uMlawuli (OpenAI Codex) | COMPLETED | 2/3 | Attachment upload authorization and role-scoped initial refresh defects were fixed and verified. |
+| BF-QA-AUTH-20260716 | uMvavanyi | uMlawuli (OpenAI Codex) | COMPLETED | 1/3 | Diagnosed 400/401/refused login statuses, restored the local stack, and browser-verified the current environment-backed manager login. |
 
 ## Blockers / Next Steps
 - No blocker for the manager create-button and document-lifecycle scope.
-- Other configured role credentials remain out of sync with the restored database; only the manager credential required for this QA was repaired and verified.
-- The legacy `Mr S. Mtolo First Aide Certificate.jpeg` attachment record points to a missing disk file. Restore the original binary or remove the stale metadata after owner confirmation.
-- Role-by-role document permission testing remains blocked by the restored database credential mismatch.
-- The browser accessibility snapshot echoed the filled local manager password during failed-login reproduction; rotate the vault value and realign the local hash before reuse.
-- Reconcile the branch with the one missing `origin/master` commit before shipping.
-- Restore `stash@{0}` when the local customer PDFs/SQL inputs are needed; never commit them.
+- Local `master` contains four additional local commits relative to `origin/master`.
+- Older pre-existing stashes containing dashboard work, a separate session log, and sensitive local install inputs remain preserved; never commit the sensitive inputs.
 - Await user confirmation before changing Goal Status from PENDING to ACHIEVED.
 
 ## Learnings
@@ -80,6 +90,10 @@ Tier 3 (Complex). Active OpenAI GPT-5 reasoning model is appropriate for multi-s
 - Browser QA for backend document work must verify the second request in composite flows: payment success did not imply remittance upload success.
 - Entity attachment validation must use the entity's real reference column; `bf_payments` uses `payment_ref`, not `ref_id`.
 - Restored databases can be reachable but structurally stale, so smoke tests must verify required columns as well as connectivity.
+- Attachment POST authorization must be checked per entity before file handling; read authorization alone does not protect uploads.
+- Initial SPA refreshes must be permission-scoped so restricted roles do not generate avoidable 403 console noise.
+- Accessibility snapshots can expose filled password fields; wait for login completion or clear the inputs before capturing evidence, and rotate immediately if a value is echoed.
+- Credential tooling must parse dotenv inline comments; treating the entire text after `=` as a username can append a human annotation and cause a legitimate HTTP 401.
 - Model trust score remains consistent with the Tier 3 recommendation; no trust-matrix update is warranted.
 
 ```json

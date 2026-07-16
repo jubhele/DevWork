@@ -1,0 +1,14 @@
+﻿{
+    "provider":  "OpenAI Codex",
+    "session_id":  "codex-blackfire-call-log-under-tasks-20260716",
+    "log_path":  "C:\\DevWork\\BlackFire\\sessions\\agent_session_openai_codex_codex-blackf_20260716_203215.md",
+    "project_status":  "resolved",
+    "project_name":  "BlackFire",
+    "project_root":  "C:\\DevWork\\BlackFire",
+    "project_source":  "cwd_project_signal",
+    "binding_version":  1,
+    "binding_updated_at":  "",
+    "prompt_count":  0,
+    "created_at":  "2026-07-16T20:32:15.1894847+02:00",
+    "updated_at":  "2026-07-16T20:41:30.7510610+02:00"
+}

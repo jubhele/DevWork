@@ -39,7 +39,7 @@ Active model: GPT-5  Status: over-powered
 | Task ID | Assigned Agent | Completed By | Status | Iterations | Note |
 |---------|---------------|--------------|--------|------------|------|
 | BF-DASH-20260716-01 | uMakhi | uMakhi | COMPLETED | 2/3 | Implemented and passed targeted static/runtime checks; finance DOM ordering corrected during review |
-| BF-FIN-PERIOD-20260716-02 | uMakhi | uMakhi | COMPLETED | 2/3 | Shared finance period selector and end-to-end period-aware calculations; restored after concurrent workspace reset and reverified |
+| BF-FIN-PERIOD-20260716-02 | uMakhi | uMakhi | COMPLETED | 3/3 | Extended the shared period through the main Dashboard finance cards, executive revenue trend, and invoice aging after user review |
 
 ## Blockers / Next Steps
 - No implementation blocker. Await user acceptance; Goal Status remains PENDING until the user confirms the result.
@@ -82,4 +82,39 @@ Active model: GPT-5  Status: correct
 - Shared reporting ranges need a single persisted contract; otherwise dashboard widgets and ledger tabs silently disagree.
 - Bounded reconciliation should compare period movement, not closing balances, unless opening-balance data is also supplied.
 - In a shared worktree, recheck file hashes/status immediately before handoff because a concurrent reset can invalidate a previously green verification pass.
+
+## User Review Correction — Main Dashboard Finance Block
+
+### Work Done
+- Added the shared finance-period selector to the main Dashboard.
+- Updated Invoiced, Net Balance, Revenue, Outstanding, and Quote Pipeline cards to use the selected period.
+- Updated both main Dashboard revenue charts and Invoice Aging to use the selected period.
+- Used invoice date for invoiced/outstanding/aging, transaction date for net and received revenue, and quote date for pipeline.
+- Expanded the finance-period regression test to require all six selectors and the main Dashboard render path.
+
+### Verification
+- PASS: finance period regression, JavaScript syntax, PHP syntax, and whitespace checks after the user-review correction.
+
+## Period Control UI Refinement
+
+### Work Done
+- Replaced all six finance period dropdowns with two explicit buttons: January to Today and Rolling 6 Months.
+- Right-aligned the period caption and button group on every page, with responsive wrapping on small screens.
+- Added active, hover, focus-visible, and `aria-pressed` states.
+- Updated regression coverage to reject a reintroduced dropdown and require twelve buttons across six pages.
+
+### Verification
+- PASS: finance period regression, JavaScript syntax, PHP syntax, and whitespace checks after the button-toggle refinement.
+- User wording refinement: shortened all six "January to Today" button labels to "YTD"; regression coverage verifies all six labels.
+
+## Four Finance Periods
+
+### Work Done
+- Expanded every finance control to Rolling 6 Mos, YTD, All Time, and Fin YTD.
+- Added dynamic small-print definitions beneath each button: rolling month names, calendar-year start, earliest available data year, and the active March-to-February financial year.
+- Added All Time behavior with no API lower date boundary and March-based Fin YTD calculation through the present date.
+- Expanded regression coverage from twelve to twenty-four buttons and verifies all four period keys on all six pages.
+
+### Verification
+- PASS: four-period regression, JavaScript syntax, PHP syntax, and whitespace checks.
 

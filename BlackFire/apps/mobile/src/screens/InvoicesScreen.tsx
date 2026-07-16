@@ -36,7 +36,8 @@ function isCurrentMonth(value?: string | null) {
 }
 
 function invoicePdfRef(item: Invoice) {
-  return item.invoice_number || item.id
+  const invoice = item as Invoice & { invoice_no?: string; ref_id?: string }
+  return invoice.invoice_no || invoice.ref_id || item.invoice_number || item.id
 }
 
 function openInvoicePdf(item: Invoice) {

@@ -42,6 +42,12 @@ interface FetchOptions extends RequestInit {
   token?: string   // Bearer token for mobile path
 }
 
+export function apiUrl(endpoint: string) {
+  const [rawPath, query] = endpoint.replace(/^\/+/, '').replace(/^api\//, '').split('?', 2)
+  const path = rawPath.includes('.') ? rawPath : `${rawPath}.php`
+  return `${API_BASE.replace(/\/+$/, '')}/${path}${query ? `?${query}` : ''}`
+}
+
 async function apiFetch<T>(endpoint: string, options: FetchOptions = {}): Promise<T> {
   const { token, ...rest } = options
   const headers: Record<string, string> = {
@@ -51,7 +57,7 @@ async function apiFetch<T>(endpoint: string, options: FetchOptions = {}): Promis
   if (token) headers['Authorization'] = `Bearer ${token}`
   if (rest.body && typeof rest.body === 'string') headers['Content-Type'] = 'application/json'
 
-  const res = await fetch(`${API_BASE}/${endpoint}`, {
+  const res = await fetch(apiUrl(endpoint), {
     credentials: 'include',   // web session cookie
     ...rest,
     headers,

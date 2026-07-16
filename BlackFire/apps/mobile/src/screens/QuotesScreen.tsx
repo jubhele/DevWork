@@ -17,7 +17,8 @@ const STATUS_COLOR: Record<string, string> = {
 }
 
 function quotePdfRef(item: Quote) {
-  return item.quote_number || item.id
+  const quote = item as Quote & { quote_no?: string; ref_id?: string }
+  return quote.quote_no || quote.ref_id || item.quote_number || item.id
 }
 
 function openQuotePdf(item: Quote) {

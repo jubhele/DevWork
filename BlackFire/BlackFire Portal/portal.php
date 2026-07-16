@@ -642,13 +642,14 @@ $companyLogoUrl = $baseUrl . '/' . ltrim($cfg['company_logo'] ?? 'blackfire_logo
           </button>
         </div>
       </div>
+      <div class="finance-period-bar" role="group" aria-label="Dashboard finance reporting period"><span class="finance-period-caption"></span><button type="button" class="finance-period-btn" data-action="setFinancePeriod" data-finance-period="rolling6">Rolling 6 Mos</button><button type="button" class="finance-period-btn" data-action="setFinancePeriod" data-finance-period="ytd">YTD</button><button type="button" class="finance-period-btn" data-action="setFinancePeriod" data-finance-period="all">All Time</button><button type="button" class="finance-period-btn" data-action="setFinancePeriod" data-finance-period="fytd">Fin YTD</button></div>
       <div id="dash-main-content"></div>
     </div>
 
     <!-- TRANSACTIONS -->
     <div id="p-transactions" class="ppage">
       <div class="ptitle">Transactions</div><div class="psub">BANK LEDGER</div>
-      <div class="srow finance-period-bar"><select class="sinput sinput-narrow finance-period-select" aria-label="Finance reporting period"><option value="ytd">January to Today</option><option value="rolling6">Rolling 6 Months</option></select><span class="finance-period-caption fs-11 text-muted"></span></div>
+      <div class="finance-period-bar" role="group" aria-label="Finance reporting period"><span class="finance-period-caption"></span><button type="button" class="finance-period-btn" data-action="setFinancePeriod" data-finance-period="rolling6">Rolling 6 Mos</button><button type="button" class="finance-period-btn" data-action="setFinancePeriod" data-finance-period="ytd">YTD</button><button type="button" class="finance-period-btn" data-action="setFinancePeriod" data-finance-period="all">All Time</button><button type="button" class="finance-period-btn" data-action="setFinancePeriod" data-finance-period="fytd">Fin YTD</button></div>
       <div class="tx-stats">
         <div class="kcard kcard--flex kcard--credits"><div class="klbl">Credits</div><div class="kval kval--lg kval--paid" id="tx-credits">R0</div></div>
         <div class="kcard kcard--flex kcard--debits"><div class="klbl">Debits</div><div class="kval kval--lg kval--ovr" id="tx-debits">R0</div></div>
@@ -680,8 +681,17 @@ $companyLogoUrl = $baseUrl . '/' . ltrim($cfg['company_logo'] ?? 'blackfire_logo
       <div class="panel"><div class="tw"><table><thead><tr><th>Quote #</th><th>Client</th><th>Total</th><th>Submitted By</th><th>Valid Until</th><th>Status</th><th>Actions</th></tr></thead><tbody id="qte-table"></tbody></table></div></div>
     </div>
 
-    <!-- Legacy route target; portal.js redirects this page to Tracker > Call Log. -->
-    <div id="p-callouts" class="ppage"></div>
+    <!-- CALL LOG — operational callouts -->
+    <div id="p-callouts" class="ppage">
+      <div class="ptitle">Call Log</div><div class="psub">OPERATIONAL CALLOUTS &amp; FIELD JOBS</div>
+      <div class="srow">
+        <input type="text" class="sinput" id="co-search" placeholder="Search job, service, invoice no., quote no...">
+        <select class="sinput sinput-narrow" id="co-filter"><option value="">All</option><option>Open</option><option>In Progress</option><option>Completed</option><option>Invoiced</option></select>
+        <button class="btn btn-p btn-s" id="btn-newco" data-action="navPage" data-page="p-new-callout">+ Log Call</button>
+      </div>
+      <div class="calllog-column-header" aria-hidden="true"><span>Job ID</span><span>Service</span><span>Priority</span><span>Status</span><span>Start</span><span>End</span><span>Due</span><span>Call Type</span></div>
+      <div id="co-table" class="calllog-list" role="list" aria-label="Call log records"></div>
+    </div>
 
     <!-- TIMELINE -->
     <div id="p-timeline" class="ppage">
@@ -689,9 +699,9 @@ $companyLogoUrl = $baseUrl . '/' . ltrim($cfg['company_logo'] ?? 'blackfire_logo
       <div class="panel"><div class="pb" id="timeline-content"></div></div>
     </div>
 
-    <!-- TRACKER — Company workstreams + operational call log -->
+    <!-- TRACKER — Company workstreams -->
     <div id="p-tracker" class="ppage">
-      <div class="ptitle">Tracker</div><div class="psub">ADMIN · SALES · GENERAL · CALL LOG</div>
+      <div class="ptitle">Tracker</div><div class="psub">ADMIN · SALES · GENERAL</div>
       <div class="srow">
         <div id="tracker-tabs" class="pnav-inline"></div>
         <select class="sinput sinput-narrow" id="tracker-date-scope" aria-label="Tracker date range"><option value="2026">2026 onward</option><option value="all">Beginning of time</option></select>
@@ -705,15 +715,6 @@ $companyLogoUrl = $baseUrl . '/' . ltrim($cfg['company_logo'] ?? 'blackfire_logo
           <tbody id="tracker-table"></tbody>
         </table>
       </div></div>
-      <div id="tracker-calllog-view" hidden>
-        <div class="srow">
-          <input type="text" class="sinput" id="co-search" placeholder="Search job, service, invoice no., quote no...">
-          <select class="sinput sinput-narrow" id="co-filter"><option value="">All</option><option>Open</option><option>In Progress</option><option>Completed</option><option>Invoiced</option></select>
-          <button class="btn btn-p btn-s" id="btn-newco" data-action="navPage" data-page="p-new-callout">+ Log Call</button>
-        </div>
-        <div class="calllog-column-header" aria-hidden="true"><span>Job ID</span><span>Service</span><span>Priority</span><span>Status</span><span>Start</span><span>End</span><span>Due</span><span>Call Type</span></div>
-        <div id="co-table" class="calllog-list" role="list" aria-label="Call log records"></div>
-      </div>
     </div>
 
     <!-- NEW TASK -->
@@ -768,14 +769,14 @@ $companyLogoUrl = $baseUrl . '/' . ltrim($cfg['company_logo'] ?? 'blackfire_logo
     <!-- RECONCILIATION -->
     <div id="p-reconcile" class="ppage">
       <div class="ptitle">Reconciliation</div><div class="psub">PORTAL vs STATEMENT</div>
-      <div class="srow finance-period-bar"><select class="sinput sinput-narrow finance-period-select" aria-label="Finance reporting period"><option value="ytd">January to Today</option><option value="rolling6">Rolling 6 Months</option></select><span class="finance-period-caption fs-11 text-muted"></span></div>
+      <div class="finance-period-bar" role="group" aria-label="Finance reporting period"><span class="finance-period-caption"></span><button type="button" class="finance-period-btn" data-action="setFinancePeriod" data-finance-period="rolling6">Rolling 6 Mos</button><button type="button" class="finance-period-btn" data-action="setFinancePeriod" data-finance-period="ytd">YTD</button><button type="button" class="finance-period-btn" data-action="setFinancePeriod" data-finance-period="all">All Time</button><button type="button" class="finance-period-btn" data-action="setFinancePeriod" data-finance-period="fytd">Fin YTD</button></div>
       <div id="recon-content"></div>
     </div>
 
     <!-- INCOME STATEMENT -->
     <div id="p-income" class="ppage">
       <div class="ptitle">Income Statement</div><div class="psub">FINANCIAL REPORTING  -  28% TAX</div>
-      <div class="srow finance-period-bar"><select class="sinput sinput-narrow finance-period-select" aria-label="Finance reporting period"><option value="ytd">January to Today</option><option value="rolling6">Rolling 6 Months</option></select><span class="finance-period-caption fs-11 text-muted"></span></div>
+      <div class="finance-period-bar" role="group" aria-label="Finance reporting period"><span class="finance-period-caption"></span><button type="button" class="finance-period-btn" data-action="setFinancePeriod" data-finance-period="rolling6">Rolling 6 Mos</button><button type="button" class="finance-period-btn" data-action="setFinancePeriod" data-finance-period="ytd">YTD</button><button type="button" class="finance-period-btn" data-action="setFinancePeriod" data-finance-period="all">All Time</button><button type="button" class="finance-period-btn" data-action="setFinancePeriod" data-finance-period="fytd">Fin YTD</button></div>
       <div class="twocol">
         <div class="panel"><div class="ph"><div class="ph-title">Profit & Loss</div></div><div id="pl-rows"></div></div>
         <div class="panel"><div class="ph"><div class="ph-title">Summary</div></div><div class="pb"><div class="sumbox" id="pl-summary"></div></div></div>
@@ -785,7 +786,7 @@ $companyLogoUrl = $baseUrl . '/' . ltrim($cfg['company_logo'] ?? 'blackfire_logo
     <!-- P&L LEDGER — 5-tab view matching BF_AECI_Full_PL_Ledger Excel -->
     <div id="p-pl-ledger" class="ppage">
       <div class="ptitle">P&amp;L Ledger</div><div class="psub">AECI CHEMPARK  ·  FULL FINANCIAL RECORD</div>
-      <div class="srow finance-period-bar"><select class="sinput sinput-narrow finance-period-select" aria-label="Finance reporting period"><option value="ytd">January to Today</option><option value="rolling6">Rolling 6 Months</option></select><span class="finance-period-caption fs-11 text-muted"></span></div>
+      <div class="finance-period-bar" role="group" aria-label="Finance reporting period"><span class="finance-period-caption"></span><button type="button" class="finance-period-btn" data-action="setFinancePeriod" data-finance-period="rolling6">Rolling 6 Mos</button><button type="button" class="finance-period-btn" data-action="setFinancePeriod" data-finance-period="ytd">YTD</button><button type="button" class="finance-period-btn" data-action="setFinancePeriod" data-finance-period="all">All Time</button><button type="button" class="finance-period-btn" data-action="setFinancePeriod" data-finance-period="fytd">Fin YTD</button></div>
       <div id="pl-ledger-summary" class="ledger-summary"></div>
       <div class="srow">
         <div id="pl-ledger-tabs" class="pnav-inline"></div>
@@ -1156,7 +1157,7 @@ $companyLogoUrl = $baseUrl . '/' . ltrim($cfg['company_logo'] ?? 'blackfire_logo
     <div id="p-finance-dashboard" class="ppage">
       <div class="ptitle">Finance</div>
       <div class="psub">FINANCIAL MANAGEMENT  ·  OVERVIEW</div>
-      <div class="srow finance-period-bar"><select class="sinput sinput-narrow finance-period-select" aria-label="Finance reporting period"><option value="ytd">January to Today</option><option value="rolling6">Rolling 6 Months</option></select><span class="finance-period-caption fs-11 text-muted"></span></div>
+      <div class="finance-period-bar" role="group" aria-label="Finance reporting period"><span class="finance-period-caption"></span><button type="button" class="finance-period-btn" data-action="setFinancePeriod" data-finance-period="rolling6">Rolling 6 Mos</button><button type="button" class="finance-period-btn" data-action="setFinancePeriod" data-finance-period="ytd">YTD</button><button type="button" class="finance-period-btn" data-action="setFinancePeriod" data-finance-period="all">All Time</button><button type="button" class="finance-period-btn" data-action="setFinancePeriod" data-finance-period="fytd">Fin YTD</button></div>
       <div id="fin-dash-content"></div>
     </div>
 
