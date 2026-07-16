@@ -174,13 +174,16 @@ if ($method === 'POST') {
         );
 
         foreach ($items as $item) {
+            $item_qty  = (float)($item['qty'] ?? 1);
+            $item_unit = (float)($item['unit_price'] ?? $item['unit'] ?? 0);
             db_exec(
-                "INSERT INTO bf_quote_items (quote_id, description, qty, unit_price) VALUES (?,?,?,?)",
+                "INSERT INTO bf_quote_items (quote_id, description, qty, unit_price, line_total) VALUES (?,?,?,?,?)",
                 [
                     $id,
                     clean($item['description'] ?? $item['desc'] ?? '', 255),
-                    (float)($item['qty'] ?? 1),
-                    (float)($item['unit_price'] ?? $item['unit'] ?? 0),
+                    $item_qty,
+                    $item_unit,
+                    round($item_qty * $item_unit, 2),
                 ]
             );
         }

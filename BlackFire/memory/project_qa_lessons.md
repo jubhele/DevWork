@@ -6,5 +6,8 @@
 - Task flows use the global `toast(message, type)` helper and `showPortalPage(pageId, element)`. `showToast` and direct `navPage(...)` calls are undefined in the legacy PHP portal runtime.
 - After task status/delete mutations, call `updateBadges()` after refreshing and rendering tasks so the Tracker badge reflects active records immediately.
 - Disposable QA tasks should be cancelled through **Status** to preserve audit history. Open disposable callouts and Draft quotes may be removed through their visible Delete confirmation controls.
+- Tracker "Beginning of time" views must paginate the task and callout APIs past their 500-row page cap; removing only a client-side date predicate is incomplete.
+- When moving dashboard panels, verify their final DOM sibling order. Finance renders its KPI grid separately from `fin-dash-body`, so Quick Actions must be inserted ahead of that grid.
+- Finance period controls must share one persisted date range across Dashboard, Transactions, P&L Ledger, Income Statement, and Reconciliation. Filter each domain by its accounting date, and compare reconciliation net movement when the selected range excludes an opening balance.
 
 Verified 2026-07-16. Report: `BlackFire Portal/.gstack/qa-reports/qa-report-localhost-8080-2026-07-16.md`.

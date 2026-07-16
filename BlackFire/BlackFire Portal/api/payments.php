@@ -30,9 +30,10 @@ if ($method === 'GET') {
     $rows = db_select(
         "SELECT p.id, p.payment_ref, p.invoice_ref, p.client_name, p.amount,
                 p.payment_date, p.notes,
+                p.reversed_at, p.reversal_reason,
                 COALESCE(u.username, '') AS logged_by,
                 p.created_at,
-                a.id AS file_id, a.original_name, a.file_size
+                a.id AS file_id, a.original_name, a.file_size, a.mime_type
            FROM bf_payments p
            LEFT JOIN bf_users u ON u.id = p.logged_by_user_id
            LEFT JOIN bf_attachments a

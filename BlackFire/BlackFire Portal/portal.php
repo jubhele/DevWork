@@ -648,6 +648,7 @@ $companyLogoUrl = $baseUrl . '/' . ltrim($cfg['company_logo'] ?? 'blackfire_logo
     <!-- TRANSACTIONS -->
     <div id="p-transactions" class="ppage">
       <div class="ptitle">Transactions</div><div class="psub">BANK LEDGER</div>
+      <div class="srow finance-period-bar"><select class="sinput sinput-narrow finance-period-select" aria-label="Finance reporting period"><option value="ytd">January to Today</option><option value="rolling6">Rolling 6 Months</option></select><span class="finance-period-caption fs-11 text-muted"></span></div>
       <div class="tx-stats">
         <div class="kcard kcard--flex kcard--credits"><div class="klbl">Credits</div><div class="kval kval--lg kval--paid" id="tx-credits">R0</div></div>
         <div class="kcard kcard--flex kcard--debits"><div class="klbl">Debits</div><div class="kval kval--lg kval--ovr" id="tx-debits">R0</div></div>
@@ -693,6 +694,9 @@ $companyLogoUrl = $baseUrl . '/' . ltrim($cfg['company_logo'] ?? 'blackfire_logo
       <div class="ptitle">Tracker</div><div class="psub">ADMIN · SALES · GENERAL · CALL LOG</div>
       <div class="srow">
         <div id="tracker-tabs" class="pnav-inline"></div>
+        <select class="sinput sinput-narrow" id="tracker-date-scope" aria-label="Tracker date range"><option value="2026">2026 onward</option><option value="all">Beginning of time</option></select>
+        <select class="sinput sinput-narrow" id="tracker-assignee" aria-label="Tracker assignee"><option value="all">Assigned: All</option><option value="me">Assigned: Me</option></select>
+        <select class="sinput sinput-narrow" id="tracker-sort" aria-label="Tracker sort"><option value="newest">Sort: Newest</option><option value="due">Sort: Due</option><option value="status">Sort: Status</option><option value="urgency">Sort: Urgency</option></select>
         <button class="btn btn-p btn-s" id="btn-new-task" data-action="navPage" data-page="p-new-task">+ New Task</button>
       </div>
       <div id="tracker-task-view" class="panel"><div class="tw">
@@ -764,12 +768,14 @@ $companyLogoUrl = $baseUrl . '/' . ltrim($cfg['company_logo'] ?? 'blackfire_logo
     <!-- RECONCILIATION -->
     <div id="p-reconcile" class="ppage">
       <div class="ptitle">Reconciliation</div><div class="psub">PORTAL vs STATEMENT</div>
+      <div class="srow finance-period-bar"><select class="sinput sinput-narrow finance-period-select" aria-label="Finance reporting period"><option value="ytd">January to Today</option><option value="rolling6">Rolling 6 Months</option></select><span class="finance-period-caption fs-11 text-muted"></span></div>
       <div id="recon-content"></div>
     </div>
 
     <!-- INCOME STATEMENT -->
     <div id="p-income" class="ppage">
       <div class="ptitle">Income Statement</div><div class="psub">FINANCIAL REPORTING  -  28% TAX</div>
+      <div class="srow finance-period-bar"><select class="sinput sinput-narrow finance-period-select" aria-label="Finance reporting period"><option value="ytd">January to Today</option><option value="rolling6">Rolling 6 Months</option></select><span class="finance-period-caption fs-11 text-muted"></span></div>
       <div class="twocol">
         <div class="panel"><div class="ph"><div class="ph-title">Profit & Loss</div></div><div id="pl-rows"></div></div>
         <div class="panel"><div class="ph"><div class="ph-title">Summary</div></div><div class="pb"><div class="sumbox" id="pl-summary"></div></div></div>
@@ -779,6 +785,7 @@ $companyLogoUrl = $baseUrl . '/' . ltrim($cfg['company_logo'] ?? 'blackfire_logo
     <!-- P&L LEDGER — 5-tab view matching BF_AECI_Full_PL_Ledger Excel -->
     <div id="p-pl-ledger" class="ppage">
       <div class="ptitle">P&amp;L Ledger</div><div class="psub">AECI CHEMPARK  ·  FULL FINANCIAL RECORD</div>
+      <div class="srow finance-period-bar"><select class="sinput sinput-narrow finance-period-select" aria-label="Finance reporting period"><option value="ytd">January to Today</option><option value="rolling6">Rolling 6 Months</option></select><span class="finance-period-caption fs-11 text-muted"></span></div>
       <div id="pl-ledger-summary" class="ledger-summary"></div>
       <div class="srow">
         <div id="pl-ledger-tabs" class="pnav-inline"></div>
@@ -913,7 +920,7 @@ $companyLogoUrl = $baseUrl . '/' . ltrim($cfg['company_logo'] ?? 'blackfire_logo
         <div class="req-legend"><span class="req">*</span> Required field</div>
         <div class="fgrid">
           <div class="fgroup"><label class="flbl">Client <span class="req">*</span></label><select class="finput" id="ni-client"><option value="">— Select Client —</option></select></div>
-          <div class="fgroup"><label class="flbl">Amount (incl. VAT) <span class="req">*</span></label><input type="number" class="finput" id="ni-amount" placeholder="0.00"></div>
+          <div class="fgroup"><label class="flbl">Amount (incl. VAT) <span class="req">*</span></label><input type="number" class="finput" id="ni-amount" min="0.01" step="0.01" placeholder="0.00"></div>
           <div class="fgroup"><label class="flbl">Due Date <span class="req">*</span></label><input type="date" class="finput" id="ni-due"></div>
           <div class="fgroup"><label class="flbl">Status</label><select class="finput" id="ni-status"><option>Draft</option><option>Sent</option></select></div>
           <div class="fgroup"><label class="flbl">PO Reference</label><input class="finput" id="ni-po" placeholder="PO number if applicable"></div>
@@ -940,6 +947,10 @@ $companyLogoUrl = $baseUrl . '/' . ltrim($cfg['company_logo'] ?? 'blackfire_logo
         </div>
         <div class="mt3 flex-end"><button class="btn btn-p" data-action="logPayment">Log Payment</button></div>
       </div></div>
+      <div class="panel mt2">
+        <div class="ph"><div class="ph-title">Recent Payments &amp; Remittances</div></div>
+        <div class="pb" id="payment-history"><div class="tc-empty">Loading payment history...</div></div>
+      </div>
     </div>
 
     <!-- ═══════════════════════════════════════════════════════
@@ -1145,6 +1156,7 @@ $companyLogoUrl = $baseUrl . '/' . ltrim($cfg['company_logo'] ?? 'blackfire_logo
     <div id="p-finance-dashboard" class="ppage">
       <div class="ptitle">Finance</div>
       <div class="psub">FINANCIAL MANAGEMENT  ·  OVERVIEW</div>
+      <div class="srow finance-period-bar"><select class="sinput sinput-narrow finance-period-select" aria-label="Finance reporting period"><option value="ytd">January to Today</option><option value="rolling6">Rolling 6 Months</option></select><span class="finance-period-caption fs-11 text-muted"></span></div>
       <div id="fin-dash-content"></div>
     </div>
 

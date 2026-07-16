@@ -26,14 +26,36 @@ $action = clean($_GET['action'] ?? '', 40);
 
 require_perm('finance.income');
 
+function ledger_period_date(string $value, string $field): string {
+  if ($value === '') return '';
+  $date = DateTime::createFromFormat('!Y-m-d', $value);
+  if (!$date || $date->format('Y-m-d') !== $value) json_err("Invalid {$field}; expected YYYY-MM-DD", 400);
+  return $value;
+}
+
+function ledger_period_clause(string $column, string $from, string $to): array {
+  $clauses = [];
+  $params = [];
+  if ($from !== '') { $clauses[] = "{$column} >= ?"; $params[] = $from; }
+  if ($to !== '') { $clauses[] = "{$column} <= ?"; $params[] = $to; }
+  return ['sql' => $clauses ? ' AND ' . implode(' AND ', $clauses) : '', 'params' => $params];
+}
+
+$period_from = ledger_period_date(clean($_GET['from'] ?? '', 10), 'from');
+$period_to = ledger_period_date(clean($_GET['to'] ?? '', 10), 'to');
+if ($period_from !== '' && $period_to !== '' && $period_from > $period_to) json_err('from must be on or before to', 400);
+
 switch ($action) {
 
   // ── REMITTANCES ───────────────────────────────────────────────
   case 'remittances':
+    $period = ledger_period_clause('r.remittance_date', $period_from, $period_to);
     $rows = db_select(
       "SELECT r.*
          FROM bf_remittances r
-        ORDER BY r.remittance_date ASC"
+        WHERE 1=1 {$period['sql']}
+        ORDER BY r.remittance_date ASC",
+      $period['params']
     );
     $total          = array_sum(array_column($rows, 'amount'));
     $bank_confirmed = array_sum(array_map(
@@ -50,11 +72,13 @@ switch ($action) {
 
   // ── BANK STATEMENT (confirmed receipts only) ──────────────────
   case 'bank_statement':
+    $period = ledger_period_clause('bank_date', $period_from, $period_to);
     $rows = db_select(
       "SELECT control_no, cheque_no, bank_date, amount, invoices_covered
          FROM bf_remittances
-        WHERE bank_confirmed = 1
-        ORDER BY bank_date ASC"
+        WHERE bank_confirmed = 1 {$period['sql']}
+        ORDER BY bank_date ASC",
+      $period['params']
     );
     json_ok([
       'rows'  => $rows,
@@ -65,6 +89,7 @@ switch ($action) {
 
   // ── SALES INVOICES ────────────────────────────────────────────
   case 'invoices':
+    $period = ledger_period_clause('i.invoice_date', $period_from, $period_to);
     $rows = db_select(
       "SELECT
           i.invoice_date,
@@ -84,8 +109,9 @@ switch ($action) {
        LEFT JOIN bf_remittances r
               ON FIND_IN_SET(i.ref_id, REPLACE(r.invoices_covered, ' ', '')) > 0
           OR r.invoices_covered LIKE CONCAT('%', i.ref_id, '%')
-      WHERE i.client_name = 'AECI Chempark'
-      ORDER BY i.invoice_date ASC"
+      WHERE i.client_name = 'AECI Chempark' {$period['sql']}
+      ORDER BY i.invoice_date ASC",
+      $period['params']
     );
     $total_invoiced   = (float)array_sum(array_column($rows, 'amount'));
     $paid_rows        = array_filter($rows, fn($r) => $r['status'] === 'Paid');
@@ -100,6 +126,7 @@ switch ($action) {
 
   // ── SUPPLIER COSTS ────────────────────────────────────────────
   case 'supplier_costs':
+    $period = ledger_period_clause('s.invoice_date', $period_from, $period_to);
     $rows = db_select(
       "SELECT
           s.invoice_date AS `date`,
@@ -111,8 +138,9 @@ switch ($action) {
           s.status,
           COALESCE(s.notes, '') AS notes
          FROM bf_supplier_invoices s
-        WHERE s.supplier IN ('Siyasiza Group','Megahertz Systems','Nqobanathi Holdings','NkosinathiMajola (Pty) Ltd')
-        ORDER BY s.supplier, s.invoice_date ASC"
+        WHERE s.supplier IN ('Siyasiza Group','Megahertz Systems','Nqobanathi Holdings','NkosinathiMajola (Pty) Ltd') {$period['sql']}
+        ORDER BY s.supplier, s.invoice_date ASC",
+      $period['params']
     );
 
     $by_supplier = [];
@@ -144,24 +172,28 @@ switch ($action) {
   // ── MONTHLY P&L ───────────────────────────────────────────────
   case 'monthly_pl':
     // Cash received per month (bank-confirmed remittances only)
+    $cash_period = ledger_period_clause('bank_date', $period_from, $period_to);
     $cash_rows = db_select(
       "SELECT DATE_FORMAT(bank_date, '%Y-%m') AS ym,
               SUM(amount) AS cash_received
          FROM bf_remittances
-        WHERE bank_confirmed = 1 AND bank_date IS NOT NULL
+        WHERE bank_confirmed = 1 AND bank_date IS NOT NULL {$cash_period['sql']}
         GROUP BY ym
-        ORDER BY ym ASC"
+        ORDER BY ym ASC",
+      $cash_period['params']
     );
 
     // Supplier costs per month
+    $cost_period = ledger_period_clause('invoice_date', $period_from, $period_to);
     $cost_rows = db_select(
       "SELECT DATE_FORMAT(invoice_date, '%Y-%m') AS ym,
               supplier,
               SUM(total_amount) AS cost
          FROM bf_supplier_invoices
-        WHERE supplier IN ('Siyasiza Group','Megahertz Systems','Nqobanathi Holdings','NkosinathiMajola (Pty) Ltd')
+        WHERE supplier IN ('Siyasiza Group','Megahertz Systems','Nqobanathi Holdings','NkosinathiMajola (Pty) Ltd') {$cost_period['sql']}
         GROUP BY ym, supplier
-        ORDER BY ym ASC"
+        ORDER BY ym ASC",
+      $cost_period['params']
     );
 
     // Build a map of all months that appear in either dataset
@@ -220,27 +252,40 @@ switch ($action) {
 
   // ── SUMMARY (finance dashboard KPIs) ─────────────────────────
   case 'summary':
+    $remittance_period = ledger_period_clause('remittance_date', $period_from, $period_to);
     $rem = db_row(
-      "SELECT SUM(amount) AS total, SUM(IF(bank_confirmed=1,amount,0)) AS confirmed,
-              SUM(IF(bank_confirmed=0,amount,0)) AS unreconciled
-         FROM bf_remittances"
+      "SELECT SUM(amount) AS total, SUM(IF(bank_confirmed=0,amount,0)) AS unreconciled
+         FROM bf_remittances
+        WHERE 1=1 {$remittance_period['sql']}",
+      $remittance_period['params']
     );
+    $confirmed_period = ledger_period_clause('bank_date', $period_from, $period_to);
+    $confirmed = db_row(
+      "SELECT SUM(amount) AS total
+         FROM bf_remittances
+        WHERE bank_confirmed=1 AND bank_date IS NOT NULL {$confirmed_period['sql']}",
+      $confirmed_period['params']
+    );
+    $invoice_period = ledger_period_clause('invoice_date', $period_from, $period_to);
     $inv = db_row(
       "SELECT SUM(amount) AS invoiced,
               SUM(IF(status='Paid',amount,0)) AS paid,
               SUM(IF(status IN ('Sent','Overdue'),amount,0)) AS outstanding,
               COUNT(IF(status='Overdue',1,NULL)) AS overdue_count
-         FROM bf_invoices WHERE client_name='AECI Chempark'"
+         FROM bf_invoices WHERE client_name='AECI Chempark' {$invoice_period['sql']}",
+      $invoice_period['params']
     );
+    $cost_period = ledger_period_clause('invoice_date', $period_from, $period_to);
     $costs = db_row(
       "SELECT SUM(total_amount) AS total
          FROM bf_supplier_invoices
-        WHERE supplier IN ('Siyasiza Group','Megahertz Systems','Nqobanathi Holdings','NkosinathiMajola (Pty) Ltd')"
+        WHERE supplier IN ('Siyasiza Group','Megahertz Systems','Nqobanathi Holdings','NkosinathiMajola (Pty) Ltd') {$cost_period['sql']}",
+      $cost_period['params']
     );
-    $margin = (float)($rem['confirmed'] ?? 0) - (float)($costs['total'] ?? 0);
+    $margin = (float)($confirmed['total'] ?? 0) - (float)($costs['total'] ?? 0);
 
     json_ok([
-      'bank_confirmed'   => (float)($rem['confirmed']    ?? 0),
+      'bank_confirmed'   => (float)($confirmed['total']   ?? 0),
       'unreconciled'     => (float)($rem['unreconciled']  ?? 0),
       'total_remitted'   => (float)($rem['total']         ?? 0),
       'total_invoiced'   => (float)($inv['invoiced']      ?? 0),

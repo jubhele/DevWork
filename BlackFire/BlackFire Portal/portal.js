@@ -280,6 +280,7 @@ document.addEventListener('click', function(e) {
     case 'downloadInvoicePdf':   downloadInvoicePdf(el.dataset.id); break;
     case 'openSendInvoiceModal': openSendInvoiceModal(el.dataset.id); break;
     case 'markPaid':             markPaid(el.dataset.id); break;
+    case 'reversePayment':       reversePayment(el.dataset.id); break;
     case 'deleteInvoice':        deleteInvoice(el.dataset.id); break;
     case 'sendInvoiceEmail':     sendInvoiceEmail(el.dataset.id); break;
     // Finance
@@ -382,7 +383,7 @@ document.addEventListener('input', function(e) {
   if (t.id === 'tx-search')    { renderTransactions(t.value); return; }
   if (t.id === 'inv-search')   { renderInvoices(t.value); return; }
   if (t.id === 'qte-search')   { renderQuotes(t.value); return; }
-  if (t.id === 'co-search')    { renderCallouts(t.value); return; }
+  if (t.id === 'co-search')    { renderTracker('call_log'); return; }
   if (t.id === 'cli-search')   { renderClients(t.value); return; }
   if (t.id === 'sf-search')    { renderSafetyFiles(t.value); return; }
   if (t.id === 'audit-search') { filterAudit(t.value); return; }
@@ -397,9 +398,11 @@ document.addEventListener('input', function(e) {
 
 document.addEventListener('change', function(e) {
   const t = e.target;
+  if (t.matches('.finance-period-select')) { setFinancePeriod(t.value); return; }
   if (t.id === 'inv-filter')       { renderInvoices('', t.value); return; }
   if (t.id === 'qte-filter')       { renderQuotes('', t.value); return; }
-  if (t.id === 'co-filter')        { renderCallouts('', t.value); return; }
+  if (t.id === 'co-filter')        { renderTracker('call_log'); return; }
+  if (['tracker-date-scope','tracker-assignee','tracker-sort'].includes(t.id)) { renderTracker(); return; }
   if (t.id === 'sf-filter-status') { renderSafetyFiles(); return; }
   if (t.id === 'saf-det-upload')   { safDetailUpload(t); return; }
   if (t.id === 'cmp-type-sel')     { safCmpTypeChanged(); return; }
@@ -636,18 +639,96 @@ let AUDIT_LOG = [];
 let _dashPrefsCache = null; // populated from DB at login via loadDashPrefsFromAPI()
 let modalContacts = [];
 
+async function fetchAllRows(endpoint) {
+  const rows = [];
+  let page = 1;
+  let response = null;
+  do {
+    const joiner = endpoint.includes('?') ? '&' : '?';
+    response = await api('GET', `${endpoint}${joiner}limit=500&page=${page}`);
+    if (!response.success) return response;
+    const batch = response.data || [];
+    rows.push(...batch);
+    if (!batch.length || rows.length >= Number(response.total || rows.length)) break;
+    page++;
+  } while (true);
+  return {...response, data:rows};
+}
+
+const FINANCE_PERIOD_KEY = 'bf_finance_period';
+
+function financePeriodValue() {
+  const value = localStorage.getItem(FINANCE_PERIOD_KEY) || 'ytd';
+  return ['ytd','rolling6'].includes(value) ? value : 'ytd';
+}
+
+function financeDateString(date) {
+  return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+}
+
+function financePeriodBounds(value=financePeriodValue(), now=new Date()) {
+  const start = value === 'rolling6' ? new Date(now.getFullYear(), now.getMonth()-5, 1) : new Date(now.getFullYear(), 0, 1);
+  return {value, from:financeDateString(start), to:financeDateString(now), start, end:now};
+}
+
+function financePeriodCaption(bounds=financePeriodBounds()) {
+  const format = date => date.toLocaleDateString('en-ZA',{day:'numeric',month:'short',year:'numeric'});
+  return `${format(bounds.start)} – ${format(bounds.end)}`;
+}
+
+function financePeriodQuery() {
+  const {from,to} = financePeriodBounds();
+  return `&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
+}
+
+function financeRowsInPeriod(rows, dateSelector) {
+  const {from,to} = financePeriodBounds();
+  return (rows || []).filter(row => {
+    const date = String(dateSelector(row) || '').slice(0,10);
+    return date >= from && date <= to;
+  });
+}
+
+function financePeriodMonths() {
+  const {start,end} = financePeriodBounds();
+  const months = [];
+  for (let date=new Date(start.getFullYear(),start.getMonth(),1); date<=end; date=new Date(date.getFullYear(),date.getMonth()+1,1)) {
+    months.push({lbl:date.toLocaleDateString('en-ZA',{month:'short'}) + ` '${String(date.getFullYear()).slice(-2)}`, ym:`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}`});
+  }
+  return months;
+}
+
+function syncFinancePeriodControls() {
+  const value = financePeriodValue();
+  const caption = financePeriodCaption();
+  document.querySelectorAll('.finance-period-select').forEach(select => { select.value = value; });
+  document.querySelectorAll('.finance-period-caption').forEach(el => { el.textContent = caption; });
+}
+
+function setFinancePeriod(value) {
+  if (!['ytd','rolling6'].includes(value)) return;
+  localStorage.setItem(FINANCE_PERIOD_KEY, value);
+  syncFinancePeriodControls();
+  const page = document.querySelector('.ppage.active')?.id;
+  if (page === 'p-finance-dashboard') renderFinDashboard();
+  if (page === 'p-transactions') renderTransactions(document.getElementById('tx-search')?.value || '');
+  if (page === 'p-pl-ledger') renderPLLedger();
+  if (page === 'p-income') renderIncome();
+  if (page === 'p-reconcile') renderReconcile();
+}
+
 /* ── Data Refresh Functions ─────────────────────────── */
 async function refreshSafetyFiles() {
   const r = await api('GET', 'safety.php?limit=500');
   if (r.success) DB.safetyFiles = r.data || [];
 }
 async function refreshCallouts() {
-  const r = await api('GET', 'callouts.php?limit=500');
+  const r = await fetchAllRows('callouts.php');
   if (r.success) DB.callouts = r.data || [];
 }
 async function refreshTasks() {
   if (!can('task.view')) return;
-  const r = await api('GET', 'tasks.php?limit=500');
+  const r = await fetchAllRows('tasks.php');
   if (r.success) DB.tasks = r.data || [];
 }
 async function refreshQuotes() {
@@ -659,7 +740,7 @@ async function refreshInvoices() {
   if (r.success) DB.invoices = r.data || [];
 }
 async function refreshTransactions() {
-  const r = await api('GET', 'transactions.php?limit=500');
+  const r = await fetchAllRows('transactions.php');
   if (r.success) DB.bank = r.data || [];
 }
 async function refreshUsers() {
@@ -3202,6 +3283,7 @@ function showPortalPage(id, el){
   else { const found=document.querySelector(`.pnitem[data-page="${id}"]`); if(found) found.classList.add('active'); }
   audit('VIEW',id);
   renderInfoPanel(id);
+  syncFinancePeriodControls();
   // Render with current data immediately, then async-refresh and re-render
   const renders={
     'p-dashboard':         async()=>{ renderDashboard(); await refreshAll(); renderDashboard(); updateBadges(); safLoadDashCompliance(); },
@@ -3217,10 +3299,10 @@ function showPortalPage(id, el){
     'p-new-task':     async()=>{ initNewTask(); },
     'p-timeline':     async()=>{ renderTimeline(); },
     'p-statement':    async()=>{ renderStatement(); },
-    'p-pl-ledger':    async()=>{ renderPLLedger(); },
+    'p-pl-ledger':    async()=>{ await refreshTransactions(); renderPLLedger(); },
     'p-income':       async()=>{ await Promise.all([refreshInvoices(), refreshTransactions()]); renderIncome(); },
     'p-reconcile':    async()=>{ await refreshTransactions(); renderReconcile(); },
-    'p-log-payment':  async()=>{ await refreshInvoices(); renderPayList(); },
+    'p-log-payment':  async()=>{ await refreshInvoices(); renderPayList(); await renderPaymentHistory(); },
     'p-audit':        async()=>{ const r=await api('GET','audit.php?limit=200'); AUDIT_LOG=(r.data||[]).map(e=>({ts:e.created_at||'',user:e.username,role:'',action:e.action,detail:e.detail,level:'info'})); renderAudit(); },
     'p-home':         async()=>{ renderPortalHome(); },
     'p-services':     async()=>{ buildSvcGrid('portal'); },
@@ -3356,7 +3438,7 @@ function _dashExecutiveSummary(d){
     </div>
     <div class="exec-trend-row">
       <div class="panel exec-panel">
-        <div class="ph"><div class="ph-title">Revenue Trend</div><span class="ph-badge">6 Months</span></div>
+        <div class="ph"><div class="ph-title">Revenue Trend</div><span class="ph-badge">Rolling 6 Months</span></div>
         <div class="exec-trend-chart">${revBars}</div>
       </div>
       <div class="panel exec-panel">
@@ -3450,7 +3532,7 @@ function _dashBlockFin(d){
     {lbl:'Draft',  cnt:invDraft.length,  val:fmt(invDraft.reduce((a,i)=>a+i.amount,0)),  col:'var(--muted)'},
   ].map(r=>`<div class="mb-14"><div class="flex-sb mb-5"><span class="mlbl-xs">${r.lbl} (${r.cnt})</span><span class="mlbl-sm">${r.val}</span></div><div class="prog-bar"><div class="prog-fill" data-w="${Math.round(r.cnt/invTotal*100)}" data-bg="${r.col}"></div></div></div>`).join('');
 
-  const panelRev  = can('finance.income') ? `<div class="panel"><div class="ph"><div class="ph-title">Revenue — 6 Months</div></div><div class="rev-chart-wrap"><div class="chart-bars">${chartBars}</div></div></div>` : null;
+  const panelRev  = can('finance.income') ? `<div class="panel"><div class="ph"><div class="ph-title">Revenue — Rolling 6 Months</div></div><div class="rev-chart-wrap"><div class="chart-bars">${chartBars}</div></div></div>` : null;
   const panelAging= can('invoice.view')   ? `<div class="panel"><div class="ph"><div class="ph-title">Invoice Aging</div><button class="btn btn-g btn-s" data-action="navPage" data-page="p-invoices">View All</button></div><div class="pb">${agingBars}</div></div>` : null;
 
   const panels = [panelRev, panelAging].filter(Boolean);
@@ -3649,7 +3731,16 @@ function renderOpsDashboard() {
     : `<div class="empty-note">No active tasks need attention.</div>`;
 
   const qas = can('task.create') || can('capture.new_callout') || can('capture.new_quote');
+  const quickActions = qas ? `<div class="panel mb2">
+    <div class="ph"><div class="ph-title">Quick Actions</div></div>
+    <div class="pb dash-acts">
+      ${can('task.create')?`<button class="btn btn-p" data-action="navPage" data-page="p-new-task">+ New Task</button>`:''}
+      ${can('capture.new_callout')?`<button class="btn btn-p" data-action="navPage" data-page="p-new-callout">+ Log Call</button>`:''}
+      ${can('capture.new_quote')?`<button class="btn btn-g" data-action="navPage" data-page="p-new-quote">+ Submit Quote</button>`:''}
+    </div>
+  </div>` : '';
   el.innerHTML = `
+    ${quickActions}
     <div class="kgrid">
       <div class="kcard k1"><div class="klbl">Open Tasks</div><div class="kval">${openTasks}</div><div class="ksub">Admin, Sales & General</div></div>
       <div class="kcard kcard-ember"><div class="klbl">Urgent Tasks</div><div class="kval kval-ember">${urgent}</div><div class="ksub">Immediate attention</div></div>
@@ -3672,15 +3763,7 @@ function renderOpsDashboard() {
     <div class="panel mt2">
       <div class="ph"><div class="ph-title">Open Work by Stream</div></div>
       <div class="pb">${statBars}</div>
-    </div>
-    ${qas ? `<div class="panel mt2">
-      <div class="ph"><div class="ph-title">Quick Actions</div></div>
-      <div class="pb dash-acts">
-        ${can('task.create')?`<button class="btn btn-p" data-action="navPage" data-page="p-new-task">+ New Task</button>`:''}
-        ${can('capture.new_callout')?`<button class="btn btn-p" data-action="navPage" data-page="p-new-callout">+ Log Call</button>`:''}
-        ${can('capture.new_quote')?`<button class="btn btn-g" data-action="navPage" data-page="p-new-quote">+ Submit Quote</button>`:''}
-      </div>
-    </div>` : ''}`;
+    </div>`;
   applyProgFills(el);
 }
 
@@ -3691,12 +3774,14 @@ async function renderFinDashboard() {
   // Show loading skeleton while fetching
   el.innerHTML = `<div class="kgrid kgrid--4" id="fin-dash-kpis"><div class="kcard k4"><div class="klbl">Loading…</div></div></div><div id="fin-dash-body"></div>`;
 
+  const periodQuery = financePeriodQuery();
+  const periodLabel = financePeriodValue() === 'ytd' ? 'January to Today' : 'Rolling 6 Months';
   let plsData = null;
-  try { plsData = await api('GET','pl_ledger.php?action=summary'); } catch(e) {}
+  try { plsData = await api('GET',`pl_ledger.php?action=summary${periodQuery}`); } catch(e) {}
 
-  const now = new Date();
-  const overdue = proxyDB.invoices.filter(i=>i.status==='Overdue');
-  const sent    = proxyDB.invoices.filter(i=>i.status==='Sent');
+  const periodInvoices = financeRowsInPeriod(proxyDB.invoices, i=>i.date);
+  const overdue = periodInvoices.filter(i=>i.status==='Overdue');
+  const sent    = periodInvoices.filter(i=>i.status==='Sent');
 
   // P&L aligned KPIs (from remittances + supplier costs DB)
   const bankConf    = plsData?.bank_confirmed    ?? 0;
@@ -3704,14 +3789,13 @@ async function renderFinDashboard() {
   const outstanding = plsData?.outstanding       ?? [...overdue,...sent].reduce((a,i)=>a+i.amount,0);
   const supCosts    = plsData?.supplier_costs    ?? 0;
   const grossMargin = plsData?.gross_margin      ?? 0;
-  const totalInv    = plsData?.total_invoiced    ?? proxyDB.invoices.reduce((a,i)=>a+i.amount,0);
+  const totalInv    = plsData?.total_invoiced    ?? periodInvoices.reduce((a,i)=>a+i.amount,0);
 
   // Monthly P&L chart (bank-confirmed receipts per month, last 6 months)
-  const months=[];
-  for(let i=5;i>=0;i--){const dt=new Date(now.getFullYear(),now.getMonth()-i,1);months.push({lbl:dt.toLocaleDateString('en-ZA',{month:'short'}),ym:`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`});}
+  const months = financePeriodMonths();
 
   let mplData = null;
-  try { mplData = await api('GET','pl_ledger.php?action=monthly_pl'); } catch(e) {}
+  try { mplData = await api('GET',`pl_ledger.php?action=monthly_pl${periodQuery}`); } catch(e) {}
   const mplMap = {};
   (mplData?.rows||[]).forEach(r=>{ mplMap[r.ym]=r; });
   const revData  = months.map(m=>mplMap[m.ym]?.cash_received||0);
@@ -3731,9 +3815,9 @@ async function renderFinDashboard() {
 
   // Invoice status breakdown
   const invStatuses = ['Paid','Sent','Overdue','Draft'];
-  const invTotal    = Math.max(proxyDB.invoices.length,1);
+  const invTotal    = Math.max(periodInvoices.length,1);
   const statBars    = invStatuses.map(s=>{
-    const cnt = proxyDB.invoices.filter(i=>i.status===s).length;
+    const cnt = periodInvoices.filter(i=>i.status===s).length;
     const col = s==='Paid'?'var(--green)':s==='Overdue'?'var(--ember)':s==='Sent'?'var(--amber)':'var(--muted)';
     return `<div class="mb-14">
       <div class="flex-sb mb-5"><span class="mlbl-xs">${s}</span><span class="mlbl-sm">${cnt}</span></div>
@@ -3742,7 +3826,7 @@ async function renderFinDashboard() {
   }).join('');
 
   const clientMap = {};
-  proxyDB.invoices.forEach(inv => {
+  periodInvoices.forEach(inv => {
     const key = inv.client || 'Unassigned';
     if (!clientMap[key]) clientMap[key] = { client:key, amount:0, outstanding:0, count:0 };
     clientMap[key].amount += Number(inv.amount)||0;
@@ -3761,7 +3845,7 @@ async function renderFinDashboard() {
       <div class="prog-bar fin-break-bar"><div class="prog-fill" data-w="${Math.max(4,Math.round(r.amount/clientMax*100))}" data-bg="var(--amber)"></div></div>
     </div>`).join('') : `<div class="empty-note">No client finance data yet.</div>`;
 
-  const outstandingInvoices = proxyDB.invoices
+  const outstandingInvoices = periodInvoices
     .filter(inv=>['Draft','Sent','Overdue'].includes(inv.status))
     .sort((a,b)=>String(a.dueDate||'').localeCompare(String(b.dueDate||'')))
     .slice(0,8);
@@ -3779,8 +3863,17 @@ async function renderFinDashboard() {
 
   const qas = can('capture.new_invoice') || can('capture.log_payment');
   const margPct = bankConf>0 ? Math.round((grossMargin/bankConf)*100) : 0;
+  const quickActions = qas ? `<div class="panel">
+    <div class="ph"><div class="ph-title">Quick Actions</div></div>
+    <div class="pb dash-acts">
+      ${can('capture.new_invoice')?`<button class="btn btn-p" data-action="navPage" data-page="p-new-invoice">+ New Invoice</button>`:''}
+      ${can('capture.log_payment')?`<button class="btn btn-g" data-action="navPage" data-page="p-log-payment">Log Payment</button>`:''}
+      <button class="btn btn-g" data-action="navPage" data-page="p-pl-ledger">P&amp;L Ledger →</button>
+      <button class="btn btn-g" data-action="navPage" data-page="p-transactions">Transactions →</button>
+    </div>
+  </div>` : '';
 
-  document.getElementById('fin-dash-kpis').outerHTML = `<div class="kgrid kgrid--4">
+  document.getElementById('fin-dash-kpis').outerHTML = `${quickActions}<div class="kgrid kgrid--4">
     <div class="kcard k1"><div class="klbl">Bank Confirmed</div><div class="kval text-ok">${fmt(bankConf)}</div><div class="ksub">FNB *8644 — total received</div></div>
     <div class="kcard k3"><div class="klbl">Unreconciled</div><div class="kval${unrecon>0?' text-ovr':''}">${fmt(unrecon)}</div><div class="ksub">Remitted, not in bank ⚠</div></div>
     <div class="kcard${outstanding>0?' kcard-ember':''}"><div class="klbl">Outstanding Invoices</div><div class="kval${outstanding>0?' kval-ember':''}">${fmt(outstanding)}</div><div class="ksub">${overdue.length} overdue · ${sent.length} sent</div></div>
@@ -3790,7 +3883,7 @@ async function renderFinDashboard() {
   document.getElementById('fin-dash-body').innerHTML = `
     <div class="twocol">
       <div class="panel">
-        <div class="ph"><div class="ph-title">Income vs Costs — 6 Months</div><div class="ph-sub"><span class="legend-dot legend-ok"></span>Income <span class="legend-dot legend-cost ml-2"></span>Costs</div></div>
+        <div class="ph"><div class="ph-title">Income vs Costs — ${periodLabel}</div><div class="ph-sub"><span class="legend-dot legend-ok"></span>Income <span class="legend-dot legend-cost ml-2"></span>Costs</div></div>
         <div class="rev-chart-wrap"><div class="chart-bars">${chartBars}</div></div>
       </div>
       <div class="panel">
@@ -3813,15 +3906,7 @@ async function renderFinDashboard() {
       <div class="pb"><p class="text-muted">R${unrecon.toLocaleString('en-ZA',{minimumFractionDigits:2,maximumFractionDigits:2})} has been remitted by AECI but has not been confirmed in FNB *8644. Investigate with AECI Cash Book Controller (Yolanda Herbst).</p>
       <button class="btn btn-g btn-s" data-action="navPage" data-page="p-pl-ledger">View Remittances →</button></div>
     </div>`:''}
-    ${qas?`<div class="panel mt2">
-      <div class="ph"><div class="ph-title">Quick Actions</div></div>
-      <div class="pb dash-acts">
-        ${can('capture.new_invoice')?`<button class="btn btn-p" data-action="navPage" data-page="p-new-invoice">+ New Invoice</button>`:''}
-        ${can('capture.log_payment')?`<button class="btn btn-g" data-action="navPage" data-page="p-log-payment">Log Payment</button>`:''}
-        <button class="btn btn-g" data-action="navPage" data-page="p-pl-ledger">P&L Ledger →</button>
-        <button class="btn btn-g" data-action="navPage" data-page="p-transactions">Transactions →</button>
-      </div>
-    </div>`:''}`;
+    `;
 
   { let css=''; el.querySelectorAll('.cbar[data-h]').forEach((b,i)=>{ b.dataset.cbi=i; css+=`.cbar[data-cbi="${i}"]{height:${b.dataset.h}%;}`; }); if(css)_injectStyle('cbar-fin-css',css); }
   applyProgFills(el);
@@ -3857,6 +3942,14 @@ function renderSupDashboard() {
     : `<div class="p-14 fs-12 text-center italic text-muted">No recent activity</div>`;
 
   el.innerHTML = `
+    <div class="panel">
+      <div class="ph"><div class="ph-title">Quick Actions</div></div>
+      <div class="pb dash-acts">
+        <button class="btn btn-g" data-action="navPage" data-page="p-safety">Safety Files →</button>
+        ${can('security.users')?`<button class="btn btn-g" data-action="navPage" data-page="p-users">Manage Users →</button>`:''}
+        ${can('security.audit')?`<button class="btn btn-g" data-action="navPage" data-page="p-audit">Audit Log →</button>`:''}
+      </div>
+    </div>
     <div class="kgrid">
       <div class="kcard kcard-blue"><div class="klbl">Safety Files</div><div class="kval">${safFiles.length}</div><div class="ksub">Total contractor files</div></div>
       <div class="kcard kcard-green"><div class="klbl">Approved</div><div class="kval kval-paid">${safApproved}</div><div class="ksub">Compliant files</div></div>
@@ -3879,14 +3972,6 @@ function renderSupDashboard() {
           ${can('security.audit')?`<button class="btn btn-g btn-s" data-action="navPage" data-page="p-audit">View All →</button>`:''}
         </div>
         ${auditRows}
-      </div>
-    </div>
-    <div class="panel mt2">
-      <div class="ph"><div class="ph-title">Quick Actions</div></div>
-      <div class="pb dash-acts">
-        <button class="btn btn-g" data-action="navPage" data-page="p-safety">Safety Files →</button>
-        ${can('security.users')?`<button class="btn btn-g" data-action="navPage" data-page="p-users">Manage Users →</button>`:''}
-        ${can('security.audit')?`<button class="btn btn-g" data-action="navPage" data-page="p-audit">Audit Log →</button>`:''}
       </div>
     </div>`;
 }
@@ -3979,6 +4064,87 @@ function visibleTrackerStreams() {
   return streams;
 }
 
+function syncTrackerAssigneeFilter() {
+  const select = document.getElementById('tracker-assignee');
+  if (!select) return;
+  const current = select.value || 'all';
+  const users = new Map();
+  const add = (username, name) => {
+    const key = String(username || '').trim();
+    if (key) users.set(key, String(name || key).trim() || key);
+  };
+  add(SESSION?.username, SESSION?.name || SESSION?.username);
+  (proxyDB.users || []).filter(u => u.active != 0).forEach(u => add(u.username, u.name));
+  proxyDB.tasks.forEach(t => {
+    if (t.assignees?.length) t.assignees.forEach(a => add(a.username, a.name));
+    else add(t.assigned_to, t.assignee_name || t.assigned_to);
+  });
+  proxyDB.callouts.forEach(c => {
+    const user = (proxyDB.users || []).find(u => u.username === c.assignedTo);
+    add(c.assignedTo, user?.name || c.tech || c.assignedTo);
+  });
+  users.delete(SESSION?.username);
+  const options = [...users.entries()].sort((a,b) => a[1].localeCompare(b[1])).map(([username,name]) =>
+    `<option value="${esc(username)}">Assigned: ${esc(name)}</option>`
+  ).join('');
+  select.innerHTML = '<option value="all">Assigned: All</option><option value="me">Assigned: Me</option>' + options;
+  select.value = [...select.options].some(o => o.value === current) ? current : 'all';
+}
+
+function trackerRecordDate(record, entityType) {
+  return entityType === 'task' ? (record.created_at || '') : (record.date || record.createdAt || '');
+}
+
+function trackerRecordDue(record, entityType) {
+  return entityType === 'task' ? taskDueValue(record) : (record.dueAt || '');
+}
+
+function trackerRecordMatchesAssignee(record, entityType, selection) {
+  if (!selection || selection === 'all') return true;
+  const username = selection === 'me' ? SESSION?.username : selection;
+  const displayName = selection === 'me'
+    ? SESSION?.name
+    : (proxyDB.users || []).find(u => u.username === selection)?.name;
+  if (entityType === 'callout') return record.assignedTo === username;
+  if (record.assignees?.length) return record.assignees.some(a => a.username === username);
+  return [record.assigned_to, record.assignee_name].some(value => value && (value === username || value === displayName));
+}
+
+function filterAndSortTrackerRecords(records, entityType) {
+  const dateScope = document.getElementById('tracker-date-scope')?.value || '2026';
+  const assignee = document.getElementById('tracker-assignee')?.value || 'all';
+  const sort = document.getElementById('tracker-sort')?.value || 'newest';
+  const statusRank = { Open:0, 'In Progress':1, Completed:2, Done:2, Invoiced:3, Cancelled:4 };
+  const priorityRank = { Emergency:0, Urgent:1, High:2, Normal:3, Low:4 };
+  const filtered = records.filter(record => {
+    const date = String(trackerRecordDate(record, entityType)).slice(0,10);
+    if (dateScope === '2026' && (!date || date < '2026-01-01')) return false;
+    return trackerRecordMatchesAssignee(record, entityType, assignee);
+  });
+  const newest = (a,b) => String(trackerRecordDate(b, entityType)).localeCompare(String(trackerRecordDate(a, entityType)));
+  return filtered.sort((a,b) => {
+    if (sort === 'due') {
+      const ad = trackerRecordDue(a, entityType), bd = trackerRecordDue(b, entityType);
+      if (ad && bd && ad !== bd) return String(ad).localeCompare(String(bd));
+      if (ad && !bd) return -1;
+      if (!ad && bd) return 1;
+    }
+    if (sort === 'status') {
+      const diff = (statusRank[a.status] ?? 9) - (statusRank[b.status] ?? 9);
+      if (diff) return diff;
+    }
+    if (sort === 'urgency') {
+      const diff = (priorityRank[a.priority] ?? 9) - (priorityRank[b.priority] ?? 9);
+      if (diff) return diff;
+      const ad = trackerRecordDue(a, entityType), bd = trackerRecordDue(b, entityType);
+      if (ad && bd && ad !== bd) return String(ad).localeCompare(String(bd));
+      if (ad && !bd) return -1;
+      if (!ad && bd) return 1;
+    }
+    return newest(a,b);
+  });
+}
+
 let _trackerCat = null; // active category tab
 
 function renderTracker(cat) {
@@ -3995,6 +4161,7 @@ function renderTracker(cat) {
       `<button class="pnitem${c===cat?' active':''}" data-action="switchTrackerCat" data-cat="${c}">${esc(TASK_CATEGORY_LABELS[c])}</button>`
     ).join('');
   }
+  syncTrackerAssigneeFilter();
 
   // New task button
   const btnNew = document.getElementById('btn-new-task');
@@ -4022,7 +4189,7 @@ function renderTracker(cat) {
   }
   if (catSel) catSel.value = cat;
 
-  const items = proxyDB.tasks.filter(t => t.category === cat);
+  const items = filterAndSortTrackerRecords(proxyDB.tasks.filter(t => t.category === cat), 'task');
   const canUpdate = can('task.update');
   const canDelete = can('task.delete');
 
@@ -4037,7 +4204,7 @@ function renderTracker(cat) {
 
   const assigneeRows = buildAssigneeLoadRows(activeItems, 5, 'var(--blue)', 'No active assignee load.');
 
-  const taskCards = items.length ? [...items].sort((a,b)=>taskUrgencyRank(a)-taskUrgencyRank(b)).map(t => {
+  const taskCards = items.length ? items.map(t => {
     const dotCls  = TASK_PRIORITY_DOT[t.priority]  || 'bg-muted';
     const bdgCls  = TASK_STATUS_BADGE[t.status]    || '';
     const assignee = taskAssigneeName(t);
@@ -4331,7 +4498,9 @@ async function saveTrackerUpdate(updateId) {
    CALLOUTS - with PO, status-update, assign-tech, assign-PO
 ═══════════════════════════════════════════════════════ */
 function renderCallouts(search='',filter=''){
-  let items=[...proxyDB.callouts].sort((a,b)=>b.date.localeCompare(a.date));
+  search = search || document.getElementById('co-search')?.value || '';
+  filter = filter || document.getElementById('co-filter')?.value || '';
+  let items=filterAndSortTrackerRecords([...proxyDB.callouts], 'callout');
   if(search){
     const s=search.toLowerCase();
     items=items.filter(c=>{
@@ -4987,6 +5156,7 @@ function renderInvoices(search='',filter=''){
       <button class="btn btn-g btn-s" data-action="openAttachmentsModal" data-entity-type="invoice" data-entity-ref="${esc(inv.id)}">Files</button>
       ${canSend&&inv.status!=='Paid'&&inv.status!=='Cancelled'&&inv.amount>0?`<button class="btn btn-p btn-s" data-action="openSendInvoiceModal" data-id="${esc(inv.id)}">Send</button>`:''}
       ${canPaid&&inv.status!=='Paid'?`<button class="btn btn-g btn-s" data-action="markPaid" data-id="${esc(inv.id)}">Paid</button>`:''}
+      ${canPaid&&inv.status==='Paid'?`<button class="btn btn-g btn-s" data-action="reversePayment" data-id="${esc(inv.id)}">Reverse</button>`:''}
       ${canDel?`<button class="btn btn-g btn-s" data-action="deleteInvoice" data-id="${esc(inv.id)}">Del</button>`:''}
     </div></td></tr>`).join(''):'<tr><td colspan="6" class="tc-empty">No invoices</td></tr>';
 }
@@ -5163,10 +5333,11 @@ function saveInvoice(){
    TRANSACTIONS
 ═══════════════════════════════════════════════════════ */
 function renderTransactions(search=''){
-  let items=[...proxyDB.bank].sort((a,b)=>b.date.localeCompare(a.date));
+  const periodItems=financeRowsInPeriod(proxyDB.bank,b=>b.date);
+  let items=[...periodItems].sort((a,b)=>b.date.localeCompare(a.date));
   if(search) items=items.filter(b=>b.desc.toLowerCase().includes(search.toLowerCase())||b.cat.toLowerCase().includes(search.toLowerCase())||String(b.ref||'').toLowerCase().includes(search.toLowerCase())||String(b.calloutRef||'').toLowerCase().includes(search.toLowerCase())||String(b.date||'').includes(search));
-  const tc=proxyDB.bank.reduce((a,b)=>a+(b.credit||0),0);
-  const td=proxyDB.bank.reduce((a,b)=>a+(b.debit||0),0);
+  const tc=periodItems.reduce((a,b)=>a+(b.credit||0),0);
+  const td=periodItems.reduce((a,b)=>a+(b.debit||0),0);
   const tn=tc-td;
   document.getElementById('tx-credits').textContent=fmt(tc);
   document.getElementById('tx-debits').textContent=fmt(td);
@@ -5412,15 +5583,17 @@ async function openResendStatementModal(ref_id){
 }
 
 function renderIncome(){
-  const rev=proxyDB.invoices.filter(i=>i.status==='Paid').reduce((a,i)=>a+i.amount,0);
-  const exp=proxyDB.bank.filter(b=>b.debit>0).reduce((a,b)=>a+b.debit,0);
+  const paidInvoices=financeRowsInPeriod(proxyDB.invoices,i=>i.date).filter(i=>i.status==='Paid');
+  const expenseRows=financeRowsInPeriod(proxyDB.bank,b=>b.date).filter(b=>b.debit>0);
+  const rev=paidInvoices.reduce((a,i)=>a+i.amount,0);
+  const exp=expenseRows.reduce((a,b)=>a+b.debit,0);
   const gross=rev-exp;const tax=Math.max(0,gross*.28);const net=gross-tax;
   const netPos=net>=0;
   document.getElementById('pl-rows').innerHTML=`
     <div class="pl-sec-lbl">Revenue</div>
     <div class="pl-row pl-row-val"><span>Paid Invoices</span><span class="font-mono">${fmt(rev)}</span></div>
     <div class="pl-sec-lbl">Expenses</div>
-    ${proxyDB.bank.filter(b=>b.debit>0).map(b=>`<div class="pl-row pl-row-val"><span>${esc(b.desc)}</span><span class="font-mono text-ovr">(${fmt(b.debit)})</span></div>`).join('')||'<div class="pl-row-empty">No expenses recorded</div>'}
+    ${expenseRows.map(b=>`<div class="pl-row pl-row-val"><span>${esc(b.desc)}</span><span class="font-mono text-ovr">(${fmt(b.debit)})</span></div>`).join('')||'<div class="pl-row-empty">No expenses recorded</div>'}
     <div class="pl-row pl-row-gross"><span>Operating Profit</span><span class="font-mono">${fmt(gross)}</span></div>
     <div class="pl-row pl-row-tax"><span>Tax (28%)</span><span class="font-mono text-muted">(${fmt(tax)})</span></div>
     <div class="pl-row pl-row-net ${netPos?'pl-net-pos':'pl-net-neg'}"><span>NET ${netPos?'PROFIT':'LOSS'}</span><span class="font-mono">${fmt(Math.abs(net))}</span></div>`;
@@ -5436,7 +5609,7 @@ function renderIncome(){
    RECONCILIATION
 ═══════════════════════════════════════════════════════ */
 function renderReconcile(){
-  const txns = [...proxyDB.bank].sort((a,b)=>a.date.localeCompare(b.date));
+  const txns = financeRowsInPeriod(proxyDB.bank,t=>t.date).sort((a,b)=>a.date.localeCompare(b.date));
   const totalCredits = txns.reduce((s,t)=>s+(t.credit||0),0);
   const totalDebits  = txns.reduce((s,t)=>s+(t.debit||0),0);
   const portalNet    = totalCredits - totalDebits;
@@ -5458,7 +5631,8 @@ function renderReconcile(){
     byCat[c].db+=(t.debit||0);
   });
 
-  const savedExternal = parseFloat(localStorage.getItem('bf_recon_ext')||'0');
+  const reconStorageKey = `bf_recon_ext_${financePeriodValue()}`;
+  const savedExternal = parseFloat(localStorage.getItem(reconStorageKey)||'0');
 
   document.getElementById('recon-content').innerHTML=`
     <div class="panel mb2">
@@ -5466,8 +5640,8 @@ function renderReconcile(){
       <div class="pb">
         <div class="fgrid fgrid-narrow">
           <div class="fgroup ffull">
-            <label class="flbl">External Statement Closing Balance (R)</label>
-            <input type="number" class="finput" id="recon-ext" value="${savedExternal||''}" placeholder="Paste balance from your statement" step="0.01">
+            <label class="flbl">External Statement Net Movement (R)</label>
+            <input type="number" class="finput" id="recon-ext" value="${savedExternal||''}" placeholder="Credits less debits for this period" step="0.01">
           </div>
         </div>
         <div id="recon-diff-box" class="mt2"></div>
@@ -5512,7 +5686,7 @@ function renderReconcile(){
     </div>`:''}
 
     <div class="panel">
-      <div class="ph"><div class="ph-title">All Transactions — Running Balance</div></div>
+      <div class="ph"><div class="ph-title">Period Transactions — Running Balance</div></div>
       <div class="pb">
         <table class="dtable">
           <thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Ref</th><th>Credit</th><th>Debit</th><th>Running Bal</th></tr></thead>
@@ -5541,7 +5715,7 @@ function renderReconcile(){
   const extInput = document.getElementById('recon-ext');
   function calcDiff(){
     const ext = parseFloat(extInput.value)||0;
-    localStorage.setItem('bf_recon_ext', ext);
+    localStorage.setItem(reconStorageKey, ext);
     const diff = portalNet - ext;
     const box  = document.getElementById('recon-diff-box');
     if(!ext){ box.innerHTML=''; return; }
@@ -5553,8 +5727,8 @@ function renderReconcile(){
         ? `Portal is ${fmt(Math.abs(diff))} higher than statement — check for duplicate credits or unmatched debit entries.`
         : `Portal is ${fmt(Math.abs(diff))} lower than statement — check for missing payment entries.`;
     box.innerHTML=`<div class="sumbox sumbox-flush">
-      <div class="sumrow"><span>External Statement</span><span class="mono">${fmt(ext)}</span></div>
-      <div class="sumrow"><span>Portal Net Balance</span><span class="mono">${fmt(portalNet)}</span></div>
+      <div class="sumrow"><span>External Net Movement</span><span class="mono">${fmt(ext)}</span></div>
+      <div class="sumrow"><span>Portal Net Movement</span><span class="mono">${fmt(portalNet)}</span></div>
       <div class="sumrow tot ${cls}"><span>Difference (Portal − Statement)</span><span class="mono">${sign}${fmt(diff)}</span></div>
       <div class="recon-msg">${msg}</div>
     </div>`;
@@ -5602,18 +5776,13 @@ function renderLedgerSummary() {
   const el = document.getElementById('pl-ledger-summary');
   if (!el) return;
 
-  const tx = [...(proxyDB.bank || [])].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
+  const tx = financeRowsInPeriod(proxyDB.bank,row=>row.date).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
   const credits = tx.reduce((sum,row)=>sum + (Number(row.credit)||0), 0);
   const debits = tx.reduce((sum,row)=>sum + (Number(row.debit)||0), 0);
   const payments = tx.filter(row => row.cat === 'Invoice Payment' || Number(row.credit) > 0).reduce((sum,row)=>sum + (Number(row.credit)||0), 0);
   const net = credits - debits;
 
-  const now = new Date();
-  const months = [];
-  for (let i=5;i>=0;i--) {
-    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
-    months.push({ lbl:d.toLocaleDateString('en-ZA',{month:'short'}), ym:`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}` });
-  }
+  const months = financePeriodMonths();
   const trend = months.map(m => {
     const rows = tx.filter(row => String(row.date||'').slice(0,7) === m.ym);
     return {
@@ -5699,6 +5868,7 @@ function renderLedgerSummary() {
 }
 
 async function renderPLLedger() {
+  const periodQuery = financePeriodQuery();
   // Build tab nav
   const tabEl = document.getElementById('pl-ledger-tabs');
   if (tabEl) {
@@ -5716,11 +5886,11 @@ async function renderPLLedger() {
   // Fetch all data in parallel
   try {
     const [rem, bank, inv, costs, mpl] = await Promise.all([
-      api('GET','pl_ledger.php?action=remittances'),
-      api('GET','pl_ledger.php?action=bank_statement'),
-      api('GET','pl_ledger.php?action=invoices'),
-      api('GET','pl_ledger.php?action=supplier_costs'),
-      api('GET','pl_ledger.php?action=monthly_pl'),
+      api('GET',`pl_ledger.php?action=remittances${periodQuery}`),
+      api('GET',`pl_ledger.php?action=bank_statement${periodQuery}`),
+      api('GET',`pl_ledger.php?action=invoices${periodQuery}`),
+      api('GET',`pl_ledger.php?action=supplier_costs${periodQuery}`),
+      api('GET',`pl_ledger.php?action=monthly_pl${periodQuery}`),
     ]);
     pllData = { rem, bank, inv, costs, mpl };
     renderLedgerSummary();
@@ -5921,6 +6091,23 @@ function renderPayList(){
     document.getElementById('pay-sel-count').textContent=boxes.length?`(${boxes.length} selected)`:'';
   }
   document.querySelectorAll('input[name="pay-sel"]').forEach(b=>b.addEventListener('change',recalcTotal));
+}
+
+async function renderPaymentHistory(){
+  const area = document.getElementById('payment-history');
+  if (!area) return;
+  const r = await api('GET', 'payments.php');
+  if (!r.success) { area.innerHTML = `<div class="tc-empty">${esc(r.error || 'Could not load payments')}</div>`; return; }
+  const rows = r.data || [];
+  area.innerHTML = rows.length ? rows.slice(0, 25).map(p => `
+    <div class="att-row">
+      <div class="att-info">
+        <div class="att-name"><span class="mono">${esc(p.payment_ref || 'Legacy payment')}</span> · ${esc(p.invoice_ref)}</div>
+        <div class="att-meta">${fmtD(p.payment_date)} · ${fmt(p.amount)} · ${esc(p.logged_by || '')}${p.reversed_at?' · Reversed':''}</div>
+      </div>
+      ${p.file_id && (p.mime_type==='application/pdf'||p.mime_type?.startsWith('image/'))?`<button class="btn btn-g btn-s" data-action="openDocViewer" data-id="${p.file_id}" data-name="${esc(p.original_name)}" data-mime="${esc(p.mime_type)}">View</button>`:''}
+      ${p.file_id?`<a href="${API_BASE}/files.php?action=download&id=${p.file_id}" target="_blank" class="btn btn-g btn-s">Download</a>`:'<span class="text-muted fs-11">No remittance</span>'}
+    </div>`).join('') : '<div class="tc-empty">No payments recorded</div>';
 }
 function logPayment(){
   const checked=[...document.querySelectorAll('input[name="pay-sel"]:checked')];
@@ -6810,6 +6997,17 @@ async function markPaid(id){
   toast(`Invoice ${id} marked as paid`, 'ok');
 }
 
+async function reversePayment(id){
+  if (!await confirmDialog(`Reverse the payment for ${id}?\n\nThe invoice will return to Sent and its payment will be removed from the ledger. The reversal remains in the audit trail.`, { title: 'Reverse Payment', confirmLabel: 'Reverse' })) return;
+  const r = await api('PUT', `invoices.php?id=${id}`, { action: 'reverse_payment', reason: 'Reversed from invoice list' });
+  if (!r.success) { toast(r.error || 'Payment reversal failed', 'err'); return; }
+  await Promise.all([refreshInvoices(), refreshTransactions()]);
+  updateBadges();
+  renderInvoices('');
+  closeModalDirect();
+  toast(`Payment reversed for ${id}`, 'ok');
+}
+
 /* ── Override: deleteInvoice ─────────────────────────── */
 async function deleteInvoice(id){
   if (!await confirmDialog(`Delete invoice ${id}?\n\nThis action cannot be undone.`, { title: 'Delete Invoice', confirmLabel: 'Delete' })) return;
@@ -6867,21 +7065,34 @@ async function logPayment(){
 
   const payRef = r.payment_ref;
   const fileInput = document.getElementById('pay-remittance');
+  let remittanceError = '';
   if (fileInput?.files?.length && payRef) {
     const fd = new FormData();
     fd.append('entity_type', 'payment');
     fd.append('entity_ref', payRef);
     fd.append('file', fileInput.files[0]);
-    await fetch(API_BASE + '/files.php', {
-      method: 'POST', body: fd, credentials: 'same-origin',
-      headers: { 'X-Requested-With': 'XMLHttpRequest' }
-    });
+    try {
+      const uploadResponse = await fetch(API_BASE + '/files.php', {
+        method: 'POST', body: fd, credentials: 'same-origin',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      });
+      const uploadResult = await uploadResponse.json().catch(() => ({}));
+      if (!uploadResponse.ok || !uploadResult.success) {
+        remittanceError = uploadResult.error || `upload returned HTTP ${uploadResponse.status}`;
+      }
+    } catch (e) {
+      remittanceError = String(e);
+    }
   }
 
   await Promise.all([refreshInvoices(), refreshTransactions()]);
   updateBadges();
   const n = invoice_refs.length;
   showPortalPage('p-invoices', null);
+  if (remittanceError) {
+    toast(`Payment ${payRef} was logged, but the remittance was not uploaded: ${remittanceError}`, 'err');
+    return;
+  }
   toast(`Payment ${payRef} logged for ${n} invoice${n > 1 ? 's' : ''} — invoices updated below`, 'ok');
 }
 

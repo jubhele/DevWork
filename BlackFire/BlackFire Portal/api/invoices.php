@@ -312,6 +312,48 @@ if ($method === 'PUT') {
         json_ok(['data' => $updated_inv], "Invoice $ref_id marked as paid");
     }
 
+    if ($action === 'reverse_payment') {
+        require_perm('invoice.mark_paid');
+        $reason = clean($b['reason'] ?? 'Payment reversed from invoice list', 255);
+
+        $db = get_db();
+        $db->beginTransaction();
+        try {
+            $inv = db_row("SELECT * FROM bf_invoices WHERE ref_id = ? FOR UPDATE", [$ref_id]);
+            if (!$inv) {
+                $db->rollBack();
+                json_err('Invoice not found', 404);
+            }
+            if ($inv['status'] !== 'Paid') {
+                $db->rollBack();
+                json_err('Only paid invoices can have their payment reversed');
+            }
+
+            db_exec(
+                "UPDATE bf_invoices SET status = 'Sent', paid_date = NULL WHERE ref_id = ?",
+                [$ref_id]
+            );
+            db_exec(
+                "DELETE FROM bf_transactions WHERE category = 'Invoice Payment' AND reference = ?",
+                [$ref_id]
+            );
+            db_exec(
+                "UPDATE bf_payments
+                    SET reversed_at = NOW(), reversed_by_user_id = ?, reversal_reason = ?
+                  WHERE invoice_ref = ? AND reversed_at IS NULL",
+                [(int)$usr['id'], $reason, $ref_id]
+            );
+            $db->commit();
+        } catch (Throwable $e) {
+            if ($db->inTransaction()) $db->rollBack();
+            json_err('Payment reversal failed - no changes saved', 500);
+        }
+
+        audit($usr['username'], 'PAYMENT_REVERSED', "Invoice $ref_id payment reversed: $reason");
+        $updated_inv = db_row("SELECT * FROM bf_invoices WHERE ref_id = ?", [$ref_id]);
+        json_ok(['data' => $updated_inv], "Payment reversed for Invoice $ref_id");
+    }
+
     // General update
     require_perm('invoice.update');
     $inv = db_row("SELECT * FROM bf_invoices WHERE ref_id = ?", [$ref_id]);

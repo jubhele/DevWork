@@ -49,4 +49,38 @@ if ($statusCode -ne 401 -or $content -notmatch 'Invalid username or password') {
     throw "Unexpected authentication probe response: HTTP $statusCode $content"
 }
 
-Write-Host 'PASS: localhost authentication reached MySQL successfully.'
+$portalRoot = Split-Path -Parent $PSScriptRoot
+$phpCode = @'
+chdir('__PORTAL_ROOT__');
+require_once 'includes/db.php';
+$cfg = require 'config/config.php';
+$host = strtolower((string)($cfg['db_host'] ?? ''));
+if (!in_array($host, ['localhost', '127.0.0.1', '::1'], true)) {
+    fwrite(STDERR, 'Refusing non-local database');
+    exit(2);
+}
+$required = [
+    ['bf_transactions', 'callout_ref', 'install/migration_transactions_callout_ref_20260709.sql'],
+    ['bf_payments', 'reversed_at', 'install/migration_payment_reversal_20260716.sql'],
+    ['bf_payments', 'reversed_by_user_id', 'install/migration_payment_reversal_20260716.sql'],
+    ['bf_payments', 'reversal_reason', 'install/migration_payment_reversal_20260716.sql'],
+];
+foreach ($required as [$table, $column, $migration]) {
+    $row = db_row(
+        'SELECT COUNT(*) AS present FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?',
+        [$table, $column]
+    );
+    if ((int)($row['present'] ?? 0) !== 1) {
+        fwrite(STDERR, "Missing required schema $table.$column; run $migration");
+        exit(3);
+    }
+}
+'@
+$phpCode = $phpCode.Replace('__PORTAL_ROOT__', $portalRoot.Replace('\', '/').Replace("'", "\'"))
+$encodedPhp = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($phpCode))
+$schemaOutput = & php -r "eval(base64_decode('$encodedPhp'));" 2>&1
+if ($LASTEXITCODE -ne 0) {
+    throw "Local database schema check failed: $schemaOutput"
+}
+
+Write-Host 'PASS: localhost authentication reached MySQL and required schema is present.'

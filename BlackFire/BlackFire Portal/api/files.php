@@ -192,7 +192,8 @@ if ($method === 'POST') {
             'safety_file' => 'bf_safety_files',
         ];
         $entity_table = $entity_table_map[$entity_type];
-        if (!db_row("SELECT id FROM {$entity_table} WHERE ref_id = ?", [$entity_ref])) {
+        $entity_ref_column = $entity_type === 'payment' ? 'payment_ref' : 'ref_id';
+        if (!db_row("SELECT id FROM {$entity_table} WHERE {$entity_ref_column} = ?", [$entity_ref])) {
             json_err(ucfirst($entity_type) . ' not found', 404);
         }
     }
