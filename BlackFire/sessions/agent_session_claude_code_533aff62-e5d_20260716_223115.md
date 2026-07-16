@@ -36,6 +36,9 @@ Active model: Fable 5  Status: over-powered (single-command backup task)
 |---------|---------------|--------------|--------|------------|------|
 | 1 | uSiba | uSiba | COMPLETED | 1 | mysqldump backup of blackfm6w9f9_portal |
 
+## Work Done (continued)
+- backup-local-db.sh + backup-local-db.ps1 — permanent collation fix: MySQL 8 `utf8mb4_0900_*` collations rewritten to `utf8mb4_unicode_ci` (`_0900_bin` → `utf8mb4_bin`) at dump time so backups restore cleanly on the cPanel MariaDB server. Both scripts backed up to scripts/_backups (20260716_231025), re-run and verified: 0 occurrences of utf8mb4_0900 in new dumps, footers confirmed.
+
 ## Blockers / Next Steps
 - None. Restore with: `mysql -u <user> -p blackfm6w9f9_portal < blackfm6w9f9_portal_backup_20260716_223410.sql`
 

@@ -67,6 +67,13 @@ if ($dumpExit -ne 0 -or -not (Test-Path $rawSql)) {
     exit 3
 }
 
+# MySQL 8 utf8mb4_0900_* collations don't exist on the cPanel server (MariaDB) —
+# map them to utf8mb4_unicode_ci / utf8mb4_bin so dumps restore cleanly there
+$sql = [IO.File]::ReadAllText($rawSql)
+$sql = $sql -replace 'utf8mb4_0900_bin', 'utf8mb4_bin'
+$sql = [regex]::Replace($sql, 'utf8mb4_0900_[a-z_]+', 'utf8mb4_unicode_ci')
+[IO.File]::WriteAllText($rawSql, $sql)
+
 $inStream  = [IO.File]::OpenRead($rawSql)
 $outStream = [IO.File]::Create($dbDump)
 $gzip = New-Object IO.Compression.GZipStream($outStream, [IO.Compression.CompressionMode]::Compress)

@@ -39,6 +39,8 @@ echo ""
 echo "Dumping database: ${DB_NAME} ..."
 # MYSQL_PWD keeps the password off the process command line;
 # --no-tablespaces: portal user lacks the PROCESS privilege
+# sed: MySQL 8 utf8mb4_0900_* collations don't exist on the cPanel server (MariaDB) —
+# map them to utf8mb4_unicode_ci / utf8mb4_bin so dumps restore cleanly there
 MYSQL_PWD="$DB_PASS" "$MYSQLDUMP" \
     --host="${DB_HOST:-localhost}" \
     --port="${DB_PORT:-3306}" \
@@ -49,7 +51,9 @@ MYSQL_PWD="$DB_PASS" "$MYSQLDUMP" \
     --events \
     --add-drop-table \
     --no-tablespaces \
-    "${DB_NAME}" | gzip > "${DB_DUMP}"
+    "${DB_NAME}" \
+    | sed -e 's/utf8mb4_0900_bin/utf8mb4_bin/g' -e 's/utf8mb4_0900_[a-z_]*/utf8mb4_unicode_ci/g' \
+    | gzip > "${DB_DUMP}"
 
 if [ "${PIPESTATUS[0]}" -eq 0 ]; then
     DB_SIZE=$(du -sh "${DB_DUMP}" | cut -f1)
