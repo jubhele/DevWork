@@ -5,10 +5,10 @@ Schema: 1.0
 
 | Kind | Locations | Files | Size (MB) | Latest |
 |------|-----------|------:|----------:|--------|
-| sessions | `_workspace\sessions` | 15 | 0.05 | 2026-07-14T17:23:49.1863885Z |
+| sessions | `_workspace\sessions` | 17 | 0.05 | 2026-07-14T23:47:09.6816193Z |
 | artifacts | `_workspace\artifacts` | 0 | 0 | - |
 | archive | `_workspace\archive` | 0 | 0 | - |
-| temp | `_workspace\temp` | 32 | 0.05 | 2026-07-14T21:03:14.6865350Z |
+| temp | `_workspace\temp` | 36 | 0.05 | 2026-07-15T00:22:03.4856763Z |
 | logs | `_workspace\logs` | 0 | 0 | - |
 | backups | `_workspace\_backups` | 3 | 0.01 | 2026-07-14T20:11:54.1023492Z |
 
