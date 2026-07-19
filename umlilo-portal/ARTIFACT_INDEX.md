@@ -5,7 +5,7 @@ Schema: 1.0
 
 | Kind | Locations | Files | Size (MB) | Latest |
 |------|-----------|------:|----------:|--------|
-| sessions | `umlilo-portal\sessions` | 5 | 0.01 | 2026-07-16T18:32:04.7216501Z |
+| sessions | `umlilo-portal\sessions` | 7 | 0.01 | 2026-07-19T15:06:18.6651850Z |
 | artifacts | Not present | 0 | 0 | - |
 | archive | Not present | 0 | 0 | - |
 | temp | Not present | 0 | 0 | - |

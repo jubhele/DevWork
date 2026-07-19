@@ -1,0 +1,14 @@
+﻿{
+    "provider":  "Unknown",
+    "session_id":  "codex-umlilo-workflow-research-20260719",
+    "log_path":  "C:\\DevWork\\umlilo-portal\\sessions\\agent_session_unknown_codex-umlilo_20260719_170408.md",
+    "project_status":  "resolved",
+    "project_name":  "umlilo-portal",
+    "project_root":  "C:\\DevWork\\umlilo-portal",
+    "project_source":  "explicit_user_binding",
+    "binding_version":  1,
+    "binding_updated_at":  "2026-07-19T17:04:10.3476398+02:00",
+    "prompt_count":  0,
+    "created_at":  "2026-07-19T17:04:08.7681381+02:00",
+    "updated_at":  "2026-07-19T17:04:10.3595217+02:00"
+}

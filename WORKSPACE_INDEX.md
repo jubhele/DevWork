@@ -1,8 +1,8 @@
 ﻿# DevWork Workspace Index
 
-Generated: 2026-07-16T19:09:37.1058143Z
+Generated: 2026-07-19T15:31:52.7327717Z
 Schema: 1.0
-Trigger: `BlackFire\sessions\agent_session_openai_codex_codex-revert_20260716_210745.md`
+Trigger: `manual/full audit`
 
 This is a discovery map. Canonical sessions and artifacts remain below their owning project roots.
 
@@ -10,14 +10,14 @@ This is a discovery map. Canonical sessions and artifacts remain below their own
 
 | Project | Root | Repository | Sessions | Artifacts | Archive | Temp | Backups | Index |
 |---------|------|------------|---------:|----------:|--------:|-----:|--------:|-------|
-| _workspace | `_workspace` | No | 19 | 0 | 0 | 45 | 3 | [_workspace](_workspace/ARTIFACT_INDEX.md) |
+| _workspace | `_workspace` | No | 20 | 0 | 0 | 55 | 3 | [_workspace](_workspace/ARTIFACT_INDEX.md) |
 | Astute | `Astute` | Yes | 2 | 8 | 0 | 0 | 12 | [astute](Astute/ARTIFACT_INDEX.md) |
-| BlackFire | `BlackFire` | Yes | 101 | 2 | 0 | 109 | 465 | [blackfire](BlackFire/ARTIFACT_INDEX.md) |
+| BlackFire | `BlackFire` | Yes | 112 | 2 | 0 | 111 | 473 | [blackfire](BlackFire/ARTIFACT_INDEX.md) |
 | GovTender | `GovTender` | Yes | 4 | 0 | 0 | 0 | 7 | [govtender](GovTender/ARTIFACT_INDEX.md) |
 | Homolemo In Europe | `Homolemo In Europe` | No | 9 | 0 | 0 | 0 | 1 | [homolemo-in-europe](Homolemo In Europe/ARTIFACT_INDEX.md) |
 | ilahle-portal | `ilahle-portal` | Yes | 5 | 0 | 0 | 0 | 49 | [ilahle-portal](ilahle-portal/ARTIFACT_INDEX.md) |
 | JS_Resume | `JS_Resume` | Yes | 8 | 0 | 0 | 0 | 33 | [js-resume](JS_Resume/ARTIFACT_INDEX.md) |
-| umlilo-portal | `umlilo-portal` | No | 5 | 0 | 0 | 0 | 207 | [umlilo-portal](umlilo-portal/ARTIFACT_INDEX.md) |
+| umlilo-portal | `umlilo-portal` | No | 7 | 0 | 0 | 0 | 207 | [umlilo-portal](umlilo-portal/ARTIFACT_INDEX.md) |
 
 ## Legacy Root Stores Requiring Migration
 

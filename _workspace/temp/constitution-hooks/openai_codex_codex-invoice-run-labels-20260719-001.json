@@ -1,0 +1,14 @@
+﻿{
+    "provider":  "OpenAI Codex",
+    "session_id":  "codex-invoice-run-labels-20260719-001",
+    "log_path":  "C:\\DevWork\\BlackFire\\sessions\\agent_session_openai_codex_codex-invoic_20260719_165825.md",
+    "project_status":  "resolved",
+    "project_name":  "BlackFire",
+    "project_root":  "C:\\DevWork\\BlackFire",
+    "project_source":  "explicit_user_binding",
+    "binding_version":  1,
+    "binding_updated_at":  "2026-07-19T16:58:27.2526050+02:00",
+    "prompt_count":  3,
+    "created_at":  "2026-07-19T16:58:25.8026985+02:00",
+    "updated_at":  "2026-07-19T17:36:43.7001197+02:00"
+}
