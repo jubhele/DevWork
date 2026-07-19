@@ -191,6 +191,7 @@ export default function PublicLanding() {
           <a href="#about">About</a>
           <a href="#faq">FAQ</a>
           <a href="#assess">Get Assessed</a>
+          <Link className="mobile-portal-link" href="/login">Umlilo Portal &rarr;</Link>
         </div>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <button type="button" className="v3-btn v3-btn-ghost" onClick={toggleTheme} aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`} title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}>

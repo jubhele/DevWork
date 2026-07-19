@@ -268,11 +268,11 @@ export async function getDashboardData(user: DashboardUser): Promise<DashboardDa
       username: bfUsers.username,
       name: bfUsers.name,
       lastLogin: bfUsers.lastLogin,
-      lastActivity: sql<Date | string | null>`MAX(CASE WHEN ${bfAuditLog.action} NOT IN ('LOGIN_FAIL','MOBILE_LOGIN_FAIL','RESET_REQUEST') THEN ${bfAuditLog.createdAt} END)`,
-      currentLogins: sql<number>`SUM(CASE WHEN ${bfAuditLog.createdAt} >= DATE_SUB(CURDATE(), INTERVAL 6 DAY) AND ${bfAuditLog.action} IN ('LOGIN','MOBILE_LOGIN') THEN 1 ELSE 0 END)`,
-      previousLogins: sql<number>`SUM(CASE WHEN ${bfAuditLog.createdAt} >= DATE_SUB(CURDATE(), INTERVAL 13 DAY) AND ${bfAuditLog.createdAt} < DATE_SUB(CURDATE(), INTERVAL 6 DAY) AND ${bfAuditLog.action} IN ('LOGIN','MOBILE_LOGIN') THEN 1 ELSE 0 END)`,
-      pageViews: sql<number>`SUM(CASE WHEN ${bfAuditLog.createdAt} >= DATE_SUB(CURDATE(), INTERVAL 6 DAY) AND ${bfAuditLog.action} = 'PAGE_VIEW' THEN 1 ELSE 0 END)`,
-      actions: sql<number>`SUM(CASE WHEN ${bfAuditLog.createdAt} >= DATE_SUB(CURDATE(), INTERVAL 6 DAY) AND ${bfAuditLog.action} NOT IN ('LOGIN','MOBILE_LOGIN','LOGIN_FAIL','MOBILE_LOGIN_FAIL','LOGOUT','PAGE_VIEW') THEN 1 ELSE 0 END)`,
+      lastActivity: sql<Date | string | null>`MAX(CASE WHEN ${bfAuditLog.action} NOT IN ('LOGIN_FAIL','MOBILE_LOGIN_FAIL','RESET_REQUEST') THEN ${bfAuditLog.createdAt} END)`.as('lastActivity'),
+      currentLogins: sql<number>`SUM(CASE WHEN ${bfAuditLog.createdAt} >= DATE_SUB(CURDATE(), INTERVAL 6 DAY) AND ${bfAuditLog.action} IN ('LOGIN','MOBILE_LOGIN') THEN 1 ELSE 0 END)`.as('currentLogins'),
+      previousLogins: sql<number>`SUM(CASE WHEN ${bfAuditLog.createdAt} >= DATE_SUB(CURDATE(), INTERVAL 13 DAY) AND ${bfAuditLog.createdAt} < DATE_SUB(CURDATE(), INTERVAL 6 DAY) AND ${bfAuditLog.action} IN ('LOGIN','MOBILE_LOGIN') THEN 1 ELSE 0 END)`.as('previousLogins'),
+      pageViews: sql<number>`SUM(CASE WHEN ${bfAuditLog.createdAt} >= DATE_SUB(CURDATE(), INTERVAL 6 DAY) AND ${bfAuditLog.action} = 'PAGE_VIEW' THEN 1 ELSE 0 END)`.as('pageViews'),
+      actions: sql<number>`SUM(CASE WHEN ${bfAuditLog.createdAt} >= DATE_SUB(CURDATE(), INTERVAL 6 DAY) AND ${bfAuditLog.action} NOT IN ('LOGIN','MOBILE_LOGIN','LOGIN_FAIL','MOBILE_LOGIN_FAIL','LOGOUT','PAGE_VIEW') THEN 1 ELSE 0 END)`.as('actions'),
     }).from(bfUsers)
       .leftJoin(bfAuditLog, eq(bfAuditLog.username, bfUsers.username))
       .where(eq(bfUsers.active, 1))

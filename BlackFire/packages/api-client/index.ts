@@ -31,6 +31,35 @@ export function invoicePdfUrl(id: string | number) {
   return `${API_BASE}/invoices.php?action=download_pdf&id=${encodeURIComponent(String(id))}`
 }
 
+type RawQuote = Partial<Quote> & {
+  ref_id?: string
+  quote_no?: string
+  total_amount?: number | string
+  quote_date?: string
+  submitted_by?: string
+}
+
+function normalizeQuote(raw: RawQuote): Quote {
+  const total = Number(raw.total ?? raw.total_amount ?? 0)
+  return {
+    id: Number(raw.id ?? 0),
+    quote_number: raw.quote_number || raw.quote_no || raw.ref_id || String(raw.id ?? ''),
+    client_id: Number(raw.client_id ?? 0),
+    client_name: raw.client_name ?? 'Unassigned client',
+    callout_id: raw.callout_id == null ? null : Number(raw.callout_id),
+    status: raw.status ?? 'Draft',
+    approval_status: raw.approval_status ?? null,
+    subtotal: Number(raw.subtotal ?? total),
+    tax: Number(raw.tax ?? 0),
+    total,
+    valid_until: raw.valid_until ?? '',
+    notes: raw.notes ?? null,
+    items: raw.items ?? [],
+    created_by: raw.created_by || raw.submitted_by || '',
+    created_at: raw.created_at || raw.quote_date || '',
+  }
+}
+
 export class AuthError extends Error {
   constructor() { super('Unauthenticated') }
 }
@@ -166,12 +195,15 @@ export const callouts = {
 // ─── Quotes ──────────────────────────────────────────────────────────────────
 
 export const quotes = {
-  list: (params?: Record<string, string>, token?: string) => {
+  list: async (params?: Record<string, string>, token?: string) => {
     const qs = params ? '?' + new URLSearchParams(params).toString() : ''
-    return apiFetch<{ success: boolean; data: Quote[]; total: number }>(`/api/quotes${qs}`, { token })
+    const response = await apiFetch<{ success: boolean; data: RawQuote[]; total: number }>(`/api/quotes${qs}`, { token })
+    return { ...response, data: (response.data ?? []).map(normalizeQuote) }
   },
-  get: (id: number, token?: string) =>
-    apiFetch<ApiResponse<Quote>>(`/api/quotes?id=${id}`, { token }),
+  get: async (id: number, token?: string) => {
+    const response = await apiFetch<ApiResponse<RawQuote>>(`/api/quotes?id=${id}`, { token })
+    return { ...response, data: response.data ? normalizeQuote(response.data) : response.data }
+  },
   create: (data: Partial<Quote> & { items: Array<{ description: string; qty: number; unitPrice: number }> }, token?: string) =>
     apiFetch<ApiResponse<Quote>>('/api/quotes', { method: 'POST', body: JSON.stringify(data), token }),
   approve: (id: number, token?: string) =>
