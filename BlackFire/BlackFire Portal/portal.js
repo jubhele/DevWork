@@ -227,6 +227,7 @@ document.addEventListener('click', function(e) {
     case 'submitEnquiry':        submitEnquiry(); break;
     // Modals
     case 'openTxModal':          openTxModal(); break;
+    case 'toggleTxGroup':        toggleTxGroup(el); break;
     case 'closeModalDirect':     closeModalDirect(); break;
     case 'closeModalBackdrop':   if (e.target === el) closeModal(e); break;
     // Operations — tracker
@@ -5401,6 +5402,7 @@ function saveInvoice(){
 /* ═══════════════════════════════════════════════════════
    TRANSACTIONS
 ═══════════════════════════════════════════════════════ */
+const _txExpandedGroups=new Set();
 function renderTransactions(search=''){
   const periodItems=financeRowsInPeriod(proxyDB.bank,b=>b.date);
   let items=[...periodItems].sort((a,b)=>b.date.localeCompare(a.date));
@@ -5411,10 +5413,56 @@ function renderTransactions(search=''){
   document.getElementById('tx-credits').textContent=fmt(tc);
   document.getElementById('tx-debits').textContent=fmt(td);
   const nel=document.getElementById('tx-net');nel.textContent=fmt(tn);nel.classList.toggle('net--pos',tn>=0);nel.classList.toggle('net--neg',tn<0);
-  document.getElementById('tx-table').innerHTML=items.length?items.map(b=>`
-    <tr><td class="nowrap">${fmtD(b.date)}</td><td>${esc(b.desc)}</td><td><span class="mlbl-9">${esc(b.cat)}</span></td><td class="mono">${esc(b.ref||'-')}</td><td class="mono">${esc(b.calloutRef||'-')}</td>
-    <td class="amt text-ok">${b.credit>0?fmt(b.credit):'-'}</td>
-    <td class="amt text-ovr">${b.debit>0?fmt(b.debit):'-'}</td></tr>`).join(''):'<tr><td colspan="7" class="tc-empty">No transactions</td></tr>';
+
+  const groups=new Map();
+  items.forEach(b=>{
+    const key=b.calloutRef||'__none__';
+    if(!groups.has(key))groups.set(key,[]);
+    groups.get(key).push(b);
+  });
+  const grouped=[...groups.entries()].sort((a,b)=>b[1][0].date.localeCompare(a[1][0].date));
+  const searching=!!search;
+  document.getElementById('tx-table').innerHTML=grouped.length?grouped.map(([key,rows])=>{
+    const gc=rows.reduce((a,b)=>a+(b.credit||0),0);
+    const gd=rows.reduce((a,b)=>a+(b.debit||0),0);
+    const gn=gc-gd;
+    const open=searching||_txExpandedGroups.has(key);
+    const label=key==='__none__'?'No Call Log':key;
+    const detail=rows.map(b=>`
+      <tr><td class="nowrap">${fmtD(b.date)}</td><td>${esc(b.desc)}</td><td><span class="mlbl-9">${esc(b.cat)}</span></td><td class="mono">${esc(b.ref||'-')}</td><td class="mono">${esc(b.calloutRef||'-')}</td>
+      <td class="amt text-ok">${b.credit>0?fmt(b.credit):'-'}</td>
+      <td class="amt text-ovr">${b.debit>0?fmt(b.debit):'-'}</td></tr>`).join('');
+    return `
+    <tr class="txg-row${open?' txg-open':''}" data-action="toggleTxGroup" data-grp="${esc(key)}" role="button" tabindex="0" aria-expanded="${open?'true':'false'}">
+      <td class="mono"><span class="txg-chev" aria-hidden="true">${open?'&#9662;':'&#9656;'}</span> ${esc(label)}</td>
+      <td>${rows.length}</td>
+      <td class="nowrap">${fmtD(rows[0].date)}</td>
+      <td class="amt text-ok">${gc>0?fmt(gc):'-'}</td>
+      <td class="amt text-ovr">${gd>0?fmt(gd):'-'}</td>
+      <td class="amt ${gn>=0?'text-ok':'text-ovr'}">${fmt(gn)}</td>
+    </tr>
+    <tr class="txg-detail${open?'':' hidden'}" data-grp-detail="${esc(key)}"><td colspan="6" class="txg-detail-cell">
+      <table class="txg-inner"><colgroup><col><col><col><col><col><col><col></colgroup><thead><tr><th data-nosort="1">Date</th><th data-nosort="1">Description</th><th data-nosort="1">Category</th><th data-nosort="1">Ref</th><th data-nosort="1">Call Log</th><th data-nosort="1">Credit</th><th data-nosort="1">Debit</th></tr></thead><tbody>${detail}</tbody></table>
+    </td></tr>`;
+  }).join(''):'<tr><td colspan="6" class="tc-empty">No transactions</td></tr>';
+}
+
+document.addEventListener('keydown',function(e){
+  if(e.key!=='Enter'&&e.key!==' ')return;
+  const row=e.target.closest?e.target.closest('tr.txg-row'):null;
+  if(!row)return;
+  e.preventDefault();toggleTxGroup(row);
+});
+
+function toggleTxGroup(rowEl){
+  const key=rowEl.dataset.grp;
+  const detail=document.querySelector(`tr[data-grp-detail="${CSS.escape(key)}"]`);if(!detail)return;
+  const open=!detail.classList.contains('hidden');
+  detail.classList.toggle('hidden',open);
+  rowEl.classList.toggle('txg-open',!open);
+  rowEl.setAttribute('aria-expanded',String(!open));
+  const chev=rowEl.querySelector('.txg-chev');if(chev)chev.innerHTML=open?'&#9656;':'&#9662;';
+  if(open)_txExpandedGroups.delete(key);else _txExpandedGroups.add(key);
 }
 
 function openTxModal(){
@@ -5917,7 +5965,7 @@ function renderLedgerSummary() {
     </div>
     <div class="twocol ledger-summary-grid">
       <div class="panel">
-        <div class="ph"><div class="ph-title">Credits vs Debits by Month</div><div class="ph-sub"><span class="legend-dot legend-ok"></span>Credits <span class="legend-dot legend-cost ml-2"></span>Debits</div></div>
+        <div class="ph"><div class="ph-title">Credits vs Debits by Month</div><div class="ph-sub"><span class="legend-dot legend-credit"></span>Credits <span class="legend-dot legend-debit ml-2"></span>Debits</div></div>
         <div class="ledger-trend">${trendHtml}</div>
       </div>
       <div class="panel">
@@ -6079,19 +6127,28 @@ function _pllRenderTab(tab) {
   if (tab === 'pll-monthly') {
     const rows = mpl.rows || [];
     const totals = mpl.totals || {};
+    const act = mpl.suppliers_active || { siyasiza:true, megahertz:true };
+    const supCols = [
+      { key:'siyasiza_cost',  name:'Siyasiza',  lbl:'Siyasiza Cost (R)',  on:act.siyasiza },
+      { key:'megahertz_cost', name:'Megahertz', lbl:'Megahertz Cost (R)', on:act.megahertz },
+    ].filter(c => c.on);
+    const costSrc = supCols.map(c=>c.name).join(' + ') || 'suppliers';
+    const legendEl = document.getElementById('pll-mpl-cost-src');
+    if (legendEl) legendEl.textContent = costSrc;
     const maxMargin = Math.max(...rows.map(r=>Math.abs(r.cumulative_margin)),1);
     document.getElementById('pll-mpl-kpis').innerHTML = `
       <div class="kcard k1"><div class="klbl">Cash Received</div><div class="kval text-ok">${fmt(totals.cash_received)}</div><div class="ksub">Bank confirmed (FNB *8644)</div></div>
-      <div class="kcard k3"><div class="klbl">Total Costs</div><div class="kval text-ovr">${fmt(totals.total_costs)}</div><div class="ksub">Siyasiza + Megahertz</div></div>
+      <div class="kcard k3"><div class="klbl">Total Costs</div><div class="kval text-ovr">${fmt(totals.total_costs)}</div><div class="ksub">${esc(costSrc)}</div></div>
       <div class="kcard k1"><div class="klbl">Gross Margin</div><div class="kval${totals.gross_margin>=0?' text-ok':' text-ovr'}">${fmt(totals.gross_margin)}</div><div class="ksub">Cumulative (all months)</div></div>
       <div class="kcard k2"><div class="klbl">Margin %</div><div class="kval">${totals.cash_received>0?Math.round((totals.gross_margin/totals.cash_received)*100)+'%':'—'}</div><div class="ksub">On cash received</div></div>`;
+    document.getElementById('pll-mpl-thead').innerHTML = `
+      <tr><th>Month</th><th>Cash Received (R)</th>${supCols.map(c=>`<th>${c.lbl}</th>`).join('')}<th>Total Costs (R)</th><th>Gross Margin (R)</th><th>Cumulative Margin (R)</th></tr>`;
     document.getElementById('pll-mpl-table').innerHTML = rows.map(r => {
       const neg = r.gross_margin < 0;
       return `<tr>
         <td class="nowrap"><strong>${esc(r.label)}</strong></td>
         <td class="amt text-ok">${r.cash_received>0?fmt(r.cash_received):'-'}</td>
-        <td class="amt text-ovr">${r.siyasiza_cost>0?'('+fmt(r.siyasiza_cost)+')':'-'}</td>
-        <td class="amt text-ovr">${r.megahertz_cost>0?'('+fmt(r.megahertz_cost)+')':'-'}</td>
+        ${supCols.map(c=>`<td class="amt text-ovr">${r[c.key]>0?'('+fmt(r[c.key])+')':'-'}</td>`).join('')}
         <td class="amt text-ovr">${r.total_costs>0?'('+fmt(r.total_costs)+')':'-'}</td>
         <td class="amt ${neg?'text-ovr':'text-ok'}">${fmt(r.gross_margin)}</td>
         <td class="amt ${r.cumulative_margin>=0?'text-ok':'text-ovr'}">${fmt(r.cumulative_margin)}</td>
@@ -6101,8 +6158,7 @@ function _pllRenderTab(tab) {
       <tr class="tfoot-total">
         <td><strong>TOTAL</strong></td>
         <td class="amt text-ok"><strong>${fmt(totals.cash_received)}</strong></td>
-        <td class="amt text-ovr"><strong>(${fmt(totals.siyasiza_cost)})</strong></td>
-        <td class="amt text-ovr"><strong>(${fmt(totals.megahertz_cost)})</strong></td>
+        ${supCols.map(c=>`<td class="amt text-ovr"><strong>(${fmt(totals[c.key])})</strong></td>`).join('')}
         <td class="amt text-ovr"><strong>(${fmt(totals.total_costs)})</strong></td>
         <td class="amt text-ok"><strong>${fmt(totals.gross_margin)}</strong></td>
         <td class="amt text-ok"><strong>${fmt(totals.gross_margin)}</strong></td>

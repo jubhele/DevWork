@@ -10,10 +10,10 @@
                                             "path":  "BlackFire\\sessions",
                                             "metric":  {
                                                            "exists":  true,
-                                                           "files":  115,
-                                                           "bytes":  379802,
+                                                           "files":  119,
+                                                           "bytes":  393991,
                                                            "oldest":  "2026-06-23T09:19:04.0991484Z",
-                                                           "latest":  "2026-07-19T17:59:24.6352894Z"
+                                                           "latest":  "2026-07-19T20:16:40.5769281Z"
                                                        }
                                         }
                                     ],
@@ -37,10 +37,10 @@
                                         "path":  "BlackFire\\temp",
                                         "metric":  {
                                                        "exists":  true,
-                                                       "files":  139,
-                                                       "bytes":  20988722,
+                                                       "files":  143,
+                                                       "bytes":  20993921,
                                                        "oldest":  "2026-07-09T19:23:09.9028041Z",
-                                                       "latest":  "2026-07-19T17:51:29.5545185Z"
+                                                       "latest":  "2026-07-19T20:14:54.3631841Z"
                                                    }
                                     },
                                     {

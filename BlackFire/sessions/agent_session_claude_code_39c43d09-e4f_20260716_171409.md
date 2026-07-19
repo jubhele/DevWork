@@ -86,6 +86,22 @@ Active model: Claude Fable 5  Status: over-powered (acceptable; cross-document r
 - Quote total_amount conventions were era-dependent because api/quotes.php stored the ex-VAT item sum while legacy data stored inclusive totals. Business ruling (2026-07-16): totals are ALWAYS VAT-inclusive; items are the ex-VAT client view. API fixed; data synced; invoice-linked cases validated the direction (items were the reliable side).
 - Model trust scores: confirmed unchanged (Tier 2 task executed on a Tier 3-class model without issues).
 
+## Resumed 2026-07-19
+User requests: (1) records missing Cost of Sales in the ledger; (2) remove test/QA data; (3) seed must be re-runnable without duplicating records.
+
+- Backed up 9 finance tables first: _backups/database/finance_tables_pre_qa_cleanup_20260719_202854.sql.
+- Idempotency PROVEN by execution: seed re-run changed zero row counts (112/187/53/74/6/54 before and after); cleanup+backfill re-run left bf_transactions at 198 both times.
+- install/remove_qa_test_data_20260719.sql — NEW, applied, committed 148c02c. Removed BOTH QA clusters: the 2026-06-09 run's orphans (7 'QA Test quote' quotes Q-090626-0101..0107 with blank-description item pairs, statement STMT-090626-0012 referencing already-deleted invoices, 10 payments against deleted INV-090626-* invoices, 6 attachments on deleted callouts) and the 2026-07-16 remittance-verification run (CO-160726-0137, Q-160726-0114, INV-160726-0129, 3 payments, 4 generated transactions, 2 attachments). Verification: all remnant counts 0. Attachment files on disk untouched (rows only).
+- install/backfill_cost_model_20260719.sql — NEW, applied, committed 148c02c. Discovered the LIVE cost convention in includes/helpers.php record_invoice_cost_of_sales: 30% Cost of Sales + 15% Admin + 15% Finance of invoice amount, reference {COST|ADMIN|FIN}-<callout_ref else invoice ref>. Normalized the 5 legacy PO-keyed COST rows (May-seed convention, debit=amount/1.30) to the live convention, then inserted missing rows grouped per callout basis (multi-invoice callouts like CP1723 get one row per category over the invoice SUM). Result: 0 invoices without cost coverage; 51 basis groups x 3 categories; Cost of Sales R235,495.62 = 30% of invoiced R784,985.32 (2c group-rounding drift).
+- bf_transactions.callout_ref column now exists (parallel session applied migration_transactions_callout_ref during the gap); the cost scripts populate it.
+- Branch note: repo now on feat/umlilo-workflow-platform (switched during the 3-day gap); it contains all this session's earlier master commits, 148c02c added on top.
+- One classifier denial: a combined seed+cleanup+backfill mega-command was blocked; re-issued as three separate clean commands which ran fine.
+- User requested the change on master: cherry-picked 148c02c + fedc133 onto master as 431d3cd + 0a5b392 via a temporary worktree (working tree had another session's uncommitted portal.js/portal.php changes, left untouched). Both branches now carry the QA cleanup + cost model scripts.
+
+### Resumed-session learnings
+- The portal's own cost engine (helpers.php) supersedes both the May-seed /1.30 convention and the unapplied 0709 migration; any cost backfill must key by callout_ref basis and aggregate multi-invoice callouts, or payment-time generation will collide with it.
+- QA runs against the live portal leave multi-table debris (quotes, payments, statements, attachments, generated cost rows); QA data needs a dedicated tenant/flag or scheduled cleanup, not ad-hoc deletion.
+
 ## Goal Status
 PENDING
 

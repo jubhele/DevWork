@@ -1,0 +1,14 @@
+﻿{
+    "provider":  "OpenAI Codex",
+    "session_id":  "codex-20260719-commit-sync-except-umlilo",
+    "log_path":  "C:\\DevWork\\_workspace\\sessions\\agent_session_openai_codex_codex-202607_20260719_221330.md",
+    "project_status":  "resolved",
+    "project_name":  "_workspace",
+    "project_root":  "C:\\DevWork\\_workspace",
+    "project_source":  "explicit_control_plane_request",
+    "binding_version":  1,
+    "binding_updated_at":  "",
+    "prompt_count":  0,
+    "created_at":  "2026-07-19T22:13:30.0855536+02:00",
+    "updated_at":  "2026-07-19T22:18:20.2115244+02:00"
+}

@@ -656,7 +656,7 @@ $companyLogoUrl = $baseUrl . '/' . ltrim($cfg['company_logo'] ?? 'blackfire_logo
         <div class="kcard kcard--flex kcard--net"><div class="klbl">Net</div><div class="kval kval--lg" id="tx-net">R0</div></div>
       </div>
       <div class="srow"><input type="text" class="sinput" id="tx-search" placeholder="Search..."><button class="btn btn-p btn-s" data-action="openTxModal">+ Log Transaction</button></div>
-      <div class="panel"><div class="tw"><table><thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Ref</th><th>Call Log</th><th>Credit</th><th>Debit</th></tr></thead><tbody id="tx-table"></tbody></table></div></div>
+      <div class="panel"><div class="tw"><table><colgroup><col><col><col><col><col><col></colgroup><thead><tr><th data-nosort="1">Call Log</th><th data-nosort="1">Records</th><th data-nosort="1">Latest Date</th><th data-nosort="1">Credit</th><th data-nosort="1">Debit</th><th data-nosort="1">Net</th></tr></thead><tbody id="tx-table"></tbody></table></div></div>
     </div>
 
     <!-- INVOICES -->
@@ -844,13 +844,13 @@ $companyLogoUrl = $baseUrl . '/' . ltrim($cfg['company_logo'] ?? 'blackfire_logo
       </div>
       <!-- TAB: Monthly P&L -->
       <div id="pll-monthly" class="pll-tab" hidden>
-        <div class="pl-legend">Income = bank-confirmed receipts only (FNB *8644) &middot; Costs = Siyasiza + Megahertz &middot; <span class="badge-warn">R32,735.97 in unreconciled remittances EXCLUDED</span></div>
+        <div class="pl-legend">Income = bank-confirmed receipts only (FNB *8644) &middot; Costs = <span id="pll-mpl-cost-src">Siyasiza + Megahertz</span> &middot; <span class="badge-warn">R32,735.97 in unreconciled remittances EXCLUDED</span></div>
         <div class="kgrid kgrid--4 mb2" id="pll-mpl-kpis"></div>
         <div class="panel">
           <div class="ph"><div class="ph-title">Monthly Cash Flow &amp; P&amp;L</div></div>
           <div class="tw">
             <table>
-              <thead><tr><th>Month</th><th>Cash Received (R)</th><th>Siyasiza Cost (R)</th><th>Megahertz Cost (R)</th><th>Total Costs (R)</th><th>Gross Margin (R)</th><th>Cumulative Margin (R)</th></tr></thead>
+              <thead id="pll-mpl-thead"></thead>
               <tbody id="pll-mpl-table"></tbody>
               <tfoot id="pll-mpl-tfoot"></tfoot>
             </table>

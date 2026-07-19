@@ -41,6 +41,18 @@ function ledger_period_clause(string $column, string $from, string $to): array {
   return ['sql' => $clauses ? ' AND ' . implode(' AND ', $clauses) : '', 'params' => $params];
 }
 
+function ledger_supplier_flags(): array {
+  $flags = ['Siyasiza Group' => true, 'Megahertz Systems' => true];
+  try {
+    foreach (db_select("SELECT name, active FROM bf_suppliers") as $r) {
+      if (array_key_exists($r['name'], $flags)) $flags[$r['name']] = (bool)(int)$r['active'];
+    }
+  } catch (PDOException $e) {
+    // bf_suppliers not migrated yet — treat all suppliers as active
+  }
+  return $flags;
+}
+
 $period_from = ledger_period_date(clean($_GET['from'] ?? '', 10), 'from');
 $period_to = ledger_period_date(clean($_GET['to'] ?? '', 10), 'to');
 if ($period_from !== '' && $period_to !== '' && $period_from > $period_to) json_err('from must be on or before to', 400);
@@ -247,7 +259,15 @@ switch ($action) {
       'gross_margin'   => $cumulative_margin,
     ];
 
-    json_ok(['rows' => $pl_rows, 'totals' => $totals_pl]);
+    $flags = ledger_supplier_flags();
+    json_ok([
+      'rows'   => $pl_rows,
+      'totals' => $totals_pl,
+      'suppliers_active' => [
+        'siyasiza'  => $flags['Siyasiza Group'],
+        'megahertz' => $flags['Megahertz Systems'],
+      ],
+    ]);
     break;
 
   // ── SUMMARY (finance dashboard KPIs) ─────────────────────────
