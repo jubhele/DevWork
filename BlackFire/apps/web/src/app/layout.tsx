@@ -12,12 +12,12 @@ export const metadata: Metadata = {
   description: 'BlackFire Solutions operational management portal',
   icons: {
     icon: [
-      { url: '/favicon-16x16.png?v=blackfire-20260719', sizes: '16x16', type: 'image/png' },
-      { url: '/favicon-32x32.png?v=blackfire-20260719', sizes: '32x32', type: 'image/png' },
-      { url: '/favicon-512x512.png?v=blackfire-20260719', sizes: '512x512', type: 'image/png' },
+      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
+      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/favicon-512x512.png', sizes: '512x512', type: 'image/png' },
     ],
-    apple: '/apple-touch-icon.png?v=blackfire-20260719',
-    shortcut: '/favicon.ico?v=blackfire-20260719',
+    apple: '/apple-touch-icon.png',
+    shortcut: '/favicon.ico',
   },
 }
 

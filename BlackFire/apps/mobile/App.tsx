@@ -169,16 +169,11 @@ function AppNavigator() {
 SplashScreen.preventAutoHideAsync()
 
 export default function App() {
-  const nativeFontMap: Record<string, number> = Platform.OS === 'web'
-    ? {}
-    : {
-        'BigShouldersDisplay-Regular': require('./assets/fonts/BigShouldersDisplay-Regular.ttf'),
-        'BigShouldersDisplay-Bold':    require('./assets/fonts/BigShouldersDisplay-Bold.ttf'),
-        'InstrumentSans-Regular':      require('./assets/fonts/InstrumentSans-Regular.ttf'),
-        'InstrumentSans-SemiBold':     require('./assets/fonts/InstrumentSans-SemiBold.ttf'),
-        'IBMPlexMono-Regular':         require('./assets/fonts/IBMPlexMono-Regular.ttf'),
-      }
-  const [fontsLoaded, fontError] = useFonts(nativeFontMap)
+  const [fontsLoaded, fontError] = useFonts({
+    [fonts.display]: require('./assets/fonts/BigShouldersDisplay-Bold.ttf'),
+    [fonts.body]: require('./assets/fonts/InstrumentSans-Regular.ttf'),
+    [fonts.mono]: require('./assets/fonts/IBMPlexMono-Regular.ttf'),
+  })
 
   useEffect(() => {
     if (fontsLoaded || fontError) {

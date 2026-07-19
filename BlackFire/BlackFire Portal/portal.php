@@ -127,7 +127,6 @@ $companyLogoUrl = $baseUrl . '/' . ltrim($cfg['company_logo'] ?? 'blackfire_logo
     <a class="pub-nav-link" href="#about">About</a>
     <a class="pub-nav-link" href="#faq">FAQ</a>
     <a class="pub-nav-link" href="#assess">Get Assessed</a>
-    <button class="pub-nav-link mobile-portal-link" type="button" data-action="goLogin">Umlilo Portal &rarr;</button>
   </div>
   <div class="v3-topbar-actions">
     <button class="theme-btn" type="button" data-action="toggleTheme" aria-label="Toggle light and dark mode" title="Toggle light and dark mode">
