@@ -39,7 +39,7 @@ const ROLE_CATEGORIES: Record<string, TaskCategory[]> = {
   client_support: ['general'],
 }
 
-type DashboardUser = Pick<User, 'role' | 'roles' | 'permissions'>
+type DashboardUser = Pick<User, 'username' | 'role' | 'roles' | 'permissions' | 'client_id'>
 
 function dateKey(value: Date): string {
   return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`
@@ -61,8 +61,12 @@ function changePercent(current: number, previous: number): number | null {
   return Math.round(((current - previous) / previous) * 100)
 }
 
+function canView(user: DashboardUser, permission: string): boolean {
+  return user.roles.includes('sysadmin') || user.permissions.includes(permission)
+}
+
 function canViewUsage(user: DashboardUser): boolean {
-  return user.roles.includes('sysadmin') || user.permissions.some(permission => permission === 'security.users' || permission === 'security.audit')
+  return canView(user, 'security.users') || canView(user, 'security.audit')
 }
 
 async function collectedBetween(start: string, end: string): Promise<number> {
@@ -81,7 +85,7 @@ export async function getDashboardData(user: DashboardUser): Promise<DashboardDa
   const now = new Date()
   const today = dateKey(now)
   const dueEnd = dateKey(addDays(now, 7))
-  const cats = ROLE_CATEGORIES[user.role] ?? ['general']
+  const cats = canView(user, 'task.view') ? (ROLE_CATEGORIES[user.role] ?? ['general']) : []
   const taskStreams: TaskStreamCounts = { admin: 0, sales: 0, general: 0 }
   let openTasks = 0
   let urgentTasks = 0
@@ -229,22 +233,33 @@ export async function getDashboardData(user: DashboardUser): Promise<DashboardDa
     ))
     dueSoon.push(...rows.map(row => ({ record_type: 'Task' as const, ref_id: row.refId, record_title: row.title, assignee: row.assignee || 'Unassigned', due_date: String(row.dueDate) })))
   }
-  const [dueCallouts, dueInvoices, dueQuotes] = await Promise.all([
-    db.select({ refId: bfCallouts.refId, title: bfCallouts.service, assignee: bfCallouts.assignedTo, dueDate: sql<string>`DATE(${bfCallouts.dueAt})` })
+  if (canView(user, 'callout.view')) {
+    const conditions = [
+      inArray(bfCallouts.status, ['Open', 'In Progress']),
+      sql`DATE(${bfCallouts.dueAt}) BETWEEN ${today} AND ${dueEnd}`,
+    ]
+    if (user.roles.some(role => role === 'junior_tech' || role === 'senior_tech')) {
+      conditions.push(eq(bfCallouts.assignedTo, user.username))
+    } else if (user.roles.includes('client_support') && user.client_id) {
+      conditions.push(eq(bfCallouts.clientId, user.client_id))
+    }
+    const rows = await db.select({ refId: bfCallouts.refId, title: bfCallouts.service, assignee: bfCallouts.assignedTo, dueDate: sql<string>`DATE(${bfCallouts.dueAt})` })
       .from(bfCallouts)
-      .where(and(inArray(bfCallouts.status, ['Open', 'In Progress']), sql`DATE(${bfCallouts.dueAt}) BETWEEN ${today} AND ${dueEnd}`)),
-    db.select({ refId: bfInvoices.refId, title: bfInvoices.clientName, dueDate: bfInvoices.dueDate })
+      .where(and(...conditions))
+    dueSoon.push(...rows.map(row => ({ record_type: 'Callout' as const, ref_id: row.refId, record_title: row.title, assignee: row.assignee || 'Unassigned', due_date: String(row.dueDate) })))
+  }
+  if (canView(user, 'invoice.view')) {
+    const rows = await db.select({ refId: bfInvoices.refId, title: bfInvoices.clientName, dueDate: bfInvoices.dueDate })
       .from(bfInvoices)
-      .where(and(inArray(bfInvoices.status, ['Draft', 'Sent']), sql`${bfInvoices.dueDate} BETWEEN ${today} AND ${dueEnd}`)),
-    db.select({ refId: bfQuotes.refId, title: bfQuotes.clientName, assignee: bfQuotes.submittedBy, dueDate: bfQuotes.validUntil })
+      .where(and(inArray(bfInvoices.status, ['Draft', 'Sent']), sql`${bfInvoices.dueDate} BETWEEN ${today} AND ${dueEnd}`))
+    dueSoon.push(...rows.map(row => ({ record_type: 'Invoice' as const, ref_id: row.refId, record_title: row.title, assignee: 'Finance team', due_date: displayDate(row.dueDate)?.slice(0, 10) ?? '' })))
+  }
+  if (canView(user, 'quote.view')) {
+    const rows = await db.select({ refId: bfQuotes.refId, title: bfQuotes.clientName, assignee: bfQuotes.submittedBy, dueDate: bfQuotes.validUntil })
       .from(bfQuotes)
-      .where(and(inArray(bfQuotes.status, ['Draft', 'Sent', 'Pending Approval']), sql`${bfQuotes.validUntil} BETWEEN ${today} AND ${dueEnd}`)),
-  ])
-  dueSoon.push(
-    ...dueCallouts.map(row => ({ record_type: 'Callout' as const, ref_id: row.refId, record_title: row.title, assignee: row.assignee || 'Unassigned', due_date: String(row.dueDate) })),
-    ...dueInvoices.map(row => ({ record_type: 'Invoice' as const, ref_id: row.refId, record_title: row.title, assignee: 'Finance team', due_date: displayDate(row.dueDate)?.slice(0, 10) ?? '' })),
-    ...dueQuotes.map(row => ({ record_type: 'Quote' as const, ref_id: row.refId, record_title: row.title, assignee: row.assignee || 'Unassigned', due_date: displayDate(row.dueDate)?.slice(0, 10) ?? '' })),
-  )
+      .where(and(inArray(bfQuotes.status, ['Draft', 'Sent', 'Pending Approval']), sql`${bfQuotes.validUntil} BETWEEN ${today} AND ${dueEnd}`))
+    dueSoon.push(...rows.map(row => ({ record_type: 'Quote' as const, ref_id: row.refId, record_title: row.title, assignee: row.assignee || 'Unassigned', due_date: displayDate(row.dueDate)?.slice(0, 10) ?? '' })))
+  }
   dueSoon.sort((a, b) => a.due_date.localeCompare(b.due_date) || a.record_type.localeCompare(b.record_type))
 
   let usage: DashboardUsageRow[] = []

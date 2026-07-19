@@ -25,6 +25,8 @@ Active model: GPT-5 Codex  Status: not listed in the current workspace trust mat
 - Compared the current seven calendar days, including today, against the immediately preceding seven days; page views and actions use the current seven-day window but do not override inactive status.
 - Defined the three synchronized platforms as the PHP portal, Next.js web portal, and Expo mobile app.
 - Established `packages/types` as the shared dashboard contract and made both PHP and Next.js endpoints return that contract so Expo does not rely on web-only or mock data.
+- Prepared the release from a clean branch based on current `master`, excluding project backups, artifact indexes, and session logs from the production commit.
+- Treated the user's explicit instruction to perform deployment as authorization to merge the verified release PR.
 
 ## Work Done
 - Constitution, memory index, and session-log schema verified at session start.
@@ -40,16 +42,22 @@ Active model: GPT-5 Codex  Status: not listed in the current workspace trust mat
 - Rebuilt the Expo dashboard to consume `dashboard.summary()` and present the same metrics using real server data; removed its mocked trend series.
 - Verified the PHP contract against the local database: 5 invoice-run months, 3 cash comparisons, 12 usage users, a 7-day window, and 5 urgent callouts were returned successfully.
 - Passed Next.js and Expo TypeScript checks, Next.js ESLint, the Next.js production build, Expo web export (550 modules), PHP/JavaScript syntax checks, and the 36-route portal parity test.
+- Fixed a pre-release permissions gap so Next.js only returns due-soon callouts, invoices, quotes, and tasks that the signed-in user may view; aligned PHP task deadlines to use `due_at` before `due_date`.
+- Re-ran the PHP runtime contract after the fix: success, 5 run-rate months, 3 cash comparisons, 12 usage users, 7-day usage period, and 5 urgent callouts.
+- Created and merged GitHub PR #22 into `master`; merge commit `810fe6cd3419e96c7ae80e53e911c9506386c46b`.
+- Probed production publication paths. The Vercel token is invalid, EAS is logged out and the mobile project has no `eas.json`, and Afrihost SSH timed out on ports 22 and 2222 with no saved WinSCP/FileZilla session.
+- Verified the PHP production bundle remains stale: the live `portal.js` returns HTTP 200 but contains none of the four new dashboard markers.
 
 ## Agent Accountability
 
 | Task ID | Assigned Agent | Completed By | Status | Iterations | Note |
 |---------|---------------|--------------|--------|------------|------|
 | dashboard-graph-usage-001 | uMakhi + uMdwebi | OpenAI Codex | COMPLETED | 2/3, 2/2 | PHP, Next.js, and Expo implementations synchronized and build-verified. |
+| dashboard-deploy-002 | uMakhi + uMlindi | OpenAI Codex | FAILED | 1/3, 1/2 | Source merged in PR #22; external publication blocked by expired/missing platform authentication and unreachable Afrihost SSH. |
 
 ## Blockers / Next Steps
-- The optional gstack browser build was not approved, so no new automated screenshot was captured in this session.
-- Deployment was not requested or performed; awaiting user review and confirmation.
+- Source release is merged, but production publication needs renewed Vercel authentication, an authenticated/configured EAS project, and working Afrihost cPanel/FTP/SSH access.
+- After credentials are restored, publish Next.js to `umlilo-portal-web`, publish/configure the Expo mobile release, upload the PHP portal to Afrihost, and rerun live dashboard health checks.
 
 ## Learnings
 - Compact monetary labels keep month-by-month graph values readable while tooltips preserve exact financial amounts.
@@ -57,6 +65,8 @@ Active model: GPT-5 Codex  Status: not listed in the current workspace trust mat
 - A seven-day current-versus-prior comparison provides a faster intervention signal than the previous 30-day window.
 - Mobile dashboard requests resolve to the PHP API through the shared client, so PHP and Next.js must expose the same response shape; synchronizing UI alone is insufficient.
 - A shared typed dashboard contract prevents the mobile app from silently falling back to partial KPI payloads or fabricated trend values.
+- A clean release branch from the current base avoids shipping governance logs and backup snapshots that were accidentally bundled in an earlier feature commit.
+- Repository deployment scripts can become stale independently of source code; both PHP scripts still default to non-existent legacy branches, so branch existence and authentication must be verified before every production run.
 
 ## Goal Status
 PENDING
