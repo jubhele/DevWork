@@ -27,15 +27,14 @@ const PRIMARY: PrimaryNavItem[] = [
   { href: '/dashboard', label: 'Dashboard', group: 'dashboard', matches: ['/dashboard'] },
   { href: '/ops', label: 'Operations', group: 'operations', matches: ['/ops', '/tracker', '/callouts'] },
   { href: '/finance', label: 'Finance', group: 'finance', matches: ['/finance', '/quotes', '/invoices'] },
-  { href: '/support', label: 'Support', group: 'support', matches: ['/support', '/clients', '/safety', '/admin'] },
+  { href: '/safety', label: 'Safety', group: 'safety', matches: ['/safety'], permission: 'safety.view' },
+  { href: '/support', label: 'Support', group: 'support', matches: ['/support', '/clients', '/help'] },
+  { href: '/admin/users', label: 'Administration', group: 'administration', matches: ['/admin'], roles: ['sysadmin', 'admin'] },
 ]
 
 const SECONDARY: Record<string, SecondaryNavItem[]> = {
   dashboard: [
     { href: '/dashboard', label: 'Overview' },
-    { href: '/admin/users', label: 'Users & Roles', roles: ['sysadmin', 'admin'] },
-    { href: '/safety', label: 'Safety Files', permission: 'safety.view' },
-    { href: '/admin/audit', label: 'Audit Log', roles: ['sysadmin', 'admin'] },
   ],
   operations: [
     { href: '/ops', label: 'Overview', roles: ['sysadmin', 'admin', 'manager'] },
@@ -47,15 +46,16 @@ const SECONDARY: Record<string, SecondaryNavItem[]> = {
     { href: '/finance', label: 'Overview', permission: 'finance.income' },
     { href: '/quotes', label: 'Quote Log', permission: 'quote.view' },
     { href: '/invoices', label: 'Invoices', permission: 'invoice.view' },
-    { href: '/finance#ledger', label: 'Ledger', permission: 'finance.income' },
   ],
-  hub: [
-    { href: '/hub', label: 'All Portals' },
+  safety: [
+    { href: '/safety', label: 'Safety Files', permission: 'safety.view' },
   ],
   support: [
     { href: '/support', label: 'Overview' },
     { href: '/clients', label: 'Clients', permission: 'callout.view' },
-    { href: '/safety', label: 'Safety Files', permission: 'safety.view' },
+    { href: '/help', label: 'Help & Guide' },
+  ],
+  administration: [
     { href: '/admin/users', label: 'Users & Roles', roles: ['sysadmin', 'admin'] },
     { href: '/admin/audit', label: 'Audit Log', roles: ['sysadmin', 'admin'] },
   ],
@@ -137,25 +137,27 @@ export default function PortalShell({ children }: { children: React.ReactNode })
             })}
           </div>
         </nav>
-        <div className="border-t border-steel-dark/60 bg-coal">
-          <div className="px-6 sm:px-8 flex items-center gap-6 justify-center overflow-x-auto">
-            {secondary.map(item => {
-              const active = pathname === item.href || pathname.startsWith(item.href + '/')
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`relative py-4 text-[11px] uppercase tracking-[0.24em] transition-colors ${
-                    active ? 'text-fire-orange' : 'text-ash hover:text-ink-text'
-                  }`}
-                >
-                  {item.label}
-                  {active && <span className="absolute inset-x-0 bottom-0 h-[2px] bg-fire-orange" />}
-                </Link>
-              )
-            })}
-          </div>
-        </div>
+        {secondary.length > 1 && (
+          <nav className="border-t border-steel-dark/60 bg-coal" aria-label={`${primary.label} navigation`}>
+            <div className="px-6 sm:px-8 flex items-center gap-6 justify-center overflow-x-auto">
+              {secondary.map(item => {
+                const active = pathname === item.href || pathname.startsWith(item.href + '/')
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`relative py-4 text-[11px] uppercase tracking-[0.24em] transition-colors ${
+                      active ? 'text-fire-orange' : 'text-ash hover:text-ink-text'
+                    }`}
+                  >
+                    {item.label}
+                    {active && <span className="absolute inset-x-0 bottom-0 h-[2px] bg-fire-orange" />}
+                  </Link>
+                )
+              })}
+            </div>
+          </nav>
+        )}
       </header>
 
       <main className="px-6 sm:px-10 py-8 sm:py-10">

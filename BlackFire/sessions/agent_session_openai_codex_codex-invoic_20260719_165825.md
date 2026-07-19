@@ -27,6 +27,7 @@ Active model: GPT-5 Codex  Status: not listed in the current workspace trust mat
 - Established `packages/types` as the shared dashboard contract and made both PHP and Next.js endpoints return that contract so Expo does not rely on web-only or mock data.
 - Reframed the Expo Quote Log as a responsive finance workspace rather than a stack of oversized cards, following the project's app-UI hierarchy and density standards.
 - Normalized PHP quote fields at the shared client boundary so Expo consumes the same typed quote contract as Next.js.
+- Reorganized the Next.js navigation around six explicit work areas and limited contextual submenus to sections with multiple destinations.
 
 ## Work Done
 - Constitution, memory index, and session-log schema verified at session start.
@@ -46,6 +47,8 @@ Active model: GPT-5 Codex  Status: not listed in the current workspace trust mat
 - Corrected missing quote references and zero totals by mapping PHP `quote_no`/`ref_id`/`total_amount` fields into the shared `Quote` contract.
 - Restored BlackFire display, body, and mono font loading on Expo web and native using the exact shared token family names.
 - Passed Expo TypeScript and diff validation, completed a 554-module Expo web export with all three brand font assets, restarted port 8081, and confirmed HTTP 200.
+- Split Safety and Administration out of the Dashboard/Support navigation, moved Users & Roles and Audit Log under Administration, moved Help under Support, and removed the duplicate Finance Ledger anchor.
+- Hid the contextual submenu for single-destination sections such as Dashboard and Safety, added an accessible section-specific navigation label, passed the Next.js production build, and restarted port 3000.
 
 ## Agent Accountability
 
@@ -53,6 +56,7 @@ Active model: GPT-5 Codex  Status: not listed in the current workspace trust mat
 |---------|---------------|--------------|--------|------------|------|
 | dashboard-graph-usage-001 | uMakhi + uMdwebi | OpenAI Codex | COMPLETED | 2/3, 2/2 | PHP, Next.js, and Expo implementations synchronized and build-verified. |
 | mobile-quotes-design-008 | uMakhi + uMdwebi | OpenAI Codex | COMPLETED | 1/3, 1/2 | Quote data contract and responsive finance workspace rebuilt and export-verified. |
+| next-navigation-ia-009 | uMakhi + uMdwebi | OpenAI Codex | COMPLETED | 1/3, 1/2 | Navigation information architecture simplified and production-build verified. |
 
 ## Blockers / Next Steps
 - The optional gstack browser build was not approved, so no new automated screenshot was captured in this session.
@@ -66,6 +70,7 @@ Active model: GPT-5 Codex  Status: not listed in the current workspace trust mat
 - A shared typed dashboard contract prevents the mobile app from silently falling back to partial KPI payloads or fabricated trend values.
 - Expo list screens must normalize PHP's persistence-shaped payloads before rendering; otherwise polished components still display blank references and false zero values.
 - Skipping custom fonts on Expo web breaks the shared design system even when screens use the correct tokens; registration keys must exactly match the token family names.
+- A contextual submenu must contain only destinations owned by its active work area; mixing safety and administration into Dashboard makes hierarchy impossible to infer.
 
 ## Goal Status
 PENDING

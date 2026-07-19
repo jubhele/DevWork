@@ -1,0 +1,14 @@
+﻿{
+    "provider":  "OpenAI Codex",
+    "session_id":  "codex-email-digest-multiday-20260719",
+    "log_path":  "C:\\DevWork\\BlackFire\\sessions\\agent_session_openai_codex_codex-email-_20260719_195306.md",
+    "project_status":  "resolved",
+    "project_name":  "BlackFire",
+    "project_root":  "C:\\DevWork\\BlackFire",
+    "project_source":  "explicit_user_binding",
+    "binding_version":  1,
+    "binding_updated_at":  "2026-07-19T19:53:07.0549911+02:00",
+    "prompt_count":  2,
+    "created_at":  "2026-07-19T19:53:06.4121330+02:00",
+    "updated_at":  "2026-07-19T19:59:18.5896012+02:00"
+}

@@ -1605,7 +1605,13 @@ textarea.saf-cmt { resize:vertical; min-height:28px; width:100% }
 .digest-email-note strong   { color:var(--text) }
 .digest-enable-row          { display:flex; align-items:center; gap:9px; margin-bottom:14px; font-size:13px; font-weight:600; color:var(--text); cursor:pointer }
 .digest-enable-row input    { width:17px; height:17px; accent-color:var(--ember) }
-.digest-schedule-grid       { grid-template-columns:repeat(3,minmax(0,1fr)) }
+.digest-schedule-grid       { grid-template-columns:minmax(0,1fr) minmax(180px,1.35fr) minmax(0,1fr); align-items:start }
+.digest-weekday-group       { min-width:0; margin:0; padding:0; border:0 }
+.digest-weekday-list        { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); border:1px solid var(--border); background:var(--surface) }
+.digest-weekday-option      { display:flex; align-items:center; gap:7px; min-height:32px; padding:5px 8px; border-bottom:1px solid var(--border); font-size:11px; color:var(--text); cursor:pointer }
+.digest-weekday-option:nth-child(odd) { border-right:1px solid var(--border) }
+.digest-weekday-option:nth-last-child(-n+2) { border-bottom:0 }
+.digest-weekday-option input { width:15px; height:15px; margin:0; accent-color:var(--ember) }
 .digest-section-label       { margin:15px 0 7px }
 .digest-view-list           { border:1px solid var(--border); background:var(--surface); max-height:220px; overflow-y:auto }
 .digest-view-row            { display:flex; align-items:center; gap:10px; min-height:42px; padding:9px 12px; border-bottom:1px solid var(--border); font-size:12px; color:var(--text); cursor:pointer }

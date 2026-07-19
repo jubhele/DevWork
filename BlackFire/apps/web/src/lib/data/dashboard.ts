@@ -1,5 +1,5 @@
 import { db, schema } from '@/db/client'
-import { and, count, eq, inArray, sql } from 'drizzle-orm'
+import { and, count, desc, eq, inArray, sql } from 'drizzle-orm'
 import type {
   DashboardCashComparison,
   DashboardData,
@@ -249,20 +249,25 @@ export async function getDashboardData(user: DashboardUser): Promise<DashboardDa
 
   let usage: DashboardUsageRow[] = []
   if (canViewUsage(user)) {
+    const lastActivity = sql<Date | string | null>`MAX(CASE WHEN ${bfAuditLog.action} NOT IN ('LOGIN_FAIL','MOBILE_LOGIN_FAIL','RESET_REQUEST') THEN ${bfAuditLog.createdAt} END)`.as('last_activity')
+    const currentLogins = sql<number>`SUM(CASE WHEN ${bfAuditLog.createdAt} >= DATE_SUB(CURDATE(), INTERVAL 6 DAY) AND ${bfAuditLog.action} IN ('LOGIN','MOBILE_LOGIN') THEN 1 ELSE 0 END)`.as('current_logins')
+    const previousLogins = sql<number>`SUM(CASE WHEN ${bfAuditLog.createdAt} >= DATE_SUB(CURDATE(), INTERVAL 13 DAY) AND ${bfAuditLog.createdAt} < DATE_SUB(CURDATE(), INTERVAL 6 DAY) AND ${bfAuditLog.action} IN ('LOGIN','MOBILE_LOGIN') THEN 1 ELSE 0 END)`.as('previous_logins')
+    const pageViews = sql<number>`SUM(CASE WHEN ${bfAuditLog.createdAt} >= DATE_SUB(CURDATE(), INTERVAL 6 DAY) AND ${bfAuditLog.action} = 'PAGE_VIEW' THEN 1 ELSE 0 END)`.as('page_views')
+    const actions = sql<number>`SUM(CASE WHEN ${bfAuditLog.createdAt} >= DATE_SUB(CURDATE(), INTERVAL 6 DAY) AND ${bfAuditLog.action} NOT IN ('LOGIN','MOBILE_LOGIN','LOGIN_FAIL','MOBILE_LOGIN_FAIL','LOGOUT','PAGE_VIEW') THEN 1 ELSE 0 END)`.as('actions')
     const rows = await db.select({
       username: bfUsers.username,
       name: bfUsers.name,
       lastLogin: bfUsers.lastLogin,
-      lastActivity: sql<Date | string | null>`MAX(CASE WHEN ${bfAuditLog.action} NOT IN ('LOGIN_FAIL','MOBILE_LOGIN_FAIL','RESET_REQUEST') THEN ${bfAuditLog.createdAt} END)`,
-      currentLogins: sql<number>`SUM(CASE WHEN ${bfAuditLog.createdAt} >= DATE_SUB(CURDATE(), INTERVAL 6 DAY) AND ${bfAuditLog.action} IN ('LOGIN','MOBILE_LOGIN') THEN 1 ELSE 0 END)`,
-      previousLogins: sql<number>`SUM(CASE WHEN ${bfAuditLog.createdAt} >= DATE_SUB(CURDATE(), INTERVAL 13 DAY) AND ${bfAuditLog.createdAt} < DATE_SUB(CURDATE(), INTERVAL 6 DAY) AND ${bfAuditLog.action} IN ('LOGIN','MOBILE_LOGIN') THEN 1 ELSE 0 END)`,
-      pageViews: sql<number>`SUM(CASE WHEN ${bfAuditLog.createdAt} >= DATE_SUB(CURDATE(), INTERVAL 6 DAY) AND ${bfAuditLog.action} = 'PAGE_VIEW' THEN 1 ELSE 0 END)`,
-      actions: sql<number>`SUM(CASE WHEN ${bfAuditLog.createdAt} >= DATE_SUB(CURDATE(), INTERVAL 6 DAY) AND ${bfAuditLog.action} NOT IN ('LOGIN','MOBILE_LOGIN','LOGIN_FAIL','MOBILE_LOGIN_FAIL','LOGOUT','PAGE_VIEW') THEN 1 ELSE 0 END)`,
+      lastActivity,
+      currentLogins,
+      previousLogins,
+      pageViews,
+      actions,
     }).from(bfUsers)
       .leftJoin(bfAuditLog, eq(bfAuditLog.username, bfUsers.username))
       .where(eq(bfUsers.active, 1))
       .groupBy(bfUsers.id, bfUsers.username, bfUsers.name, bfUsers.lastLogin)
-      .orderBy(sql`currentLogins DESC, pageViews DESC, actions DESC, ${bfUsers.name} ASC`)
+      .orderBy(desc(currentLogins), desc(pageViews), desc(actions), bfUsers.name)
     usage = rows.map(row => ({
       username: row.username,
       name: row.name,

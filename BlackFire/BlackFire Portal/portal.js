@@ -6661,6 +6661,7 @@ async function showEmailDigestSettings(){
   if(!response.success){ toast(response.error || 'Could not load email digest settings', 'err'); return; }
   const prefs = response.preferences || {};
   const weekdays = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  const selectedWeekdays = prefs.weekdays || [Number(prefs.weekday) || 1];
   const viewRows = (response.allowed_views || []).map(view => `
     <label class="digest-view-row">
       <input type="checkbox" value="${esc(view.id)}"${(prefs.views||[]).includes(view.id)?' checked':''}>
@@ -6673,7 +6674,7 @@ async function showEmailDigestSettings(){
     <label class="digest-enable-row"><input type="checkbox" id="digest-enabled"${prefs.enabled?' checked':''}><span>Enable scheduled email digest</span></label>
     <div class="fgrid digest-schedule-grid">
       <div class="fgroup"><label class="flbl" for="digest-frequency">Frequency</label><select class="finput" id="digest-frequency"><option value="daily"${prefs.frequency==='daily'?' selected':''}>Daily</option><option value="weekly"${prefs.frequency==='weekly'?' selected':''}>Weekly</option></select></div>
-      <div class="fgroup" id="digest-weekday-group"><label class="flbl" for="digest-weekday">Day</label><select class="finput" id="digest-weekday">${weekdays.map((day,index)=>`<option value="${index+1}"${Number(prefs.weekday)===index+1?' selected':''}>${day}</option>`).join('')}</select></div>
+      <fieldset class="fgroup digest-weekday-group" id="digest-weekday-group"><legend class="flbl">Days</legend><div class="digest-weekday-list">${weekdays.map((day,index)=>`<label class="digest-weekday-option"><input type="checkbox" value="${index+1}"${selectedWeekdays.map(Number).includes(index+1)?' checked':''}><span>${day}</span></label>`).join('')}</div></fieldset>
       <div class="fgroup"><label class="flbl" for="digest-send-time">Send time</label><input class="finput" type="time" id="digest-send-time" value="${esc(prefs.send_time||'07:00')}"></div>
     </div>
     <div class="flbl digest-section-label">Dashboard sections</div>
@@ -6688,11 +6689,14 @@ async function showEmailDigestSettings(){
 
 async function saveEmailDigestSettings(){
   const button = document.querySelector('[data-action="saveEmailDigestSettings"]');
+  const frequency = document.getElementById('digest-frequency')?.value || 'daily';
+  const weekdays = [...document.querySelectorAll('#digest-weekday-group input[type="checkbox"]:checked')].map(input=>Number(input.value));
+  if(frequency === 'weekly' && weekdays.length === 0){ toast('Select at least one delivery day', 'err'); return; }
   if(button) button.disabled = true;
   const payload = {
     enabled: document.getElementById('digest-enabled')?.checked || false,
-    frequency: document.getElementById('digest-frequency')?.value || 'daily',
-    weekday: Number(document.getElementById('digest-weekday')?.value || 1),
+    frequency,
+    weekdays,
     send_time: document.getElementById('digest-send-time')?.value || '07:00',
     views: [...document.querySelectorAll('#digest-view-list input[type="checkbox"]:checked')].map(input=>input.value),
   };

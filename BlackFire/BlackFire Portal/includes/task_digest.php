@@ -36,7 +36,16 @@ function task_digest_normalize_preferences(mixed $raw, array $allowed_view_ids):
     $send_time = preg_match('/^(?:[01]\d|2[0-3]):[0-5]\d$/', (string)($raw['send_time'] ?? ''))
         ? $raw['send_time']
         : '07:00';
-    $weekday = min(7, max(1, (int)($raw['weekday'] ?? 1)));
+    $legacy_weekday = min(7, max(1, (int)($raw['weekday'] ?? 1)));
+    $requested_weekdays = is_array($raw['weekdays'] ?? null)
+        ? $raw['weekdays']
+        : [$legacy_weekday];
+    $weekdays = array_values(array_unique(array_filter(
+        array_map('intval', $requested_weekdays),
+        fn(int $weekday): bool => $weekday >= 1 && $weekday <= 7
+    )));
+    sort($weekdays);
+    if (!$weekdays) $weekdays = [$legacy_weekday];
     $requested_views = is_array($raw['views'] ?? null) ? $raw['views'] : [];
     $views = array_values(array_unique(array_intersect(
         array_map('strval', $requested_views),
@@ -46,7 +55,8 @@ function task_digest_normalize_preferences(mixed $raw, array $allowed_view_ids):
     return [
         'enabled'   => filter_var($raw['enabled'] ?? false, FILTER_VALIDATE_BOOL),
         'frequency' => $frequency,
-        'weekday'   => $weekday,
+        'weekday'   => $weekdays[0],
+        'weekdays'  => $weekdays,
         'send_time' => $send_time,
         'views'     => $views,
     ];
@@ -61,8 +71,8 @@ function task_digest_is_due(array $preferences, ?string $last_sent_at, DateTimeI
 
     $last_sent = $last_sent_at ? new DateTimeImmutable($last_sent_at, $now->getTimezone()) : null;
     if ($preferences['frequency'] === 'weekly') {
-        if ((int)$now->format('N') !== (int)$preferences['weekday']) return false;
-        return !$last_sent || $last_sent->format('o-W') !== $now->format('o-W');
+        if (!in_array((int)$now->format('N'), $preferences['weekdays'], true)) return false;
+        return !$last_sent || $last_sent->format('Y-m-d') !== $now->format('Y-m-d');
     }
 
     return !$last_sent || $last_sent->format('Y-m-d') !== $now->format('Y-m-d');

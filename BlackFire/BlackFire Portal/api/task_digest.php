@@ -95,7 +95,15 @@ if ($method === 'GET') {
 
 if ($method === 'PUT') {
     if (empty($row['email'])) json_err('Add an email address to your portal profile before enabling digests');
-    $preferences = task_digest_normalize_preferences(get_body(), $context['allowed_view_ids']);
+    $body = get_body();
+    $submitted_weekdays = is_array($body['weekdays'] ?? null)
+        ? array_filter(array_map('intval', $body['weekdays']), fn(int $weekday): bool => $weekday >= 1 && $weekday <= 7)
+        : [];
+    $submitted_legacy_weekday = filter_var($body['weekday'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 7]]);
+    if (($body['frequency'] ?? '') === 'weekly' && filter_var($body['enabled'] ?? false, FILTER_VALIDATE_BOOL) && !$submitted_weekdays && $submitted_legacy_weekday === false) {
+        json_err('Select at least one delivery day for the weekly digest');
+    }
+    $preferences = task_digest_normalize_preferences($body, $context['allowed_view_ids']);
     if ($preferences['enabled'] && !$preferences['views'] && !task_digest_has_permission($context['permissions'], 'task.view')) {
         json_err('Select at least one dashboard section before enabling the digest');
     }
