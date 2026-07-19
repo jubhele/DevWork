@@ -10,6 +10,7 @@ import type {
   SafetyFile,
   Statement,
   DashboardKPIs,
+  DashboardResponse,
   AuditEvent,
   Task,
   TaskCategory,
@@ -143,6 +144,8 @@ export const auth = {
 export const dashboard = {
   kpis: (token?: string) =>
     apiFetch<ApiResponse<DashboardKPIs>>('/api/dashboard', { token }),
+  summary: (token?: string) =>
+    apiFetch<DashboardResponse>('/api/dashboard', { token }),
 }
 
 // ─── Callouts ────────────────────────────────────────────────────────────────

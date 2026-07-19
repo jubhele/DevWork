@@ -268,11 +268,82 @@ export interface DashboardKPIs {
   urgent_tasks: number
   tasks_due_today: number
   open_callouts: number
+  urgent_callouts: number
   overdue_invoices: number
   mtd_revenue: number
   safety_score: number | null
   pending_quotes: number
   active_clients: number
+}
+
+export interface DashboardAmountSummary {
+  invoiced: number
+  outstanding: number
+  net_cash_movement: number
+  quote_pipeline: number
+}
+
+export interface DashboardRunRateMonth {
+  label: string
+  month: string
+  count: number
+  amount: number
+}
+
+export interface DashboardRunRate {
+  period_label: string
+  period_start: string
+  period_end: string
+  average_count: number
+  average_amount: number
+  total_count: number
+  total_amount: number
+  months: DashboardRunRateMonth[]
+}
+
+export interface DashboardCashComparison {
+  key: 'mtd' | 'qtd' | 'ytd'
+  label: string
+  current: number
+  previous: number
+  change_percent: number | null
+}
+
+export interface DashboardDueSoonRecord {
+  record_type: 'Task' | 'Callout' | 'Invoice' | 'Quote'
+  ref_id: string
+  record_title: string
+  assignee: string
+  due_date: string
+}
+
+export interface DashboardUsageRow {
+  username: string
+  name: string
+  last_login: string | null
+  last_activity: string | null
+  current_logins: number
+  previous_logins: number
+  page_views: number
+  actions: number
+}
+
+export interface DashboardData {
+  data: DashboardKPIs
+  amounts: DashboardAmountSummary
+  invoice_run_rate: DashboardRunRate
+  cash_comparisons: DashboardCashComparison[]
+  due_soon: DashboardDueSoonRecord[]
+  usage: DashboardUsageRow[]
+  usage_period_days: number
+  recent_tasks: Pick<Task, 'ref_id' | 'category' | 'title' | 'status' | 'priority' | 'assigned_to' | 'due_date' | 'source_callout_ref' | 'created_at'>[]
+  task_streams: TaskStreamCounts
+  recent_callouts: { ref_id: string; client_name: string; service: string; status: string; priority: string; callout_date: string | null }[]
+  monthly_revenue: { label: string; value: number }[]
+}
+
+export interface DashboardResponse extends DashboardData {
+  success: boolean
 }
 
 export interface AuditEvent {
@@ -335,11 +406,6 @@ export interface TaskStreamCounts {
   admin: number
   sales: number
   general: number
-}
-
-export interface DashboardResponse extends ApiResponse<DashboardKPIs> {
-  recent_tasks: Task[]
-  task_streams: TaskStreamCounts
 }
 
 export interface TrackerUpdate {

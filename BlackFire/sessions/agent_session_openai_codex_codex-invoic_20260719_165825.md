@@ -1,0 +1,63 @@
+﻿# Session: Constitution-enforced OpenAI Codex session
+Date: 2026-07-19
+Provider: OpenAI Codex
+Model: GPT-5 Codex
+Project: BlackFire
+Project Root: C:\DevWork\BlackFire
+
+## Project Determination
+Status: resolved
+Source: explicit_user_binding
+
+## Goal
+Show both the invoice count and invoiced monetary value for every month directly on the Invoice Run Rate graph, change Portal Usage by User to seven-day login-based activity with visibly flagged inactive users, and keep the complete dashboard experience synchronized across the PHP portal, Next.js web portal, and Expo mobile app.
+
+## Model Recommendation
+Initial task tier: 1-Fast / Cheap; expanded task tier: 3-Complex after the user requested synchronization across PHP, Next.js, and Expo.
+Recommended model for expanded scope: o3 / o1  Trust score: 9/10
+Active model: GPT-5 Codex  Status: not listed in the current workspace trust matrix; user was advised and work continued with full build verification.
+
+## Decisions
+- Session created automatically by the SessionStart enforcement hook.
+- Routed by uMlawuli through uSibali to uMakhi, with uMdwebi responsible for graph-label readability.
+- Displayed compact Rand values above the run-rate bars while retaining the exact full amount in the graph tooltip and accessible label.
+- Defined an active portal user strictly as someone with at least one successful web or mobile login in the current seven-day window.
+- Compared the current seven calendar days, including today, against the immediately preceding seven days; page views and actions use the current seven-day window but do not override inactive status.
+- Defined the three synchronized platforms as the PHP portal, Next.js web portal, and Expo mobile app.
+- Established `packages/types` as the shared dashboard contract and made both PHP and Next.js endpoints return that contract so Expo does not rely on web-only or mock data.
+
+## Work Done
+- Constitution, memory index, and session-log schema verified at session start.
+- Updated the Invoice Run Rate graph to show monthly invoice count and compact Rand amount directly above every bar.
+- Added exact count and amount details to each graph bar's tooltip and accessible label.
+- Changed dashboard usage SQL from 30-day windows to current and preceding seven-day windows.
+- Added Active/Inactive status, inactive-row highlighting, an inactive summary badge, and seven-day table labels to Portal Usage by User.
+- Verified `portal.js` with `node --check`, `api/dashboard.php` with `php -l`, and the working diff with `git diff --check`.
+- Exercised the dashboard endpoint against the local database: the seven-day response succeeded for 12 enabled users and identified 2 users with no successful login as inactive.
+- Added shared dashboard types covering consolidated KPIs, monetary summaries, invoice run rate, cash comparisons, due-soon records, and usage rows.
+- Extended the PHP dashboard endpoint to return the complete shared contract used by mobile, including date-driven overdue invoices and urgent callouts.
+- Rebuilt the Next.js dashboard with one Counts row, one Amounts row, one Attention row, real invoice count/value run rate, combined cash comparisons, approaching deadlines, and permission-scoped seven-day user usage.
+- Rebuilt the Expo dashboard to consume `dashboard.summary()` and present the same metrics using real server data; removed its mocked trend series.
+- Verified the PHP contract against the local database: 5 invoice-run months, 3 cash comparisons, 12 usage users, a 7-day window, and 5 urgent callouts were returned successfully.
+- Passed Next.js and Expo TypeScript checks, Next.js ESLint, the Next.js production build, Expo web export (550 modules), PHP/JavaScript syntax checks, and the 36-route portal parity test.
+
+## Agent Accountability
+
+| Task ID | Assigned Agent | Completed By | Status | Iterations | Note |
+|---------|---------------|--------------|--------|------------|------|
+| dashboard-graph-usage-001 | uMakhi + uMdwebi | OpenAI Codex | COMPLETED | 2/3, 2/2 | PHP, Next.js, and Expo implementations synchronized and build-verified. |
+
+## Blockers / Next Steps
+- The optional gstack browser build was not approved, so no new automated screenshot was captured in this session.
+- Deployment was not requested or performed; awaiting user review and confirmation.
+
+## Learnings
+- Compact monetary labels keep month-by-month graph values readable while tooltips preserve exact financial amounts.
+- Portal adoption status must use a clear qualifying event; treating unrelated actions as active use can hide users who have not actually logged in.
+- A seven-day current-versus-prior comparison provides a faster intervention signal than the previous 30-day window.
+- Mobile dashboard requests resolve to the PHP API through the shared client, so PHP and Next.js must expose the same response shape; synchronizing UI alone is insufficient.
+- A shared typed dashboard contract prevents the mobile app from silently falling back to partial KPI payloads or fabricated trend values.
+
+## Goal Status
+PENDING
+

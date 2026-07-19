@@ -17,6 +17,15 @@ api_headers();
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $user    = require_auth();
     $body    = get_body();
+    $action  = clean($_GET['action'] ?? '', 30);
+
+    if ($action === 'activity') {
+        $page = clean($body['page'] ?? '', 100);
+        if (!preg_match('/^p-[a-z0-9-]+$/', $page)) json_err('Invalid page');
+        audit($user['username'], 'PAGE_VIEW', $page);
+        json_ok(['ok' => true]);
+    }
+
     $comment = clean($body['comment'] ?? '', 500);
     $page    = clean($body['page']    ?? '', 100);
     if (!$comment) json_err('Comment is required');

@@ -7,6 +7,6 @@ export async function GET() {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ success: false, message: 'Unauthenticated' }, { status: 401 })
 
-  const data = await getDashboardData(user.role)
+  const data = await getDashboardData(user)
   return NextResponse.json({ success: true, ...data })
 }

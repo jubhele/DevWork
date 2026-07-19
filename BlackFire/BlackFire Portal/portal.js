@@ -633,7 +633,7 @@ function can(perm){
 /* ═══════════════════════════════════════════════════════
    IN-MEMORY CACHE (populated from API on login/refresh)
 ═══════════════════════════════════════════════════════ */
-let DB = { callouts:[], quotes:[], invoices:[], bank:[], users:[], safetyFiles:[], clients:[], tasks:[] };
+let DB = { callouts:[], quotes:[], invoices:[], bank:[], users:[], safetyFiles:[], clients:[], tasks:[], dashboard:{} };
 let SESSION = null;
 let AUDIT_LOG = [];
 let _dashPrefsCache = null; // populated from DB at login via loadDashPrefsFromAPI()
@@ -868,8 +868,12 @@ function populateLinkedDropdowns() {
     if (cur) niCalloutEl.value = cur;
   }
 }
+async function refreshDashboardAnalytics() {
+  const r = await api('GET', 'dashboard.php');
+  if (r.success) DB.dashboard = r;
+}
 async function refreshAll() {
-  const tasks = [];
+  const tasks = [refreshDashboardAnalytics()];
   if (can('callout.view')) tasks.push(refreshCallouts());
   if (can('quote.view')) tasks.push(refreshQuotes());
   if (can('invoice.view')) tasks.push(refreshInvoices());
@@ -1018,6 +1022,7 @@ const proxyDB = {
   get safetyFiles() { return (DB.safetyFiles || []).map(normalizeSafetyFile); },
   get clients()     { return DB.clients || []; },
   get tasks()       { return DB.tasks || []; },
+  get dashboard()   { return DB.dashboard || {}; },
   get counters()    { return { co:0, q:0, inv:0 }; },
 };
 
@@ -1156,7 +1161,7 @@ async function doLogout(){
   await api('POST', 'auth.php?action=logout');
   SESSION = null;
   _dashPrefsCache = null;
-  DB = { callouts:[], quotes:[], invoices:[], bank:[], users:[], safetyFiles:[], clients:[] };
+  DB = { callouts:[], quotes:[], invoices:[], bank:[], users:[], safetyFiles:[], clients:[], tasks:[], dashboard:{} };
   document.getElementById('l-user').value = '';
   document.getElementById('l-pass').value = '';
   document.getElementById('login-error').classList.remove('show');
@@ -1455,6 +1460,16 @@ function toast(msg,type=''){
 function audit(action,detail=''){
   AUDIT_LOG.unshift({ts:new Date().toISOString(),user:SESSION?.username||'?',role:SESSION?.role||'?',action,detail,level:'info'});
   if(AUDIT_LOG.length>200) AUDIT_LOG.pop();
+}
+
+let _lastPageView = {page:'', at:0};
+function recordPageView(pageId){
+  audit('VIEW', pageId);
+  if(!SESSION || !/^p-[a-z0-9-]+$/.test(pageId)) return;
+  const now = Date.now();
+  if(_lastPageView.page===pageId && now-_lastPageView.at<30000) return;
+  _lastPageView = {page:pageId, at:now};
+  api('POST','audit.php?action=activity',{page:pageId}).catch(()=>{});
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -3322,7 +3337,7 @@ function showPortalPage(id, el){
   document.querySelectorAll('.pnitem').forEach(n=>n.classList.remove('active'));
   if(el) el.classList.add('active');
   else { const found=document.querySelector(`.pnitem[data-page="${id}"]`); if(found) found.classList.add('active'); }
-  audit('VIEW',id);
+  recordPageView(id);
   renderInfoPanel(id);
   syncFinancePeriodControls();
   // Render with current data immediately, then async-refresh and re-render
@@ -3410,16 +3425,22 @@ function renderDashboard(){
   const mtd            = periodInvoices.reduce((a,i)=>a+i.amount,0);
   const net            = periodBank.reduce((a,b)=>a+(b.credit||0)-(b.debit||0),0);
   const completedMTD   = proxyDB.callouts.filter(c=>{const cd=new Date(c.date+'T00:00:00');return (c.status==='Completed'||c.status==='Invoiced')&&cd.getMonth()===now.getMonth()&&cd.getFullYear()===now.getFullYear();}).length;
-  const outstandingVal = periodInvoices.filter(i=>i.status==='Sent'||i.status==='Overdue').reduce((a,i)=>a+i.amount,0);
+  const outstandingVal = proxyDB.invoices.filter(i=>i.status==='Sent'||i.status==='Overdue').reduce((a,i)=>a+i.amount,0);
   const ytd            = periodBank.filter(b=>b.cat==='Invoice Payment'&&b.credit>0).reduce((a,b)=>a+b.credit,0);
   const quotePipeVal   = periodQuotes.filter(q=>q.status==='Sent'||q.status==='Pending Approval').reduce((a,q)=>a+(q.totalAmount||((q.items||[]).reduce((s,it)=>s+((it.qty||0)*(it.unit||0)),0))),0);
-  const overdue        = periodInvoices.filter(i=>i.status==='Overdue').length;
+  const overdue        = proxyDB.invoices.filter(i=>i.dueDate&&i.dueDate<localDateStr()&&!['Paid','Cancelled'].includes(i.status)).length;
   const urgent         = proxyDB.callouts.filter(c=>(c.priority==='Urgent'||c.priority==='Emergency')&&(c.status==='Open'||c.status==='In Progress')).length;
   const pendingQA      = proxyDB.quotes.filter(q=>q.approvalStatus==='pending').length;
   const months = financePeriodMonths();
   const revData = months.map(m=>periodBank.filter(b=>b.cat==='Invoice Payment'&&b.credit>0&&String(b.date||'').slice(0,7)===m.ym).reduce((a,b)=>a+b.credit,0));
+  const invoiceAmounts = months.map(m=>periodInvoices.filter(i=>String(i.date||'').slice(0,7)===m.ym).reduce((a,i)=>a+i.amount,0));
+  const invoiceCounts = months.map(m=>periodInvoices.filter(i=>String(i.date||'').slice(0,7)===m.ym).length);
+  const dueSoonRows = proxyDB.dashboard.due_soon || [];
+  const usageRows = proxyDB.dashboard.usage || [];
+  const usagePeriodDays = Number(proxyDB.dashboard.usage_period_days) || 7;
+  const activeClients = Number(proxyDB.dashboard.data?.active_clients ?? proxyDB.clients.filter(c=>c.active!==false).length);
 
-  const d = { now, openTasks, urgentTasks, tasksDueToday, open, pq, mtd, net, completedMTD, outstandingVal, ytd, quotePipeVal, overdue, urgent, pendingQA, months, revData, periodInvoices, periodLabel, periodShortLabel };
+  const d = { now, openTasks, urgentTasks, tasksDueToday, open, pq, mtd, net, completedMTD, outstandingVal, ytd, quotePipeVal, overdue, urgent, pendingQA, months, revData, invoiceAmounts, invoiceCounts, dueSoonRows, usageRows, usagePeriodDays, activeClients, periodInvoices, periodLabel, periodShortLabel };
 
   let html = _dashExecutiveSummary(d);
   let hasContent = false;
@@ -3444,54 +3465,89 @@ function renderDashboard(){
 
 /* ── Per-widget block builders ─────────────────────── */
 function _dashExecutiveSummary(d){
-  const activeWork = d.openTasks + d.open;
-  const attention = d.urgentTasks + d.urgent + d.overdue + d.pendingQA;
-  const maxRev = Math.max(...d.revData, 1);
-  const revBars = d.revData.map((v,i)=>`<div class="exec-trend-bar-wrap"><div class="exec-trend-val">${v>0?'R'+Math.round(v/1000)+'K':''}</div><div class="exec-trend-bar" style="height:${Math.max(6,Math.round((v/maxRev)*100))}%"></div><div class="exec-trend-label">${d.months[i].lbl}</div></div>`).join('');
-  const streamTotal = Math.max(activeWork, 1);
-  const openTaskStreams = proxyDB.tasks.filter(t=>t.status==='Open'||t.status==='In Progress');
-  const streams = [
-    {label:'Admin', value:openTaskStreams.filter(t=>t.category==='admin').length},
-    {label:'Sales', value:openTaskStreams.filter(t=>t.category==='sales').length},
-    {label:'General', value:openTaskStreams.filter(t=>t.category==='general').length},
-    {label:'Call Log', value:d.open},
-  ].map(s=>`<div class="exec-status-row"><span>${s.label}</span><strong>${s.value}</strong><div class="exec-status-meter"><i style="width:${Math.round(s.value/streamTotal*100)}%"></i></div></div>`).join('');
-  const alertCards = [
-    {label:'Urgent Tasks', value:d.urgentTasks, sub:'Internal work', tone:d.urgentTasks>0?'warn':''},
-    {label:'Urgent Callouts', value:d.urgent, sub:'Priority dispatch', tone:d.urgent>0?'warn':''},
-    {label:'Overdue Invoices', value:d.overdue, sub:'Finance follow-up', tone:d.overdue>0?'danger':''},
-    {label:'Quote Approvals', value:d.pendingQA, sub:'Manager review', tone:d.pendingQA>0?'info':''},
-  ].map(a=>`<div class="exec-alert-card ${a.tone}"><div class="exec-alert-label">${a.label}</div><div class="exec-alert-value">${a.value}</div><div class="exec-alert-sub">${a.sub}</div></div>`).join('');
+  const countCards = [
+    can('task.view') ? {label:'Open Tasks',value:d.openTasks,sub:'Admin, sales and general'} : null,
+    can('callout.view') ? {label:'Open Callouts',value:d.open,sub:'Operational jobs'} : null,
+    can('quote.view') ? {label:'Pending Quotes',value:d.pq,sub:'Draft, sent or awaiting approval'} : null,
+    can('clients.view') ? {label:'Active Clients',value:d.activeClients,sub:'Enabled client accounts'} : null,
+  ].filter(Boolean).map(a=>`<div class="exec-kpi"><span>${a.label}</span><strong>${a.value}</strong><em>${a.sub}</em></div>`).join('');
+  const amountCards = [
+    can('invoice.view') ? {label:`Invoiced ${d.periodShortLabel}`,value:fmt(d.mtd),sub:d.periodLabel} : null,
+    can('invoice.view') ? {label:'Outstanding',value:fmt(d.outstandingVal),sub:'All sent and overdue invoices'} : null,
+    can('finance.income') ? {label:'Net Cash Movement',value:fmt(d.net),sub:'Credits less debits in period'} : null,
+    can('quote.view') ? {label:'Quote Pipeline',value:fmt(d.quotePipeVal),sub:'Active quote value in period'} : null,
+  ].filter(Boolean).map(a=>`<div class="exec-kpi exec-kpi--amount"><span>${a.label}</span><strong>${a.value}</strong><em>${a.sub}</em></div>`).join('');
+  const attentionCards = [
+    can('task.view') ? {label:'Urgent Tasks',value:d.urgentTasks,sub:'Immediate internal attention',tone:d.urgentTasks>0?'warn':''} : null,
+    can('callout.view') ? {label:'Urgent Callouts',value:d.urgent,sub:'Priority dispatch',tone:d.urgent>0?'warn':''} : null,
+    {label:'Due in 7 Days',value:d.dueSoonRows.length,sub:'Intervene before deadline',tone:d.dueSoonRows.length>0?'warn':''},
+    can('invoice.view') ? {label:'Overdue Invoices',value:d.overdue,sub:'Past due and unpaid',tone:d.overdue>0?'danger':''} : null,
+  ].filter(Boolean).map(a=>`<div class="exec-alert-card ${a.tone}"><div class="exec-alert-label">${a.label}</div><div class="exec-alert-value">${a.value}</div><div class="exec-alert-sub">${a.sub}</div></div>`).join('');
+
+  const visibleMonths = d.months.slice(-12);
+  const offset = d.months.length-visibleMonths.length;
+  const visibleAmounts = d.invoiceAmounts.slice(offset);
+  const visibleCounts = d.invoiceCounts.slice(offset);
+  const maxInvoice = Math.max(...visibleAmounts,1);
+  const graphAmount = value => {
+    if(value>=1000000) return `R${(value/1000000).toFixed(value>=10000000?0:1)}M`;
+    if(value>=1000) return `R${Math.round(value/1000)}K`;
+    return `R${Math.round(value)}`;
+  };
+  const runBars = visibleMonths.map((m,i)=>{
+    const count=visibleCounts[i], amount=visibleAmounts[i];
+    const detail=`${count} invoice${count===1?'':'s'} · ${fmt(amount)}`;
+    return `<div class="exec-trend-bar-wrap" title="${detail}" aria-label="${m.lbl}: ${detail}"><div class="exec-trend-val"><strong>${count} inv</strong><span>${graphAmount(amount)}</span></div><div class="exec-trend-bar" style="height:${Math.max(6,Math.round((amount/maxInvoice)*100))}%"></div><div class="exec-trend-label">${m.lbl}</div></div>`;
+  }).join('');
+  const monthDivisor = Math.max(d.months.length,1);
+  const avgInvoiceCount = d.periodInvoices.length/monthDivisor;
+  const avgInvoiceAmount = d.mtd/monthDivisor;
+
+  const today = new Date(); today.setHours(0,0,0,0);
+  const dueRows = d.dueSoonRows.slice(0,12).map(row=>{
+    const due = new Date(`${row.due_date}T00:00:00`);
+    const days = Math.max(0,Math.round((due-today)/86400000));
+    return `<tr><td><span class="badge badge-soft">${esc(row.record_type)}</span></td><td class="mono tc-11">${esc(row.ref_id)}</td><td>${esc(row.record_title||'')}</td><td>${esc(row.assignee||'Unassigned')}</td><td class="mono tc-11">${esc(row.due_date)}</td><td><span class="due-chip ${days<=2?'due-chip--hot':''}">${days===0?'Today':days+'d'}</span></td></tr>`;
+  }).join('') || '<tr><td colspan="6" class="tc-empty-sm">No records are due in the next seven days.</td></tr>';
+
+  const usageRows = d.usageRows.map(row=>{
+    const curr=Number(row.current_logins)||0, prev=Number(row.previous_logins)||0, diff=curr-prev;
+    const inactive=curr===0;
+    const pct=prev?Math.round(Math.abs(diff)/prev*100):null;
+    const delta=diff===0?'No change':`${diff>0?'+':''}${diff}${pct===null?' (new)':' ('+(diff>0?'+':'-')+pct+'%)'}`;
+    const deltaTone=diff>0?'up':diff<0?'down':'flat';
+    const last=row.last_login;
+    return `<tr class="${inactive?'usage-row--inactive':''}"><td><strong>${esc(row.name||row.username)}</strong><div class="tc-11 text-muted">${esc(row.username)}</div></td><td><span class="usage-status usage-status--${inactive?'inactive':'active'}">${inactive?'Inactive':'Active'}</span></td><td class="mono tc-11">${last?esc(String(last).slice(0,16)):'Never'}</td><td class="amt">${curr}</td><td class="amt">${prev}</td><td><span class="usage-delta usage-delta--${deltaTone}">${delta}</span></td><td class="amt">${Number(row.page_views)||0}</td><td class="amt">${Number(row.actions)||0}</td></tr>`;
+  }).join('');
+  const activeUsers=d.usageRows.filter(r=>Number(r.current_logins)>0).length;
+  const inactiveUsers=d.usageRows.length-activeUsers;
+  const usagePanel = usageRows ? `<div class="panel exec-usage-panel"><div class="ph"><div><div class="ph-title">Portal Usage by User</div><div class="panel-subtitle">Last ${d.usagePeriodDays} days compared with the preceding ${d.usagePeriodDays} days; no login means inactive</div></div><div class="usage-summary"><span class="ph-badge">${activeUsers} active</span><span class="ph-badge usage-inactive-badge">${inactiveUsers} inactive</span></div></div><div class="tw"><table><thead><tr><th>User</th><th>Status</th><th>Last Login</th><th>Logins ${d.usagePeriodDays}d</th><th>Prior ${d.usagePeriodDays}d</th><th>Change</th><th>Page Views</th><th>Actions</th></tr></thead><tbody>${usageRows}</tbody></table></div></div>` : '';
 
   return `<section class="exec-dash">
     <div class="exec-hero">
       <div>
         <div class="exec-eyebrow">Executive Dashboard</div>
         <h2>AECI Chempark health check</h2>
-        <p>Leadership view of open work, finance pressure, urgent operations, and compliance attention points.</p>
+        <p>One view of workload counts, financial amounts, deadline risk, invoice run rate, cash collection and portal adoption.</p>
       </div>
       <div class="exec-hero-actions">
         <button class="btn btn-p" data-action="navPage" data-page="p-ops-dashboard">Open Operations</button>
         <button class="btn btn-g" data-action="navPage" data-page="p-finance-dashboard">Review Finance</button>
       </div>
     </div>
-    <div class="exec-kpi-grid">
-      <div class="exec-kpi"><span>Active Work</span><strong>${activeWork}</strong><em>Tasks + callouts</em></div>
-      <div class="exec-kpi"><span>Attention Items</span><strong>${attention}</strong><em>Urgent, overdue, approvals</em></div>
-      <div class="exec-kpi"><span>Invoiced ${d.periodShortLabel}</span><strong>${fmt(d.mtd)}</strong><em>${d.periodLabel}</em></div>
-      <div class="exec-kpi"><span>Active Clients</span><strong>${proxyDB.clients.filter(c=>c.active!==false).length}</strong><em>Client accounts</em></div>
-    </div>
+    <div class="exec-metric-group"><div class="exec-section-label">Counts</div><div class="exec-kpi-grid">${countCards}</div></div>
+    <div class="exec-metric-group"><div class="exec-section-label">Amounts</div><div class="exec-kpi-grid">${amountCards}</div></div>
+    <div class="exec-metric-group"><div class="exec-section-label">Attention</div><div class="exec-alert-grid">${attentionCards}</div></div>
     <div class="exec-trend-row">
       <div class="panel exec-panel">
-        <div class="ph"><div class="ph-title">Revenue Trend</div><span class="ph-badge">${d.periodLabel}</span></div>
-        <div class="exec-trend-chart">${revBars}</div>
+        <div class="ph"><div><div class="ph-title">Invoice Run Rate</div><div class="panel-subtitle">Invoice value and count over ${d.periodLabel.toLowerCase()}</div></div><span class="ph-badge">Avg ${avgInvoiceCount.toFixed(1)} invoices / month</span></div>
+        <div class="exec-trend-chart">${runBars}</div>
+        <div class="exec-run-summary"><span>Average monthly invoice value</span><strong>${fmt(avgInvoiceAmount)}</strong><span>Period total</span><strong>${fmt(d.mtd)}</strong></div>
       </div>
-      <div class="panel exec-panel">
-        <div class="ph"><div class="ph-title">Open Work Status</div><span class="ph-badge">${activeWork} active</span></div>
-        <div class="pb">${streams}</div>
-      </div>
+      ${buildPeriodComparison(d.now)}
     </div>
-    <div class="exec-alert-grid">${alertCards}</div>
+    <div class="panel exec-due-panel"><div class="ph"><div><div class="ph-title">Approaching Deadlines</div><div class="panel-subtitle">Open records due today through the next seven days, ordered by deadline</div></div><span class="ph-badge">${d.dueSoonRows.length} records</span></div><div class="tw"><table><thead><tr><th>Type</th><th>Ref</th><th>Record</th><th>Assigned To</th><th>Due Date</th><th>Remaining</th></tr></thead><tbody>${dueRows}</tbody></table></div></div>
+    ${usagePanel}
   </section>`;
 }
 
@@ -3508,15 +3564,7 @@ function _buildDashBlock(wid, d){
 
 function _dashBlockOps(d){
   if(!can('task.view')&&!can('callout.view')) return '';
-  const {openTasks, urgentTasks, tasksDueToday, open, pq} = d;
-  const kv = v => String(v).length>8 ? ' kval--compact' : '';
-
-  const kpiCards = [
-    can('task.view') ? `<div class="kcard k1"><div class="klbl">Open Tasks</div><div class="kval${kv(openTasks)}">${openTasks}</div><div class="ksub">Admin, Sales & General</div></div>` : '',
-    can('task.view') ? `<div class="kcard k2"><div class="klbl">Urgent Tasks</div><div class="kval${kv(urgentTasks)}">${urgentTasks}</div><div class="ksub">Immediate attention</div></div>` : '',
-    can('callout.view') ? `<div class="kcard k4"><div class="klbl">Open Callouts</div><div class="kval${kv(open)}">${open}</div><div class="ksub">Operational jobs only</div></div>` : '',
-    can('quote.view') ? `<div class="kcard k3"><div class="klbl">Pending Quotes</div><div class="kval${kv(pq)}">${pq}</div><div class="ksub">Awaiting approval</div></div>` : '',
-  ].filter(Boolean).join('');
+  const {open} = d;
 
   const recentTasks = [...proxyDB.tasks].sort((a,b)=>(b.created_at||'').localeCompare(a.created_at||'')).slice(0,5);
   const taskRows = recentTasks.length
@@ -3544,7 +3592,7 @@ function _dashBlockOps(d){
     <div class="pb">${streamBars}</div>
   </div>`;
 
-  return `<div class="kgrid kgrid--auto">${kpiCards}</div><div class="twocol">${panelTracker}${panelActivity}</div>`;
+  return `<div class="twocol">${panelTracker}${panelActivity}</div>`;
 }
 
 function _dashBlockFin(d){
@@ -3580,19 +3628,11 @@ function _dashBlockFin(d){
   const panelRev  = can('finance.income') ? `<div class="panel"><div class="ph"><div class="ph-title">Revenue — ${periodLabel}</div></div><div class="rev-chart-wrap"><div class="chart-bars">${chartBars}</div></div></div>` : null;
   const panelAging= can('invoice.view')   ? `<div class="panel"><div class="ph"><div class="ph-title">Invoice Aging — ${periodShortLabel}</div><button class="btn btn-g btn-s" data-action="navPage" data-page="p-invoices">View All</button></div><div class="pb">${agingBars}</div></div>` : null;
 
-  const panels = [panelRev, panelAging].filter(Boolean);
-  const panelsHtml = panels.length===2 ? `<div class="twocol">${panels.join('')}</div>` : (panels[0]||'');
-  return `<div class="kgrid kgrid--auto">${kpiCards}</div>${panelsHtml}`;
+  return panelAging || '';
 }
 
 function _dashBlockAlerts(d){
-  const {overdue, urgentTasks, urgent, pendingQA} = d;
-  let html='';
-  if(overdue>0&&can('invoice.view'))  html+=`<div class="acard danger"><div class="albl">Overdue Invoices</div><div class="acount">${overdue}</div><div class="adesc">Immediate follow-up</div></div>`;
-  if(urgentTasks>0&&can('task.view')) html+=`<div class="acard warn"><div class="albl">Urgent Tracker Tasks</div><div class="acount">${urgentTasks}</div><div class="adesc">Internal work requiring attention</div></div>`;
-  if(urgent>0)                        html+=`<div class="acard warn"><div class="albl">Urgent Callouts</div><div class="acount">${urgent}</div><div class="adesc">Priority dispatch</div></div>`;
-  if(pendingQA>0&&can('quote.approve')) html+=`<div class="acard info"><div class="albl">Quotes Pending Approval</div><div class="acount">${pendingQA}</div><div class="adesc">Tech-submitted, awaiting review</div></div>`;
-  return html ? `<div class="alert-strip" id="dash-alerts">${html}</div>` : '';
+  return '';
 }
 
 function _dashBlockCompliance(){
@@ -3604,11 +3644,10 @@ function _dashBlockCompliance(){
 }
 
 function _dashBlockCompare(d){
-  if(!can('invoice.view')&&!can('finance.income')) return '';
-  return buildPeriodComparison(d.now, can('callout.view'));
+  return '';
 }
 
-function buildPeriodComparison(now, showOps) {
+function buildPeriodComparison(now) {
   const cy = now.getFullYear(), cm = now.getMonth();
   const py = cy - 1;
   const curQ = Math.floor(cm / 3);
@@ -3625,9 +3664,6 @@ function buildPeriodComparison(now, showOps) {
   const pyYtdRev = revenueIn(py, dt => dt.getMonth()<=cm);
   const qtdRev   = revenueIn(cy, dt => Math.floor(dt.getMonth()/3)===curQ);
   const pyQtdRev = revenueIn(py, dt => Math.floor(dt.getMonth()/3)===curQ);
-
-  const coMtd   = proxyDB.callouts.filter(c => { const dt=d(c.date); return dt.getFullYear()===cy && dt.getMonth()===cm; }).length;
-  const pyCoMtd = proxyDB.callouts.filter(c => { const dt=d(c.date); return dt.getFullYear()===py && dt.getMonth()===cm; }).length;
 
   const monthName = now.toLocaleDateString('en-ZA', {month:'short'});
   const ytdLbl = `Jan–${monthName}`;
@@ -3660,10 +3696,7 @@ function buildPeriodComparison(now, showOps) {
   cards += cmpCard('MTD Collected',    mtdRev,   pyMtdRev,   true,  `${monthName} ${py}`);
   cards += cmpCard('YTD Collected',    ytdRev,   pyYtdRev,   true,  `${ytdLbl} ${py}`);
   cards += cmpCard(`Q${curQ+1} Collected`, qtdRev, pyQtdRev, true,  `Q${curQ+1} ${py}`);
-  if(showOps && can('callout.view'))
-    cards += cmpCard('Callouts MTD', coMtd, pyCoMtd, false, `${monthName} ${py}`);
-
-  return `<div class="panel mt2">
+  return `<div class="panel exec-panel pcomp-panel">
     <div class="ph">
       <div class="ph-title">Cash Collected Comparisons</div>
       <span class="ph-badge">Payments vs Prior Year</span>
