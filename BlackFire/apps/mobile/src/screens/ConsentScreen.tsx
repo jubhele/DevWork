@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native'
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image } from 'react-native'
 import { colors, fonts } from '@blackfire/ui-tokens'
 import { acceptConsent } from '../lib/consent'
 
@@ -14,7 +14,11 @@ export default function ConsentScreen({ onAccepted }: Props) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.wordmark}>BLACKFIRE</Text>
+      <Image
+        source={require('../../assets/blackfire-logo-transparent.png')}
+        style={styles.logo}
+        resizeMode="contain"
+      />
       <Text style={styles.heading}>Terms of Use</Text>
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
@@ -58,12 +62,10 @@ export default function ConsentScreen({ onAccepted }: Props) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.coal, paddingHorizontal: 24, paddingTop: 64, paddingBottom: 32 },
-  wordmark: {
-    fontFamily: fonts.display,
-    fontSize: 20,
-    letterSpacing: 6,
-    color: colors.flameGold,
-    textAlign: 'center',
+  logo: {
+    width: 260,
+    height: 90,
+    alignSelf: 'center',
     marginBottom: 4,
   },
   heading: {

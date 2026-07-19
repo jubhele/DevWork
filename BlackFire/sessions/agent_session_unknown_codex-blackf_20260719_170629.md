@@ -56,6 +56,7 @@ Active model: GPT-5 Codex-class reasoning model  Status: appropriate
 - User should confirm whether to turn the findings into a phased product roadmap and implementation plan.
 - Review and prioritize the Immediate Next Sprint section, then begin with the parity matrix and SLA vertical slice.
 - User should reload `http://localhost:3000/dashboard` to confirm the corrected page in the existing browser session.
+- Push the branch when remote visibility is required; no push was requested in this turn.
 
 ## Learnings
 - In this request, “Umlilo” means the PHP portal at `C:\DevWork\BlackFire\BlackFire Portal`, not the separate Next.js/Expo workspace.

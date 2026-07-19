@@ -26,7 +26,7 @@ if (can('task.view')) {
             "SELECT
                 SUM(status IN ('Open','In Progress')) AS open_tasks,
                 SUM(priority = 'Urgent' AND status IN ('Open','In Progress')) AS urgent_tasks,
-                SUM(due_date = CURDATE() AND status IN ('Open','In Progress')) AS tasks_due_today
+                SUM(COALESCE(DATE(due_at), due_date) = CURDATE() AND status IN ('Open','In Progress')) AS tasks_due_today
              FROM bf_tasks
              WHERE category IN ($placeholders)",
             $categories
@@ -146,15 +146,15 @@ if (can('task.view')) {
         $placeholders = implode(',', array_fill(0, count($categories), '?'));
         $due_soon = array_merge($due_soon, db_select(
             "SELECT 'Task' AS record_type, t.ref_id, t.title AS record_title,
-                    t.due_date, t.priority,
+                    COALESCE(DATE(t.due_at), t.due_date) AS due_date, t.priority,
                     COALESCE(NULLIF(GROUP_CONCAT(DISTINCT ta.name ORDER BY ta.name SEPARATOR ', '), ''),
                              NULLIF(t.assigned_to, ''), 'Unassigned') AS assignee
                FROM bf_tasks t
                LEFT JOIN bf_task_assignees ta ON ta.task_ref = t.ref_id
               WHERE t.category IN ($placeholders)
                 AND t.status IN ('Open','In Progress')
-                AND t.due_date BETWEEN CURDATE() AND ?
-              GROUP BY t.id, t.ref_id, t.title, t.due_date, t.priority, t.assigned_to",
+                 AND COALESCE(DATE(t.due_at), t.due_date) BETWEEN CURDATE() AND ?
+              GROUP BY t.id, t.ref_id, t.title, t.due_at, t.due_date, t.priority, t.assigned_to",
             array_merge($categories, [$due_end])
         ));
     }

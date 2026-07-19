@@ -121,6 +121,7 @@ function cors_origin(): ?string {
         'https://umlilo-portal-*.vercel.app',
         'http://localhost:3000',
         'http://localhost:19006',
+        'http://localhost:8081',
         'http://localhost:8084',
     ];
 
