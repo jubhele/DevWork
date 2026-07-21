@@ -21,13 +21,14 @@ function MetricCard({ label, value, sub, amount = false }: { label: string; valu
   )
 }
 
-function AttentionCard({ label, value, sub, danger = false }: { label: string; value: number; sub: string; danger?: boolean }) {
+function AttentionCard({ label, value, sub, danger = false, href }: { label: string; value: number; sub: string; danger?: boolean; href?: string }) {
   const active = value > 0
   return (
     <div className={`border border-[#ccc] border-l-2 bg-white p-4 ${danger && active ? 'border-l-danger' : active ? 'border-l-warning' : 'border-l-[#999]'}`}>
       <p className="text-[10px] uppercase tracking-[0.2em] text-ash">{label}</p>
       <p className={`mt-2 font-display text-3xl leading-none ${danger && active ? 'text-danger' : active ? 'text-warning' : 'text-ink-text'}`}>{value}</p>
       <p className="mt-2 text-xs text-ash">{sub}</p>
+      {href && <Link href={href} className="mt-3 inline-flex text-[10px] font-semibold uppercase tracking-[0.16em] text-fire-orange">Review</Link>}
     </div>
   )
 }
@@ -64,7 +65,7 @@ export default async function DashboardPage() {
 
       <section className="mt-5">
         <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.2em] text-ash">Counts</p>
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
           <MetricCard label="Open Tasks" value={kpis.open_tasks} sub="Admin, sales and general" />
           <MetricCard label="Open Callouts" value={kpis.open_callouts} sub="Operational jobs" />
           <MetricCard label="Pending Quotes" value={kpis.pending_quotes} sub="Draft, sent or awaiting approval" />
@@ -89,6 +90,7 @@ export default async function DashboardPage() {
           <AttentionCard label="Urgent Callouts" value={kpis.urgent_callouts} sub="Priority dispatch" />
           <AttentionCard label="Due in 7 Days" value={dashboard.due_soon.length} sub="Intervene before deadline" />
           <AttentionCard label="Overdue Invoices" value={kpis.overdue_invoices} sub="Past due and unpaid" danger />
+          <AttentionCard label="Statements Awaiting Release" value={kpis.pending_statements} sub="Created by the scheduler" href="/statements" />
         </div>
       </section>
 

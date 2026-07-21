@@ -1,8 +1,8 @@
 import { db, schema } from '@/db/client'
 import { eq, and, inArray, desc, like, or, sql } from 'drizzle-orm'
-import type { Task, TaskCategory, TaskStatus } from '@blackfire/types'
+import type { Task, TaskAssignee, TaskCategory, TaskStatus } from '@blackfire/types'
 
-const { bfTasks, bfTaskSequences } = schema
+const { bfTasks, bfTaskAssignees, bfTaskSequences } = schema
 
 type DbTask = typeof bfTasks.$inferSelect
 
@@ -43,7 +43,7 @@ function d(v: Date | string | null | undefined): string | null {
   return v instanceof Date ? v.toISOString() : String(v)
 }
 
-function toTaskType(row: DbTask): Task {
+function toTaskType(row: DbTask, assignees: TaskAssignee[] = []): Task {
   return {
     id: row.id,
     ref_id: row.refId,
@@ -55,6 +55,7 @@ function toTaskType(row: DbTask): Task {
     assigned_to_user_id: row.assignedToUserId ?? null,
     assigned_to: row.assignedTo ?? null,
     assignee_name: null,
+    assignees,
     created_by_user_id: row.createdByUserId,
     created_by: row.createdBy,
     creator_name: null,
@@ -67,6 +68,28 @@ function toTaskType(row: DbTask): Task {
     created_at: d(row.createdAt) ?? '',
     updated_at: d(row.updatedAt) ?? '',
   }
+}
+
+async function getAssignees(taskRefs: string[]): Promise<Map<string, TaskAssignee[]>> {
+  const result = new Map<string, TaskAssignee[]>()
+  if (!taskRefs.length) return result
+
+  const rows = await db
+    .select({
+      taskRef: bfTaskAssignees.taskRef,
+      user_id: bfTaskAssignees.userId,
+      username: bfTaskAssignees.username,
+      name: bfTaskAssignees.name,
+    })
+    .from(bfTaskAssignees)
+    .where(inArray(bfTaskAssignees.taskRef, taskRefs))
+
+  for (const row of rows) {
+    const current = result.get(row.taskRef) ?? []
+    current.push({ user_id: row.user_id, username: row.username, name: row.name })
+    result.set(row.taskRef, current)
+  }
+  return result
 }
 
 export async function getTasks(params?: {
@@ -113,7 +136,11 @@ export async function getTasks(params?: {
     .select({ count: db.$count(bfTasks, where) })
     .from(bfTasks)
 
-  return { data: rows.map(toTaskType), total: Number(count) }
+  const assignees = await getAssignees(rows.map(row => row.refId))
+  return {
+    data: rows.map(row => toTaskType(row, assignees.get(row.refId) ?? [])),
+    total: Number(count),
+  }
 }
 
 export async function getTask(refIdOrId: string | number): Promise<Task | null> {
@@ -122,7 +149,9 @@ export async function getTask(refIdOrId: string | number): Promise<Task | null> 
     : eq(bfTasks.refId, refIdOrId)
 
   const [row] = await db.select().from(bfTasks).where(where).limit(1)
-  return row ? toTaskType(row) : null
+  if (!row) return null
+  const assignees = await getAssignees([row.refId])
+  return toTaskType(row, assignees.get(row.refId) ?? [])
 }
 
 export async function createTask(

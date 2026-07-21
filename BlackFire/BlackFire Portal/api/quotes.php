@@ -104,6 +104,13 @@ if ($method === 'POST') {
         json_err('client_id or client_name is required');
     }
 
+    $company_profile_id = (int)($b['company_profile_id'] ?? 1);
+    $company_profile = db_row(
+        'SELECT id, vat_rate FROM bf_company_profiles WHERE id=? AND host_company_id=1 AND is_active=1',
+        [$company_profile_id]
+    );
+    if (!$company_profile) json_err('Issuing company not found', 404);
+
     // Calculate total — accept unit_price (web form) or unit (legacy)
     $total = 0;
     foreach ($items as $item) {
@@ -111,7 +118,7 @@ if ($method === 'POST') {
     }
     // Items are ex-VAT lines; total_amount is the VAT-inclusive final because the
     // convert action bills it verbatim as the invoice amount.
-    $total = round($total * 1.15, 2);
+    $total = round($total * (1 + ((float)$company_profile['vat_rate'] / 100)), 2);
 
     // Determine approval status
     $approval_status = null;
@@ -150,16 +157,17 @@ if ($method === 'POST') {
 
         $id = db_insert(
             "INSERT INTO bf_quotes
-             (ref_id, quote_no, client_id, client_name, client_email, status, valid_until, quote_date,
+             (ref_id, quote_no, client_id, client_name, client_email, company_profile_id, status, valid_until, quote_date,
               submitted_by_user_id, source, approval_status, notes, total_amount,
               callout_ref, callout_id)
-             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             [
                 $ref,
                 $quote_no,
                 $client_id,
                 $client_name,
                 $client_email,
+                $company_profile_id,
                 $status,
                 valid_date($b['valid_until'] ?? null) ? $b['valid_until'] : null,
                 date('Y-m-d'),
@@ -232,6 +240,12 @@ if ($method === 'PUT') {
         $quote = db_row("SELECT * FROM bf_quotes WHERE ref_id = ?", [$ref_id]);
         if (!$quote) json_err('Quote not found', 404);
 
+        $companyProfileId = (int)($b['company_profile_id'] ?? $quote['company_profile_id'] ?? 1);
+        if (!db_row('SELECT id FROM bf_company_profiles WHERE id=? AND host_company_id=1 AND is_active=1', [$companyProfileId])) {
+            json_err('Issuing company not found', 404);
+        }
+        $quote['company_profile_id'] = $companyProfileId;
+
         $to = clean($b['to_email'] ?? $quote['client_email'] ?? '', 150);
         if (!$to || !filter_var($to, FILTER_VALIDATE_EMAIL)) json_err('Valid recipient email required');
         if ((float)($quote['total_amount'] ?? 0) <= 0) json_err('Quote total must be set before sending');
@@ -243,8 +257,8 @@ if ($method === 'PUT') {
         if (!$sent) json_err('Failed to send quote email - check SMTP settings');
 
         db_exec(
-            "UPDATE bf_quotes SET status = CASE WHEN status = 'Draft' THEN 'Sent' ELSE status END, client_email = ? WHERE ref_id = ?",
-            [$to, $ref_id]
+            "UPDATE bf_quotes SET status = CASE WHEN status = 'Draft' THEN 'Sent' ELSE status END, client_email = ?, company_profile_id = ? WHERE ref_id = ?",
+            [$to, $companyProfileId, $ref_id]
         );
         audit($usr['username'], 'QUOTE_SENT', "Quote {$ref_id} sent to {$to} with PDF attachment");
         $row = db_row("SELECT * FROM bf_quotes WHERE ref_id = ?", [$ref_id]);
@@ -286,14 +300,15 @@ if ($method === 'PUT') {
             }
             db_insert(
                 "INSERT INTO bf_invoices
-                 (ref_id, invoice_no, client_id, client_name, client_email, amount, due_date, status,
+                 (ref_id, invoice_no, client_id, client_name, client_email, company_profile_id, amount, due_date, status,
                   quote_ref, quote_id, callout_ref, callout_id, po, invoice_date, sent_by_user_id)
-                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 [
                     $inv_ref, $inv_ref,
                     $quote['client_id'],
                     $quote['client_name'],
                     $quote['client_email'],
+                    $quote['company_profile_id'] ?? 1,
                     $quote['total_amount'],
                     $due_date,
                     'Draft',

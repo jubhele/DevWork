@@ -308,6 +308,7 @@ export const bfTransactions = mysqlTable('bf_transactions', {
 export const bfStatements = mysqlTable('bf_statements', {
   id: int('id', { unsigned: true }).autoincrement().primaryKey(),
   refId: varchar('ref_id', { length: 20 }).notNull(),
+  companyProfileId: int('company_profile_id', { unsigned: true }).notNull(),
   scheduledFor: date('scheduled_for').notNull(),
   status: mysqlEnum('status', ['pending_approval', 'released', 'cancelled']).default('pending_approval').notNull(),
   fromEmail: varchar('from_email', { length: 150 }).default('').notNull(),
@@ -321,6 +322,13 @@ export const bfStatements = mysqlTable('bf_statements', {
   uniqueIndex('uq_ref_id').on(t.refId),
   index('idx_stmt_status').on(t.status),
 ])
+
+export const bfCompanyProfiles = mysqlTable('bf_company_profiles', {
+  id: int('id', { unsigned: true }).autoincrement().primaryKey(),
+  profileKey: varchar('profile_key', { length: 50 }).notNull(),
+  displayName: varchar('display_name', { length: 150 }).notNull(),
+  isActive: tinyint('is_active').default(1).notNull(),
+})
 
 export const bfRemittances = mysqlTable('bf_remittances', {
   id: int('id', { unsigned: true }).autoincrement().primaryKey(),

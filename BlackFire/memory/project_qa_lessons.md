@@ -15,5 +15,6 @@
 - Never capture an accessibility snapshot while login or password-utility fields contain credentials. Wait for the signed-in shell or clear the fields first; rotate the vault and local hash immediately if a value is echoed.
 - Initial portal refreshes must be permission-scoped. Calling every API and relying on 403 responses creates false console failures for valid restricted-role sessions.
 - Portal data tables use `.tw` as the shared two-axis scroll boundary; constrain it vertically before using sticky `<th>` cells, because a horizontal overflow ancestor otherwise prevents headers from following page scroll. Keep an explicit print override so long tables are not clipped in generated documents.
+- Finance column charts need a definite plot height before percentage-based bars can scale; otherwise the browser resolves them to near-minimum strips. Use a rounded data-derived axis, keep semantic income/cost colors consistent, and verify the real renderer with deterministic fixtures when restored local credentials are stale.
 
-Verified 2026-07-19. Reports: `BlackFire Portal/.gstack/qa-reports/qa-report-localhost-8080-2026-07-16.md`; sticky-header computed-style verification: `temp/verify-sticky-table-headers.js`.
+Verified 2026-07-19. Reports: `BlackFire Portal/.gstack/qa-reports/qa-report-localhost-8080-2026-07-16.md`; sticky-header computed-style verification: `temp/verify-sticky-table-headers.js`; finance graph screenshots: `artifacts/dashboard-graphs/`.

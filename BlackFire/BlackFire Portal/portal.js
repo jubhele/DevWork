@@ -238,6 +238,7 @@ document.addEventListener('click', function(e) {
     case 'deleteTask':           deleteTask(el.dataset.id); break;
     case 'openTrackerRecord':    openTrackerRecord(el.dataset.entityType, el.dataset.id); break;
     case 'saveTrackerSchedule':  saveTrackerSchedule(el.dataset.entityType, el.dataset.id); break;
+    case 'saveTrackerAssignees': saveTrackerAssignees(el.dataset.id); break;
     case 'addTrackerUpdate':     addTrackerUpdate(el.dataset.entityType, el.dataset.id); break;
     case 'saveTrackerUpdate':    saveTrackerUpdate(+el.dataset.updateId); break;
     case 'uploadTrackerFile':    uploadTrackerFile(el.dataset.entityType, el.dataset.entityRef); break;
@@ -272,6 +273,12 @@ document.addEventListener('click', function(e) {
     case 'downloadQuotePdf':     downloadQuotePdf(el.dataset.id); break;
     case 'openSendQuoteModal':   openSendQuoteModal(el.dataset.id); break;
     case 'sendQuoteEmail':       sendQuoteEmail(el.dataset.id); break;
+    case 'openTemplateEditor':   openTemplateEditor(+el.dataset.id); break;
+    case 'saveTemplateEditor':   saveTemplateEditor(+el.dataset.id); break;
+    case 'openCompanyProfileEditor': openCompanyProfileEditor(+el.dataset.id); break;
+    case 'saveCompanyProfile':   saveCompanyProfile(+el.dataset.id); break;
+    case 'openClientProfileEditor': openClientProfileEditor(+el.dataset.id); break;
+    case 'saveClientProfile':    saveClientProfile(+el.dataset.id); break;
     case 'approveQuote':         approveQuote(el.dataset.id); break;
     case 'rejectQuote':          rejectQuote(el.dataset.id); break;
     case 'convertToInvoice':     convertToInvoice(el.dataset.id); break;
@@ -288,6 +295,7 @@ document.addEventListener('click', function(e) {
     // Finance
     case 'logPayment':           logPayment(); break;
     case 'saveTx':               saveTx(); break;
+    case 'viewStatement':        viewStatement(el.dataset.id); break;
     case 'downloadStatement':    downloadStatement(el.dataset.id); break;
     case 'openReleaseStatementModal': openReleaseStatementModal(el.dataset.id); break;
     case 'openResendStatementModal':  openResendStatementModal(el.dataset.id); break;
@@ -400,6 +408,8 @@ document.addEventListener('input', function(e) {
 
 document.addEventListener('change', function(e) {
   const t = e.target;
+  if (t.id === 'nq-company-profile') { applyCompanyProfileDate('nq-company-profile','nq-valid','quote_valid_days'); return; }
+  if (t.id === 'ni-company-profile') { applyCompanyProfileDate('ni-company-profile','ni-due','invoice_due_days'); return; }
   if (t.id === 'inv-filter')       { renderInvoices('', t.value); return; }
   if (t.id === 'qte-filter')       { renderQuotes('', t.value); return; }
   if (t.id === 'co-filter')        { renderCallouts('', t.value); return; }
@@ -634,7 +644,7 @@ function can(perm){
 /* ═══════════════════════════════════════════════════════
    IN-MEMORY CACHE (populated from API on login/refresh)
 ═══════════════════════════════════════════════════════ */
-let DB = { callouts:[], quotes:[], invoices:[], bank:[], users:[], safetyFiles:[], clients:[], tasks:[], dashboard:{} };
+let DB = { callouts:[], quotes:[], invoices:[], bank:[], users:[], safetyFiles:[], clients:[], tasks:[], companyProfiles:[], clientDocumentProfiles:[], documentTemplates:[], dashboard:{} };
 let SESSION = null;
 let AUDIT_LOG = [];
 let _dashPrefsCache = null; // populated from DB at login via loadDashPrefsFromAPI()
@@ -778,6 +788,14 @@ async function refreshInvoices() {
   const r = await api('GET', 'invoices.php?limit=500');
   if (r.success) DB.invoices = r.data || [];
 }
+async function refreshTemplateStore() {
+  const r = await api('GET', 'template_store.php');
+  if (!r.success) return;
+  DB.companyProfiles = r.profiles || [];
+  DB.clientDocumentProfiles = r.client_profiles || [];
+  DB.documentTemplates = r.templates || [];
+  populateCompanyProfileDropdowns();
+}
 async function refreshTransactions() {
   const r = await fetchAllRows('transactions.php');
   if (r.success) DB.bank = r.data || [];
@@ -809,6 +827,207 @@ function populateClientDropdowns() {
     el.innerHTML = '<option value="">— Select Client —</option>' + opts;
     if (cur) el.value = cur;
   });
+}
+
+function defaultCompanyProfileId() {
+  return Number(DB.companyProfiles.find(profile=>Number(profile.is_default)===1)?.id || DB.companyProfiles[0]?.id || 0);
+}
+
+function companyProfileOptions(selectedId=0) {
+  const selected = Number(selectedId) || defaultCompanyProfileId();
+  return DB.companyProfiles.map(profile=>`<option value="${Number(profile.id)}"${Number(profile.id)===selected?' selected':''}>${esc(profile.display_name)}${profile.legal_name&&profile.legal_name!==profile.display_name?` — ${esc(profile.legal_name)}`:''}</option>`).join('');
+}
+
+function populateCompanyProfileDropdowns() {
+  ['nq-company-profile','ni-company-profile'].forEach(id=>{
+    const el=document.getElementById(id);if(!el)return;
+    const current=Number(el.value)||defaultCompanyProfileId();
+    el.innerHTML=companyProfileOptions(current);
+  });
+}
+
+function selectedCompanyProfile(selectId) {
+  const id=Number(document.getElementById(selectId)?.value)||defaultCompanyProfileId();
+  return DB.companyProfiles.find(profile=>Number(profile.id)===id)||null;
+}
+
+function companyProfileById(profileId) {
+  return DB.companyProfiles.find(profile=>Number(profile.id)===Number(profileId)) || DB.companyProfiles.find(profile=>Number(profile.is_default)===1) || null;
+}
+
+function clientDocumentProfile(clientId) {
+  return DB.clientDocumentProfiles.find(profile=>Number(profile.client_id)===Number(clientId)) || null;
+}
+
+function applyCompanyProfileDate(selectId,dateId,daysField) {
+  const profile=selectedCompanyProfile(selectId);if(!profile)return;
+  const date=new Date();date.setDate(date.getDate()+Number(profile[daysField]||0));
+  const dateInput=document.getElementById(dateId);if(dateInput)dateInput.value=localDateStr(date);
+}
+
+function renderTemplateStore() {
+  const companyBody=document.getElementById('template-company-table');
+  const clientBody=document.getElementById('template-client-profile-table');
+  const templateBody=document.getElementById('template-store-table');
+  const safeId=value=>String(value).replace(/[^A-Za-z0-9_-]/g,'-');
+  const field=(label,value,extraClass='')=>`<div class="calllog-field ${extraClass}"><span class="calllog-field-label">${label}</span><div class="calllog-field-value">${value}</div></div>`;
+  const card=(kind,id,title,summary,details,actions)=>{
+    const detailId=`template-${kind}-${safeId(id)}`;
+    return `<article class="calllog-card template-store-card template-store-card-${kind}" role="listitem" aria-labelledby="${detailId}-title">
+      <div class="calllog-card-summary template-store-summary">
+        ${summary.replace('data-record-title',`id="${detailId}-title"`)}
+        <button class="calllog-expander" type="button" data-action="toggleCalloutDetails" data-detail-id="${detailId}" data-job-id="${esc(title)}" aria-expanded="false" aria-controls="${detailId}" aria-label="Show additional details for ${esc(title)}"><span class="calllog-expander-icon" aria-hidden="true">&#9656;</span><span class="calllog-expander-label">Show details</span></button>
+      </div>
+      <div class="calllog-detail template-store-detail" id="${detailId}" hidden>${details}</div>
+      <footer class="calllog-actions"><span class="calllog-section-label">Actions</span><div class="bgrp">${actions}</div></footer>
+    </article>`;
+  };
+  if(companyBody){
+    companyBody.innerHTML=DB.companyProfiles.length?DB.companyProfiles.map(profile=>card('company',profile.id,profile.display_name,
+      field('Company',`<strong data-record-title>${esc(profile.display_name)}</strong><span class="calllog-ref">${esc(profile.profile_key)}</span>`,'template-field-primary')+
+      field('Legal Name',esc(profile.legal_name))+
+      field('VAT',`<span class="mono">${esc(profile.vat_number||'—')}</span>`)+
+      field('Document Defaults',`${Number(profile.vat_rate).toFixed(2)}% VAT · Quote ${Number(profile.quote_valid_days)}d · Invoice ${Number(profile.invoice_due_days)}d`)+
+      field('Status',Number(profile.is_active)===1?'<span class="badge-ok">Active</span>':'<span class="badge-warn">Inactive</span>'),
+      field('Registration',esc(profile.registration_number||'—'))+
+      field('Contact',`${esc(profile.email||'—')}<br>${esc(profile.phone||'—')}`)+
+      field('Registered Address',`<span class="preline">${esc(profile.address||'—')}</span>`)+
+      field('Brand',`<span class="template-brand-swatch" style="--brand-primary:${esc(profile.primary_color)};--brand-accent:${esc(profile.accent_color)}"></span>${esc(profile.primary_color)} · ${esc(profile.accent_color)}<br><span class="calllog-ref">${esc(profile.logo_path||'No logo')}</span>`)+
+      field('Banking',`${esc(profile.bank_name||'—')} · ${esc(profile.bank_account_type||'')}<br>Account ${esc(profile.bank_account_number||'—')} · Branch ${esc(profile.bank_branch_code||'—')} · SWIFT ${esc(profile.bank_swift_code||'—')}`),
+      `<button class="btn btn-g btn-s" data-action="openCompanyProfileEditor" data-id="${Number(profile.id)}">Edit Company Profile</button>`
+    )).join(''):'<div class="tc-empty calllog-empty">No company profiles</div>';
+  }
+  if(clientBody){
+    clientBody.innerHTML=DB.clientDocumentProfiles.length?DB.clientDocumentProfiles.map(profile=>card('client',profile.id,profile.display_name,
+      field('Customer',`<strong data-record-title>${esc(profile.display_name)}</strong><span class="calllog-ref">${esc(profile.client_record_name||profile.profile_key)}</span>`,'template-field-primary')+
+      field('Legal / Billing Name',esc(profile.legal_name))+
+      field('VAT',`<span class="mono">${esc(profile.vat_number||'—')}</span>`)+
+      field('Reference',`${esc(profile.supplier_reference||'—')} · PO ${esc(profile.purchase_order_prefix||'—')}`)+
+      field('Status',Number(profile.is_active)===1?'<span class="badge-ok">Active</span>':'<span class="badge-warn">Inactive</span>'),
+      field('Contact',`${esc(profile.phone||'—')}<br>${esc(profile.email||'—')}`)+
+      field('Quote / Service Address',`<span class="preline">${esc(profile.quote_address||'—')}</span>`)+
+      field('Invoice / Billing Address',`<span class="preline">${esc(profile.invoice_address||'—')}</span>`)+
+      field('Supplier Details',`Reference ${esc(profile.supplier_reference||'—')}<br>PO prefix ${esc(profile.purchase_order_prefix||'—')}`)+
+      field('Source',esc(profile.source_note||'—')),
+      `<button class="btn btn-g btn-s" data-action="openClientProfileEditor" data-id="${Number(profile.id)}">Edit Customer Profile</button>`
+    )).join(''):'<div class="tc-empty calllog-empty">No customer document profiles</div>';
+  }
+  if(templateBody){
+    templateBody.innerHTML=DB.documentTemplates.length?DB.documentTemplates.map(template=>card('document',template.id,template.name,
+      field('Company',`<strong data-record-title>${esc(template.company_name)}</strong>`,'template-field-primary')+
+      field('Type',`<span class="pill draft">${esc(template.template_type)}</span>`)+
+      field('Template',`<strong>${esc(template.name)}</strong><span class="calllog-ref">${esc(template.template_key)}</span>`)+
+      field('Version',`<span class="mono">v${Number(template.version)||1}</span>`)+
+      field('Status',Number(template.is_active)===1?'<span class="badge-ok">Active</span>':'<span class="badge-warn">Inactive</span>'),
+      field('Description',esc(template.description||'—'))+
+      field('Email Subject',esc(template.subject_template||'Document layout — no email subject'))+
+      field('Placeholders',esc(template.allowed_placeholders||'None'))+
+      field('Template Key',`<span class="mono">${esc(template.template_key)}</span>`)+
+      field('Last Updated',esc(template.updated_at||'—')),
+      `<button class="btn btn-g btn-s" data-action="openTemplateEditor" data-id="${Number(template.id)}">Edit Template</button>`
+    )).join(''):'<div class="tc-empty calllog-empty">No reusable templates</div>';
+  }
+}
+
+function openCompanyProfileEditor(id) {
+  const profile=DB.companyProfiles.find(row=>Number(row.id)===Number(id));if(!profile)return;
+  const field=(fieldId,label,value,full=false)=>`<div class="fgroup${full?' ffull':''}"><label class="flbl">${label}</label><input class="finput" id="${fieldId}" value="${esc(value||'')}"></div>`;
+  openModal(`Edit Issuer — ${profile.display_name}`,`
+    <div class="fgrid">
+      ${field('cpe-issuer-display','Display Name',profile.display_name)}${field('cpe-issuer-legal','Legal Name',profile.legal_name)}
+      ${field('cpe-issuer-reg','Registration Number',profile.registration_number)}${field('cpe-issuer-vat','VAT Number',profile.vat_number)}
+      ${field('cpe-issuer-phone','Phone',profile.phone)}${field('cpe-issuer-email','Email',profile.email)}
+      <div class="fgroup ffull"><label class="flbl">Registered Address</label><textarea class="finput" id="cpe-issuer-address" rows="4">${esc(profile.address||'')}</textarea></div>
+      ${field('cpe-issuer-logo','Brand Logo Path',profile.logo_path,true)}
+      ${field('cpe-issuer-primary','Primary Colour',profile.primary_color)}${field('cpe-issuer-accent','Accent Colour',profile.accent_color)}
+      ${field('cpe-issuer-paper','Paper Colour',profile.paper_color)}${field('cpe-issuer-font','Body Font',profile.body_font)}
+      ${field('cpe-issuer-bank','Bank',profile.bank_name)}${field('cpe-issuer-account-type','Account Type',profile.bank_account_type)}
+      ${field('cpe-issuer-account','Account Number',profile.bank_account_number)}${field('cpe-issuer-branch','Branch Code',profile.bank_branch_code)}
+      ${field('cpe-issuer-swift','SWIFT Code',profile.bank_swift_code)}${field('cpe-issuer-vat-rate','VAT Rate',profile.vat_rate)}
+    </div>
+    <div class="mt3 flex-end"><button class="btn btn-p" data-action="saveCompanyProfile" data-id="${Number(profile.id)}">Save Issuer Profile</button></div>`);
+}
+
+async function saveCompanyProfile(id) {
+  const val=fieldId=>document.getElementById(fieldId)?.value?.trim()||'';
+  const body={display_name:val('cpe-issuer-display'),legal_name:val('cpe-issuer-legal'),registration_number:val('cpe-issuer-reg'),vat_number:val('cpe-issuer-vat'),phone:val('cpe-issuer-phone'),email:val('cpe-issuer-email'),address:val('cpe-issuer-address'),logo_path:val('cpe-issuer-logo'),primary_color:val('cpe-issuer-primary'),accent_color:val('cpe-issuer-accent'),paper_color:val('cpe-issuer-paper'),body_font:val('cpe-issuer-font'),bank_name:val('cpe-issuer-bank'),bank_account_type:val('cpe-issuer-account-type'),bank_account_number:val('cpe-issuer-account'),bank_branch_code:val('cpe-issuer-branch'),bank_swift_code:val('cpe-issuer-swift'),vat_rate:Number(val('cpe-issuer-vat-rate')||15)};
+  if(!body.display_name||!body.legal_name||!body.vat_number){toast('Display name, legal name and VAT number are required','err');return;}
+  const result=await api('PUT',`template_store.php?entity=profile&id=${Number(id)}`,body);
+  if(!result.success){toast(result.error||'Could not save issuer profile','err');return;}
+  await refreshTemplateStore();renderTemplateStore();closeModalDirect();toast('Issuer profile saved','ok');
+}
+
+function openClientProfileEditor(id) {
+  const profile=DB.clientDocumentProfiles.find(row=>Number(row.id)===Number(id));if(!profile)return;
+  openModal(`Edit Customer Profile — ${profile.display_name}`,`
+    <div class="fgrid">
+      <div class="fgroup"><label class="flbl">Document Name</label><input class="finput" id="cpe-display" value="${esc(profile.display_name)}"></div>
+      <div class="fgroup"><label class="flbl">Legal / Billing Name</label><input class="finput" id="cpe-legal" value="${esc(profile.legal_name)}"></div>
+      <div class="fgroup"><label class="flbl">VAT Number</label><input class="finput" id="cpe-vat" value="${esc(profile.vat_number||'')}"></div>
+      <div class="fgroup"><label class="flbl">Phone</label><input class="finput" id="cpe-phone" value="${esc(profile.phone||'')}"></div>
+      <div class="fgroup ffull"><label class="flbl">Email</label><input class="finput" id="cpe-email" value="${esc(profile.email||'')}"></div>
+      <div class="fgroup ffull"><label class="flbl">Quote / Service Address</label><textarea class="finput" id="cpe-quote-address" rows="4">${esc(profile.quote_address||'')}</textarea></div>
+      <div class="fgroup ffull"><label class="flbl">Invoice / Billing Address</label><textarea class="finput" id="cpe-invoice-address" rows="4">${esc(profile.invoice_address||'')}</textarea></div>
+      <div class="fgroup"><label class="flbl">Supplier Reference</label><input class="finput" id="cpe-supplier" value="${esc(profile.supplier_reference||'')}"></div>
+      <div class="fgroup"><label class="flbl">PO Prefix</label><input class="finput" id="cpe-po" value="${esc(profile.purchase_order_prefix||'')}"></div>
+    </div>
+    <div class="mt3 flex-end"><button class="btn btn-p" data-action="saveClientProfile" data-id="${Number(profile.id)}">Save Customer Profile</button></div>`);
+}
+
+async function saveClientProfile(id) {
+  const body={
+    display_name:document.getElementById('cpe-display')?.value?.trim(),
+    legal_name:document.getElementById('cpe-legal')?.value?.trim(),
+    vat_number:document.getElementById('cpe-vat')?.value?.trim(),
+    phone:document.getElementById('cpe-phone')?.value?.trim(),
+    email:document.getElementById('cpe-email')?.value?.trim(),
+    quote_address:document.getElementById('cpe-quote-address')?.value?.trim(),
+    invoice_address:document.getElementById('cpe-invoice-address')?.value?.trim(),
+    supplier_reference:document.getElementById('cpe-supplier')?.value?.trim(),
+    purchase_order_prefix:document.getElementById('cpe-po')?.value?.trim(),
+  };
+  if(!body.display_name||!body.legal_name){toast('Document and legal names are required','err');return;}
+  const result=await api('PUT',`template_store.php?entity=client_profile&id=${Number(id)}`,body);
+  if(!result.success){toast(result.error||'Could not save customer profile','err');return;}
+  await refreshTemplateStore();renderTemplateStore();closeModalDirect();toast('Customer document profile saved','ok');
+}
+
+function openTemplateEditor(id) {
+  const template=DB.documentTemplates.find(row=>Number(row.id)===Number(id));if(!template)return;
+  const settings=template.settings||{};
+  openModal(`Edit Template — ${template.name}`,`
+    <div class="fgrid">
+      <div class="fgroup"><label class="flbl">Company</label><input class="finput" value="${esc(template.company_name)}" disabled></div>
+      <div class="fgroup"><label class="flbl">Type</label><input class="finput" value="${esc(template.template_type)}" disabled></div>
+      <div class="fgroup ffull"><label class="flbl">Name</label><input class="finput" id="tse-name" value="${esc(template.name)}"></div>
+      <div class="fgroup ffull"><label class="flbl">Description</label><input class="finput" id="tse-description" value="${esc(template.description||'')}"></div>
+      <div class="fgroup ffull"><label class="flbl">Email Subject</label><input class="finput" id="tse-subject" value="${esc(template.subject_template||'')}" placeholder="Document layouts do not require a subject"></div>
+      <div class="fgroup ffull"><label class="flbl">Body Template</label><textarea class="finput" id="tse-body" rows="9">${esc(template.body_template||'')}</textarea></div>
+      <div class="fgroup ffull"><label class="flbl">Settings (JSON object)</label><textarea class="finput mono" id="tse-settings" rows="7">${esc(JSON.stringify(settings,null,2))}</textarea></div>
+      <div class="fgroup ffull"><label class="flbl">Available Placeholders</label><div class="fs-11 text-muted">${esc(template.allowed_placeholders||'None')}</div></div>
+    </div>
+    <div class="mt3 flex-end"><button class="btn btn-p" data-action="saveTemplateEditor" data-id="${Number(template.id)}">Save Template</button></div>`);
+}
+
+async function saveTemplateEditor(id) {
+  let settings;
+  try{settings=JSON.parse(document.getElementById('tse-settings')?.value||'{}');}
+  catch{toast('Settings must be a valid JSON object','err');return;}
+  if(!settings||Array.isArray(settings)||typeof settings!=='object'){toast('Settings must be a JSON object','err');return;}
+  const body=document.getElementById('tse-body')?.value||'';
+  if(!body.trim()){toast('Template body is required','err');return;}
+  const result=await api('PUT',`template_store.php?entity=template&id=${Number(id)}`,{
+    name:document.getElementById('tse-name')?.value?.trim()||'',
+    description:document.getElementById('tse-description')?.value?.trim()||'',
+    subject_template:document.getElementById('tse-subject')?.value?.trim()||'',
+    body_template:body,
+    settings,
+  });
+  if(!result.success){toast(result.error||'Template update failed','err');return;}
+  await refreshTemplateStore();
+  renderTemplateStore();
+  closeModalDirect();
+  toast('Template updated','ok');
 }
 
 function populateLinkedDropdowns() {
@@ -875,6 +1094,7 @@ async function refreshDashboardAnalytics() {
 }
 async function refreshAll() {
   const tasks = [refreshDashboardAnalytics()];
+  if (can('quote.view') || can('invoice.view')) tasks.push(refreshTemplateStore());
   if (can('callout.view')) tasks.push(refreshCallouts());
   if (can('quote.view')) tasks.push(refreshQuotes());
   if (can('invoice.view')) tasks.push(refreshInvoices());
@@ -884,6 +1104,7 @@ async function refreshAll() {
   if (can('task.view')) tasks.push(refreshTasks());
   if (can('security.users')) tasks.push(refreshUsers());
   await Promise.all(tasks);
+  populateCompanyProfileDropdowns();
   populateLinkedDropdowns();
 }
 
@@ -939,6 +1160,7 @@ function normalizeQuote(q) {
     source:         q.source,
     approvalStatus: q.approval_status,
     calloutRef:     q.callout_ref || '',
+    companyProfileId: Number(q.company_profile_id)||defaultCompanyProfileId(),
   };
 }
 function normalizeInvoice(i) {
@@ -947,6 +1169,7 @@ function normalizeInvoice(i) {
     invoiceNo:   i.invoice_no || i.ref_id || i.id,
     client:      i.client_name,
     clientEmail: i.client_email || '',
+    clientId:    i.client_id ? Number(i.client_id) : null,
     amount:      Number(i.amount),
     dueDate:     i.due_date,
     status:      i.status,
@@ -957,6 +1180,7 @@ function normalizeInvoice(i) {
     paidDate:    i.paid_date || '',
     sentAt:      i.sent_at || '',
     sentBy:      i.sent_by || '',
+    companyProfileId: Number(i.company_profile_id)||defaultCompanyProfileId(),
   };
 }
 function normalizeBank(b) {
@@ -1162,7 +1386,7 @@ async function doLogout(){
   await api('POST', 'auth.php?action=logout');
   SESSION = null;
   _dashPrefsCache = null;
-  DB = { callouts:[], quotes:[], invoices:[], bank:[], users:[], safetyFiles:[], clients:[], tasks:[], dashboard:{} };
+  DB = { callouts:[], quotes:[], invoices:[], bank:[], users:[], safetyFiles:[], clients:[], tasks:[], companyProfiles:[], clientDocumentProfiles:[], documentTemplates:[], dashboard:{} };
   document.getElementById('l-user').value = '';
   document.getElementById('l-pass').value = '';
   document.getElementById('login-error').classList.remove('show');
@@ -1222,6 +1446,7 @@ const NAV_CONFIG = [
       { id:'p-timeline',          label:'Site Timeline', perm: null },
       { id:'p-reports',           label:'Reports',       perm: null },
       { id:'p-clients',           label:'Clients',       perm:'clients.view' },
+      { id:'p-template-store',    label:'Template Store', perm:'security.users' },
       { id:'p-users',             label:'Users & Roles', perm:'security.users' },
       { id:'p-safety',            label:'Safety Files',  perm: 'safety.view', badge:'nb-saf' },
       { id:'p-audit',             label:'Audit Log',     perm:'security.audit' },
@@ -3351,6 +3576,7 @@ function showPortalPage(id, el){
     'p-transactions': async()=>{ renderTransactions(''); await refreshTransactions(); renderTransactions(''); },
     'p-invoices':     async()=>{ renderInvoices(''); await refreshInvoices(); renderInvoices(''); updateBadges(); },
     'p-quotes':       async()=>{ renderQuotes(''); await refreshQuotes(); renderQuotes(''); updateBadges(); },
+    'p-template-store': async()=>{ await refreshTemplateStore(); renderTemplateStore(); },
     'p-callouts':     async()=>{ renderCallouts(''); await refreshCallouts(); renderCallouts(''); updateBadges(); },
     'p-tracker':      async()=>{ renderTracker(); await Promise.all([refreshTasks(), refreshCallouts()]); renderTracker(); updateBadges(); },
     'p-new-task':     async()=>{ initNewTask(); },
@@ -3440,8 +3666,9 @@ function renderDashboard(){
   const usageRows = proxyDB.dashboard.usage || [];
   const usagePeriodDays = Number(proxyDB.dashboard.usage_period_days) || 7;
   const activeClients = Number(proxyDB.dashboard.data?.active_clients ?? proxyDB.clients.filter(c=>c.active!==false).length);
+  const pendingStatements = Number(proxyDB.dashboard.data?.pending_statements)||0;
 
-  const d = { now, openTasks, urgentTasks, tasksDueToday, open, pq, mtd, net, completedMTD, outstandingVal, ytd, quotePipeVal, overdue, urgent, pendingQA, months, revData, invoiceAmounts, invoiceCounts, dueSoonRows, usageRows, usagePeriodDays, activeClients, periodInvoices, periodLabel, periodShortLabel };
+  const d = { now, openTasks, urgentTasks, tasksDueToday, open, pq, mtd, net, completedMTD, outstandingVal, ytd, quotePipeVal, overdue, urgent, pendingQA, pendingStatements, months, revData, invoiceAmounts, invoiceCounts, dueSoonRows, usageRows, usagePeriodDays, activeClients, periodInvoices, periodLabel, periodShortLabel };
 
   let html = _dashExecutiveSummary(d);
   let hasContent = false;
@@ -3483,7 +3710,10 @@ function _dashExecutiveSummary(d){
     can('callout.view') ? {label:'Urgent Callouts',value:d.urgent,sub:'Priority dispatch',tone:d.urgent>0?'warn':''} : null,
     {label:'Due in 7 Days',value:d.dueSoonRows.length,sub:'Intervene before deadline',tone:d.dueSoonRows.length>0?'warn':''},
     can('invoice.view') ? {label:'Overdue Invoices',value:d.overdue,sub:'Past due and unpaid',tone:d.overdue>0?'danger':''} : null,
-  ].filter(Boolean).map(a=>`<div class="exec-alert-card ${a.tone}"><div class="exec-alert-label">${a.label}</div><div class="exec-alert-value">${a.value}</div><div class="exec-alert-sub">${a.sub}</div></div>`).join('');
+    can('finance.statement') ? {label:'Statements Awaiting Release',value:d.pendingStatements,sub:'Generated by the statement scheduler',tone:d.pendingStatements>0?'info':'',page:'p-statement'} : null,
+  ].filter(Boolean).map(a=>a.page
+    ? `<button type="button" class="exec-alert-card exec-alert-card--action ${a.tone}" data-action="navPage" data-page="${a.page}"><div class="exec-alert-label">${a.label}</div><div class="exec-alert-value">${a.value}</div><div class="exec-alert-sub">${a.sub}</div></button>`
+    : `<div class="exec-alert-card ${a.tone}"><div class="exec-alert-label">${a.label}</div><div class="exec-alert-value">${a.value}</div><div class="exec-alert-sub">${a.sub}</div></div>`).join('');
 
   const visibleMonths = d.months.slice(-12);
   const offset = d.months.length-visibleMonths.length;
@@ -3882,27 +4112,54 @@ async function renderFinDashboard() {
   const revData  = months.map(m=>mplMap[m.ym]?.cash_received||0);
   const costData = months.map(m=>mplMap[m.ym]?.total_costs||0);
   const maxVal   = Math.max(...revData,...costData,1);
+  const magnitude = 10 ** Math.floor(Math.log10(maxVal));
+  const normalizedMax = maxVal / magnitude;
+  const niceFactor = [1,1.5,2,2.5,5,10].find(value=>value>=normalizedMax) || 10;
+  const axisMax = niceFactor * magnitude;
+  const chartAmount = value => {
+    if (Math.abs(value)>=1000000) return `R${(value/1000000).toFixed(value%1000000===0?0:1)}M`;
+    if (Math.abs(value)>=1000) return `R${Math.round(value/1000)}K`;
+    return `R${Math.round(value)}`;
+  };
 
   const chartBars = months.map((m,i)=>{
-    const rh = Math.max(2, Math.round((revData[i]/maxVal)*100));
-    const ch = Math.max(2, Math.round((costData[i]/maxVal)*100));
-    return `<div class="cbar-w">
-      <div class="cval" style="font-size:10px">${revData[i]>0?'R'+Math.round(revData[i]/1000)+'K':''}</div>
-      <div class="cbar cbar-stacked" data-h="${rh}" title="Income: ${fmt(revData[i])}"></div>
-      <div class="cbar cbar-cost" data-h="${ch}" title="Costs: ${fmt(costData[i])}"></div>
-      <div class="clbl">${m.lbl}</div>
+    const rh = revData[i]>0 ? Math.max(2, Math.round((revData[i]/axisMax)*100)) : 0;
+    const ch = costData[i]>0 ? Math.max(2, Math.round((costData[i]/axisMax)*100)) : 0;
+    return `<div class="fin-compare-month">
+      <div class="fin-compare-bars">
+        <div class="fin-compare-bar fin-compare-bar--income${rh===0?' is-zero':''}" data-h="${rh}" title="Income: ${fmt(revData[i])}" aria-label="${m.lbl} income ${fmt(revData[i])}">${rh>0?`<span class="fin-compare-value">${chartAmount(revData[i])}</span>`:''}</div>
+        <div class="fin-compare-bar fin-compare-bar--cost${ch===0?' is-zero':''}" data-h="${ch}" title="Costs: ${fmt(costData[i])}" aria-label="${m.lbl} costs ${fmt(costData[i])}">${ch>0?`<span class="fin-compare-value">${chartAmount(costData[i])}</span>`:''}</div>
+      </div>
+      <div class="fin-compare-label">${m.lbl}</div>
     </div>`;
   }).join('');
 
   // Invoice status breakdown
   const invStatuses = ['Paid','Sent','Overdue','Draft'];
-  const invTotal    = Math.max(periodInvoices.length,1);
-  const statBars    = invStatuses.map(s=>{
-    const cnt = periodInvoices.filter(i=>i.status===s).length;
-    const col = s==='Paid'?'var(--green)':s==='Overdue'?'var(--ember)':s==='Sent'?'var(--amber)':'var(--muted)';
-    return `<div class="mb-14">
-      <div class="flex-sb mb-5"><span class="mlbl-xs">${s}</span><span class="mlbl-sm">${cnt}</span></div>
-      <div class="prog-bar"><div class="prog-fill" data-w="${Math.round(cnt/invTotal*100)}" data-bg="${col}"></div></div>
+  const invTotal = periodInvoices.length;
+  const statusColours = {Paid:'var(--green)',Sent:'var(--amber)',Overdue:'var(--ember)',Draft:'var(--muted)'};
+  const statusData = invStatuses.map(status=>({
+    status,
+    count:periodInvoices.filter(invoice=>invoice.status===status).length,
+    colour:statusColours[status]
+  }));
+  const donutCircumference = 2 * Math.PI * 46;
+  let donutOffset = 0;
+  const donutSegments = statusData.map(item=>{
+    if (!invTotal || !item.count) return '';
+    const length = item.count / invTotal * donutCircumference;
+    const segment = `<circle class="fin-status-segment" cx="60" cy="60" r="46" fill="none" stroke="${item.colour}" stroke-width="12" stroke-linecap="butt" stroke-dasharray="${length.toFixed(2)} ${(donutCircumference-length).toFixed(2)}" stroke-dashoffset="${(-donutOffset).toFixed(2)}"></circle>`;
+    donutOffset += length;
+    return segment;
+  }).join('');
+  const statusLegend = statusData.map(item=>{
+    const pct = invTotal ? Math.round(item.count/invTotal*100) : 0;
+    const slug = item.status.toLowerCase();
+    return `<div class="fin-status-legend-row">
+      <span class="fin-status-dot fin-status-dot--${slug}"></span>
+      <span>${item.status}</span>
+      <strong>${item.count}</strong>
+      <em>${pct}%</em>
     </div>`;
   }).join('');
 
@@ -3916,14 +4173,15 @@ async function renderFinDashboard() {
   });
   const clientRows = Object.values(clientMap).sort((a,b)=>b.amount-a.amount).slice(0,6);
   const clientMax = Math.max(...clientRows.map(r=>r.amount),1);
-  const clientHtml = clientRows.length ? clientRows.map(r=>`
-    <div class="fin-break-row">
+  const clientHtml = clientRows.length ? clientRows.map((r,index)=>`
+    <div class="fin-client-row">
+      <div class="fin-client-rank">${index+1}</div>
       <div class="fin-break-main">
         <div class="fin-break-title">${esc(r.client)}</div>
         <div class="fin-break-meta">${r.count} invoices - ${fmt(r.outstanding)} outstanding</div>
       </div>
       <div class="fin-break-amt">${fmt(r.amount)}</div>
-      <div class="prog-bar fin-break-bar"><div class="prog-fill" data-w="${Math.max(4,Math.round(r.amount/clientMax*100))}" data-bg="var(--amber)"></div></div>
+      <div class="prog-bar fin-client-bar"><div class="prog-fill" data-w="${Math.max(4,Math.round(r.amount/clientMax*100))}" data-bg="var(--amber)"></div></div>
     </div>`).join('') : `<div class="empty-note">No client finance data yet.</div>`;
 
   const outstandingInvoices = periodInvoices
@@ -3964,18 +4222,27 @@ async function renderFinDashboard() {
   document.getElementById('fin-dash-body').innerHTML = `
     <div class="twocol">
       <div class="panel">
-        <div class="ph"><div class="ph-title">Income vs Costs — ${periodLabel}</div><div class="ph-sub"><span class="legend-dot legend-ok"></span>Income <span class="legend-dot legend-cost ml-2"></span>Costs</div></div>
-        <div class="rev-chart-wrap"><div class="chart-bars">${chartBars}</div></div>
+        <div class="ph"><div class="ph-title">Income vs Costs — ${periodLabel}</div><div class="fin-chart-key"><span><i class="fin-chart-key-dot fin-chart-key-dot--income"></i>Income</span><span><i class="fin-chart-key-dot fin-chart-key-dot--cost"></i>Costs</span></div></div>
+        <div class="fin-compare-chart" role="img" aria-label="Monthly income and supplier costs for ${periodLabel}">
+          <div class="fin-compare-scale"><span>${chartAmount(axisMax)}</span><span>${chartAmount(axisMax/2)}</span><span>R0</span></div>
+          <div class="fin-compare-plot">${chartBars}</div>
+        </div>
       </div>
       <div class="panel">
         <div class="ph"><div class="ph-title">Invoice Status Breakdown</div><button class="btn btn-g btn-s" data-action="navPage" data-page="p-invoices">View All</button></div>
-        <div class="pb">${statBars}</div>
+        <div class="fin-status-chart">
+          <div class="fin-status-donut" role="img" aria-label="${invTotal} invoices by status">
+            <svg viewBox="0 0 120 120" aria-hidden="true"><circle class="fin-status-track" cx="60" cy="60" r="46" fill="none" stroke-width="12"></circle>${donutSegments}</svg>
+            <div class="fin-status-total"><strong>${invTotal}</strong><span>Invoices</span></div>
+          </div>
+          <div class="fin-status-legend">${statusLegend}</div>
+        </div>
       </div>
     </div>
     <div class="twocol">
       <div class="panel">
-        <div class="ph"><div class="ph-title">Client Breakdown</div></div>
-        <div class="pb fin-break-list">${clientHtml}</div>
+        <div class="ph"><div><div class="ph-title">Client Breakdown</div><div class="panel-subtitle">Ranked by invoiced value</div></div></div>
+        <div class="pb fin-client-chart">${clientHtml}</div>
       </div>
       <div class="panel">
         <div class="ph"><div class="ph-title">Aging / Status List</div><button class="btn btn-g btn-s" data-action="navPage" data-page="p-invoices">Invoices</button></div>
@@ -3989,7 +4256,7 @@ async function renderFinDashboard() {
     </div>`:''}
     `;
 
-  { let css=''; el.querySelectorAll('.cbar[data-h]').forEach((b,i)=>{ b.dataset.cbi=i; css+=`.cbar[data-cbi="${i}"]{height:${b.dataset.h}%;}`; }); if(css)_injectStyle('cbar-fin-css',css); }
+  { let css=''; el.querySelectorAll('.fin-compare-bar[data-h]').forEach((b,i)=>{ b.dataset.fcbi=i; css+=`.fin-compare-bar[data-fcbi="${i}"]{height:${b.dataset.h}%;}`; }); if(css)_injectStyle('cbar-fin-css',css); }
   applyProgFills(el);
 }
 
@@ -4432,7 +4699,7 @@ function trackerDateInput(value) {
   return value ? String(value).replace(' ', 'T').slice(0, 16) : '';
 }
 
-function openTrackerRecord(entityType, refId) {
+async function openTrackerRecord(entityType, refId) {
   if (!['task','callout'].includes(entityType)) return;
   const record = entityType === 'task'
     ? proxyDB.tasks.find(t => t.ref_id === refId)
@@ -4451,8 +4718,20 @@ function openTrackerRecord(entityType, refId) {
     const names = (t?.assignees && t.assignees.length)
       ? t.assignees.map(a => esc(a.name)).join(', ')
       : (t?.assignee_name || t?.assigned_to || '—');
-    return `<div class="fs-11 text-muted mb-12">Assigned to: <span class="fw-600">${names}</span></div>`;
+    return `<div class="fs-11 text-muted mb-12">Assigned to: <span class="fw-600" id="tracker-assignee-current">${names}</span></div>`;
   })();
+
+  let reassignmentHtml = '';
+  if (entityType === 'task' && canEdit) {
+    const selectedUsernames = new Set((record.assignees || []).map(a => a.username));
+    const usersResponse = await api('GET', 'task_users.php');
+    const eligibleUsers = usersResponse.data || [];
+    const options = eligibleUsers.map(u => {
+      const selected = selectedUsernames.has(u.username) || (!selectedUsernames.size && Number(record.assigned_to_user_id) === Number(u.id));
+      return `<option value="${esc(u.username)}" ${selected?'selected':''}>${esc(u.name)} (${esc(String(u.role||'').replace(/_/g,' '))})</option>`;
+    }).join('');
+    reassignmentHtml = `<div class="form-title mt2">Assignment</div><div class="fgroup"><label class="flbl" for="tr-assignees">Assigned Users</label><select class="finput" id="tr-assignees" multiple size="${Math.min(Math.max(eligibleUsers.length,3),6)}">${options}</select><div class="att-fhint">Select one or more active users who own this ticket.</div></div><div class="flex-end mt2"><button class="btn btn-p btn-s" data-action="saveTrackerAssignees" data-id="${esc(refId)}">Reassign</button></div>`;
+  }
 
   const fileIcon = m => m === 'application/pdf' ? '📄' : m && (m.includes('sheet') || m.includes('excel')) ? '📊' : m && m.includes('word') ? '📝' : m && m.startsWith('image/') ? '🖼' : '📎';
   const fmtBytes = b => b < 1024 ? b + ' B' : b < 1048576 ? (b/1024).toFixed(1) + ' KB' : (b/1048576).toFixed(1) + ' MB';
@@ -4460,6 +4739,7 @@ function openTrackerRecord(entityType, refId) {
   openModal(`${refId} - Record`, `
     <div class="att-ctx"><span class="fw-600">${esc(title)}</span></div>
     ${assigneesHtml}
+    ${reassignmentHtml}
     <div class="form-title mt2">Schedule</div>
     <div class="fgrid">
       <div class="fgroup"><label class="flbl">Created</label><input class="finput" value="${esc(fmtDT(createdAt))}" disabled></div>
@@ -4543,6 +4823,28 @@ async function saveTrackerSchedule(entityType, refId) {
   const msg = document.getElementById('tracker-record-message');
   if (msg) msg.textContent = r.success ? 'Schedule saved and recorded in the audit log.' : (r.error || 'Schedule could not be saved.');
   if (r.success) { await Promise.all([refreshTasks(), refreshCallouts()]); renderTracker(); }
+}
+
+async function saveTrackerAssignees(refId) {
+  const select = document.getElementById('tr-assignees');
+  const assignedToUsernames = select
+    ? Array.from(select.selectedOptions).map(option => option.value).filter(Boolean)
+    : [];
+  if (!assignedToUsernames.length) { toast('Select at least one user for this ticket.', 'err'); return; }
+  const r = await api('PUT', `tasks.php?id=${encodeURIComponent(refId)}`, { assigned_to_usernames: assignedToUsernames });
+  const msg = document.getElementById('tracker-record-message');
+  if (!r.success) {
+    if (msg) msg.textContent = r.error || r.message || 'Assignment could not be saved.';
+    toast(r.error || r.message || 'Assignment could not be saved.', 'err');
+    return;
+  }
+  const selectedNames = Array.from(select.selectedOptions).map(option => option.textContent.replace(/\s+\([^)]*\)$/, '')).join(', ');
+  const current = document.getElementById('tracker-assignee-current');
+  if (current) current.textContent = selectedNames;
+  if (msg) msg.textContent = 'Assignment saved and recorded in the audit log.';
+  await refreshTasks();
+  renderTracker();
+  toast('Ticket reassigned.', 'ok');
 }
 
 async function addTrackerUpdate(entityType, refId) {
@@ -5013,7 +5315,18 @@ async function delCo(id){
 ═══════════════════════════════════════════════════════ */
 function renderQuotes(search='',filter=''){
   let items=[...proxyDB.quotes].sort((a,b)=>b.date.localeCompare(a.date));
-  if(search) items=items.filter(q=>q.id.toLowerCase().includes(search.toLowerCase())||q.quoteNo.toLowerCase().includes(search.toLowerCase())||q.client.toLowerCase().includes(search.toLowerCase()));
+  if(search){
+    const s=search.toLowerCase();
+    items=items.filter(q=>{
+      const linkedCallout=proxyDB.callouts.find(c=>c.id===q.calloutRef||c.jobNo===q.calloutRef);
+      return q.id.toLowerCase().includes(s)
+        ||q.quoteNo.toLowerCase().includes(s)
+        ||q.client.toLowerCase().includes(s)
+        ||String(q.calloutRef||'').toLowerCase().includes(s)
+        ||String(linkedCallout?.jobNo||'').toLowerCase().includes(s)
+        ||String(linkedCallout?.service||'').toLowerCase().includes(s);
+    });
+  }
   if(filter) items=items.filter(q=>q.status===filter);
 
   // Senior tech only sees their own
@@ -5031,8 +5344,16 @@ function renderQuotes(search='',filter=''){
     const{total}=quoteTotals(q);
     const submitter=proxyDB.users.find(u=>u.username===q.submittedBy);
     const submitterCell=submitter?`${esc(submitter.name)}<div class="mlbl-9 mt-2">${esc(ROLE_LABELS[submitter.role]||submitter.role)}</div>`:'<span class="text-muted">-</span>';
+    const issuer=companyProfileById(q.companyProfileId);
+    const linkedCallout=proxyDB.callouts.find(c=>c.id===q.calloutRef||c.jobNo===q.calloutRef);
+    const calloutNumber=linkedCallout?.jobNo||q.calloutRef||'';
+    const calloutName=linkedCallout?.service||'';
+    const calloutCell=calloutNumber
+      ?`<span class="mono">${esc(calloutNumber)}</span><span class="quote-calllog-name">${esc(calloutName||'Service unavailable')}</span>`
+      :'<span class="pill overdue">Not linked</span>';
     const actions=[];
     actions.push(`<button class="btn btn-g btn-s" data-action="previewQuote" data-id="${esc(q.id)}">View</button>`);
+    if(q.calloutRef) actions.push(`<button class="btn btn-g btn-s" data-action="openRecordChain" data-id="${esc(q.calloutRef)}">Call Log</button>`);
     actions.push(`<button class="btn btn-g btn-s" data-action="downloadQuotePdf" data-id="${esc(q.id)}">PDF</button>`);
     actions.push(`<button class="btn btn-g btn-s" data-action="openAttachmentsModal" data-entity-type="quote" data-entity-ref="${esc(q.id)}">Files</button>`);
     if(canSend&&q.status!=='Draft'&&q.status!=='Rejected'&&q.status!=='Declined') actions.push(`<button class="btn btn-p btn-s" data-action="openSendQuoteModal" data-id="${esc(q.id)}">Send</button>`);
@@ -5042,16 +5363,26 @@ function renderQuotes(search='',filter=''){
     }
     if(canConvert&&q.status==='Approved') actions.push(`<button class="btn btn-g btn-s" data-action="convertToInvoice" data-id="${esc(q.id)}">Invoice</button>`);
     if(canDel) actions.push(`<button class="btn btn-g btn-s" data-action="deleteQuote" data-id="${esc(q.id)}">Del</button>`);
-    return`<tr>
-      <td class="mono">${esc(q.quoteNo)}${q.quoteNo!==q.id?`<div class="mlbl-9 mt-2 text-muted">${esc(q.id)}</div>`:''}</td>
-      <td>${esc(q.client)}</td>
-      <td class="amt">${fmt(total)}</td>
-      <td class="tc-11">${submitterCell}</td>
-      <td class="tc-11 nowrap">${fmtD(q.validUntil)}</td>
-      <td>${pillH(q.status)}</td>
-      <td><div class="bgrp">${actions.join('')}</div></td>
-    </tr>`;
-  }).join(''):'<tr><td colspan="7" class="tc-empty">No quotes</td></tr>';
+    const detailId=`qte-detail-${String(q.id).replace(/[^A-Za-z0-9_-]/g,'-')}`;
+    const field=(label,value,extraClass='')=>`<div class="calllog-field ${extraClass}"><span class="calllog-field-label">${label}</span><div class="calllog-field-value">${value}</div></div>`;
+    return`<article class="calllog-card quote-card" role="listitem" data-quote-id="${esc(q.id)}" aria-labelledby="${esc(detailId)}-quote">
+      <div class="calllog-card-summary quote-card-summary">
+        ${field('Quote #',`<span id="${esc(detailId)}-quote" class="mono">${esc(q.quoteNo)}</span>${q.quoteNo!==q.id?`<span class="calllog-ref">${esc(q.id)}</span>`:''}`,'quote-field-number')}
+        ${field('Call Log',calloutCell,'quote-field-calllog')}
+        ${field('Client',esc(q.client),'quote-field-client')}
+        ${field('Total',`<span class="amt">${fmt(total)}</span>`)}
+        ${field('Valid Until',fmtD(q.validUntil))}
+        ${field('Status',pillH(q.status))}
+        <button class="calllog-expander" type="button" data-action="toggleCalloutDetails" data-detail-id="${esc(detailId)}" data-job-id="${esc(q.quoteNo)}" aria-expanded="false" aria-controls="${esc(detailId)}" aria-label="Show additional details for ${esc(q.quoteNo)}"><span class="calllog-expander-icon" aria-hidden="true">&#9656;</span><span class="calllog-expander-label">Show details</span></button>
+      </div>
+      <div class="calllog-detail quote-card-detail" id="${esc(detailId)}" hidden>
+        ${field('Issuer',esc(issuer?.display_name||'-'))}
+        ${field('Submitted By',submitterCell)}
+        ${field('Quote Date',fmtD(q.date))}
+      </div>
+      <footer class="calllog-actions"><span class="calllog-section-label">Actions</span><div class="bgrp">${actions.join('')}</div></footer>
+    </article>`;
+  }).join(''):'<div class="tc-empty calllog-empty">No quotes</div>';
 }
 
 function openSendQuoteModal(id){
@@ -5062,6 +5393,10 @@ function openSendQuoteModal(id){
     <div class="att-ctx mb-14">
       <div class="fs-12 fw-600">${esc(q.id)} - ${esc(q.client)}</div>
       <div class="fs-11 text-muted mt-2">Total: R ${Number(total).toLocaleString('en-ZA',{minimumFractionDigits:2})} - Valid until: ${fmtD(q.validUntil)}</div>
+    </div>
+    <div class="fgroup">
+      <label class="flbl">Send as <span class="text-ember">*</span></label>
+      <select class="finput" id="sq-company-profile">${companyProfileOptions(q.companyProfileId)}</select>
     </div>
     <div class="fgroup">
       <label class="flbl">Send to (email address) <span class="text-ember">*</span></label>
@@ -5076,8 +5411,10 @@ function openSendQuoteModal(id){
 
 async function sendQuoteEmail(id){
   const email=document.getElementById('sq-email')?.value?.trim();
+  const companyProfileId=Number(document.getElementById('sq-company-profile')?.value)||0;
   if(!email){toast('Email address required','err');return;}
-  const r=await api('PUT',`quotes.php?id=${id}`,{action:'send_quote',to_email:email});
+  if(!companyProfileId){toast('Issuing company required','err');return;}
+  const r=await api('PUT',`quotes.php?id=${id}`,{action:'send_quote',to_email:email,company_profile_id:companyProfileId});
   if(!r.success){toast(r.error||'Error sending quote','err');return;}
   await refreshQuotes();
   renderQuotes('');
@@ -5107,19 +5444,33 @@ function previewQuote(id){
   const q=proxyDB.quotes.find(x=>x.id===id);if(!q)return;
   const{sub,vat,total}=quoteTotals(q);
   const hasItems=(q.items||[]).length>0;
-  const co = (typeof COMPANY !== 'undefined') ? COMPANY : {};
+  const co = companyProfileById(q.companyProfileId) || ((typeof COMPANY !== 'undefined') ? COMPANY : {});
+  const coName=co.display_name||co.name||'';
+  const coReg=co.registration_number||co.reg||'';
+  const coVat=co.vat_number||co.vat||'';
+  const coAddr=co.address||co.addr||'';
+  const coLogo=co.logo_path||'';
+  const client=clientDocumentProfile(q.clientId)||{};
+  const clientName=client.display_name||q.client;
+  const clientLegal=client.legal_name||clientName;
+  const multiline=value=>esc(value||'').replace(/\n/g,'<br>');
+  const docStyle=`--doc-primary:${co.primary_color||'#0A1626'};--doc-accent:${co.accent_color||'#C2A04A'};--doc-paper:${co.paper_color||'#F4F0E6'};--doc-font:${co.body_font||'Instrument Sans, Arial, sans-serif'}`;
   openModal(`Quote - ${q.quoteNo}`,`
-    <div class="doc-preview">
+    <div class="doc-preview" style="${esc(docStyle)}">
       <div class="doc-logo-row">
-        <img src="./blackfire_logo_transparent.png" class="doc-logo-img" alt="BlackFire Security Solutions">
-        <div class="doc-contact">${esc(co.name||'')}<br>${esc(co.phone||'')}${co.mobile?` / ${esc(co.mobile)}`:''}<br>${esc(co.email||'')}<br>${esc(co.addr||'')}</div>
+        ${coLogo?`<img src="${esc(coLogo)}" class="doc-logo-img" alt="${esc(coName)}">`:`<div class="fs-22 fw-600">${esc(coName)}</div>`}
+        <div class="doc-contact"><strong>${esc(co.legal_name||coName)}</strong><br>Reg: ${esc(coReg||'—')}<br>VAT: ${esc(coVat||'—')}<br>${esc(co.phone||'')}<br>${esc(co.email||'')}</div>
       </div>
-      <div class="doc-type">QUOTATION</div>
+      <div class="doc-type-row"><div><div class="doc-kicker">Commercial document</div><div class="doc-type">QUOTATION</div></div><div class="doc-number">${esc(q.quoteNo)}</div></div>
       <div class="doc-meta">
         <div><div class="dml">Quote #</div><div class="dmv font-mono">${esc(q.quoteNo)}</div></div>
-        <div><div class="dml">Client</div><div class="dmv">${esc(q.client)}</div></div>
+        <div><div class="dml">Supplier Reference</div><div class="dmv">${esc(client.supplier_reference||'ASTUTE')}</div></div>
         <div><div class="dml">Date</div><div class="dmv">${fmtD(q.date)}</div></div>
         <div><div class="dml">Valid Until</div><div class="dmv">${fmtD(q.validUntil)}</div></div>
+      </div>
+      <div class="doc-parties">
+        <div class="doc-party"><div class="dml">From</div><strong>${esc(co.legal_name||coName)}</strong><div class="doc-address">${multiline(coAddr)}</div><div>VAT: ${esc(coVat||'—')}</div></div>
+        <div class="doc-party"><div class="dml">Quote To</div><strong>${esc(clientName)}</strong>${clientLegal!==clientName?`<div>${esc(clientLegal)}</div>`:''}<div class="doc-address">${multiline(client.quote_address||'')}</div><div>${esc(client.phone||'')}</div>${client.vat_number?`<div>VAT: ${esc(client.vat_number)}</div>`:''}</div>
       </div>
       ${q.approvalStatus==='pending'?'<div class="qte-pending-warn">⚠ Pending Manager Approval - not yet issued to client</div>':''}
       <table class="doc-t">
@@ -5131,7 +5482,8 @@ function previewQuote(id){
         <div class="doc-tot-row"><span>VAT (15%)</span><span>${fmt(vat)}</span></div>
         <div class="doc-tot-row grand"><span>TOTAL</span><span>${fmt(total)}</span></div>
       </div>
-      <div class="doc-note">${esc(co.name||'BlackFire Solutions')}${co.reg?` · Reg: ${esc(co.reg)}`:''}${co.vat?` · VAT: ${esc(co.vat)}`:''}</div>
+      <div class="doc-bank"><div><div class="dml">Banking Details</div><strong>${esc(co.bank_name||'—')}</strong> · ${esc(co.bank_account_type||'')}<br>Account ${esc(co.bank_account_number||'—')} · Branch ${esc(co.bank_branch_code||'—')} · SWIFT ${esc(co.bank_swift_code||'—')}</div><div class="doc-classification">CLASSIFIED - CONFIDENTIAL</div></div>
+      <div class="doc-note">${esc(coName)}${coReg?` · Reg: ${esc(coReg)}`:''}${coVat?` · VAT: ${esc(coVat)}`:''}<br>THANK YOU FOR YOUR BUSINESS!</div>
     </div>
     <div class="mt-12 flex-end"><button class="btn btn-g" data-action="downloadQuotePdf" data-id="${esc(id)}">Download PDF</button></div>
     <div id="attach-modal-area" class="inv-att-area"></div>`);
@@ -5159,8 +5511,8 @@ function initNewQuote(){
   needsApproval?$show(document.getElementById('nq-pending-notice'),'block'):$hide(document.getElementById('nq-pending-notice'));
   needsApproval?$hide(document.getElementById('nq-status-group')):$show(document.getElementById('nq-status-group'));
   document.getElementById('nq-submit-btn').textContent=needsApproval?'Submit for Approval →':'Save Quote';
-  const due=new Date();due.setDate(due.getDate()+30);
-  document.getElementById('nq-valid').value=localDateStr(due);
+  populateCompanyProfileDropdowns();
+  applyCompanyProfileDate('nq-company-profile','nq-valid','quote_valid_days');
   document.getElementById('li-body').innerHTML='';
   addLine();addLine();recalcQ();
   populateLinkedDropdowns();
@@ -5218,7 +5570,7 @@ function renderInvoices(search='',filter=''){
   const canMod=can('invoice.create');const canPaid=can('invoice.mark_paid');const canDel=can('invoice.delete');const canSend=can('invoice.send');
   const btn=document.getElementById('btn-newinv');if(btn){ canMod?$show(btn):$hide(btn); }
   document.getElementById('inv-table').innerHTML=items.length?items.map(inv=>`
-    <tr><td class="mono">${esc(inv.invoiceNo)}${inv.invoiceNo!==inv.id?`<div class="mlbl-9 mt-2 text-muted">${esc(inv.id)}</div>`:''}</td><td>${esc(inv.client)}</td><td class="amt">${fmt(inv.amount)}</td><td class="tc-11 nowrap">${fmtD(inv.dueDate)}</td><td>${pillH(inv.status)}</td>
+    <tr><td class="mono">${esc(inv.invoiceNo)}${inv.invoiceNo!==inv.id?`<div class="mlbl-9 mt-2 text-muted">${esc(inv.id)}</div>`:''}</td><td>${esc(inv.client)}</td><td>${esc(companyProfileById(inv.companyProfileId)?.display_name||'')}</td><td class="amt">${fmt(inv.amount)}</td><td class="tc-11 nowrap">${fmtD(inv.dueDate)}</td><td>${pillH(inv.status)}</td>
     <td><div class="bgrp">
       <button class="btn btn-g btn-s" data-action="previewInvoice" data-id="${esc(inv.id)}">View</button>
       <button class="btn btn-g btn-s" data-action="downloadInvoicePdf" data-id="${esc(inv.id)}">PDF</button>
@@ -5228,7 +5580,7 @@ function renderInvoices(search='',filter=''){
       ${canPaid&&inv.status!=='Paid'?`<button class="btn btn-g btn-s" data-action="markPaid" data-id="${esc(inv.id)}">Paid</button>`:''}
       ${canPaid&&inv.status==='Paid'?`<button class="btn btn-g btn-s" data-action="reversePayment" data-id="${esc(inv.id)}">Reverse</button>`:''}
       ${canDel?`<button class="btn btn-g btn-s" data-action="deleteInvoice" data-id="${esc(inv.id)}">Del</button>`:''}
-    </div></td></tr>`).join(''):'<tr><td colspan="6" class="tc-empty">No invoices</td></tr>';
+    </div></td></tr>`).join(''):'<tr><td colspan="7" class="tc-empty">No invoices</td></tr>';
 }
 
 function openSendInvoiceModal(id){
@@ -5238,6 +5590,10 @@ function openSendInvoiceModal(id){
     <div class="att-ctx mb-14">
       <div class="fs-12 fw-600">${esc(inv.id)}  —  ${esc(inv.client)}</div>
       <div class="fs-11 text-muted mt-2">Amount: R ${Number(inv.amount).toLocaleString('en-ZA',{minimumFractionDigits:2})}  ·  Due: ${fmtD(inv.dueDate)}</div>
+    </div>
+    <div class="fgroup">
+      <label class="flbl">Send as <span class="text-ember">*</span></label>
+      <select class="finput" id="si-company-profile">${companyProfileOptions(inv.companyProfileId)}</select>
     </div>
     <div class="fgroup">
       <label class="flbl">Send to (email address) <span class="text-ember">*</span></label>
@@ -5252,8 +5608,10 @@ function openSendInvoiceModal(id){
 
 async function sendInvoiceEmail(id){
   const email=document.getElementById('si-email')?.value?.trim();
+  const companyProfileId=Number(document.getElementById('si-company-profile')?.value)||0;
   if(!email){toast('Email address required','err');return;}
-  const r=await api('PUT',`invoices.php?id=${id}`,{action:'send_invoice',to_email:email});
+  if(!companyProfileId){toast('Issuing company required','err');return;}
+  const r=await api('PUT',`invoices.php?id=${id}`,{action:'send_invoice',to_email:email,company_profile_id:companyProfileId});
   if(!r.success){toast(r.error||'Error sending invoice','err');return;}
   await refreshInvoices();
   renderInvoices('');
@@ -5268,27 +5626,43 @@ function downloadInvoicePdf(id){
 
 function previewInvoice(id){
   const inv=proxyDB.invoices.find(x=>x.id===id);if(!inv)return;
-  const co2 = (typeof COMPANY !== 'undefined') ? COMPANY : {};
+  const co2 = companyProfileById(inv.companyProfileId) || ((typeof COMPANY !== 'undefined') ? COMPANY : {});
+  const coName=co2.display_name||co2.name||'';
+  const coReg=co2.registration_number||co2.reg||'';
+  const coVat=co2.vat_number||co2.vat||'';
+  const coLogo=co2.logo_path||'';
+  const client=clientDocumentProfile(inv.clientId)||{};
+  const clientName=client.display_name||inv.client;
+  const clientLegal=client.legal_name||clientName;
+  const multiline=value=>esc(value||'').replace(/\n/g,'<br>');
+  const vatRate=Number(co2.vat_rate||15);
+  const subtotal=inv.amount/(1+(vatRate/100));
+  const docStyle=`--doc-primary:${co2.primary_color||'#0A1626'};--doc-accent:${co2.accent_color||'#C2A04A'};--doc-paper:${co2.paper_color||'#F4F0E6'};--doc-font:${co2.body_font||'Instrument Sans, Arial, sans-serif'}`;
   openModal(`Invoice - ${inv.invoiceNo}`,`
-    <div class="doc-preview">
+    <div class="doc-preview" style="${esc(docStyle)}">
       <div class="doc-logo-row">
-        <img src="./blackfire_logo_transparent.png" class="doc-logo-img" alt="BlackFire Security Solutions">
-        <div class="doc-contact">${esc(co2.name||'')}${co2.reg?`<br>Reg: ${esc(co2.reg)}`:''}<br>${esc(co2.phone||'')}${co2.mobile?` / ${esc(co2.mobile)}`:''}<br>${esc(co2.email||'')}</div>
+        ${coLogo?`<img src="${esc(coLogo)}" class="doc-logo-img" alt="${esc(coName)}">`:`<div class="fs-22 fw-600">${esc(coName)}</div>`}
+        <div class="doc-contact"><strong>${esc(co2.legal_name||coName)}</strong><br>Reg: ${esc(coReg||'—')}<br>VAT: ${esc(coVat||'—')}<br>${esc(co2.phone||'')}<br>${esc(co2.email||'')}</div>
       </div>
-      <div class="doc-type">TAX INVOICE</div>
+      <div class="doc-type-row"><div><div class="doc-kicker">Tax document</div><div class="doc-type">TAX INVOICE</div></div><div class="doc-number">${esc(inv.invoiceNo)}</div></div>
       <div class="doc-meta">
         <div><div class="dml">Invoice #</div><div class="dmv font-mono">${esc(inv.invoiceNo)}</div></div>
-        <div><div class="dml">Client</div><div class="dmv">${esc(inv.client)}</div></div>
+        <div><div class="dml">Invoice Date</div><div class="dmv">${fmtD(inv.date)}</div></div>
         <div><div class="dml">PO Reference</div><div class="dmv">${esc(inv.po||'N/A')}</div></div>
         <div><div class="dml">Due Date</div><div class="dmv">${fmtD(inv.dueDate)}</div></div>
       </div>
+      <div class="doc-parties">
+        <div class="doc-party"><div class="dml">From</div><strong>${esc(co2.legal_name||coName)}</strong><div class="doc-address">${multiline(co2.address||'')}</div><div>VAT: ${esc(coVat||'—')}</div></div>
+        <div class="doc-party"><div class="dml">Bill To</div><strong>${esc(clientLegal)}</strong>${clientName!==clientLegal?`<div>${esc(clientName)}</div>`:''}<div class="doc-address">${multiline(client.invoice_address||'')}</div><div>${esc(client.phone||'')}</div><div>VAT: ${esc(client.vat_number||'—')}</div></div>
+      </div>
       <div class="doc-tots w-full">
-        <div class="doc-tot-row"><span>Excl. VAT</span><span>${fmt(inv.amount/1.15)}</span></div>
-        <div class="doc-tot-row"><span>VAT (15%)</span><span>${fmt(inv.amount-inv.amount/1.15)}</span></div>
+        <div class="doc-tot-row"><span>Excl. VAT</span><span>${fmt(subtotal)}</span></div>
+        <div class="doc-tot-row"><span>VAT (${vatRate}%)</span><span>${fmt(inv.amount-subtotal)}</span></div>
         <div class="doc-tot-row grand"><span>TOTAL DUE</span><span>${fmt(inv.amount)}</span></div>
       </div>
       <div class="mt-12">${pillH(inv.status)}</div>
-      <div class="doc-note">${esc(co2.name||'BlackFire Solutions')}${co2.reg?` · Reg: ${esc(co2.reg)}`:''}${co2.vat?` · VAT: ${esc(co2.vat)}`:''}</div>
+      <div class="doc-bank"><div><div class="dml">Payment Details</div><strong>${esc(co2.bank_name||'—')}</strong> · ${esc(co2.bank_account_type||'')}<br>Account ${esc(co2.bank_account_number||'—')} · Branch ${esc(co2.bank_branch_code||'—')} · SWIFT ${esc(co2.bank_swift_code||'—')}<br>Payment reference: ${esc(inv.invoiceNo)}</div><div class="doc-classification">CLASSIFIED - CONFIDENTIAL</div></div>
+      <div class="doc-note">${esc(coName)}${coReg?` · Reg: ${esc(coReg)}`:''}${coVat?` · VAT: ${esc(coVat)}`:''}<br>THANK YOU FOR YOUR BUSINESS!</div>
     </div>
     <div class="mt-12 flex-end"><button class="btn btn-g" data-action="downloadInvoicePdf" data-id="${esc(id)}">Download PDF</button></div>
     <div id="attach-modal-area" class="inv-att-area"></div>`);
@@ -5315,8 +5689,8 @@ function initNewInvoice() {
   _invoiceListenerAC = new AbortController();
   const sig = { signal: _invoiceListenerAC.signal };
 
-  const due = new Date(); due.setDate(due.getDate() + 14);
-  document.getElementById('ni-due').value = localDateStr(due);
+  populateCompanyProfileDropdowns();
+  applyCompanyProfileDate('ni-company-profile','ni-due','invoice_due_days');
   document.getElementById('ni-callout-ref').disabled = false;
 
   const ctx = _invoiceContext;
@@ -5345,6 +5719,10 @@ function initNewInvoice() {
     const qId = this.value;
     if (!qId) { document.getElementById('ni-callout-ref').disabled = false; return; }
     const q = proxyDB.quotes.find(x => x.id === qId); if (!q) return;
+    if (q.companyProfileId) {
+      document.getElementById('ni-company-profile').value=String(q.companyProfileId);
+      applyCompanyProfileDate('ni-company-profile','ni-due','invoice_due_days');
+    }
     if (q.clientId && !parseInt(document.getElementById('ni-client')?.value)) {
       document.getElementById('ni-client').value = q.clientId;
       populateLinkedDropdowns();
@@ -5369,6 +5747,7 @@ function _applyInvoiceCalloutCtx(calloutId) {
   populateLinkedDropdowns();
   const linkedQ = proxyDB.quotes.find(q => q.calloutRef === calloutId && q.status === 'Approved' && !proxyDB.invoices.some(i=>i.ref===q.id));
   if (linkedQ) {
+    if (linkedQ.companyProfileId) document.getElementById('ni-company-profile').value=String(linkedQ.companyProfileId);
     document.getElementById('ni-quote-ref').value = linkedQ.id;
     const total = quoteTotals(linkedQ).total;
     if (total) document.getElementById('ni-amount').value = (Math.round(total * 100) / 100).toFixed(2);
@@ -5377,6 +5756,7 @@ function _applyInvoiceCalloutCtx(calloutId) {
 
 function _applyInvoiceQuoteCtx(quoteId) {
   const q = proxyDB.quotes.find(x => x.id === quoteId); if (!q) return;
+  if (q.companyProfileId) document.getElementById('ni-company-profile').value=String(q.companyProfileId);
   if (q.clientId) document.getElementById('ni-client').value = q.clientId;
   if (q.calloutRef) {
     const linkedCo = proxyDB.callouts.find(c => c.id === q.calloutRef);
@@ -5486,6 +5866,8 @@ async function saveTx(){
 /* ═══════════════════════════════════════════════════════
    STATEMENT / INCOME
 ═══════════════════════════════════════════════════════ */
+let statementPreviewRecords=[];
+let statementPreviewInvoices=[];
 async function renderStatement(){
   document.getElementById('stmt-content').innerHTML=`<div class="stmt-loading">Loading statements…</div>`;
   const r=await api('GET','statements.php?action=list');
@@ -5494,6 +5876,8 @@ async function renderStatement(){
   const pending=(r.data||[]).filter(s=>s.status==='pending_approval');
   const released=(r.data||[]).filter(s=>s.status==='released');
   const outstanding=r.outstanding||[];
+  statementPreviewRecords=r.data||[];
+  statementPreviewInvoices=outstanding;
   const outTotal=r.outstanding_total||0;
   const canRelease=can('finance.statement.release');
   const canGenerate=can('finance.statement.generate');
@@ -5509,7 +5893,7 @@ async function renderStatement(){
       <td class="amt">${fmt(Number(inv.amount))}</td>
     </tr>`).join('');
 
-  const pendingCards=pending.map(s=>`
+  const legacyPendingCards=pending.map(s=>`
     <div class="stmt-pcard">
       <div class="stmt-pcrd-hdr">
         <div>
@@ -5523,7 +5907,7 @@ async function renderStatement(){
       </div>
     </div>`).join('');
 
-  const releasedRows=released.slice(0,10).map(s=>`
+  const legacyReleasedRows=released.slice(0,10).map(s=>`
     <tr>
       <td class="mono">${esc(s.ref_id)}</td>
       <td>${fmtD(s.scheduled_for||'')}</td>
@@ -5536,6 +5920,35 @@ async function renderStatement(){
         ${canRelease?`<button class="btn btn-p btn-s" data-action="openResendStatementModal" data-id="${esc(s.ref_id)}">Send Again</button>`:''}
       </td>
     </tr>`).join('');
+
+  const statementCard=(s,isPending)=>{
+    const detailId=`statement-${String(s.ref_id).replace(/[^A-Za-z0-9_-]/g,'-')}`;
+    const invoiceRefs=(s.invoice_refs||'').split(',').map(ref=>ref.trim()).filter(Boolean);
+    return `<article class="calllog-card statement-record-card" role="listitem" aria-labelledby="${detailId}-title">
+      <div class="calllog-card-summary statement-record-summary">
+        <div class="calllog-field template-field-primary"><span class="calllog-field-label">Statement</span><div class="calllog-field-value"><strong id="${detailId}-title">${esc(s.ref_id)}</strong><span class="calllog-ref">${esc(s.company_name||'Issuing company')}</span></div></div>
+        <div class="calllog-field"><span class="calllog-field-label">Statement Date</span><div class="calllog-field-value">${fmtD(s.scheduled_for||'')}</div></div>
+        <div class="calllog-field"><span class="calllog-field-label">Invoices</span><div class="calllog-field-value">${invoiceRefs.length}</div></div>
+        <div class="calllog-field"><span class="calllog-field-label">Total</span><div class="calllog-field-value mono">R ${Number(s.total_outstanding||0).toLocaleString('en-ZA',{minimumFractionDigits:2})}</div></div>
+        <div class="calllog-field"><span class="calllog-field-label">Status</span><div class="calllog-field-value">${isPending?'<span class="badge-warn">Pending</span>':'<span class="badge-ok">Released</span>'}</div></div>
+        <button class="calllog-expander" type="button" data-action="toggleCalloutDetails" data-detail-id="${detailId}" data-job-id="${esc(s.ref_id)}" aria-expanded="false" aria-controls="${detailId}" aria-label="Show additional details for ${esc(s.ref_id)}"><span class="calllog-expander-icon" aria-hidden="true">&#9656;</span><span class="calllog-expander-label">Show details</span></button>
+      </div>
+      <div class="calllog-detail statement-record-detail" id="${detailId}" hidden>
+        <div class="calllog-field"><span class="calllog-field-label">Issuing Company</span><div class="calllog-field-value">${esc(s.company_name||'—')}</div></div>
+        <div class="calllog-field"><span class="calllog-field-label">Invoice References</span><div class="calllog-field-value preline">${esc(invoiceRefs.join('\n')||'None')}</div></div>
+        <div class="calllog-field"><span class="calllog-field-label">Released</span><div class="calllog-field-value">${isPending?'Awaiting authorised release':`${fmtD(s.released_at?.slice(0,10)||'')} by ${esc(s.released_by||'—')}`}</div></div>
+        <div class="calllog-field"><span class="calllog-field-label">From</span><div class="calllog-field-value">${esc(s.from_email||'—')}</div></div>
+        <div class="calllog-field"><span class="calllog-field-label">To</span><div class="calllog-field-value">${esc(s.to_emails||'—')}</div></div>
+      </div>
+      <footer class="calllog-actions"><span class="calllog-section-label">Actions</span><div class="bgrp">
+        <button class="btn btn-g btn-s" data-action="viewStatement" data-id="${esc(s.ref_id)}">View</button>
+        <button class="btn btn-g btn-s" data-action="downloadStatement" data-id="${esc(s.ref_id)}">Download PDF</button>
+        ${isPending?(canRelease?`<button class="btn btn-p btn-s" data-action="openReleaseStatementModal" data-id="${esc(s.ref_id)}">Release Statement</button>`:'<span class="fs-10 text-muted">Awaiting release by authorised user</span>'):(canRelease?`<button class="btn btn-p btn-s" data-action="openResendStatementModal" data-id="${esc(s.ref_id)}">Send Again</button>`:'')}
+      </div></footer>
+    </article>`;
+  };
+  const pendingCards=pending.map(s=>statementCard(s,true)).join('');
+  const releasedCards=released.slice(0,10).map(s=>statementCard(s,false)).join('');
 
   const outRowsLimited=outstanding.slice(0,10).map(inv=>`
     <tr>
@@ -5557,23 +5970,21 @@ async function renderStatement(){
       <div class="stmt-kcard"><div class="stmt-klbl">Statements Sent</div><div class="stmt-kval">${released.length}</div></div>
     </div>
 
+    ${canGenerate?`
+    <div class="stmt-gen-row">
+      <div class="stmt-gen-txt">Statements are auto-generated every Monday at 09:00 via cron. Choose the issuing company to generate a branded statement for its outstanding invoices.</div>
+      <select class="finput stmt-company-select" id="stmt-company-profile" aria-label="Issuing company">${companyProfileOptions(defaultCompanyProfileId())}</select>
+      <button class="btn btn-g btn-s stmt-gen-btn" data-action="generateStatement">Generate Now</button>
+    </div>`:''}
+
     ${released.length?`
     <div class="stmt-slbl">RECENT STATEMENTS SENT</div>
-    <div class="panel stmt-mb18"><div class="tw stmt-tbl-wrap"><table>
-      <thead><tr><th>Ref</th><th>Scheduled</th><th>Released</th><th>From</th><th>To</th><th>Total</th><th></th></tr></thead>
-      <tbody>${releasedRows}</tbody>
-    </table></div></div>`:''}
+    <div class="calllog-list statement-record-list stmt-mb18" role="list" aria-label="Recent statements sent">${releasedCards}</div>`:''}
 
     ${pending.length?`
     <div class="stmt-mb18">
       <div class="stmt-slbl">PENDING RELEASE</div>
-      ${pendingCards}
-    </div>`:''}
-
-    ${canGenerate?`
-    <div class="stmt-gen-row">
-      <div class="stmt-gen-txt">Statements are auto-generated every Monday at 09:00 via cron. You can also generate one manually for current outstanding invoices.</div>
-      <button class="btn btn-g btn-s stmt-gen-btn" data-action="generateStatement">Generate Now</button>
+      <div class="calllog-list statement-record-list" role="list" aria-label="Statements pending release">${pendingCards}</div>
     </div>`:''}
 
     <div class="stmt-slbl">OUTSTANDING INVOICES</div>
@@ -5587,12 +5998,50 @@ async function renderStatement(){
 async function generateStatement(){
   const btn=document.querySelector('[data-action="generateStatement"]');
   if(btn){if(btn.disabled)return;btn.disabled=true;}
-  const r=await api('POST','statements.php?action=generate');
+  const companyProfileId=Number(document.getElementById('stmt-company-profile')?.value)||0;
+  if(!companyProfileId){toast('Issuing company required','err');if(btn)btn.disabled=false;return;}
+  const r=await api('POST','statements.php?action=generate',{company_profile_id:companyProfileId});
   if(!r.success){toast(r.error||'Error generating statement','err');if(btn)btn.disabled=false;return;}
   toast(r.message||'Statement generated','ok');
   renderStatement();
 }
-async function downloadStatement(ref_id){
+function viewStatement(ref_id){
+  if(!ref_id){toast('Statement reference missing','err');return;}
+  const statement=statementPreviewRecords.find(row=>row.ref_id===ref_id);
+  if(!statement){toast('Statement details are not available','err');return;}
+  const profile=companyProfileById(Number(statement.company_profile_id))||{};
+  const refs=(statement.invoice_refs||'').split(',').map(value=>value.trim()).filter(Boolean);
+  const invoices=statementPreviewInvoices.filter(invoice=>refs.includes(invoice.ref_id));
+  const invoiceRows=invoices.map(invoice=>`<tr><td class="mono">${esc(invoice.ref_id)}</td><td>${esc(invoice.client_name||'')}</td><td>${fmtD(invoice.invoice_date||'')}</td><td>${fmtD(invoice.due_date||'')}</td><td>${pillH(invoice.status)}</td><td class="amt">${fmt(Number(invoice.amount||0))}</td></tr>`).join('');
+  const logo=profile.logo_path||'';
+  const companyName=profile.display_name||statement.company_name||'Issuing company';
+  const legalName=profile.legal_name||companyName;
+  const docStyle=`--doc-primary:${profile.primary_color||'#0A1626'};--doc-accent:${profile.accent_color||'#C2A04A'};--doc-paper:${profile.paper_color||'#F4F0E6'};--doc-font:${profile.body_font||'Instrument Sans, Arial, sans-serif'}`;
+  openModal(`Statement - ${esc(ref_id)}`,`
+    <div class="doc-preview" style="${esc(docStyle)}">
+      <div class="doc-logo-row">
+        ${logo?`<img src="${esc(logo)}" class="doc-logo-img" alt="${esc(companyName)}">`:`<div class="fs-22 fw-600">${esc(companyName)}</div>`}
+        <div class="doc-contact">Reg: ${esc(profile.registration_number||'—')}<br>VAT: ${esc(profile.vat_number||'—')}<br>${esc(profile.phone||'')}<br>${esc(profile.email||'')}</div>
+      </div>
+      <div class="doc-type-row"><div><div class="doc-kicker">Account document</div><div class="doc-type">ACCOUNT STATEMENT</div></div><div class="doc-number">${esc(ref_id)}</div></div>
+      <div class="doc-meta">
+        <div><div class="dml">Statement Date</div><div class="dmv">${fmtD(statement.scheduled_for||'')}</div></div>
+        <div><div class="dml">Issuing Company</div><div class="dmv">${esc(companyName)}</div></div>
+        <div><div class="dml">Invoices</div><div class="dmv">${refs.length}</div></div>
+        <div><div class="dml">Status</div><div class="dmv">${esc(String(statement.status||'').replace('_',' '))}</div></div>
+      </div>
+      <div class="doc-party"><div class="dml">Issued By</div><strong>${esc(legalName)}</strong><div class="doc-address">${esc(profile.address||'').replace(/\n/g,'<br>')}</div></div>
+      <div class="tw stmt-tbl-wrap mt-12"><table><thead><tr><th>Invoice #</th><th>Client</th><th>Invoice Date</th><th>Due Date</th><th>Status</th><th>Amount</th></tr></thead><tbody>${invoiceRows||'<tr><td colspan="6" class="tc-empty">No invoice detail available</td></tr>'}</tbody></table></div>
+      <div class="doc-tots w-full"><div class="doc-tot-row grand"><span>TOTAL OUTSTANDING</span><span>${fmt(Number(statement.total_outstanding||0))}</span></div></div>
+      <div class="doc-bank"><div><div class="dml">Payment Details</div><strong>${esc(profile.bank_name||'—')}</strong> · ${esc(profile.bank_account_type||'')}<br>Account ${esc(profile.bank_account_number||'—')} · Branch ${esc(profile.bank_branch_code||'—')} · SWIFT ${esc(profile.bank_swift_code||'—')}<br>Payment reference: ${esc(ref_id)}</div><div class="doc-classification">CLASSIFIED - CONFIDENTIAL</div></div>
+    </div>
+    <div class="mt-12 flex-end"><button class="btn btn-p" data-action="downloadStatement" data-id="${esc(ref_id)}">Download PDF</button></div>`);
+}
+function downloadStatement(ref_id){
+  if(!ref_id){toast('Statement reference missing','err');return;}
+  window.open(`${API_BASE}/statements.php?action=download&id=${encodeURIComponent(ref_id)}`,'_blank','noopener');
+}
+async function downloadStatementLegacy(ref_id){
   const r=await api('GET',`statements.php?action=download&id=${encodeURIComponent(ref_id)}`);
   if(!r.success){toast(r.error||'Could not load statement','err');return;}
   const s=r.data;
@@ -6876,6 +7325,34 @@ function syncPublicNavOffset(){
   if(eb&&pn) _injectStyle('nav-top-css',`#pub-nav{top:${eb.offsetHeight}px;}`);
 }
 
+let responsiveTableFrame=0;
+function applyResponsiveTableLabels(root=document){
+  const tables=[];
+  if(root instanceof Element&&root.matches('.tw > table'))tables.push(root);
+  if(root.querySelectorAll)tables.push(...root.querySelectorAll('.tw > table'));
+  [...new Set(tables)].forEach(table=>{
+    const headers=[...table.querySelectorAll(':scope > thead > tr:first-child > th')].map(th=>th.textContent.replace(/[↕↑↓]/g,'').trim());
+    if(!headers.length)return;
+    table.querySelectorAll(':scope > tbody > tr').forEach(row=>{
+      [...row.children].filter(cell=>cell.tagName==='TD').forEach((cell,index)=>{
+        if(cell.hasAttribute('colspan'))cell.dataset.label='';
+        else cell.dataset.label=headers[index]||'';
+      });
+    });
+  });
+}
+
+function initResponsiveTables(){
+  applyResponsiveTableLabels(document);
+  const root=document.getElementById('portal')||document.body;
+  const observer=new MutationObserver(mutations=>{
+    if(!mutations.some(mutation=>mutation.addedNodes.length))return;
+    cancelAnimationFrame(responsiveTableFrame);
+    responsiveTableFrame=requestAnimationFrame(()=>applyResponsiveTableLabels(root));
+  });
+  observer.observe(root,{childList:true,subtree:true});
+}
+
 document.addEventListener('DOMContentLoaded', async ()=>{
   const t=localStorage.getItem('bf-theme');if(t)document.documentElement.dataset.theme=t;
   // Restore info mode button state on load
@@ -6887,6 +7364,7 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   buildHomeCats();
   buildTicker();
   buildSvcGrid('pub');
+  initResponsiveTables();
   syncPublicNavOffset();
   window.addEventListener('resize',syncPublicNavOffset);
   if(document.fonts && document.fonts.ready){
@@ -7062,9 +7540,11 @@ async function saveQuote(){
   const btn=document.querySelector('[data-action="saveQuote"]');
   if(btn){if(btn.disabled)return;btn.disabled=true;}
   const clientId = parseInt(document.getElementById('nq-client')?.value) || 0;
+  const companyProfileId = Number(document.getElementById('nq-company-profile')?.value)||0;
   const validUntil = document.getElementById('nq-valid')?.value;
   const notes = document.getElementById('nq-notes')?.value?.trim() || '';
 
+  if (!companyProfileId) { toast('Please select the issuing company', 'err'); if(btn)btn.disabled=false; return; }
   if (!clientId) { toast('Please select a client', 'err'); if(btn)btn.disabled=false; return; }
 
   // Collect line items from the actual row HTML (inputs indexed by position)
@@ -7083,7 +7563,7 @@ async function saveQuote(){
   const calloutRef = document.getElementById('nq-callout-ref')?.value || '';
   const quoteNo    = document.getElementById('nq-quote-no')?.value?.trim() || '';
   if (!calloutRef) { toast('Select the call log this quote belongs to', 'err'); if(btn)btn.disabled=false; return; }
-  const r = await api('POST', 'quotes.php', { client_id: clientId, items, valid_until: validUntil, notes, callout_ref: calloutRef, quote_no: quoteNo });
+  const r = await api('POST', 'quotes.php', { company_profile_id: companyProfileId, client_id: clientId, items, valid_until: validUntil, notes, callout_ref: calloutRef, quote_no: quoteNo });
   if (!r.success) { toast(r.error || 'Error saving quote', 'err'); if(btn)btn.disabled=false; return; }
   
   await refreshQuotes();
@@ -7152,6 +7632,7 @@ async function saveInvoice(){
   const btn=document.querySelector('[data-action="saveInvoice"]');
   if(btn){if(btn.disabled)return;btn.disabled=true;}
   const clientId   = parseInt(document.getElementById('ni-client')?.value) || 0;
+  const companyProfileId = Number(document.getElementById('ni-company-profile')?.value)||0;
   const amount     = parseFloat(document.getElementById('ni-amount')?.value) || 0;
   const dueDate    = document.getElementById('ni-due')?.value;
   const status     = document.getElementById('ni-status')?.value || 'Draft';
@@ -7159,6 +7640,7 @@ async function saveInvoice(){
   const quoteRef   = document.getElementById('ni-quote-ref')?.value || '';
   const calloutRef = document.getElementById('ni-callout-ref')?.value || '';
 
+  if (!companyProfileId) { toast('Please select the issuing company', 'err'); if(btn)btn.disabled=false; return; }
   if (!clientId) { toast('Please select a client', 'err'); if(btn)btn.disabled=false; return; }
   if (!amount || !dueDate) { toast('Fill in amount and due date', 'err'); if(btn)btn.disabled=false; return; }
   if (!calloutRef || !quoteRef) { toast('Select the approved quote and call log this invoice belongs to', 'err'); if(btn)btn.disabled=false; return; }
@@ -7167,7 +7649,7 @@ async function saveInvoice(){
   if (!linkedCo?.po) { toast('A PO number must be assigned to the linked callout before generating an invoice', 'err'); if(btn)btn.disabled=false; return; }
 
   const invoiceNo  = document.getElementById('ni-invoice-no')?.value?.trim() || '';
-  const r = await api('POST', 'invoices.php', { client_id: clientId, amount, due_date: dueDate, status, po, quote_ref: quoteRef, callout_ref: calloutRef, invoice_no: invoiceNo });
+  const r = await api('POST', 'invoices.php', { company_profile_id: companyProfileId, client_id: clientId, amount, due_date: dueDate, status, po, quote_ref: quoteRef, callout_ref: calloutRef, invoice_no: invoiceNo });
   if (!r.success) { toast(r.error || 'Error', 'err'); if(btn)btn.disabled=false; return; }
 
   await Promise.all([refreshInvoices(), refreshCallouts()]);

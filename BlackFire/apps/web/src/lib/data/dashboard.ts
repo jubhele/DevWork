@@ -18,6 +18,7 @@ const {
   bfInvoices,
   bfQuotes,
   bfSafetyFiles,
+  bfStatements,
   bfTasks,
   bfTransactions,
   bfUsers,
@@ -146,6 +147,7 @@ export async function getDashboardData(user: DashboardUser): Promise<DashboardDa
     db.select({ n: count() }).from(bfQuotes).where(inArray(bfQuotes.status, ['Draft', 'Sent', 'Pending Approval'])),
     db.select({ n: count() }).from(bfInvoices).where(and(sql`${bfInvoices.status} NOT IN ('Paid','Cancelled')`, sql`${bfInvoices.dueDate} < ${today}`)),
     db.select({ n: count() }).from(bfClients).where(eq(bfClients.isActive, 1)),
+    db.select({ n: count() }).from(bfStatements).where(eq(bfStatements.status, 'pending_approval')),
   ])
   const kpi = (index: number) => kpiResults[index].status === 'fulfilled' ? Number(kpiResults[index].value[0]?.n ?? 0) : 0
   const openCallouts = kpi(0)
@@ -153,6 +155,7 @@ export async function getDashboardData(user: DashboardUser): Promise<DashboardDa
   const pendingQuotes = kpi(2)
   const overdueInvoices = kpi(3)
   const activeClients = kpi(4)
+  const pendingStatements = kpi(5)
 
   const fyStartYear = now.getMonth() >= 2 ? now.getFullYear() : now.getFullYear() - 1
   const periodStart = `${fyStartYear}-03-01`
@@ -338,6 +341,7 @@ export async function getDashboardData(user: DashboardUser): Promise<DashboardDa
       mtd_revenue: mtd,
       safety_score: safetyScore,
       pending_quotes: pendingQuotes,
+      pending_statements: pendingStatements,
       active_clients: activeClients,
     },
     amounts: {

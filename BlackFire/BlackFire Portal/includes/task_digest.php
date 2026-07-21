@@ -170,6 +170,12 @@ function task_digest_metrics(array $user, array $permissions, array $tasks): arr
         )['n'] ?? 0);
     }
 
+    if (task_digest_has_permission($permissions, 'finance.statement')) {
+        $metrics['statements_pending'] = (int)(db_row(
+            "SELECT COUNT(*) AS n FROM bf_statements WHERE status = 'pending_approval'"
+        )['n'] ?? 0);
+    }
+
     if (task_digest_has_permission($permissions, 'safety.view')) {
         $compliance = db_row(
             "SELECT
@@ -257,6 +263,7 @@ function task_digest_view_section(string $view_id, array $metrics, array $permis
         if (isset($metrics['callouts_urgent'])) $cards[] = task_digest_metric_card('Urgent Callouts', (string)$metrics['callouts_urgent']);
         if (isset($metrics['invoices_overdue'])) $cards[] = task_digest_metric_card('Overdue Invoices', (string)$metrics['invoices_overdue']);
         if (isset($metrics['quotes_pending'])) $cards[] = task_digest_metric_card('Quote Approvals', (string)$metrics['quotes_pending']);
+        if (isset($metrics['statements_pending'])) $cards[] = task_digest_metric_card('Statements Awaiting Release', (string)$metrics['statements_pending']);
     } elseif ($view_id === 'w-compliance') {
         $cards[] = task_digest_metric_card('Compliance Overdue', (string)($metrics['compliance_overdue'] ?? 0));
         $cards[] = task_digest_metric_card('Due Within 60 Days', (string)($metrics['compliance_due_soon'] ?? 0));

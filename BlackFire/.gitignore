@@ -30,6 +30,15 @@ Thumbs.db
 chatsessions/*.jsonl
 temp/
 
+# PHP portal secrets and runtime data
+BlackFire Portal/blackfire_secrets.php
+BlackFire Portal/error_log
+BlackFire Portal/api/error_log
+BlackFire Portal/uploads/**
+!BlackFire Portal/uploads/attachments/
+!BlackFire Portal/uploads/attachments/.htaccess
+BlackFire Portal/**/_backups/
+
 .vercel
 sessions/debug_*.log
 .gstack/

@@ -10,15 +10,24 @@
                                             "path":  "JS_Resume\\sessions",
                                             "metric":  {
                                                            "exists":  true,
-                                                           "files":  8,
-                                                           "bytes":  9949,
+                                                           "files":  11,
+                                                           "bytes":  17190,
                                                            "oldest":  "2026-06-21T17:18:56.7670315Z",
-                                                           "latest":  "2026-07-10T15:25:04.0389362Z"
+                                                           "latest":  "2026-07-21T12:33:11.0236748Z"
                                                        }
                                         }
                                     ],
                        "artifacts":  [
-
+                                         {
+                                             "path":  "JS_Resume\\artifacts",
+                                             "metric":  {
+                                                            "exists":  true,
+                                                            "files":  7,
+                                                            "bytes":  32025,
+                                                            "oldest":  "2026-07-21T12:28:06.7220353Z",
+                                                            "latest":  "2026-07-21T12:30:49.6826519Z"
+                                                        }
+                                         }
                                      ],
                        "archive":  [
 

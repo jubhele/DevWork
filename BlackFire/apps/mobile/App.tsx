@@ -16,6 +16,7 @@ import TrackerScreen from './src/screens/TrackerScreen'
 import CallLogScreen from './src/screens/CallLogScreen'
 import QuotesScreen from './src/screens/QuotesScreen'
 import InvoicesScreen from './src/screens/InvoicesScreen'
+import StatementsScreen from './src/screens/StatementsScreen'
 import SafetyScreen from './src/screens/SafetyScreen'
 import SupportScreen from './src/screens/SupportScreen'
 
@@ -34,6 +35,7 @@ export type OperationsTabParamList = {
 export type FinanceTabParamList = {
   Overview: undefined
   'Quote Log': undefined
+  Statements: undefined
 }
 
 export type MainTabParamList = {
@@ -91,6 +93,7 @@ function FinanceNavigator() {
     >
       <FinanceTab.Screen name="Overview" component={InvoicesScreen} />
       <FinanceTab.Screen name="Quote Log" component={QuotesScreen} />
+      <FinanceTab.Screen name="Statements" component={StatementsScreen} />
     </FinanceTab.Navigator>
   )
 }

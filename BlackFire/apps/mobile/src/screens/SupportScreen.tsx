@@ -1,6 +1,9 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking } from 'react-native'
+import { useEffect, useState } from 'react'
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking, ActivityIndicator } from 'react-native'
 import { colors, fonts, spacing } from '@blackfire/ui-tokens'
 import { useAuth } from '../context/AuthContext'
+import { templateStore } from '@blackfire/api-client'
+import type { ClientDocumentProfile, CompanyProfile, DocumentTemplate } from '@blackfire/types'
 
 const CONTACTS = [
   { label: 'BlackFire Office', value: '+27 (0)11 000 0000', action: 'tel:+27110000000' },
@@ -27,7 +30,21 @@ function ContactRow({ label, value, action }: { label: string; value: string; ac
 }
 
 export default function SupportScreen() {
-  const { user, logout } = useAuth()
+  const { user, token, logout } = useAuth()
+  const [profiles, setProfiles] = useState<CompanyProfile[]>([])
+  const [clients, setClients] = useState<ClientDocumentProfile[]>([])
+  const [templates, setTemplates] = useState<DocumentTemplate[]>([])
+  const [storeLoading, setStoreLoading] = useState(true)
+
+  useEffect(() => {
+    templateStore.list(token ?? undefined).then(response => {
+      if (response.success) {
+        setProfiles(response.profiles ?? [])
+        setClients(response.client_profiles ?? [])
+        setTemplates(response.templates ?? [])
+      }
+    }).finally(() => setStoreLoading(false))
+  }, [token])
 
   const ROLE_DISPLAY: Record<string, string> = {
     sysadmin: 'System Admin', admin: 'Admin', manager: 'Manager',
@@ -60,6 +77,18 @@ export default function SupportScreen() {
         <View style={styles.divider} />
         <InfoRow label="Site Timeline" value="Support-owned site history and activity view" />
       </View>
+
+      <Text style={styles.section}>Template Store</Text>
+      {storeLoading ? <ActivityIndicator color={colors.fireOrange} /> : <>
+        {profiles.map(profile => <View key={profile.id} style={[styles.storeCard, { borderLeftColor: profile.profile_key === 'astute_insights' ? '#C2A04A' : colors.fireOrange }]}>
+          <Text style={styles.storeEyebrow}>ISSUING COMPANY</Text><Text style={styles.storeTitle}>{profile.display_name}</Text>
+          <Text style={styles.storeLine}>{profile.legal_name}</Text><Text style={styles.storeLine}>REG {profile.registration_number} · VAT {profile.vat_number}</Text>
+          <Text style={styles.storeLine}>{profile.phone} · {profile.email}</Text><Text style={styles.storeLine}>{profile.address?.replace(/\n/g, ', ')}</Text>
+          <View style={styles.bankPanel}><Text style={styles.storeEyebrow}>BANKING</Text><Text style={styles.storeLine}>{profile.bank_name} · {profile.bank_account_type}</Text><Text style={styles.storeLine}>Account {profile.bank_account_number} · Branch {profile.bank_branch_code} · SWIFT {profile.bank_swift_code}</Text></View>
+          <Text style={styles.templateCount}>{templates.filter(item => item.company_profile_id === profile.id).length} quote, invoice, statement and email templates</Text>
+        </View>)}
+        {clients.map(client => <View key={client.id} style={styles.storeCard}><Text style={styles.storeEyebrow}>CUSTOMER DOCUMENT PROFILE</Text><Text style={styles.storeTitle}>{client.display_name}</Text><Text style={styles.storeLine}>{client.legal_name}</Text><Text style={styles.storeLine}>VAT {client.vat_number} · {client.phone}</Text><Text style={styles.storeLine}>Quotes: {client.quote_address?.replace(/\n/g, ', ')}</Text><Text style={styles.storeLine}>Invoices: {client.invoice_address?.replace(/\n/g, ', ')}</Text></View>)}
+      </>}
 
       <Text style={styles.section}>Contacts</Text>
       <View style={styles.card}>
@@ -100,6 +129,8 @@ const styles = StyleSheet.create({
   rowValue: { fontFamily: fonts.body, fontSize: 13, color: colors.bonePaper, flexShrink: 1, textAlign: 'right', marginLeft: spacing.md },
   link: { color: colors.fireOrange },
   divider: { height: 1, backgroundColor: colors.steelDark, marginHorizontal: spacing.md },
+  storeCard: { marginBottom: spacing.sm, padding: spacing.md, backgroundColor: colors.navy, borderWidth: 1, borderColor: colors.steelDark, borderLeftWidth: 3, borderLeftColor: colors.fireOrange },
+  storeEyebrow: { fontFamily: fonts.mono, fontSize: 8, letterSpacing: 1.5, color: colors.ash }, storeTitle: { marginTop: 5, fontFamily: fonts.display, fontSize: 21, color: colors.bonePaper }, storeLine: { marginTop: 5, fontFamily: fonts.body, fontSize: 11, lineHeight: 16, color: colors.ash }, bankPanel: { marginTop: spacing.md, paddingTop: spacing.sm, borderTopWidth: 1, borderTopColor: colors.steelDark }, templateCount: { marginTop: spacing.md, fontFamily: fonts.mono, fontSize: 8, color: colors.fireOrange },
   signOutBtn: {
     marginTop: spacing.xl,
     borderWidth: 1,

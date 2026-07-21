@@ -1,0 +1,21 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { templateStore } from '@blackfire/api-client'
+import type { ClientDocumentProfile, CompanyProfile, DocumentTemplate } from '@blackfire/types'
+
+export default function TemplateStorePage() {
+  const [profiles, setProfiles] = useState<CompanyProfile[]>([])
+  const [clients, setClients] = useState<ClientDocumentProfile[]>([])
+  const [templates, setTemplates] = useState<DocumentTemplate[]>([])
+  const [error, setError] = useState('')
+  useEffect(() => { templateStore.list().then(response => { setProfiles(response.profiles ?? []); setClients(response.client_profiles ?? []); setTemplates(response.templates ?? []) }).catch(() => setError('Could not load the Template Store.')) }, [])
+
+  return <div className="mx-auto max-w-7xl">
+    <header className="mb-8"><p className="text-[11px] uppercase tracking-[0.28em] text-fire-orange">Support / Document System</p><h1 className="mt-2 font-display text-5xl text-ink-text">Template Store</h1><p className="mt-2 text-sm text-ash">Company profiles, customer billing data and reusable document communication.</p></header>
+    {error && <p className="border border-danger bg-danger/5 p-4 text-sm text-danger">{error}</p>}
+    <section><h2 className="mb-3 font-display text-2xl text-ink-text">Company Profiles</h2><div className="grid gap-4 lg:grid-cols-2">{profiles.map(profile => <article key={profile.id} className="border border-[#ccc] border-l-4 bg-white p-5" style={{ borderLeftColor: profile.profile_key === 'astute_insights' ? '#C2A04A' : '#E05A1A' }}><p className="font-mono text-[9px] uppercase tracking-[0.18em] text-ash">Issuing company</p><h3 className="mt-2 font-display text-2xl text-ink-text">{profile.display_name}</h3><div className="mt-4 space-y-2 text-sm text-ash"><p>{profile.legal_name}</p><p>Reg {profile.registration_number} · VAT {profile.vat_number}</p><p>{profile.phone} · {profile.email}</p><p className="whitespace-pre-line">{profile.address}</p></div><div className="mt-4 border-t border-[#ddd] pt-4"><p className="font-mono text-[9px] uppercase tracking-[0.18em] text-ash">Banking details</p><p className="mt-2 text-sm text-ink-text">{profile.bank_name} · {profile.bank_account_type}</p><p className="mt-1 font-mono text-xs text-ash">Account {profile.bank_account_number} · Branch {profile.bank_branch_code} · SWIFT {profile.bank_swift_code}</p></div><p className="mt-4 text-xs font-semibold text-fire-orange">{templates.filter(item => item.company_profile_id === profile.id).length} active templates</p></article>)}</div></section>
+    <section className="mt-8"><h2 className="mb-3 font-display text-2xl text-ink-text">Customer Document Profiles</h2><div className="grid gap-4 lg:grid-cols-2">{clients.map(client => <article key={client.id} className="border border-[#ccc] bg-white p-5"><p className="font-mono text-[9px] uppercase tracking-[0.18em] text-ash">Customer</p><h3 className="mt-2 font-display text-2xl text-ink-text">{client.display_name}</h3><p className="mt-3 text-sm text-ink-text">{client.legal_name}</p><p className="mt-1 text-sm text-ash">VAT {client.vat_number} · {client.phone} · {client.email}</p><div className="mt-4 grid gap-4 sm:grid-cols-2"><div><p className="font-mono text-[9px] text-ash">QUOTE / SERVICE ADDRESS</p><p className="mt-2 whitespace-pre-line text-xs leading-5 text-ash">{client.quote_address}</p></div><div><p className="font-mono text-[9px] text-ash">INVOICE / BILLING ADDRESS</p><p className="mt-2 whitespace-pre-line text-xs leading-5 text-ash">{client.invoice_address}</p></div></div></article>)}</div></section>
+    <section className="mt-8"><h2 className="mb-3 font-display text-2xl text-ink-text">Document & Email Templates</h2><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{templates.map(template => <article key={template.id} className="border border-[#ccc] bg-white p-4"><p className="font-mono text-[9px] uppercase tracking-[0.18em] text-fire-orange">{template.template_type} · v{template.version}</p><h3 className="mt-2 font-semibold text-ink-text">{template.name}</h3><p className="mt-1 text-xs text-ash">{template.company_name}</p><p className="mt-3 text-sm leading-6 text-ash">{template.description}</p></article>)}</div></section>
+  </div>
+}

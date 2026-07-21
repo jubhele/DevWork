@@ -9,12 +9,17 @@ import type {
   Client,
   SafetyFile,
   Statement,
+  ScheduledStatement,
+  CompanyProfile,
+  ClientDocumentProfile,
+  DocumentTemplate,
   DashboardKPIs,
   DashboardResponse,
   AuditEvent,
   Task,
   TaskCategory,
   TaskStatus,
+  TaskAssignableUser,
 } from '@blackfire/types'
 
 // Injected at build time — web uses session cookie, mobile passes Bearer token
@@ -31,12 +36,18 @@ export function invoicePdfUrl(id: string | number) {
   return `${API_BASE}/invoices.php?action=download_pdf&id=${encodeURIComponent(String(id))}`
 }
 
+export function statementPdfUrl(id: string | number, inline = false) {
+  const disposition = inline ? '&disposition=inline' : ''
+  return `${API_BASE}/statements.php?action=download&id=${encodeURIComponent(String(id))}${disposition}`
+}
+
 type RawQuote = Partial<Quote> & {
   ref_id?: string
   quote_no?: string
   total_amount?: number | string
   quote_date?: string
   submitted_by?: string
+  callout_ref?: string
 }
 
 function normalizeQuote(raw: RawQuote): Quote {
@@ -47,6 +58,7 @@ function normalizeQuote(raw: RawQuote): Quote {
     client_id: Number(raw.client_id ?? 0),
     client_name: raw.client_name ?? 'Unassigned client',
     callout_id: raw.callout_id == null ? null : Number(raw.callout_id),
+    callout_ref: raw.callout_ref || null,
     status: raw.status ?? 'Draft',
     approval_status: raw.approval_status ?? null,
     subtotal: Number(raw.subtotal ?? total),
@@ -247,6 +259,14 @@ export const tasks = {
     apiFetch<ApiResponse<Task>>('/api/tasks', { method: 'POST', body: JSON.stringify(data), token }),
   updateStatus: (refId: string, status: TaskStatus, token?: string) =>
     apiFetch<ApiResponse<Task>>('/api/tasks', { method: 'PATCH', body: JSON.stringify({ id: refId, status }), token }),
+  assignableUsers: (token?: string) =>
+    apiFetch<ApiResponse<TaskAssignableUser[]>>('task_users.php', { token }),
+  reassign: (refId: string, assignedToUsernames: string[], token?: string) =>
+    apiFetch<ApiResponse<Task>>(`tasks.php?id=${encodeURIComponent(refId)}`, {
+      method: 'PUT',
+      body: JSON.stringify({ assigned_to_usernames: assignedToUsernames }),
+      token,
+    }),
 }
 
 // ─── Safety ──────────────────────────────────────────────────────────────────
@@ -281,6 +301,34 @@ export const finance = {
       `statements.php?client_id=${client_id}&from=${from}&to=${to}`,
       { token }
     ),
+}
+
+export const statements = {
+  list: (params?: Record<string, string>, token?: string) => {
+    const qs = new URLSearchParams({ action: 'list', ...(params ?? {}) }).toString()
+    return apiFetch<{
+      success: boolean
+      data: ScheduledStatement[]
+      total: number
+      outstanding: unknown[]
+      outstanding_total: number
+    }>(`statements.php?${qs}`, { token })
+  },
+  generate: (company_profile_id: number, token?: string) =>
+    apiFetch<{ success: boolean; message: string; created?: boolean }>('statements.php?action=generate', {
+      method: 'POST',
+      body: JSON.stringify({ company_profile_id }),
+      token,
+    }),
+}
+
+export const templateStore = {
+  list: (token?: string) => apiFetch<{
+    success: boolean
+    profiles: CompanyProfile[]
+    client_profiles: ClientDocumentProfile[]
+    templates: DocumentTemplate[]
+  }>('template_store.php', { token }),
 }
 
 // ─── Tracker updates ─────────────────────────────────────────────────────────

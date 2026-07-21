@@ -668,7 +668,7 @@ $companyLogoUrl = $baseUrl . '/' . ltrim($cfg['company_logo'] ?? 'blackfire_logo
         <select class="sinput sinput-narrow" id="inv-filter"><option value="">All</option><option>Draft</option><option>Sent</option><option>Paid</option><option>Overdue</option></select>
         <button class="btn btn-p btn-s" id="btn-newinv" data-action="navPage" data-page="p-new-invoice">+ New Invoice</button>
       </div>
-      <div class="panel"><div class="tw"><table><thead><tr><th>Invoice #</th><th>Client</th><th>Amount</th><th>Due</th><th>Status</th><th>Actions</th></tr></thead><tbody id="inv-table"></tbody></table></div></div>
+      <div class="panel"><div class="tw"><table><thead><tr><th>Invoice #</th><th>Client</th><th>Issuer</th><th>Amount</th><th>Due</th><th>Status</th><th>Actions</th></tr></thead><tbody id="inv-table"></tbody></table></div></div>
     </div>
 
     <!-- QUOTES -->
@@ -679,7 +679,28 @@ $companyLogoUrl = $baseUrl . '/' . ltrim($cfg['company_logo'] ?? 'blackfire_logo
         <select class="sinput sinput-narrow" id="qte-filter"><option value="">All</option><option>Draft</option><option>Sent</option><option>Pending Approval</option><option>Approved</option><option>Declined</option></select>
         <button class="btn btn-p btn-s" id="btn-newq" data-action="navPage" data-page="p-new-quote">+ New Quote</button>
       </div>
-      <div class="panel"><div class="tw"><table><thead><tr><th>Quote #</th><th>Client</th><th>Total</th><th>Submitted By</th><th>Valid Until</th><th>Status</th><th>Actions</th></tr></thead><tbody id="qte-table"></tbody></table></div></div>
+      <div class="quote-column-header" aria-hidden="true"><span>Quote #</span><span>Call Log</span><span>Client</span><span>Total</span><span>Valid Until</span><span>Status</span></div>
+      <div id="qte-table" class="calllog-list quote-list" role="list" aria-label="Quote records"></div>
+    </div>
+
+    <!-- TEMPLATE STORE -->
+    <div id="p-template-store" class="ppage">
+      <div class="ptitle">Template Store</div><div class="psub">SUPPORT · COMPANY PROFILES · CUSTOMER DETAILS · DOCUMENTS</div>
+      <div class="template-store-section">
+        <div class="ph"><div><div class="ph-title">Company Profiles</div><div class="ph-sub">Issuing company, brand, legal, tax and banking details</div></div></div>
+        <div class="template-store-header template-store-header-company" aria-hidden="true"><span>Company</span><span>Legal Name</span><span>VAT</span><span>Document Defaults</span><span>Status</span></div>
+        <div id="template-company-table" class="calllog-list" role="list" aria-label="Company document profiles"></div>
+      </div>
+      <div class="template-store-section mt2">
+        <div class="ph"><div><div class="ph-title">Customer Document Profiles</div><div class="ph-sub">Verified billing and service-address details used in quotes and tax invoices</div></div></div>
+        <div class="template-store-header template-store-header-client" aria-hidden="true"><span>Customer</span><span>Legal / Billing Name</span><span>VAT</span><span>Reference</span><span>Status</span></div>
+        <div id="template-client-profile-table" class="calllog-list" role="list" aria-label="Customer document profiles"></div>
+      </div>
+      <div class="template-store-section mt2">
+        <div class="ph"><div><div class="ph-title">Reusable Templates</div><div class="ph-sub">Quote, invoice and email wording for each issuing company</div></div></div>
+        <div class="template-store-header template-store-header-template" aria-hidden="true"><span>Company</span><span>Type</span><span>Template</span><span>Version</span><span>Status</span></div>
+        <div id="template-store-table" class="calllog-list" role="list" aria-label="Reusable document templates"></div>
+      </div>
     </div>
 
     <!-- CALL LOG — operational callouts -->
@@ -900,6 +921,7 @@ $companyLogoUrl = $baseUrl . '/' . ltrim($cfg['company_logo'] ?? 'blackfire_logo
       </div>
       <div class="panel"><div class="pb">
         <div class="fgrid">
+          <div class="fgroup"><label class="flbl">Issuing Company <span class="req">*</span></label><select class="finput" id="nq-company-profile"><option value="">— Select Company —</option></select></div>
           <div class="fgroup"><label class="flbl">Client <span class="req">*</span></label><select class="finput" id="nq-client"><option value="">— Select Client —</option></select></div>
           <div class="fgroup"><label class="flbl">Valid Until <span class="req">*</span></label><input type="date" class="finput" id="nq-valid"></div>
           <div class="fgroup"><label class="flbl">Linked Call Log <span class="req">*</span></label><select class="finput" id="nq-callout-ref" required><option value="">— Select Call Log —</option></select></div>
@@ -921,6 +943,7 @@ $companyLogoUrl = $baseUrl . '/' . ltrim($cfg['company_logo'] ?? 'blackfire_logo
       <div class="panel"><div class="pb">
         <div class="req-legend"><span class="req">*</span> Required field</div>
         <div class="fgrid">
+          <div class="fgroup"><label class="flbl">Issuing Company <span class="req">*</span></label><select class="finput" id="ni-company-profile"><option value="">— Select Company —</option></select></div>
           <div class="fgroup"><label class="flbl">Client <span class="req">*</span></label><select class="finput" id="ni-client"><option value="">— Select Client —</option></select></div>
           <div class="fgroup"><label class="flbl">Amount (incl. VAT) <span class="req">*</span></label><input type="number" class="finput" id="ni-amount" min="0.01" step="0.01" placeholder="0.00"></div>
           <div class="fgroup"><label class="flbl">Due Date <span class="req">*</span></label><input type="date" class="finput" id="ni-due"></div>

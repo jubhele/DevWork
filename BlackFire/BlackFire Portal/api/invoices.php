@@ -145,6 +145,8 @@ if ($method === 'POST') {
         json_err('client_id or client_name is required');
     }
 
+    $requested_company_profile_id = isset($b['company_profile_id']) ? (int)$b['company_profile_id'] : 0;
+
     // Resolve linked quote FK
     $quote_ref_str = clean($b['quote_ref']   ?? '', 30);
     $co_ref_str    = clean($b['callout_ref'] ?? '', 30);
@@ -158,11 +160,16 @@ if ($method === 'POST') {
     try {
         db_begin();
         $qrow = db_row(
-            "SELECT id, ref_id, client_id, status, callout_id, callout_ref
+            "SELECT id, ref_id, client_id, status, callout_id, callout_ref, company_profile_id
                FROM bf_quotes WHERE ref_id = ? LIMIT 1 FOR UPDATE",
             [$quote_ref_str]
         );
         if (!$qrow) throw new RuntimeException('quote_required');
+
+        $company_profile_id = $requested_company_profile_id ?: (int)($qrow['company_profile_id'] ?? 1);
+        if (!db_row('SELECT id FROM bf_company_profiles WHERE id=? AND host_company_id=1 AND is_active=1', [$company_profile_id])) {
+            throw new RuntimeException('company_profile_required');
+        }
 
         $crow = db_row(
             "SELECT id, ref_id, document_escalation_status,
@@ -194,15 +201,16 @@ if ($method === 'POST') {
 
         $id = db_insert(
             "INSERT INTO bf_invoices
-             (ref_id, invoice_no, client_id, client_name, client_email, amount, due_date, status,
+             (ref_id, invoice_no, client_id, client_name, client_email, company_profile_id, amount, due_date, status,
               quote_ref, quote_id, callout_ref, callout_id, po, invoice_date, sent_by_user_id)
-             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             [
                 $ref,
                 $invoice_no,
                 $client_id,
                 $client_name,
                 $client_email,
+                $company_profile_id,
                 $amount,
                 $due_date,
                 clean($b['status'] ?? 'Draft'),
@@ -230,6 +238,7 @@ if ($method === 'POST') {
         if ($error->getMessage() === 'callout_required' || $error->getMessage() === 'chain_mismatch') json_err('Cannot create invoice: the linked quote belongs to a different call log', 422);
         if ($error->getMessage() === 'quote_not_approved') json_err('Cannot create invoice: the linked quote must be Approved before invoicing', 422);
         if ($error->getMessage() === 'client_mismatch') json_err('Cannot create invoice: client must match the linked quote', 422);
+        if ($error->getMessage() === 'company_profile_required') json_err('Cannot create invoice: select an active issuing company', 422);
         if (strpos($error->getMessage(), 'duplicate:') === 0) json_err('This quote already has Invoice ' . substr($error->getMessage(), 10), 409);
         if ($error->getMessage() === 'escalation_required') json_err('Additional invoices require administrator-approved call escalation', 403);
         json_err('Invoice creation failed - no changes saved', 500);
@@ -259,6 +268,12 @@ if ($method === 'PUT') {
         $inv = db_row("SELECT * FROM bf_invoices WHERE ref_id = ?", [$ref_id]);
         if (!$inv) json_err('Invoice not found', 404);
 
+        $companyProfileId = (int)($b['company_profile_id'] ?? $inv['company_profile_id'] ?? 1);
+        if (!db_row('SELECT id FROM bf_company_profiles WHERE id=? AND host_company_id=1 AND is_active=1', [$companyProfileId])) {
+            json_err('Issuing company not found', 404);
+        }
+        $inv['company_profile_id'] = $companyProfileId;
+
         $to = clean($b['to_email'] ?? $inv['client_email'] ?? '', 150);
         if (!$to || !filter_var($to, FILTER_VALIDATE_EMAIL)) json_err('Valid recipient email required');
         if ((float)$inv['amount'] <= 0) json_err('Invoice amount must be set before sending');
@@ -268,8 +283,8 @@ if ($method === 'PUT') {
         if (!$sent) json_err('Failed to send invoice email — check SMTP settings');
 
         db_exec(
-            "UPDATE bf_invoices SET status = 'Sent', sent_at = NOW(), sent_by_user_id = ?, client_email = ? WHERE ref_id = ?",
-            [(int)$usr['id'], $to, $ref_id]
+            "UPDATE bf_invoices SET status = 'Sent', sent_at = NOW(), sent_by_user_id = ?, client_email = ?, company_profile_id = ? WHERE ref_id = ?",
+            [(int)$usr['id'], $to, $companyProfileId, $ref_id]
         );
         audit($usr['username'], 'INVOICE_SENT', "Invoice {$ref_id} sent to {$to}");
         $inv = db_row("SELECT * FROM bf_invoices WHERE ref_id = ?", [$ref_id]);

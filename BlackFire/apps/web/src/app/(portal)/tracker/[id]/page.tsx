@@ -15,16 +15,20 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
   const task = await getTask(id).catch(() => null)
   if (!task) notFound()
 
+  const assignedTo = task.assignees?.length
+    ? task.assignees.map(item => item.name).join(', ')
+    : (task.assignee_name ?? task.assigned_to ?? 'Unassigned')
+
   return (
     <div className="max-w-5xl">
-      <Link href={`/tracker?stream=${task.category}`} className="text-xs uppercase tracking-[0.18em] text-fire-orange">← {TASK_CATEGORY_LABELS[task.category]}</Link>
+      <Link href={`/tracker?stream=${task.category}`} className="text-xs uppercase tracking-[0.18em] text-fire-orange">&larr; {TASK_CATEGORY_LABELS[task.category]}</Link>
       <h1 className="mt-3 font-display text-5xl text-ink-text">{task.ref_id}</h1>
       <p className="mb-8 mt-2 text-lg text-ash">{task.title}</p>
       <dl className="mb-5 grid gap-5 rounded border border-steel-dark bg-white p-6 shadow-sm md:grid-cols-2">
         <div><dt className="text-xs uppercase tracking-[0.16em] text-ash">Stream</dt><dd className="mt-1 text-ink-text">{TASK_CATEGORY_LABELS[task.category]}</dd></div>
         <div><dt className="text-xs uppercase tracking-[0.16em] text-ash">Status</dt><dd className="mt-1 text-ink-text">{task.status}</dd></div>
         <div><dt className="text-xs uppercase tracking-[0.16em] text-ash">Priority</dt><dd className="mt-1 text-ink-text">{task.priority}</dd></div>
-        <div><dt className="text-xs uppercase tracking-[0.16em] text-ash">Assigned to</dt><dd className="mt-1 text-ink-text">{task.assignee_name ?? task.assigned_to ?? '—'}</dd></div>
+        <div><dt className="text-xs uppercase tracking-[0.16em] text-ash">Assigned to</dt><dd className="mt-1 text-ink-text">{assignedTo}</dd></div>
         {task.source_callout_ref && <div><dt className="text-xs uppercase tracking-[0.16em] text-ash">Original call-log ref</dt><dd className="mt-1 font-mono text-sm text-fire-orange">{task.source_callout_ref}</dd></div>}
         <div><dt className="text-xs uppercase tracking-[0.16em] text-ash">Created</dt><dd className="mt-1 text-ink-text">{new Date(task.created_at).toLocaleString('en-ZA')}</dd></div>
       </dl>

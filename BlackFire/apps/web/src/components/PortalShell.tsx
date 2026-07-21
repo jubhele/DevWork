@@ -26,9 +26,9 @@ type SecondaryNavItem = NavAccess & {
 const PRIMARY: PrimaryNavItem[] = [
   { href: '/dashboard', label: 'Dashboard', group: 'dashboard', matches: ['/dashboard'] },
   { href: '/ops', label: 'Operations', group: 'operations', matches: ['/ops', '/tracker', '/callouts'] },
-  { href: '/finance', label: 'Finance', group: 'finance', matches: ['/finance', '/quotes', '/invoices'] },
+  { href: '/finance', label: 'Finance', group: 'finance', matches: ['/finance', '/quotes', '/invoices', '/statements'] },
   { href: '/safety', label: 'Safety', group: 'safety', matches: ['/safety'], permission: 'safety.view' },
-  { href: '/support', label: 'Support', group: 'support', matches: ['/support', '/clients', '/help'] },
+  { href: '/support', label: 'Support', group: 'support', matches: ['/support', '/clients', '/template-store', '/help'] },
   { href: '/admin/users', label: 'Administration', group: 'administration', matches: ['/admin'], roles: ['sysadmin', 'admin'] },
 ]
 
@@ -46,6 +46,7 @@ const SECONDARY: Record<string, SecondaryNavItem[]> = {
     { href: '/finance', label: 'Overview', permission: 'finance.income' },
     { href: '/quotes', label: 'Quote Log', permission: 'quote.view' },
     { href: '/invoices', label: 'Invoices', permission: 'invoice.view' },
+    { href: '/statements', label: 'Statements', permission: 'finance.statement' },
   ],
   safety: [
     { href: '/safety', label: 'Safety Files', permission: 'safety.view' },
@@ -53,6 +54,7 @@ const SECONDARY: Record<string, SecondaryNavItem[]> = {
   support: [
     { href: '/support', label: 'Overview' },
     { href: '/clients', label: 'Clients', permission: 'callout.view' },
+    { href: '/template-store', label: 'Template Store' },
     { href: '/help', label: 'Help & Guide' },
   ],
   administration: [

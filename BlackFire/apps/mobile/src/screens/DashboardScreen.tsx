@@ -81,6 +81,7 @@ export default function DashboardScreen() {
             <MetricCard label="Urgent Callouts" value={kpis.urgent_callouts} sub="Priority dispatch" tone={kpis.urgent_callouts > 0 ? 'warning' : 'default'} />
             <MetricCard label="Due in 7 Days" value={summary.due_soon.length} sub="Prevent overdue work" tone={summary.due_soon.length > 0 ? 'warning' : 'default'} />
             <MetricCard label="Overdue Invoices" value={kpis.overdue_invoices} sub="Past due and unpaid" tone={kpis.overdue_invoices > 0 ? 'danger' : 'default'} />
+            <MetricCard label="Statements Awaiting Release" value={kpis.pending_statements} sub="Created by the scheduler" tone={kpis.pending_statements > 0 ? 'warning' : 'default'} />
           </View>
 
           <Text style={styles.section}>Invoice Run Rate</Text>

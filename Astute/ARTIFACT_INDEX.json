@@ -10,10 +10,10 @@
                                             "path":  "Astute\\sessions",
                                             "metric":  {
                                                            "exists":  true,
-                                                           "files":  2,
-                                                           "bytes":  1255,
+                                                           "files":  3,
+                                                           "bytes":  3526,
                                                            "oldest":  "2026-06-21T17:18:56.7670315Z",
-                                                           "latest":  "2026-07-10T15:25:04.0231230Z"
+                                                           "latest":  "2026-07-20T11:42:05.3298137Z"
                                                        }
                                         }
                                     ],
@@ -52,10 +52,10 @@
                                            "path":  "Astute\\_backups",
                                            "metric":  {
                                                           "exists":  true,
-                                                          "files":  12,
-                                                          "bytes":  17312,
+                                                          "files":  14,
+                                                          "bytes":  20548,
                                                           "oldest":  "2026-06-19T20:58:32.9202488Z",
-                                                          "latest":  "2026-07-10T15:19:06.4796075Z"
+                                                          "latest":  "2026-07-20T11:40:51.4283254Z"
                                                       }
                                        }
                                    ]

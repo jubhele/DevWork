@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  ActivityIndicator, RefreshControl,
+  ActivityIndicator, RefreshControl, Modal,
 } from 'react-native'
 import { colors, fonts, spacing } from '@blackfire/ui-tokens'
+import { tasks as taskApi } from '@blackfire/api-client'
 import { useAuth } from '../context/AuthContext'
-import type { Task, TaskCategory } from '@blackfire/types'
-
-const API_BASE = process.env.EXPO_PUBLIC_API_BASE ?? 'https://blackfiresolutions.co.za/api'
+import type { Task, TaskAssignableUser, TaskCategory } from '@blackfire/types'
 
 const STREAMS: { key: TaskCategory; label: string }[] = [
   { key: 'admin', label: 'Admin' },
@@ -68,7 +67,9 @@ function urgencyRank(task: Task) {
 }
 
 function assignee(task: Task) {
-  return task.assignee_name ?? task.assigned_to ?? 'Unassigned'
+  return task.assignees?.length
+    ? task.assignees.map(item => item.name).join(', ')
+    : (task.assignee_name ?? task.assigned_to ?? 'Unassigned')
 }
 
 function formatDate(value: string | null | undefined) {
@@ -85,12 +86,19 @@ function SummaryCard({ label, value, sub }: { label: string; value: number; sub:
   )
 }
 
-function TaskItem({ task }: { task: Task }) {
+function TaskItem({ task, onPress }: { task: Task; onPress?: () => void }) {
   const due = dueState(task)
   const dueColor = due === 'Overdue' ? colors.danger : due === 'Due today' ? colors.warning : colors.ash
 
   return (
-    <View style={styles.item}>
+    <TouchableOpacity
+      style={styles.item}
+      onPress={onPress}
+      disabled={!onPress}
+      activeOpacity={0.78}
+      accessibilityRole={onPress ? 'button' : undefined}
+      accessibilityLabel={onPress ? `Reassign ticket ${task.ref_id}` : undefined}
+    >
       <View style={styles.itemHeader}>
         <Text style={styles.itemRef}>{task.ref_id}</Text>
         <Text style={[styles.dueBadge, { color: dueColor }]}>{due}</Text>
@@ -102,30 +110,33 @@ function TaskItem({ task }: { task: Task }) {
       </View>
       <Text style={styles.itemMeta}>{assignee(task)}</Text>
       <Text style={styles.itemMeta}>Due {formatDate(dueValue(task))}</Text>
-    </View>
+      {onPress && <Text style={styles.reassignHint}>TAP TO REASSIGN</Text>}
+    </TouchableOpacity>
   )
 }
 
 export default function TrackerScreen() {
-  const { token } = useAuth()
+  const { token, user } = useAuth()
+  const canUpdate = user?.permissions?.includes('task.update') ?? false
   const [stream, setStream] = useState<TaskCategory>('admin')
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [assignmentTask, setAssignmentTask] = useState<Task | null>(null)
+  const [assignableUsers, setAssignableUsers] = useState<TaskAssignableUser[]>([])
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([])
+  const [assignmentLoading, setAssignmentLoading] = useState(false)
+  const [assignmentSaving, setAssignmentSaving] = useState(false)
+  const [assignmentError, setAssignmentError] = useState<string | null>(null)
 
   const load = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true); else setLoading(true)
     setError(null)
     try {
-      const headers: Record<string, string> = { 'X-Requested-With': 'XMLHttpRequest' }
-      if (token) headers.Authorization = `Bearer ${token}`
-      const res = await fetch(`${API_BASE}/tasks.php?category=${stream}&limit=100`, {
-        credentials: 'include', headers,
-      })
-      const body = res.ok ? await res.json() : null
-      setTasks(body?.success ? (body.data ?? []) : [])
-      if (!body?.success) setError('Failed to load tasks.')
+      const response = await taskApi.list({ category: stream, limit: '100' }, token ?? undefined)
+      setTasks(response.success ? (response.data ?? []) : [])
+      if (!response.success) setError('Failed to load tasks.')
     } catch {
       setError('Could not reach the portal API.')
     } finally {
@@ -135,6 +146,56 @@ export default function TrackerScreen() {
   }, [stream, token])
 
   useEffect(() => { load() }, [load])
+
+  const openAssignment = useCallback(async (task: Task) => {
+    if (!canUpdate) return
+    setAssignmentTask(task)
+    setSelectedUsers(task.assignees?.map(item => item.username) ?? [])
+    setAssignmentError(null)
+    setAssignmentLoading(true)
+    try {
+      const response = await taskApi.assignableUsers(token ?? undefined)
+      const users = response.success ? (response.data ?? []) : []
+      setAssignableUsers(users)
+      if (!task.assignees?.length && task.assigned_to_user_id) {
+        const legacy = users.find(item => item.id === task.assigned_to_user_id)
+        if (legacy) setSelectedUsers([legacy.username])
+      }
+      if (!response.success) setAssignmentError('Assignable users could not be loaded.')
+    } catch {
+      setAssignmentError('Could not reach the portal API.')
+    } finally {
+      setAssignmentLoading(false)
+    }
+  }, [canUpdate, token])
+
+  function toggleUser(username: string) {
+    setSelectedUsers(current => current.includes(username)
+      ? current.filter(item => item !== username)
+      : [...current, username])
+  }
+
+  async function saveAssignment() {
+    if (!assignmentTask || !selectedUsers.length) {
+      setAssignmentError('Select at least one user.')
+      return
+    }
+    setAssignmentSaving(true)
+    setAssignmentError(null)
+    try {
+      const response = await taskApi.reassign(assignmentTask.ref_id, selectedUsers, token ?? undefined)
+      if (!response.success) {
+        setAssignmentError(response.message ?? 'Assignment could not be updated.')
+        return
+      }
+      await load(true)
+      setAssignmentTask(null)
+    } catch {
+      setAssignmentError('Could not reach the portal API.')
+    } finally {
+      setAssignmentSaving(false)
+    }
+  }
 
   const activeTasks = useMemo(() => tasks.filter(isActive), [tasks])
   const orderedTasks = useMemo(() => [...tasks].sort((a, b) => urgencyRank(a) - urgencyRank(b)), [tasks])
@@ -193,13 +254,57 @@ export default function TrackerScreen() {
       <FlatList
         data={orderedTasks}
         keyExtractor={t => String(t.id)}
-        renderItem={({ item }) => <TaskItem task={item} />}
+        renderItem={({ item }) => <TaskItem task={item} onPress={canUpdate ? () => openAssignment(item) : undefined} />}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={colors.fireOrange} />}
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={listHeader}
         ListEmptyComponent={!loading ? <Text style={styles.empty}>No tasks in this stream.</Text> : null}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
       />
+      <Modal visible={assignmentTask != null} transparent animationType="slide" onRequestClose={() => setAssignmentTask(null)}>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalEyebrow}>REASSIGN TRACKER TICKET</Text>
+            <Text style={styles.modalTitle}>{assignmentTask?.ref_id}</Text>
+            <Text style={styles.modalSub}>{assignmentTask?.title}</Text>
+            {assignmentLoading ? <ActivityIndicator color={colors.fireOrange} style={styles.modalLoader} /> : (
+              <FlatList
+                data={assignableUsers}
+                keyExtractor={item => String(item.id)}
+                style={styles.userList}
+                renderItem={({ item }) => {
+                  const active = selectedUsers.includes(item.username)
+                  return (
+                    <TouchableOpacity
+                      onPress={() => toggleUser(item.username)}
+                      style={[styles.userOption, active && styles.userOptionActive]}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: active }}
+                      accessibilityLabel={`Assign ${item.name}`}
+                    >
+                      <View style={[styles.checkbox, active && styles.checkboxActive]} />
+                      <View style={styles.userText}>
+                        <Text style={styles.userName}>{item.name}</Text>
+                        <Text style={styles.userUsername}>{item.username}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  )
+                }}
+                ListEmptyComponent={<Text style={styles.emptySmall}>No assignable users found.</Text>}
+              />
+            )}
+            {assignmentError && <Text style={styles.assignmentError}>{assignmentError}</Text>}
+            <View style={styles.modalActions}>
+              <TouchableOpacity onPress={() => setAssignmentTask(null)} style={styles.cancelButton} accessibilityRole="button">
+                <Text style={styles.cancelButtonText}>CANCEL</Text>
+              </TouchableOpacity>
+              <TouchableOpacity disabled={assignmentSaving || assignmentLoading || !selectedUsers.length} onPress={saveAssignment} style={[styles.saveButton, (assignmentSaving || assignmentLoading || !selectedUsers.length) && styles.buttonDisabled]} accessibilityRole="button">
+                <Text style={styles.saveButtonText}>{assignmentSaving ? 'SAVING...' : 'SAVE ASSIGNMENT'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   )
 }
@@ -235,8 +340,30 @@ const styles = StyleSheet.create({
   badge: { fontFamily: fonts.mono, fontSize: 9, letterSpacing: 1, textTransform: 'uppercase' },
   itemTitle: { fontFamily: fonts.body, fontSize: 14, color: colors.bonePaper, lineHeight: 20 },
   itemMeta: { fontFamily: fonts.body, fontSize: 11, color: colors.ash, marginTop: 4 },
+  reassignHint: { fontFamily: fonts.mono, fontSize: 8, color: colors.fireOrange, letterSpacing: 1.2, marginTop: spacing.sm },
   separator: { height: spacing.sm },
   empty: { fontFamily: fonts.body, fontSize: 13, color: colors.ash, textAlign: 'center', marginTop: spacing.xl },
   emptySmall: { fontFamily: fonts.body, fontSize: 12, color: colors.ash },
   errorText: { fontFamily: fonts.body, fontSize: 13, color: colors.danger, textAlign: 'center', marginBottom: spacing.md },
+  modalBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.72)' },
+  modalCard: { maxHeight: '82%', backgroundColor: colors.navy, borderTopWidth: 1, borderColor: colors.fireOrange, padding: spacing.lg },
+  modalEyebrow: { fontFamily: fonts.mono, fontSize: 9, color: colors.fireOrange, letterSpacing: 1.8 },
+  modalTitle: { fontFamily: fonts.display, fontSize: 28, color: colors.bonePaper, marginTop: spacing.xs },
+  modalSub: { fontFamily: fonts.body, fontSize: 13, color: colors.ash, marginTop: spacing.xs, marginBottom: spacing.md },
+  modalLoader: { marginVertical: spacing.xl },
+  userList: { maxHeight: 360 },
+  userOption: { minHeight: 56, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: colors.steelDark, paddingHorizontal: spacing.md, marginBottom: spacing.sm },
+  userOptionActive: { borderColor: colors.fireOrange, backgroundColor: `${colors.fireOrange}12` },
+  checkbox: { width: 20, height: 20, borderWidth: 1, borderColor: colors.ash, marginRight: spacing.md },
+  checkboxActive: { borderWidth: 5, borderColor: colors.fireOrange, backgroundColor: colors.bonePaper },
+  userText: { flex: 1 },
+  userName: { fontFamily: fonts.body, fontSize: 14, color: colors.bonePaper },
+  userUsername: { fontFamily: fonts.mono, fontSize: 10, color: colors.ash, marginTop: 2 },
+  assignmentError: { fontFamily: fonts.body, fontSize: 12, color: colors.danger, marginTop: spacing.sm },
+  modalActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: spacing.sm, marginTop: spacing.md },
+  cancelButton: { minHeight: 44, justifyContent: 'center', paddingHorizontal: spacing.md, borderWidth: 1, borderColor: colors.steelDark },
+  cancelButtonText: { fontFamily: fonts.mono, fontSize: 10, color: colors.ash, letterSpacing: 1 },
+  saveButton: { minHeight: 44, justifyContent: 'center', paddingHorizontal: spacing.md, backgroundColor: colors.fireOrange, borderWidth: 1, borderColor: colors.fireOrange },
+  saveButtonText: { fontFamily: fonts.mono, fontSize: 10, color: colors.coal, letterSpacing: 1 },
+  buttonDisabled: { opacity: 0.45 },
 })

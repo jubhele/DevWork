@@ -34,6 +34,7 @@ function toQuoteType(row: DbQuote, items: QuoteItem[] = []): Quote {
     client_id: row.clientId ?? 0,
     client_name: row.clientName,
     callout_id: row.calloutId ?? null,
+    callout_ref: row.calloutRef || null,
     status: row.status as Quote['status'],
     approval_status: (row.approvalStatus?.toLowerCase() as Quote['approval_status']) ?? null,
     subtotal: total,

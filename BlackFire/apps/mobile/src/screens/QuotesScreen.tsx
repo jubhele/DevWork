@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   View, Text, StyleSheet, FlatList, ActivityIndicator, RefreshControl,
-  TouchableOpacity, Linking, TextInput, useWindowDimensions,
+  TouchableOpacity, TextInput, useWindowDimensions,
 } from 'react-native'
 import { colors, fonts, spacing } from '@blackfire/ui-tokens'
-import { quotes, quotePdfUrl } from '@blackfire/api-client'
+import { callouts, quotes, quotePdfUrl } from '@blackfire/api-client'
 import { useAuth } from '../context/AuthContext'
-import type { Quote, QuoteStatus } from '@blackfire/types'
+import type { Callout, Quote, QuoteStatus } from '@blackfire/types'
+import { openAuthenticatedPdf } from '../lib/pdf'
 
 type QuoteFilter = 'All' | 'Action' | 'Sent' | 'Converted'
 
@@ -36,10 +37,6 @@ function formatDate(value?: string | null) {
   return date.toLocaleDateString('en-ZA', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
-function openQuotePdf(item: Quote) {
-  Linking.openURL(quotePdfUrl(item.quote_number || item.id))
-}
-
 function StatusPill({ status }: { status: QuoteStatus }) {
   const tone = STATUS_COLOR[status] ?? colors.ash
   return (
@@ -49,7 +46,7 @@ function StatusPill({ status }: { status: QuoteStatus }) {
   )
 }
 
-function QuoteItem({ item, wide }: { item: Quote; wide: boolean }) {
+function QuoteItem({ item, linkedCallout, wide, token }: { item: Quote; linkedCallout?: Callout; wide: boolean; token: string | null }) {
   const description = item.items?.[0]?.description || item.notes || 'Service quotation'
   const total = Number(item.total ?? 0)
 
@@ -62,6 +59,12 @@ function QuoteItem({ item, wide }: { item: Quote; wide: boolean }) {
         </View>
         <Text style={styles.client} numberOfLines={1}>{item.client_name}</Text>
         <Text style={styles.description} numberOfLines={1}>{description}</Text>
+      </View>
+
+      <View style={[styles.calloutColumn, !wide && styles.mobileDetailColumn]}>
+        <Text style={styles.columnEyebrow}>CALL LOG</Text>
+        <Text style={styles.calloutRef}>{linkedCallout?.ref_id ?? item.callout_ref ?? 'Not linked'}</Text>
+        <Text style={styles.calloutService} numberOfLines={2}>{linkedCallout?.service ?? 'Service unavailable'}</Text>
       </View>
 
       <View style={[styles.valueColumn, !wide && styles.mobileDetailColumn]}>
@@ -79,7 +82,7 @@ function QuoteItem({ item, wide }: { item: Quote; wide: boolean }) {
       {wide && <View style={styles.statusColumn}><StatusPill status={item.status} /></View>}
 
       <TouchableOpacity
-        onPress={() => openQuotePdf(item)}
+        onPress={() => openAuthenticatedPdf(quotePdfUrl(item.quote_number || item.id), token, `Quote_${item.quote_number || item.id}.pdf`, 'View or save quote PDF')}
         style={[styles.pdfButton, !wide && styles.pdfButtonMobile]}
         activeOpacity={0.78}
         accessibilityRole="button"
@@ -106,6 +109,7 @@ export default function QuotesScreen() {
   const { width } = useWindowDimensions()
   const wide = width >= 900
   const [items, setItems] = useState<Quote[]>([])
+  const [calloutItems, setCalloutItems] = useState<Callout[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -116,9 +120,13 @@ export default function QuotesScreen() {
     if (isRefresh) setRefreshing(true); else setLoading(true)
     setError(null)
     try {
-      const res = await quotes.list({ limit: '100' }, token ?? undefined)
-      setItems(res.success ? (res.data ?? []) : [])
-      if (!res.success) setError('Failed to load quotes.')
+      const [quoteResponse, calloutResponse] = await Promise.all([
+        quotes.list({ limit: '100' }, token ?? undefined),
+        callouts.list({ limit: '500' }, token ?? undefined),
+      ])
+      setItems(quoteResponse.success ? (quoteResponse.data ?? []) : [])
+      setCalloutItems(calloutResponse.success ? (calloutResponse.data ?? []) : [])
+      if (!quoteResponse.success || !calloutResponse.success) setError('Failed to load quote records.')
     } catch {
       setError('Could not reach the portal API.')
     } finally {
@@ -128,6 +136,13 @@ export default function QuotesScreen() {
   }, [token])
 
   useEffect(() => { load() }, [load])
+
+  const calloutsById = useMemo(() => new Map(calloutItems.map(item => [item.id, item])), [calloutItems])
+  const calloutsByRef = useMemo(() => new Map(calloutItems.map(item => [item.ref_id, item])), [calloutItems])
+  const linkedCallout = useCallback((quote: Quote) =>
+    (quote.callout_ref ? calloutsByRef.get(quote.callout_ref) : undefined)
+      ?? (quote.callout_id ? calloutsById.get(quote.callout_id) : undefined),
+  [calloutsById, calloutsByRef])
 
   const summary = useMemo(() => {
     const quotedValue = items.reduce((sum, item) => sum + Number(item.total ?? 0), 0)
@@ -139,13 +154,14 @@ export default function QuotesScreen() {
   const filteredItems = useMemo(() => {
     const needle = query.trim().toLowerCase()
     return items.filter(item => {
-      const matchesQuery = !needle || `${item.quote_number} ${item.client_name} ${item.status}`.toLowerCase().includes(needle)
+      const callout = linkedCallout(item)
+      const matchesQuery = !needle || `${item.quote_number} ${item.client_name} ${item.status} ${callout?.ref_id ?? item.callout_ref ?? ''} ${callout?.service ?? ''}`.toLowerCase().includes(needle)
       const matchesFilter = filter === 'All'
         || (filter === 'Action' && ['Draft', 'Pending Approval'].includes(item.status))
         || item.status === filter
       return matchesQuery && matchesFilter
     })
-  }, [filter, items, query])
+  }, [filter, items, linkedCallout, query])
 
   const listHeader = (
     <View>
@@ -173,7 +189,7 @@ export default function QuotesScreen() {
           value={query}
           onChangeText={setQuery}
           style={[styles.search, wide && styles.searchWide]}
-          placeholder="Search quote, client or status"
+          placeholder="Search quote, client or call log"
           placeholderTextColor={colors.ash}
           autoCapitalize="none"
           autoCorrect={false}
@@ -194,6 +210,7 @@ export default function QuotesScreen() {
       {wide && (
         <View style={styles.tableHeader}>
           <Text style={[styles.tableHeaderText, styles.identityColumn]}>QUOTE / CLIENT</Text>
+          <Text style={[styles.tableHeaderText, styles.calloutColumn]}>CALL LOG / SERVICE</Text>
           <Text style={[styles.tableHeaderText, styles.valueColumn]}>VALUE</Text>
           <Text style={[styles.tableHeaderText, styles.dateColumn]}>DATES</Text>
           <Text style={[styles.tableHeaderText, styles.statusColumn]}>STATUS</Text>
@@ -208,7 +225,7 @@ export default function QuotesScreen() {
       <FlatList
         data={filteredItems}
         keyExtractor={quote => String(quote.id)}
-        renderItem={({ item }) => <QuoteItem item={item} wide={wide} />}
+        renderItem={({ item }) => <QuoteItem item={item} linkedCallout={linkedCallout(item)} wide={wide} token={token} />}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={colors.fireOrange} />}
         contentContainerStyle={[styles.listContent, wide && styles.listContentWide]}
         ListHeaderComponent={listHeader}
@@ -252,6 +269,7 @@ const styles = StyleSheet.create({
   quoteRowWide: { minHeight: 104, flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.md, paddingVertical: spacing.md },
   quoteCard: { padding: spacing.md, borderWidth: 1, borderColor: colors.steelDark },
   identityColumn: { flex: 1.8, minWidth: 0 },
+  calloutColumn: { flex: 1.2, minWidth: 150 },
   valueColumn: { flex: 0.8, minWidth: 130 },
   dateColumn: { flex: 0.9, minWidth: 160 },
   statusColumn: { flex: 0.72, minWidth: 130, alignItems: 'flex-start' },
@@ -260,6 +278,8 @@ const styles = StyleSheet.create({
   ref: { flexShrink: 1, fontFamily: fonts.mono, fontSize: 11, color: colors.fireOrange, letterSpacing: 1 },
   client: { fontFamily: fonts.body, fontSize: 16, fontWeight: '600', color: colors.bonePaper, marginTop: spacing.xs },
   description: { fontFamily: fonts.body, fontSize: 12, color: colors.ash, marginTop: 2 },
+  calloutRef: { fontFamily: fonts.mono, fontSize: 11, color: colors.fireOrange, letterSpacing: 1, marginTop: 3 },
+  calloutService: { fontFamily: fonts.body, fontSize: 12, color: colors.bonePaper, marginTop: 3 },
   columnEyebrow: { fontFamily: fonts.mono, fontSize: 8, letterSpacing: 1.1, color: colors.ash },
   total: { fontFamily: fonts.display, fontSize: 20, color: colors.flameGold, marginTop: 2 },
   zeroTotal: { color: colors.ash },

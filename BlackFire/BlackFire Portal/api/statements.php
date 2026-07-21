@@ -23,16 +23,35 @@ $method = $_SERVER['REQUEST_METHOD'];
 $action = clean($_GET['action'] ?? '', 30);
 $ref_id = clean($_GET['id']     ?? '', 20);
 
+function stream_statement_pdf(array $attachment, bool $inline = false): void {
+    while (ob_get_level()) ob_end_clean();
+    $filename = basename((string)($attachment['filename'] ?? 'statement.pdf'));
+    $content = (string)($attachment['content'] ?? '');
+    header('Content-Type: application/pdf');
+    header('Content-Disposition: ' . ($inline ? 'inline' : 'attachment') . '; filename="' . str_replace(['"', '\\'], '', $filename) . '"');
+    header('Content-Length: ' . strlen($content));
+    header('X-Content-Type-Options: nosniff');
+    header('Cache-Control: private, no-cache');
+    echo $content;
+    exit;
+}
+
 // ── Cron endpoint (no session required, secret-gated) ─────────────────
 if ($method === 'POST' && $action === 'cron') {
-    $secret = clean($_GET['secret'] ?? '', 100);
-    $expected = getenv('BF_CRON_SECRET') ?: ($cfg['cron_secret'] ?? '');
+    $secret = clean($_SERVER['HTTP_X_CRON_SECRET'] ?? ($_GET['secret'] ?? ''), 200);
+    $expected = cfg_env('BF_CRON_SECRET');
     if (!$expected || !hash_equals($expected, $secret)) {
         http_response_code(403);
         echo json_encode(['success' => false, 'error' => 'Forbidden']);
         exit;
     }
-    $result = _generate_statement('cron');
+    $lock = db_row("SELECT GET_LOCK('bf_statement_cron', 0) AS acquired");
+    if ((int)($lock['acquired'] ?? 0) !== 1) json_ok(['created' => 0, 'results' => []], 'Statement run already in progress');
+    try {
+        $result = _generate_scheduled_statements();
+    } finally {
+        db_row("SELECT RELEASE_LOCK('bf_statement_cron') AS released");
+    }
     json_ok($result, $result['message'] ?? 'Done');
 }
 
@@ -53,7 +72,11 @@ if ($method === 'GET' && $action === 'download') {
             $invoices = db_select("SELECT ref_id, client_name, invoice_date, due_date, status, amount FROM bf_invoices WHERE ref_id IN ($ph)", $refs);
         }
     }
-    json_ok(['data' => array_merge($stmt, ['invoices' => $invoices])]);
+    require_once __DIR__ . '/../includes/mailer.php';
+    stream_statement_pdf(
+        statement_pdf_attachment($stmt, $invoices),
+        clean($_GET['disposition'] ?? '', 10) === 'inline'
+    );
 }
 
 // ── GET — email_options ───────────────────────────────────────────────
@@ -104,19 +127,22 @@ if ($method === 'GET') {
 
     $total = db_row("SELECT COUNT(*) AS n FROM bf_statements $where", $params)['n'] ?? 0;
     $rows  = db_select(
-        "SELECT s.*, COALESCE(u.username,'') AS released_by
+        "SELECT s.*, COALESCE(u.username,'') AS released_by, COALESCE(p.display_name,'') AS company_name
            FROM bf_statements s
            LEFT JOIN bf_users u ON u.id = s.released_by_user_id
+           LEFT JOIN bf_company_profiles p ON p.id = s.company_profile_id
           $where ORDER BY s.created_at DESC LIMIT {$pg['limit']} OFFSET {$pg['offset']}",
         $params
     );
 
     // Also return outstanding invoice summary for display
     $outstanding = db_select(
-        "SELECT ref_id, client_name, client_email, amount, due_date, status, invoice_date
-           FROM bf_invoices
-          WHERE status IN ('Sent','Overdue','Draft')
-          ORDER BY due_date ASC",
+        "SELECT i.ref_id, i.client_name, i.client_email, i.amount, i.due_date, i.status, i.invoice_date,
+                i.company_profile_id, COALESCE(p.display_name,'') AS company_name
+           FROM bf_invoices i
+           LEFT JOIN bf_company_profiles p ON p.id=i.company_profile_id
+          WHERE i.status IN ('Sent','Overdue','Draft')
+          ORDER BY i.due_date ASC",
         []
     );
     $outstanding_total = array_sum(array_column($outstanding, 'amount'));
@@ -132,7 +158,8 @@ if ($method === 'GET') {
 // ── POST — generate ───────────────────────────────────────────────────
 if ($method === 'POST') {
     if (!can('finance.statement.generate', $user['role'])) json_err('Permission denied', 403);
-    $result = _generate_statement($user['username']);
+    $body = get_body();
+    $result = _generate_statement($user['username'], (int)($body['company_profile_id'] ?? 0));
     json_ok($result, $result['message'] ?? 'Done');
 }
 
@@ -165,12 +192,15 @@ if ($method === 'PUT') {
 
     // Validate FROM email is in the allowed pool for this role
     $role = $user['role'];
-    $allowed_roles = match ($role) {
-        'admin'      => ['admin', 'manager', 'admin_clerk'],
-        'manager'    => ['manager', 'admin_clerk'],
-        'admin_clerk'=> ['admin_clerk'],
-        default      => [],
-    };
+    if ($role === 'admin') {
+        $allowed_roles = ['admin', 'manager', 'admin_clerk'];
+    } elseif ($role === 'manager') {
+        $allowed_roles = ['manager', 'admin_clerk'];
+    } elseif ($role === 'admin_clerk') {
+        $allowed_roles = ['admin_clerk'];
+    } else {
+        $allowed_roles = [];
+    }
     if (empty($allowed_roles)) json_err('Permission denied', 403);
 
     $ph = implode(',', array_fill(0, count($allowed_roles), '?'));
@@ -195,8 +225,8 @@ if ($method === 'PUT') {
     // Fall back to current outstanding if refs are empty
     if (empty($invoices)) {
         $invoices = db_select(
-            "SELECT * FROM bf_invoices WHERE status IN ('Sent','Overdue','Draft') ORDER BY due_date ASC",
-            []
+            "SELECT * FROM bf_invoices WHERE company_profile_id=? AND status IN ('Sent','Overdue','Draft') ORDER BY due_date ASC",
+            [(int)$stmt['company_profile_id']]
         );
     }
 
@@ -230,12 +260,23 @@ if ($method === 'PUT') {
 json_err('Method not allowed', 405);
 
 // ── Helper: generate a statement ──────────────────────────────────────
-function _generate_statement(string $triggered_by): array {
+function _generate_statement(string $triggered_by, int $company_profile_id = 0): array {
+    if (!$company_profile_id) {
+        $company_profile_id = (int)(db_row(
+            'SELECT id FROM bf_company_profiles WHERE host_company_id=1 AND is_active=1 ORDER BY is_default DESC, id LIMIT 1'
+        )['id'] ?? 0);
+    }
+    $profile = db_row(
+        'SELECT id, display_name FROM bf_company_profiles WHERE id=? AND host_company_id=1 AND is_active=1',
+        [$company_profile_id]
+    );
+    if (!$profile) json_err('Issuing company not found', 404);
+
     // Get all outstanding invoices
     $outstanding = db_select(
         "SELECT ref_id, client_name, amount FROM bf_invoices
-          WHERE status IN ('Sent','Overdue','Draft') AND amount > 0",
-        []
+          WHERE company_profile_id=? AND status IN ('Sent','Overdue','Draft') AND amount > 0",
+        [$company_profile_id]
     );
 
     if (empty($outstanding)) {
@@ -244,22 +285,23 @@ function _generate_statement(string $triggered_by): array {
 
     $total    = array_sum(array_column($outstanding, 'amount'));
     $refs_csv = implode(',', array_column($outstanding, 'ref_id'));
-    $ref      = next_ref_id('stmt');
     $sched    = date('Y-m-d');
 
     // Avoid duplicate statements for the same scheduled date regardless of status
     $existing = db_row(
-        "SELECT id FROM bf_statements WHERE scheduled_for = ? LIMIT 1",
-        [$sched]
+        "SELECT id FROM bf_statements WHERE scheduled_for = ? AND company_profile_id=? LIMIT 1",
+        [$sched, $company_profile_id]
     );
     if ($existing) {
         return ['message' => 'A statement already exists for today', 'created' => false];
     }
 
+    $ref = next_ref_id('stmt');
+
     db_insert(
-        "INSERT INTO bf_statements (ref_id, scheduled_for, status, invoice_refs, total_outstanding, from_email, to_emails)
-         VALUES (?,?,?,?,?,?,?)",
-        [$ref, $sched, 'pending_approval', $refs_csv, $total, '', '']
+        "INSERT INTO bf_statements (ref_id, company_profile_id, scheduled_for, status, invoice_refs, total_outstanding, from_email, to_emails)
+         VALUES (?,?,?,?,?,?,?,?)",
+        [$ref, $company_profile_id, $sched, 'pending_approval', $refs_csv, $total, '', '']
     );
 
     audit($triggered_by, 'STATEMENT_GENERATED',
@@ -271,5 +313,25 @@ function _generate_statement(string $triggered_by): array {
         'invoice_count'=> count($outstanding),
         'total'        => $total,
         'created'      => true,
+    ];
+}
+
+function _generate_scheduled_statements(): array {
+    $profiles = db_select(
+        'SELECT id, display_name FROM bf_company_profiles WHERE host_company_id=1 AND is_active=1 ORDER BY is_default DESC, id'
+    );
+    $results = [];
+    $created = 0;
+    foreach ($profiles as $profile) {
+        $result = _generate_statement('cron', (int)$profile['id']);
+        $result['company_profile_id'] = (int)$profile['id'];
+        $result['company_name'] = (string)$profile['display_name'];
+        if (!empty($result['created'])) $created++;
+        $results[] = $result;
+    }
+    return [
+        'created' => $created,
+        'results' => $results,
+        'message' => $created . ' scheduled statement' . ($created === 1 ? '' : 's') . ' created',
     ];
 }

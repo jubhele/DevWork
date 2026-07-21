@@ -37,6 +37,7 @@ const CONTACTS = [
 ]
 
 const QUICK_LINKS = [
+  { href: '/template-store', label: 'Template Store', desc: 'Company profiles, AECI billing details, branded document and email templates' },
   { href: '/clients', label: 'Clients', desc: 'Support-owned client records used by call logs, quotes, and invoices' },
   { href: '/safety', label: 'Safety Files', desc: 'View and upload compliance documents' },
   { href: '/admin/users', label: 'Users & Roles', desc: 'Manage portal access — Admins only', adminOnly: true },

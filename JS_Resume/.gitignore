@@ -37,6 +37,9 @@ test-results/
 # Uploads (generated content â€” not committed)
 uploads/
 
+# Career move document downloads (local only)
+career_move_docs/
+
 # Backups
 _backups/
 

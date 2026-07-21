@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   View, Text, StyleSheet, FlatList,
-  ActivityIndicator, RefreshControl, TouchableOpacity, Linking,
+  ActivityIndicator, RefreshControl, TouchableOpacity,
 } from 'react-native'
 import { colors, fonts, spacing } from '@blackfire/ui-tokens'
 import { invoices, invoicePdfUrl, transactions } from '@blackfire/api-client'
 import { useAuth } from '../context/AuthContext'
 import type { Invoice } from '@blackfire/types'
+import { openAuthenticatedPdf } from '../lib/pdf'
 
 const STATUS_COLOR: Record<string, string> = {
   'Draft': colors.ash,
@@ -40,10 +41,6 @@ function invoicePdfRef(item: Invoice) {
   return invoice.invoice_no || invoice.ref_id || item.invoice_number || item.id
 }
 
-function openInvoicePdf(item: Invoice) {
-  Linking.openURL(invoicePdfUrl(invoicePdfRef(item)))
-}
-
 type LedgerTransaction = {
   id: number
   transDate?: string
@@ -59,7 +56,7 @@ function txDate(item: LedgerTransaction) {
   return item.transDate ?? item.trans_date ?? ''
 }
 
-function InvoiceItem({ item }: { item: Invoice }) {
+function InvoiceItem({ item, token }: { item: Invoice; token: string | null }) {
   return (
     <View style={[styles.item, item.status === 'Overdue' && styles.itemOverdue]}>
       <View style={styles.itemHeader}>
@@ -71,7 +68,7 @@ function InvoiceItem({ item }: { item: Invoice }) {
         <Text style={styles.total}>{fullMoney(item.total ?? item.amount ?? 0)}</Text>
         <Text style={styles.meta}>Due {item.due_date ? new Date(item.due_date).toLocaleDateString('en-ZA') : 'N/A'}</Text>
       </View>
-      <TouchableOpacity onPress={() => openInvoicePdf(item)} style={styles.pdfButton}>
+      <TouchableOpacity onPress={() => openAuthenticatedPdf(invoicePdfUrl(invoicePdfRef(item)), token, `Invoice_${invoicePdfRef(item)}.pdf`, 'View or save invoice PDF')} style={styles.pdfButton}>
         <Text style={styles.pdfButtonText}>Download PDF</Text>
       </TouchableOpacity>
     </View>
@@ -304,7 +301,7 @@ export default function InvoicesScreen() {
       <FlatList
         data={filteredItems}
         keyExtractor={inv => String(inv.id)}
-        renderItem={({ item }) => <InvoiceItem item={item} />}
+        renderItem={({ item }) => <InvoiceItem item={item} token={token} />}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={colors.fireOrange} />}
         contentContainerStyle={{ padding: spacing.md, paddingBottom: spacing.xxl }}
         ListHeaderComponent={header}

@@ -157,6 +157,7 @@ export interface Quote {
   client_id: number
   client_name: string
   callout_id: number | null
+  callout_ref: string | null
   status: QuoteStatus
   approval_status: QuoteApprovalStatus | null
   subtotal: number
@@ -263,6 +264,83 @@ export interface Statement {
   transactions: Transaction[]
 }
 
+export interface TaskAssignee {
+  user_id: number
+  username: string
+  name: string
+}
+
+export interface TaskAssignableUser {
+  id: number
+  username: string
+  name: string
+  role: Role
+}
+
+export interface ScheduledStatement {
+  id: number
+  ref_id: string
+  company_profile_id: number
+  company_name: string
+  scheduled_for: string
+  status: 'pending_approval' | 'released' | 'cancelled'
+  from_email: string
+  to_emails: string
+  invoice_refs: string
+  total_outstanding: number
+  released_by: string
+  released_at: string | null
+  created_at: string
+}
+
+export interface CompanyProfile {
+  id: number
+  profile_key: string
+  display_name: string
+  legal_name: string
+  registration_number: string
+  vat_number: string
+  phone: string
+  email: string
+  address: string
+  logo_path: string
+  bank_name: string
+  bank_account_type: string
+  bank_account_number: string
+  bank_branch_code: string
+  bank_swift_code: string
+  currency_code: string
+  vat_rate: number
+  quote_prefix: string
+  invoice_prefix: string
+}
+
+export interface ClientDocumentProfile {
+  id: number
+  client_id: number
+  profile_key: string
+  display_name: string
+  legal_name: string
+  vat_number: string
+  phone: string
+  email: string
+  quote_address: string
+  invoice_address: string
+  supplier_reference: string
+  purchase_order_prefix: string
+}
+
+export interface DocumentTemplate {
+  id: number
+  company_profile_id: number
+  company_name: string
+  template_key: string
+  template_type: 'quote' | 'invoice' | 'statement' | 'email'
+  name: string
+  description: string
+  version: number
+}
+
 export interface DashboardKPIs {
   open_tasks: number
   urgent_tasks: number
@@ -273,6 +351,7 @@ export interface DashboardKPIs {
   mtd_revenue: number
   safety_score: number | null
   pending_quotes: number
+  pending_statements: number
   active_clients: number
 }
 
@@ -382,6 +461,7 @@ export interface Task {
   assigned_to_user_id: number | null
   assigned_to: string | null
   assignee_name: string | null
+  assignees?: TaskAssignee[]
   created_by_user_id: number
   created_by: string
   creator_name: string | null

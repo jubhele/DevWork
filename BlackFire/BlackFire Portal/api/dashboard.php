@@ -57,6 +57,9 @@ $open_callouts    = db_row("SELECT COUNT(*) AS n FROM bf_callouts WHERE status I
 $urgent_callouts  = db_row("SELECT COUNT(*) AS n FROM bf_callouts WHERE status IN ('Open','In Progress') AND priority IN ('Urgent','Emergency')")['n'] ?? 0;
 $pending_quotes   = db_row("SELECT COUNT(*) AS n FROM bf_quotes WHERE status IN ('Draft','Sent','Pending Approval')")['n'] ?? 0;
 $overdue_invoices = db_row("SELECT COUNT(*) AS n FROM bf_invoices WHERE status NOT IN ('Paid','Cancelled') AND due_date < CURDATE()")['n'] ?? 0;
+$pending_statements = can('finance.statement')
+    ? (db_row("SELECT COUNT(*) AS n FROM bf_statements WHERE status = 'pending_approval'")['n'] ?? 0)
+    : 0;
 $active_clients   = db_row("SELECT COUNT(*) AS n FROM bf_clients WHERE is_active = 1")['n'] ?? 0;
 
 // Safety score: average score across active, approved safety files (null if none exist)
@@ -240,6 +243,7 @@ json_ok([
         'open_callouts'    => (int)$open_callouts,
         'urgent_callouts'  => (int)$urgent_callouts,
         'overdue_invoices' => (int)$overdue_invoices,
+        'pending_statements'=> (int)$pending_statements,
         'mtd_revenue'      => (float)$mtd,
         'safety_score'     => $safety_score,
         'pending_quotes'   => (int)$pending_quotes,

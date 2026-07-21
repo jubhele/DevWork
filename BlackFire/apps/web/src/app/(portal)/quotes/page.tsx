@@ -1,8 +1,9 @@
 import Link from 'next/link'
 import { getCurrentUser, can } from '@/lib/server-auth'
 import { getQuotes } from '@/lib/data/quotes'
+import { getCallouts } from '@/lib/data/callouts'
 import { quotePdfUrl } from '@blackfire/api-client'
-import type { Quote } from '@blackfire/types'
+import type { Callout, Quote } from '@blackfire/types'
 
 function Status({ value }: { value: string }) {
   const tone =
@@ -19,9 +20,10 @@ function quotePdfRef(quote: Quote) {
 
 export default async function QuotesPage() {
   const user = await getCurrentUser()
-  const result = await getQuotes()
-  const quotes: Quote[] = result.data
-
+  const [quoteResult, calloutResult] = await Promise.all([getQuotes(), getCallouts({ limit: 500 })])
+  const quotes = quoteResult.data
+  const calloutsById = new Map(calloutResult.data.map(callout => [callout.id, callout]))
+  const calloutsByRef = new Map(calloutResult.data.map(callout => [callout.ref_id, callout]))
   const canCreate = user != null && can(user, 'quote.create')
 
   return (
@@ -38,46 +40,65 @@ export default async function QuotesPage() {
         )}
       </div>
 
-      <div className="overflow-hidden rounded border border-steel-dark bg-white shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[980px] text-sm">
-            <thead className="border-b border-steel-dark bg-charcoal text-[11px] uppercase tracking-[0.18em] text-ash">
-              <tr>
-                <th className="px-4 py-3 text-left">Quote Ref</th>
-                <th className="px-4 py-3 text-left">Client</th>
-                <th className="px-4 py-3 text-left">Status</th>
-                <th className="px-4 py-3 text-left">Total</th>
-                <th className="px-4 py-3 text-left">Valid Until</th>
-                <th className="px-4 py-3 text-left">Created</th>
-                <th className="px-4 py-3 text-left">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {quotes.length ? quotes.map((q: Quote) => (
-                <tr key={q.id} className="border-b border-steel-dark/60 last:border-0 hover:bg-charcoal/60">
-                  <td className="px-4 py-3 font-mono text-xs text-fire-orange">{q.quote_number}</td>
-                  <td className="px-4 py-3 font-medium text-ink-text">{q.client_name}</td>
-                  <td className="px-4 py-3"><Status value={q.status} /></td>
-                  <td className="px-4 py-3 text-ash">R {Number(q.total ?? 0).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}</td>
-                  <td className="px-4 py-3 text-ash">{q.valid_until ? new Date(q.valid_until).toLocaleDateString('en-ZA') : '—'}</td>
-                  <td className="px-4 py-3 text-ash">{q.created_at ? new Date(q.created_at).toLocaleDateString('en-ZA') : '—'}</td>
-                  <td className="px-4 py-3">
-                    <a
-                      href={quotePdfUrl(quotePdfRef(q))}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex rounded border border-steel-dark bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-ash hover:border-fire-orange hover:text-fire-orange"
-                    >
-                      PDF
-                    </a>
-                  </td>
-                </tr>
-              )) : (
-                <tr><td colSpan={7} className="px-4 py-14 text-center text-ash">No quotes found.</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+      <div className="space-y-3">
+        {quotes.length ? quotes.map((quote: Quote) => {
+          const linkedCallout: Callout | undefined =
+            (quote.callout_ref ? calloutsByRef.get(quote.callout_ref) : undefined) ??
+            (quote.callout_id ? calloutsById.get(quote.callout_id) : undefined)
+          const calloutRef = linkedCallout?.ref_id ?? quote.callout_ref
+
+          return (
+            <article key={quote.id} className="overflow-hidden rounded border border-steel-dark bg-white shadow-sm">
+              <div className="grid gap-5 p-5 md:grid-cols-[1.2fr_1.5fr_0.8fr_auto] md:items-center">
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-ash">Quote record</p>
+                  <p className="mt-1 font-mono text-sm font-semibold text-fire-orange">{quote.quote_number}</p>
+                  <p className="mt-2 font-medium text-ink-text">{quote.client_name}</p>
+                </div>
+
+                <div className="border-l-2 border-fire-orange pl-4">
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-ash">Associated Call Log</p>
+                  {linkedCallout ? (
+                    <Link href={`/tracker/call-log/${linkedCallout.id}`} className="group mt-1 block">
+                      <span className="font-mono text-sm font-semibold text-fire-orange group-hover:underline">{linkedCallout.ref_id}</span>
+                      <span className="mt-1 block text-sm font-medium text-ink-text">{linkedCallout.service}</span>
+                    </Link>
+                  ) : (
+                    <div className="mt-1">
+                      <span className="font-mono text-sm text-ash">{calloutRef || 'Not linked'}</span>
+                      <span className="mt-1 block text-sm text-ash">Service unavailable</span>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <Status value={quote.status} />
+                  <p className="mt-3 font-display text-2xl text-ink-text">R {Number(quote.total ?? 0).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}</p>
+                  <p className="mt-1 text-xs text-ash">Valid to {quote.valid_until ? new Date(quote.valid_until).toLocaleDateString('en-ZA') : 'not set'}</p>
+                </div>
+
+                <div className="flex flex-wrap gap-2 md:flex-col">
+                  {linkedCallout && (
+                    <Link href={`/tracker/call-log/${linkedCallout.id}`} className="inline-flex justify-center rounded border border-steel-dark px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-ash hover:border-fire-orange hover:text-fire-orange">
+                      Call Log
+                    </Link>
+                  )}
+                  <a href={quotePdfUrl(quotePdfRef(quote))} target="_blank" rel="noreferrer" className="inline-flex justify-center rounded border border-fire-orange px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-fire-orange hover:bg-fire-orange hover:text-white">
+                    PDF
+                  </a>
+                </div>
+              </div>
+              <details className="border-t border-steel-dark/60 px-5 py-3 text-sm text-ash">
+                <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.16em]">Record details</summary>
+                <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                  <span>Created: {quote.created_at ? new Date(quote.created_at).toLocaleDateString('en-ZA') : 'Unknown'}</span>
+                  <span>Line items: {quote.items?.length ?? 0}</span>
+                  <span>Call Log: {calloutRef || 'Not linked'}</span>
+                </div>
+              </details>
+            </article>
+          )
+        }) : <div className="rounded border border-steel-dark bg-white px-4 py-14 text-center text-ash">No quotes found.</div>}
       </div>
     </div>
   )
