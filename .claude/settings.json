@@ -3,7 +3,21 @@
     "allow": [
       "Bash(powershell -Command \"Copy-Item 'c:\\\\DevWork\\\\BlackFire\\\\sessions\\\\blackfire_maintenance_compliance_jobs_20260722_061639.md' 'G:\\\\My Drive\\\\JS\\\\Agentic AI\\\\sessions\\\\blackfire\\\\blackfire_maintenance_compliance_jobs_20260722_061639.md.tbl.bk' -Force\")",
       "Skill(browse)",
-      "Skill(browse:*)"
+      "Skill(browse:*)",
+      "Bash(xargs grep -l \"run migration\\\\|apply migration\\\\|how to migrate\")",
+      "Bash(php -l install/check_recurring_maintenance_migration.php)",
+      "Bash(php -l install/apply_recurring_maintenance_migration.php)",
+      "Bash(php \"C:\\\\Users\\\\JUGHEL~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--DevWork\\\\040d8368-2c99-4db8-b278-03c67ee1d916\\\\scratchpad\\\\drop_and_test.php\")",
+      "Bash(php install/apply_recurring_maintenance_migration.php)",
+      "Bash(php install/check_recurring_maintenance_migration.php)",
+      "Bash(rsync -a --prune-empty-dirs --dry-run -v --include=/install/ --include=/install/check_recurring_maintenance_migration.php --include=/install/apply_recurring_maintenance_migration.php --exclude=* ./ /tmp/rsync_test_target/)",
+      "Bash(mv install/check_recurring_maintenance_migration.php check_recurring_maintenance_migration.php)",
+      "Bash(mv install/apply_recurring_maintenance_migration.php apply_recurring_maintenance_migration.php)",
+      "Bash(php -l check_recurring_maintenance_migration.php)",
+      "Bash(php -l apply_recurring_maintenance_migration.php)",
+      "Bash(php check_recurring_maintenance_migration.php)",
+      "Bash(grep -iE \"^\\(BlackFire|Astute\\)/.*\\(\\\\.env$|secret|password|apikey|api_key|blackfire_secrets\\)\")",
+      "Bash(git push *)"
     ]
   },
   "hooks": {
