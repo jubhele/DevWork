@@ -9,6 +9,11 @@ Project Root: c:\DevWork\BlackFire
 Status: resolved
 Source: explicit_user_binding (ProjectBind, SessionId e39c7fca-857)
 Re-confirmed: 2026-07-22 (ProjectBind re-run this turn; hook reports UNRESOLVED per-prompt but binding to c:\DevWork\BlackFire remains unchanged and correct)
+Re-confirmed again: 2026-07-22, third occurrence (ProjectBind re-run; hook flags UNRESOLVED on every new user prompt regardless of prior binding — known per-prompt behavior of this hook, not an actual loss of binding)
+Re-confirmed again: 2026-07-22, fourth occurrence. Canonical session log relocated to
+BlackFire\sessions\blackfire_console_error_triage_20260722_080336.md per user instruction; this
+_workspace file remains the original hook-created bootstrap record and is kept updated to satisfy
+the exact-log gate, which tracks this path by SessionId regardless of the relocation.
 
 ## Goal
 User shared a screenshot of blackfiresolutions.co.za open in Chrome DevTools showing a console error ("Refused to display ... in a frame because it set X-Frame-Options to deny") and asked to explain/investigate ("err").
@@ -40,7 +45,7 @@ Active model: Sonnet 5  Status: over-powered (simple console-error triage/explan
 - Advised that the "64 Issues" count in DevTools aggregates many non-error categories; only 1 error + 1 warning were visible in the screenshot, and full triage of the rest needs the user to expand the Issues tab.
 
 ## Blockers / Next Steps
-- Awaiting user to either share the expanded Issues tab contents for the remaining ~62 items, or confirm no further action needed since the flagged error/warning are both external (DevTools framing attempt, browser extension script).
+- User re-pasted the same two console lines (X-Frame-Options refusal, feature_collector.js warning) without new detail; re-confirmed prior diagnosis, no code change made. Awaiting user to either share expanded Issues tab contents for the remaining ~62 items, or confirm no further action needed.
 
 ## Learnings
 - Task was Tier 1 (console/log investigation, no code change) — Sonnet 5 was over-powered; Haiku 4.5 would have sufficed for this exchange.
