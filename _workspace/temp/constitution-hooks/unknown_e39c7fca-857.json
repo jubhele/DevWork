@@ -1,0 +1,14 @@
+﻿{
+    "provider":  "Unknown",
+    "session_id":  "e39c7fca-857",
+    "log_path":  "c:\\DevWork\\BlackFire\\sessions\\agent_session_unknown_e39c7fca-857_20260722_080408.md",
+    "project_status":  "resolved",
+    "project_name":  "BlackFire",
+    "project_root":  "c:\\DevWork\\BlackFire",
+    "project_source":  "explicit_user_binding",
+    "binding_version":  1,
+    "binding_updated_at":  "2026-07-22T08:08:50.9335551+02:00",
+    "prompt_count":  0,
+    "created_at":  "2026-07-22T08:04:08.2811081+02:00",
+    "updated_at":  "2026-07-22T08:08:50.9369620+02:00"
+}

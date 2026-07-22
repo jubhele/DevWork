@@ -17,7 +17,8 @@
       "Bash(php -l apply_recurring_maintenance_migration.php)",
       "Bash(php check_recurring_maintenance_migration.php)",
       "Bash(grep -iE \"^\\(BlackFire|Astute\\)/.*\\(\\\\.env$|secret|password|apikey|api_key|blackfire_secrets\\)\")",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "PowerShell(powershell -File c:\\\\DevWork\\\\scripts\\\\governance\\\\constitution-hook.ps1 -Event ProjectBind -RequestedProjectRoot \"c:\\\\DevWork\\\\BlackFire\" -SessionId \"e39c7fca-857\")"
     ]
   },
   "hooks": {
