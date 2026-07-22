@@ -279,6 +279,12 @@ document.addEventListener('click', function(e) {
     case 'saveCompanyProfile':   saveCompanyProfile(+el.dataset.id); break;
     case 'openClientProfileEditor': openClientProfileEditor(+el.dataset.id); break;
     case 'saveClientProfile':    saveClientProfile(+el.dataset.id); break;
+    case 'openCompanyProfileCreator': openCompanyProfileCreator(); break;
+    case 'saveCompanyProfileCreator': saveCompanyProfileCreator(); break;
+    case 'openClientProfileCreator': openClientProfileCreator(); break;
+    case 'saveClientProfileCreator': saveClientProfileCreator(); break;
+    case 'openTemplateCreator':  openTemplateCreator(); break;
+    case 'saveTemplateCreator':  saveTemplateCreator(); break;
     case 'approveQuote':         approveQuote(el.dataset.id); break;
     case 'rejectQuote':          rejectQuote(el.dataset.id); break;
     case 'convertToInvoice':     convertToInvoice(el.dataset.id); break;
@@ -301,6 +307,7 @@ document.addEventListener('click', function(e) {
     case 'openResendStatementModal':  openResendStatementModal(el.dataset.id); break;
     case 'releaseStatement':     releaseStatement(el.dataset.id); break;
     case 'generateStatement':    generateStatement(); break;
+    case 'generateRecurringTasks': generateRecurringTasks(); break;
     case 'switchPLLedgerTab':    switchPLLedgerTab(el.dataset.pllTab); break;
     // Files
     case 'openAttachmentsModal': openAttachmentsModal(el.dataset.entityType, el.dataset.entityRef); break;
@@ -1029,6 +1036,116 @@ async function saveTemplateEditor(id) {
   renderTemplateStore();
   closeModalDirect();
   toast('Template updated','ok');
+}
+
+function openCompanyProfileCreator() {
+  const field=(fieldId,label,value='',full=false)=>`<div class="fgroup${full?' ffull':''}"><label class="flbl">${label}</label><input class="finput" id="${fieldId}" value="${esc(value)}"></div>`;
+  openModal('New Company Profile',`
+    <div class="fgrid">
+      ${field('cpc-key','Profile Key (unique, lowercase, no spaces)')}${field('cpc-display','Display Name')}
+      ${field('cpc-legal','Legal Name')}${field('cpc-reg','Registration Number')}
+      ${field('cpc-vat','VAT Number')}${field('cpc-phone','Phone')}
+      ${field('cpc-email','Email')}${field('cpc-logo','Brand Logo Path')}
+      <div class="fgroup ffull"><label class="flbl">Registered Address</label><textarea class="finput" id="cpc-address" rows="4"></textarea></div>
+      ${field('cpc-primary','Primary Colour','#0A1626')}${field('cpc-accent','Accent Colour','#C2A04A')}
+      ${field('cpc-paper','Paper Colour','#F4F0E6')}${field('cpc-font','Body Font','Instrument Sans, Arial, sans-serif')}
+      ${field('cpc-bank','Bank')}${field('cpc-account-type','Account Type')}
+      ${field('cpc-account','Account Number')}${field('cpc-branch','Branch Code')}
+      ${field('cpc-swift','SWIFT Code')}${field('cpc-vat-rate','VAT Rate','15')}
+    </div>
+    <div class="mt3 flex-end"><button class="btn btn-p" data-action="saveCompanyProfileCreator">Create Company Profile</button></div>`);
+}
+
+async function saveCompanyProfileCreator() {
+  const val=fieldId=>document.getElementById(fieldId)?.value?.trim()||'';
+  const body={profile_key:val('cpc-key'),display_name:val('cpc-display'),legal_name:val('cpc-legal'),registration_number:val('cpc-reg'),vat_number:val('cpc-vat'),phone:val('cpc-phone'),email:val('cpc-email'),address:val('cpc-address'),logo_path:val('cpc-logo'),primary_color:val('cpc-primary'),accent_color:val('cpc-accent'),paper_color:val('cpc-paper'),body_font:val('cpc-font'),bank_name:val('cpc-bank'),bank_account_type:val('cpc-account-type'),bank_account_number:val('cpc-account'),bank_branch_code:val('cpc-branch'),bank_swift_code:val('cpc-swift'),vat_rate:Number(val('cpc-vat-rate')||15)};
+  if(!body.profile_key||!body.display_name||!body.legal_name){toast('Profile key, display name and legal name are required','err');return;}
+  const result=await api('POST','template_store.php?entity=profile',body);
+  if(!result.success){toast(result.error||'Could not create company profile','err');return;}
+  await refreshTemplateStore();renderTemplateStore();closeModalDirect();toast('Company profile created','ok');
+}
+
+function openClientProfileCreator() {
+  const clientOpts=(DB.clients||[]).map(c=>`<option value="${Number(c.id)}">${esc(c.name)}</option>`).join('');
+  openModal('New Customer Document Profile',`
+    <div class="fgrid">
+      <div class="fgroup ffull"><label class="flbl">Client</label><select class="finput" id="ccp-client">${clientOpts||'<option value="">No clients found</option>'}</select></div>
+      <div class="fgroup"><label class="flbl">Profile Key (unique per client)</label><input class="finput" id="ccp-key"></div>
+      <div class="fgroup"><label class="flbl">Document Name</label><input class="finput" id="ccp-display"></div>
+      <div class="fgroup"><label class="flbl">Legal / Billing Name</label><input class="finput" id="ccp-legal"></div>
+      <div class="fgroup"><label class="flbl">VAT Number</label><input class="finput" id="ccp-vat"></div>
+      <div class="fgroup"><label class="flbl">Phone</label><input class="finput" id="ccp-phone"></div>
+      <div class="fgroup ffull"><label class="flbl">Email</label><input class="finput" id="ccp-email"></div>
+      <div class="fgroup ffull"><label class="flbl">Quote / Service Address</label><textarea class="finput" id="ccp-quote-address" rows="4"></textarea></div>
+      <div class="fgroup ffull"><label class="flbl">Invoice / Billing Address</label><textarea class="finput" id="ccp-invoice-address" rows="4"></textarea></div>
+      <div class="fgroup"><label class="flbl">Supplier Reference</label><input class="finput" id="ccp-supplier"></div>
+      <div class="fgroup"><label class="flbl">PO Prefix</label><input class="finput" id="ccp-po"></div>
+    </div>
+    <div class="mt3 flex-end"><button class="btn btn-p" data-action="saveClientProfileCreator">Create Customer Profile</button></div>`);
+}
+
+async function saveClientProfileCreator() {
+  const val=fieldId=>document.getElementById(fieldId)?.value?.trim()||'';
+  const body={
+    client_id:Number(document.getElementById('ccp-client')?.value)||0,
+    profile_key:val('ccp-key'),
+    display_name:val('ccp-display'),
+    legal_name:val('ccp-legal'),
+    vat_number:val('ccp-vat'),
+    phone:val('ccp-phone'),
+    email:val('ccp-email'),
+    quote_address:val('ccp-quote-address'),
+    invoice_address:val('ccp-invoice-address'),
+    supplier_reference:val('ccp-supplier'),
+    purchase_order_prefix:val('ccp-po'),
+  };
+  if(!body.client_id){toast('Client is required','err');return;}
+  if(!body.profile_key||!body.display_name||!body.legal_name){toast('Profile key, document name and legal name are required','err');return;}
+  const result=await api('POST','template_store.php?entity=client_profile',body);
+  if(!result.success){toast(result.error||'Could not create customer profile','err');return;}
+  await refreshTemplateStore();renderTemplateStore();closeModalDirect();toast('Customer document profile created','ok');
+}
+
+function openTemplateCreator() {
+  const companyOpts=(DB.companyProfiles||[]).map(p=>`<option value="${Number(p.id)}">${esc(p.display_name)}</option>`).join('');
+  openModal('New Template',`
+    <div class="fgrid">
+      <div class="fgroup"><label class="flbl">Company</label><select class="finput" id="tsc-company">${companyOpts||'<option value="">No company profiles found</option>'}</select></div>
+      <div class="fgroup"><label class="flbl">Type</label><select class="finput" id="tsc-type"><option value="quote">Quote</option><option value="invoice">Invoice</option><option value="statement">Statement</option><option value="email">Email</option></select></div>
+      <div class="fgroup"><label class="flbl">Template Key (unique per company)</label><input class="finput" id="tsc-key"></div>
+      <div class="fgroup"><label class="flbl">Name</label><input class="finput" id="tsc-name"></div>
+      <div class="fgroup ffull"><label class="flbl">Description</label><input class="finput" id="tsc-description"></div>
+      <div class="fgroup ffull"><label class="flbl">Email Subject</label><input class="finput" id="tsc-subject" placeholder="Document layouts do not require a subject"></div>
+      <div class="fgroup ffull"><label class="flbl">Body Template</label><textarea class="finput" id="tsc-body" rows="9"></textarea></div>
+      <div class="fgroup ffull"><label class="flbl">Settings (JSON object)</label><textarea class="finput mono" id="tsc-settings" rows="5">{}</textarea></div>
+      <div class="fgroup ffull"><label class="flbl">Allowed Placeholders (comma-separated)</label><input class="finput" id="tsc-placeholders"></div>
+    </div>
+    <div class="mt3 flex-end"><button class="btn btn-p" data-action="saveTemplateCreator">Create Template</button></div>`);
+}
+
+async function saveTemplateCreator() {
+  let settings;
+  try{settings=JSON.parse(document.getElementById('tsc-settings')?.value||'{}');}
+  catch{toast('Settings must be a valid JSON object','err');return;}
+  if(!settings||Array.isArray(settings)||typeof settings!=='object'){toast('Settings must be a JSON object','err');return;}
+  const body=document.getElementById('tsc-body')?.value||'';
+  const val=fieldId=>document.getElementById(fieldId)?.value?.trim()||'';
+  const companyProfileId=Number(document.getElementById('tsc-company')?.value)||0;
+  if(!companyProfileId){toast('Company is required','err');return;}
+  if(!val('tsc-key')||!val('tsc-name')||!body.trim()){toast('Template key, name and body are required','err');return;}
+  const result=await api('POST','template_store.php?entity=template',{
+    company_profile_id:companyProfileId,
+    template_key:val('tsc-key'),
+    template_type:document.getElementById('tsc-type')?.value||'quote',
+    name:val('tsc-name'),
+    description:val('tsc-description'),
+    subject_template:val('tsc-subject'),
+    body_template:body,
+    settings,
+    allowed_placeholders:val('tsc-placeholders'),
+  });
+  if(!result.success){toast(result.error||'Could not create template','err');return;}
+  await refreshTemplateStore();renderTemplateStore();closeModalDirect();toast('Template created','ok');
 }
 
 function populateLinkedDropdowns() {
@@ -4297,6 +4414,7 @@ function renderSupDashboard() {
         <button class="btn btn-g" data-action="navPage" data-page="p-safety">Safety Files →</button>
         ${can('security.users')?`<button class="btn btn-g" data-action="navPage" data-page="p-users">Manage Users →</button>`:''}
         ${can('security.audit')?`<button class="btn btn-g" data-action="navPage" data-page="p-audit">Audit Log →</button>`:''}
+        ${can('task.create')?`<button class="btn btn-g" data-action="generateRecurringTasks">Generate Recurring Maintenance Tasks</button>`:''}
       </div>
     </div>
     <div class="kgrid">
@@ -6051,6 +6169,15 @@ async function generateStatement(){
   if(!r.success){toast(r.error||'Error generating statement','err');if(btn)btn.disabled=false;return;}
   toast(r.message||'Statement generated','ok');
   renderStatement();
+}
+async function generateRecurringTasks(){
+  const btn=document.querySelector('[data-action="generateRecurringTasks"]');
+  if(btn){if(btn.disabled)return;btn.disabled=true;btn.textContent='Generating…';}
+  const r=await api('POST','maintenance_schedules.php?action=generate');
+  if(btn){btn.disabled=false;btn.textContent='Generate Recurring Maintenance Tasks';}
+  if(!r.success){toast(r.error||'Error generating recurring tasks','err');return;}
+  toast(r.message||'Recurring tasks generated','ok');
+  if(typeof refreshTasks==='function') refreshTasks();
 }
 function viewStatement(ref_id){
   if(!ref_id){toast('Statement reference missing','err');return;}

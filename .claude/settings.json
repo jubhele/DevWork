@@ -1,4 +1,11 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(powershell -Command \"Copy-Item 'c:\\\\DevWork\\\\BlackFire\\\\sessions\\\\blackfire_maintenance_compliance_jobs_20260722_061639.md' 'G:\\\\My Drive\\\\JS\\\\Agentic AI\\\\sessions\\\\blackfire\\\\blackfire_maintenance_compliance_jobs_20260722_061639.md.tbl.bk' -Force\")",
+      "Skill(browse)",
+      "Skill(browse:*)"
+    ]
+  },
   "hooks": {
     "SessionStart": [
       {

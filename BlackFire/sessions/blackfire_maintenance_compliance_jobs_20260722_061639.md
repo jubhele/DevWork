@@ -47,12 +47,42 @@ Active model: claude-sonnet-5  Status: correct
 - uMlindi (governance) has not yet audited this change — recommend a pass before deploying to prod per §12.2 (uMlindi audits uMakhi's changes pre-deploy).
 - This session created real `bf_tasks` rows in the local dev DB mirror — if that DB is shared/synced anywhere, confirm it's understood as real data, not throwaway.
 
+## Resumed 2026-07-22
+Two follow-up requests: (1) add a manual "kick off the job" button under the Support tab, like the existing statement Generate Now button; (2) user noticed Template Store has no way to create new records and suspected this pattern exists elsewhere.
+
+### Manual trigger button
+- Studied `portal.js:6024/6045` (`generateStatement`) and `api/statements.php` (`_generate_scheduled_statements()`/`_generate_statement()` split, `GET_LOCK`/`RELEASE_LOCK` pattern, `BF_CRON_SECRET`-gated `?action=cron`) as the reference implementation.
+- Refactored `cron/generate_recurring_tasks.php`'s logic into `includes/recurring_tasks.php` (`generate_recurring_tasks($actor)`), shared by both the cron entrypoint and the new API action — same pattern as statements.
+- Added `api/maintenance_schedules.php`: `GET ?action=status` (last run per schedule) and `POST ?action=generate` (`task.create` permission gated, `GET_LOCK('bf_recurring_tasks_cron', 2)` to prevent concurrent runs/double-clicks).
+- Added "Generate Recurring Maintenance Tasks" button to Support Overview → Quick Actions (`renderSupDashboard`, gated on `can('task.create')`), with `generateRecurringTasks()` JS handler (disable-while-running, toast result, refresh tasks).
+- Verified against local DB: re-running after the already-generated July tasks correctly reports all 6 as `skipped`, 0 created — refactor preserved identical behavior and idempotency.
+
+### Template Store missing create-record audit
+- Confirmed the gap directly in `portal.js`/`api/template_store.php`: Company Profiles and Client Document Profiles had **no POST/create at all** (frontend or backend) — only `PUT` (edit). Document Templates had a working backend `POST` but **no UI button** anywhere called it.
+- Sent an Explore agent to survey the rest of the portal for the same "Edit without Add" pattern. Result: Clients, Users & Roles, Safety Files, and Safety Compliance Records all already have complete, working Add/Create flows (button + backend POST) — confirmed not broken. Callout "Edit Service" is an inline single-field edit, not a missing top-level create (false-positive pattern match). **Template Store is the sole instance of this bug in the codebase.**
+- Fixed `api/template_store.php`: added `POST ?entity=profile` (company profile create, `profile_key` uniqueness pre-check) and `POST ?entity=client_profile` (client document profile create, `client_id` existence + `profile_key`-per-client uniqueness pre-check), matching the existing `POST ?entity=template` style and column set from `install/migration_template_store_20260720.sql`.
+- Fixed `portal.php`: added "+ New Company Profile" / "+ New Customer Profile" / "+ New Template" buttons to each Template Store section header (`.ph` flex row, matching the "+ New Quote" convention).
+- Fixed `portal.js`: added `openCompanyProfileCreator`/`saveCompanyProfileCreator`, `openClientProfileCreator`/`saveClientProfileCreator` (client dropdown from `DB.clients`), `openTemplateCreator`/`saveTemplateCreator` (company dropdown from `DB.companyProfiles`, JSON settings validation matching the existing editor) — all wired into the central `data-action` dispatcher.
+- Verified against local DB: inserted and deleted a throwaway company profile and client document profile directly via the same schema/constraints the new endpoints use — confirmed insert succeeds, duplicate `profile_key` is correctly rejected by the DB unique constraint, cleanup succeeded. User approved this DB write before running it.
+- `php -l` and `node --check` clean on all touched files (`portal.php`, `portal.js`, `api/template_store.php`, `api/maintenance_schedules.php`, `includes/recurring_tasks.php`, `cron/generate_recurring_tasks.php`).
+
+### Live browser UI verification (2026-07-22)
+Started local PHP dev server (`php -S localhost:8899`) and drove the actual portal UI with the gstack `browse` skill (headless Chromium), logged in as `sibu` (admin role) — `blackfm6w9f9_izilo`'s `.env` password is confirmed stale/401 (matches earlier drift note), `bf_seniortech`'s login worked but lacks `security.users` so Template Store/Users nav items are correctly hidden for that role.
+- **Support Overview → Quick Actions**: "Generate Recurring Maintenance Tasks" button renders correctly alongside the existing three buttons, matching style. Clicked it live: `POST api/maintenance_schedules.php?action=generate` returned 200 with `"Created 0 task(s) for 2026-07, 6 already existed"` — correct idempotent behavior, button re-enabled after completion.
+- **Template Store**: all three "+ New" buttons ("+ New Company Profile", "+ New Customer Profile", "+ New Template") render correctly in their section headers. Opened each modal, filled required fields, submitted — all three returned 200 and the new records appeared immediately in their respective lists. The new company profile also correctly flowed through to the Issuing Company dropdowns on Quotes/Invoices, confirming the create path is fully wired into the rest of the app, not just Template Store's own list.
+- Cleaned up all three test records (`qa_ui_test` company profile, `qa_ui_test_client` client profile, `qa_ui_test_template` template) directly via DB delete after confirming they rendered correctly.
+- One false alarm during testing: a screenshot appeared to show the Quick Actions panel missing entirely, which looked like a real CSS/layout bug. Root cause was an earlier `scrollIntoView()` call scrolling the window 267px down before the screenshot was taken — not a bug. Resolved by explicitly resetting `window.scrollTo(0,0)` before re-screenshotting.
+
 ## Learnings
 - BlackFire Portal already has a mature safety-file compliance subsystem (bf_safety_files/items/compliance/personnel + policy acks) — always check for this before proposing new compliance tracking tables in this project.
 - No cron/scheduler mechanism existed anywhere in the portal prior to this session; any future "recurring job" request in this codebase needs the mechanism built from scratch (cPanel cron + CLI-guarded PHP script), not assumed to exist.
 - api/tasks.php's `next_task_ref()`/`sync_task_assignees()` pattern is the canonical way to create and multi-assign `bf_tasks` rows outside the API layer — reused directly in the cron script.
 - Local `.env` mirror can drift from the root vault (stray backtick in `BF_DB_USER`) — when a local DB connection unexpectedly fails with "Access denied," diff the mirror against `c:\DevWork\.env` before assuming the password is stale.
 - BlackFire Portal deploy/ops tooling runs on the server via SSH, not from a local machine calling a remote API — always check `install/deploy.sh` for the established pattern (secrets from `~/blackfire_secrets.php`, `install/` scripts excluded from `public_html/`) before inventing a new remote-API-based approach for cPanel operations.
+- `api/statements.php` is the canonical reference for "cron job + manual trigger button" features in this portal: shared generation function, `GET_LOCK`/`RELEASE_LOCK` to prevent concurrent runs, permission-gated POST for the UI button, secret-gated `?action=cron` for headless triggers. Follow this shape for any future recurring-job UI.
+- When a user reports one missing UI capability ("X page can't create new records"), check whether it's an isolated bug or a systemic pattern before fixing just the one spot — an Explore agent survey here confirmed Template Store was the only instance, saving a broader unnecessary rewrite.
+- BlackFire Portal test accounts: `blackfm6w9f9_izilo`'s `.env`-listed password is stale (401 on login) — use `sibu` (admin) or `bf_manager`/`bf_seniortech`/`bf_tech1` etc. from `.env` for local UI testing instead. `security.users` permission gates both Template Store and Users & Roles nav items — a senior_tech login correctly can't see either.
+- When a gstack `browse` screenshot looks like it's missing content that DOM inspection confirms exists (`getBoundingClientRect()` shows real height), check `window.scrollY` before concluding it's a CSS bug — a prior `scrollIntoView()` call can leave the page scrolled past the target before the next screenshot.
 
 ## Goal Status
 PENDING

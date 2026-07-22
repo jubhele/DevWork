@@ -687,17 +687,17 @@ $companyLogoUrl = $baseUrl . '/' . ltrim($cfg['company_logo'] ?? 'blackfire_logo
     <div id="p-template-store" class="ppage">
       <div class="ptitle">Template Store</div><div class="psub">SUPPORT · COMPANY PROFILES · CUSTOMER DETAILS · DOCUMENTS</div>
       <div class="template-store-section">
-        <div class="ph"><div><div class="ph-title">Company Profiles</div><div class="ph-sub">Issuing company, brand, legal, tax and banking details</div></div></div>
+        <div class="ph"><div><div class="ph-title">Company Profiles</div><div class="ph-sub">Issuing company, brand, legal, tax and banking details</div></div><button class="btn btn-p btn-s" data-action="openCompanyProfileCreator">+ New Company Profile</button></div>
         <div class="template-store-header template-store-header-company" aria-hidden="true"><span>Company</span><span>Legal Name</span><span>VAT</span><span>Document Defaults</span><span>Status</span></div>
         <div id="template-company-table" class="calllog-list" role="list" aria-label="Company document profiles"></div>
       </div>
       <div class="template-store-section mt2">
-        <div class="ph"><div><div class="ph-title">Customer Document Profiles</div><div class="ph-sub">Verified billing and service-address details used in quotes and tax invoices</div></div></div>
+        <div class="ph"><div><div class="ph-title">Customer Document Profiles</div><div class="ph-sub">Verified billing and service-address details used in quotes and tax invoices</div></div><button class="btn btn-p btn-s" data-action="openClientProfileCreator">+ New Customer Profile</button></div>
         <div class="template-store-header template-store-header-client" aria-hidden="true"><span>Customer</span><span>Legal / Billing Name</span><span>VAT</span><span>Reference</span><span>Status</span></div>
         <div id="template-client-profile-table" class="calllog-list" role="list" aria-label="Customer document profiles"></div>
       </div>
       <div class="template-store-section mt2">
-        <div class="ph"><div><div class="ph-title">Reusable Templates</div><div class="ph-sub">Quote, invoice and email wording for each issuing company</div></div></div>
+        <div class="ph"><div><div class="ph-title">Reusable Templates</div><div class="ph-sub">Quote, invoice and email wording for each issuing company</div></div><button class="btn btn-p btn-s" data-action="openTemplateCreator">+ New Template</button></div>
         <div class="template-store-header template-store-header-template" aria-hidden="true"><span>Company</span><span>Type</span><span>Template</span><span>Version</span><span>Status</span></div>
         <div id="template-store-table" class="calllog-list" role="list" aria-label="Reusable document templates"></div>
       </div>

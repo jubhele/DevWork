@@ -103,6 +103,86 @@ if ($method === 'PUT' && $entity === 'template') {
     json_ok(['data' => db_row('SELECT * FROM bf_document_templates WHERE id=?', [$id])], 'Template updated');
 }
 
+if ($method === 'POST' && $entity === 'profile') {
+    require_fields($b, ['profile_key', 'display_name', 'legal_name']);
+    $profileKey = clean($b['profile_key'], 50);
+    if (db_row('SELECT id FROM bf_company_profiles WHERE host_company_id=1 AND profile_key=?', [$profileKey])) {
+        json_err('Profile key already in use', 409);
+    }
+    $newId = db_insert(
+        'INSERT INTO bf_company_profiles
+         (host_company_id, profile_key, display_name, legal_name, registration_number, vat_number, phone, email,
+          address, logo_path, primary_color, accent_color, paper_color, body_font, bank_name, bank_account_type,
+          bank_account_number, bank_branch_code, bank_swift_code, currency_code, vat_rate, quote_prefix,
+          invoice_prefix, quote_valid_days, invoice_due_days, is_default, is_active)
+         VALUES (1,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1)',
+        [
+            $profileKey,
+            clean($b['display_name'], 150),
+            clean($b['legal_name'], 200),
+            clean($b['registration_number'] ?? '', 50),
+            clean($b['vat_number'] ?? '', 50),
+            clean($b['phone'] ?? '', 50),
+            clean($b['email'] ?? '', 150),
+            clean($b['address'] ?? '', 2000),
+            clean($b['logo_path'] ?? '', 500),
+            clean($b['primary_color'] ?? '#0A1626', 7),
+            clean($b['accent_color'] ?? '#C2A04A', 7),
+            clean($b['paper_color'] ?? '#F4F0E6', 7),
+            clean($b['body_font'] ?? 'Arial, sans-serif', 100),
+            clean($b['bank_name'] ?? '', 150),
+            clean($b['bank_account_type'] ?? '', 100),
+            clean($b['bank_account_number'] ?? '', 100),
+            clean($b['bank_branch_code'] ?? '', 50),
+            clean($b['bank_swift_code'] ?? '', 50),
+            clean($b['currency_code'] ?? 'ZAR', 3),
+            (float)($b['vat_rate'] ?? 15),
+            clean($b['quote_prefix'] ?? 'QTE', 30),
+            clean($b['invoice_prefix'] ?? 'INV', 30),
+            (int)($b['quote_valid_days'] ?? 30),
+            (int)($b['invoice_due_days'] ?? 14),
+            !empty($b['is_default']) ? 1 : 0,
+        ]
+    );
+    audit($usr['username'], 'CREATE', "Company profile #{$newId} created");
+    json_ok(['data' => db_row('SELECT * FROM bf_company_profiles WHERE id=?', [$newId])], 'Company profile created');
+}
+
+if ($method === 'POST' && $entity === 'client_profile') {
+    require_fields($b, ['client_id', 'profile_key', 'display_name', 'legal_name']);
+    $clientId = (int)$b['client_id'];
+    if (!db_row('SELECT id FROM bf_clients WHERE id=?', [$clientId])) {
+        json_err('Client not found', 404);
+    }
+    $profileKey = clean($b['profile_key'], 80);
+    if (db_row('SELECT id FROM bf_client_document_profiles WHERE host_company_id=1 AND client_id=? AND profile_key=?', [$clientId, $profileKey])) {
+        json_err('Profile key already in use for this client', 409);
+    }
+    $newId = db_insert(
+        'INSERT INTO bf_client_document_profiles
+         (host_company_id, client_id, profile_key, display_name, legal_name, vat_number, phone, email,
+          quote_address, invoice_address, supplier_reference, purchase_order_prefix, is_default, is_active, source_note)
+         VALUES (1,?,?,?,?,?,?,?,?,?,?,?,?,1,?)',
+        [
+            $clientId,
+            $profileKey,
+            clean($b['display_name'], 200),
+            clean($b['legal_name'], 200),
+            clean($b['vat_number'] ?? '', 50),
+            clean($b['phone'] ?? '', 50),
+            clean($b['email'] ?? '', 150),
+            clean($b['quote_address'] ?? '', 2000),
+            clean($b['invoice_address'] ?? '', 2000),
+            clean($b['supplier_reference'] ?? '', 100),
+            clean($b['purchase_order_prefix'] ?? '', 30),
+            !empty($b['is_default']) ? 1 : 0,
+            clean($b['source_note'] ?? '', 500),
+        ]
+    );
+    audit($usr['username'], 'CREATE', "Client document profile #{$newId} created");
+    json_ok(['data' => db_row('SELECT * FROM bf_client_document_profiles WHERE id=?', [$newId])], 'Client document profile created');
+}
+
 if ($method === 'PUT' && $entity === 'profile') {
     if (!$id) json_err('Missing id');
     $allowed = [
