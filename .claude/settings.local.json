@@ -155,7 +155,8 @@
       "Bash(cp \"c:\\\\DevWork\\\\BlackFire\\\\sessions\\\\blackfire_portal_reports_finance_ux_20260722_123821.md\" \"G:\\\\My Drive\\\\JS\\\\Agentic AI\\\\sessions\\\\blackfire\\\\blackfire_portal_reports_finance_ux_20260722_123821.md.tbl.bk\" 2>&1 || echo \"mirror path unavailable\")",
       "Bash(php -l \"c:/DevWork/BlackFire/BlackFire Portal/api/task_users.php\")",
       "Bash(php -l \"c:/DevWork/BlackFire/BlackFire Portal/api/dashboard.php\")",
-      "Bash(php -l \"c:/DevWork/BlackFire/BlackFire Portal/api/invoices.php\")"
+      "Bash(php -l \"c:/DevWork/BlackFire/BlackFire Portal/api/invoices.php\")",
+      "Bash(powershell -File \"c:\\\\DevWork\\\\scripts\\\\governance\\\\constitution-hook.ps1\" -Event ProjectBind -RequestedProjectRoot \"c:\\\\DevWork\\\\BlackFire\" -SessionId \"310419c0-9e1a-4679-93ac-33da80c3baf4\")"
     ],
     "additionalDirectories": [
       "G:\\My Drive\\JS\\Agentic AI\\sessions\\blackfire"

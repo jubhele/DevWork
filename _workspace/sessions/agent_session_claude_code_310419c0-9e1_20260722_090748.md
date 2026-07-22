@@ -10,6 +10,7 @@ Status: resolved
 Source: explicit_user_binding — bound to BlackFire via ProjectBind after user asked about quote approval status logic
 Reaffirmed: 2026-07-22 — ProjectBind re-run for follow-up task (Send-without-approval gap), same project root, no switch requested
 Reaffirmed: 2026-07-22 — ProjectBind re-run for follow-up task (Download button label normalization), same project root, no switch requested
+Reaffirmed: 2026-07-22 — ProjectBind re-run on user status check ("done?"), same project root, no switch requested
 
 ## Goal
 Bootstrap log for this provider session. Actual work (quote approval status logic gap in
