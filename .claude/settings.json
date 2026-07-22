@@ -22,7 +22,13 @@
       "Bash(php -l fix_maintenance_task_to_callout_20260722.php)",
       "Bash(php fix_maintenance_task_to_callout_20260722.php --dry-run)",
       "Bash(grep -n \"INSERT INTO \\\\`bf_quotes\\\\`\" -A 2 \"c:\\\\DevWork\\\\BlackFire\\\\_backups\\\\blackfm6w9f9_portal_backup_20260716_223410.sql\")",
-      "Bash(powershell -Command \"Get-Help C:\\\\DevWork\\\\scripts\\\\governance\\\\constitution-hook.ps1 -Full\")"
+      "Bash(powershell -Command \"Get-Help C:\\\\DevWork\\\\scripts\\\\governance\\\\constitution-hook.ps1 -Full\")",
+      "Bash(powershell -File \"c:\\\\DevWork\\\\scripts\\\\governance\\\\constitution-hook.ps1\" -Event ProjectBind -RequestedProjectRoot \"c:\\\\DevWork\\\\BlackFire\\\\BlackFire Portal\")",
+      "Bash(powershell -File \"c:\\\\DevWork\\\\scripts\\\\governance\\\\constitution-hook.ps1\" -Event ProjectBind -RequestedProjectRoot \"c:\\\\DevWork\\\\BlackFire\\\\BlackFire Portal\" -SessionId \"59041e26-7abc-4964-b04f-70f5d1edcb0f\")",
+      "Bash(powershell -File \"c:\\\\DevWork\\\\scripts\\\\governance\\\\constitution-hook.ps1\" -Event ProjectBind -RequestedProjectRoot \"c:\\\\DevWork\\\\BlackFire\" -SessionId \"59041e26-7abc-4964-b04f-70f5d1edcb0f\")",
+      "Bash(php -l reports.php)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"http://localhost:8099/reports.php\")",
+      "Bash(php -r ' *)"
     ]
   },
   "hooks": {

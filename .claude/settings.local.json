@@ -150,7 +150,8 @@
       "Bash(pnpm install *)",
       "Bash(git mv *)",
       "PowerShell(Start-Process -FilePath \"msiexec.exe\" -ArgumentList \"/i `\"c:\\\\DevWork\\\\temp\\\\chromeremotedesktophost.msi`\" /quiet /norestart\" -Wait -PassThru)",
-      "PowerShell(New-Item -ItemType Directory -Force \"C:\\\\DevWork\\\\BlackFire\\\\scripts\")"
+      "PowerShell(New-Item -ItemType Directory -Force \"C:\\\\DevWork\\\\BlackFire\\\\scripts\")",
+      "Bash(powershell -Command \"Copy-Item 'C:\\\\DevWork\\\\_workspace\\\\sessions\\\\agent_session_claude_code_66648f19-118_20260722_075338.md' 'G:\\\\My Drive\\\\JS\\\\Agentic AI\\\\sessions\\\\_workspace\\\\agent_session_claude_code_66648f19-118_20260722_075338.md.tbl.bk' -Force\")"
     ]
   }
 }
