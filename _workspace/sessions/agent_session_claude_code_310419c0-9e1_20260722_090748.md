@@ -9,6 +9,7 @@ Project Root: c:\DevWork\BlackFire
 Status: resolved
 Source: explicit_user_binding — bound to BlackFire via ProjectBind after user asked about quote approval status logic
 Reaffirmed: 2026-07-22 — ProjectBind re-run for follow-up task (Send-without-approval gap), same project root, no switch requested
+Reaffirmed: 2026-07-22 — ProjectBind re-run for follow-up task (Download button label normalization), same project root, no switch requested
 
 ## Goal
 Bootstrap log for this provider session. Actual work (quote approval status logic gap in
@@ -39,6 +40,9 @@ Active model: Sonnet 5  Status: correct
 - Follow-up: user flagged that Send was possible on unapproved quotes; fixed in portal.js (UI allowlist)
   and api/quotes.php (server-side 403 guard + removed Draft-to-Sent auto-flip). Offered to audit existing
   'Sent' quotes in prod that may have bypassed approval — awaiting user decision.
+- Follow-up: normalized all document-download button labels in BlackFire Portal/portal.js to plain
+  "Download" (was PDF / Download PDF / Download to Open in 6 places). Noted umlilo-portal's copy of
+  portal.js still has old labels but looks like a stale separate build — flagged to user, not touched.
 
 ## Learnings
 - Confirmed the ProjectBind flow requires -SessionId explicitly when no transcript path is auto-supplied by this provider adapter.
