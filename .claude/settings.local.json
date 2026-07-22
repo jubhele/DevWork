@@ -152,7 +152,10 @@
       "PowerShell(Start-Process -FilePath \"msiexec.exe\" -ArgumentList \"/i `\"c:\\\\DevWork\\\\temp\\\\chromeremotedesktophost.msi`\" /quiet /norestart\" -Wait -PassThru)",
       "PowerShell(New-Item -ItemType Directory -Force \"C:\\\\DevWork\\\\BlackFire\\\\scripts\")",
       "Bash(powershell -Command \"Copy-Item 'C:\\\\DevWork\\\\_workspace\\\\sessions\\\\agent_session_claude_code_66648f19-118_20260722_075338.md' 'G:\\\\My Drive\\\\JS\\\\Agentic AI\\\\sessions\\\\_workspace\\\\agent_session_claude_code_66648f19-118_20260722_075338.md.tbl.bk' -Force\")",
-      "Bash(cp \"c:\\\\DevWork\\\\BlackFire\\\\sessions\\\\blackfire_portal_reports_finance_ux_20260722_123821.md\" \"G:\\\\My Drive\\\\JS\\\\Agentic AI\\\\sessions\\\\blackfire\\\\blackfire_portal_reports_finance_ux_20260722_123821.md.tbl.bk\" 2>&1 || echo \"mirror path unavailable\")"
+      "Bash(cp \"c:\\\\DevWork\\\\BlackFire\\\\sessions\\\\blackfire_portal_reports_finance_ux_20260722_123821.md\" \"G:\\\\My Drive\\\\JS\\\\Agentic AI\\\\sessions\\\\blackfire\\\\blackfire_portal_reports_finance_ux_20260722_123821.md.tbl.bk\" 2>&1 || echo \"mirror path unavailable\")",
+      "Bash(php -l \"c:/DevWork/BlackFire/BlackFire Portal/api/task_users.php\")",
+      "Bash(php -l \"c:/DevWork/BlackFire/BlackFire Portal/api/dashboard.php\")",
+      "Bash(php -l \"c:/DevWork/BlackFire/BlackFire Portal/api/invoices.php\")"
     ],
     "additionalDirectories": [
       "G:\\My Drive\\JS\\Agentic AI\\sessions\\blackfire"

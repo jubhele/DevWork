@@ -7,10 +7,10 @@ Project Root: C:\DevWork\BlackFire
 
 ## Project Determination
 Status: resolved
-Source: cwd_project_signal — user's request referenced BlackFire Portal stat cards (Pipeline Value, Outstanding Total) and later a screenshot of the live Invoices page; bound to the BlackFire project (`c:\DevWork\BlackFire`), full detail logged in the project-native session log. Session continues to bind to BlackFire for a follow-on request: excluding the system/service account `blackfm6w9f9_izilo` from portal user stats and call/task assignment.
+Source: cwd_project_signal — user's request referenced BlackFire Portal stat cards (Pipeline Value, Outstanding Total), then a screenshot of the live Invoices page, then a follow-on request naming `blackfm6w9f9_izilo` (a BlackFire Portal DB account). All three requests are BlackFire Portal work; bound to the BlackFire project (`c:\DevWork\BlackFire`) for the full session. Full detail logged in the project-native session log: `BlackFire\sessions\blackfire_stat_card_breakdown_20260722_161233.md`.
 
 ## Goal
-Add a small per-status count+amount breakdown line below the status text on the Pipeline Value (Quotes) and Outstanding Total (Invoices) stat cards in the BlackFire Portal. Mid-task, user reported a second bug: the Invoices table's decorative column header row rendered as concatenated text ("Invoice #ClientIssuerAmountDueStatus") with no spacing between labels. Follow-on task (in progress): exclude the system/service account `blackfm6w9f9_izilo` from all user stats/dashboard aggregates and from call-out/task assignment dropdowns everywhere in the portal — confirmed by user as a service account, not a real technician, and confirmed to currently leak into both stats and assignment views. Background Explore agent dispatched to map every `proxyDB.users` usage (assignment dropdowns, leaderboard/stats aggregates) and backend `FROM users` queries in api/*.php before making changes.
+Add a small per-status count+amount breakdown line below the status text on the Pipeline Value (Quotes) and Outstanding Total (Invoices) stat cards in the BlackFire Portal. Mid-task, user reported a second bug: the Invoices table's decorative column header row rendered as concatenated text ("Invoice #ClientIssuerAmountDueStatus") with no spacing between labels. Follow-on task (completed): exclude the system/service account `blackfm6w9f9_izilo` from all user stats/dashboard aggregates and from call-out/task assignment dropdowns everywhere in the portal — confirmed by user as a service account, not a real technician, and confirmed to currently leak into both stats and assignment views.
 
 ## Model Recommendation
 Task tier: 1-Fast (styling/data-display tweak), escalated in practice by the header-collapse bug investigation, which required tier-2 reasoning (CSS cascade tracing, live reproduction).
@@ -21,13 +21,19 @@ Active model: Sonnet 5  Status: over-powered for the original ask, appropriately
 - Per-status breakdown shows both count and amount per status (user chose "both" over count-only or amount-only when asked).
 - Breakdown rendered via a new `.kbreak` CSS class inside each `.kcard`, smaller (11px) than the existing `.ksub` status line.
 - Invoice header bug root cause: `.invoice-column-header` was omitted from the CSS selector list granting `display:grid` (portal.css:582) and from the `@media(max-width:1100px)` hide rule (portal.css:608), unlike its siblings `.calllog-column-header`/`.quote-column-header`. Added it to both rules to match.
+- `blackfm6w9f9_izilo` exclusion: user confirmed it's a system/service account, not a technician, and that it was leaking into both stats and assignment surfaces. Chose inline `username != 'blackfm6w9f9_izilo'` exclusions per query/filter (matches existing codebase style — no shared "excluded accounts" convention exists yet) over a broader schema change.
 
 ## Work Done
 - `BlackFire Portal/portal.css` — added `.kbreak`/`.kbreak span` rules; added `.invoice-column-header` to the grid-display selector and the sub-1100px hide rule.
 - `BlackFire Portal/portal.js` — `renderQuotes()` (~line 5586) computes a per-status breakdown (Draft/Sent/Approved/Pending Approval) with count+sum for the Pipeline Value card; `renderInvoices()` (~line 5852) computes the same for Draft/Sent/Overdue on the Outstanding Total card.
 - Backups: `_backups/portal_css_backup_20260722_161233.css`, `_backups/portal_backup_20260722_161233.js`.
 - Verified the header fix locally: started `php -S localhost:8080`, rendered the exact `.invoice-column-header` markup against the live (fixed) portal.css at 1200px width, confirmed it now displays as separated grid columns instead of one run-on string.
-- Full project session log: `BlackFire\sessions\blackfire_stat_card_breakdown_20260722_161233.md`.
+- `BlackFire Portal/api/task_users.php` — task "Assign To" dropdown query: added `AND username != 'blackfm6w9f9_izilo'`.
+- `BlackFire Portal/api/dashboard.php` — adoption/usage leaderboard query (`security.users`/`security.audit` gated): added `AND u.username != 'blackfm6w9f9_izilo'`.
+- `BlackFire Portal/portal.js` `syncTrackerAssigneeFilter()` (~line 4568): added `&& u.username !== 'blackfm6w9f9_izilo'` to the active-user filter for the tracker "Assigned: X" dropdown.
+- Confirmed `openAssignTech()` (callout assign dropdown) already excludes the account via its existing `junior_tech`/`senior_tech`-only role filter — no change needed there.
+- Backups: `api/_backups/task_users_backup_20260722_164154.php`, `api/_backups/dashboard_backup_20260722_164154.php`, `_backups/portal_backup_20260722_164259.js`.
+- Verified with `php -l` (both PHP files) and `node --check` (portal.js) — no syntax errors. Not verified against a live logged-in session (no local MySQL).
 
 ## Agent Accountability
 
@@ -35,6 +41,7 @@ Active model: Sonnet 5  Status: over-powered for the original ask, appropriately
 |---------|---------------|--------------|--------|------------|------|
 | stat-card-breakdown | uMakhi | Claude Code (as uMlawuli/uMakhi) | COMPLETED | 1 | Portal JS/CSS change, verified in isolated local render |
 | invoice-header-bugfix | uMakhi | Claude Code (as uMlawuli/uMakhi) | COMPLETED | 1 | CSS selector-list omission found and fixed, reproduced before/after |
+| izilo-account-exclusion | uMakhi | Claude Code (as uMlawuli/uMakhi) | COMPLETED | 1 | Explore agent mapped 4 code paths; 3 needed fixes (task_users.php, dashboard.php, portal.js tracker filter), 1 already excluded by existing role filter |
 
 ## Blockers / Next Steps
 - Could not verify the stat-card breakdown against real seeded data in a live, logged-in browser session — no local MySQL instance available to authenticate as the `sibu` test admin. Recommend a manual check of the Quotes and Invoices pages next time DB access is available.
