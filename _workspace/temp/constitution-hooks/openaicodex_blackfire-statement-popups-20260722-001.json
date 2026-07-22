@@ -1,0 +1,14 @@
+﻿{
+    "provider":  "OpenAICodex",
+    "session_id":  "blackfire-statement-popups-20260722-001",
+    "log_path":  "C:\\DevWork\\BlackFire\\sessions\\agent_session_openaicodex_blackfire-st_20260722_175810.md",
+    "project_status":  "resolved",
+    "project_name":  "BlackFire",
+    "project_root":  "C:\\DevWork\\BlackFire",
+    "project_source":  "explicit_user_binding",
+    "binding_version":  1,
+    "binding_updated_at":  "2026-07-22T17:58:10.9664843+02:00",
+    "prompt_count":  0,
+    "created_at":  "2026-07-22T17:58:10.5222654+02:00",
+    "updated_at":  "2026-07-22T17:58:10.9732766+02:00"
+}

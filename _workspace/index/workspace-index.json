@@ -1,7 +1,7 @@
 ﻿{
     "schema_version":  "1.0",
-    "generated_at":  "2026-07-22T13:51:08.3083619Z",
-    "triggered_by":  "_workspace\\sessions\\agent_session_claude_code_66648f19-118_20260722_075338.md",
+    "generated_at":  "2026-07-22T18:31:48.5543890Z",
+    "triggered_by":  "BlackFire\\sessions\\agent_session_openai_codex_019f8af5-b22_20260722_200823.md",
     "inventory":  {
                       "projects":  [
                                        {
@@ -16,10 +16,10 @@
                                                                                    "path":  "_workspace\\sessions",
                                                                                    "metric":  {
                                                                                                   "exists":  true,
-                                                                                                  "files":  42,
-                                                                                                  "bytes":  114210,
+                                                                                                  "files":  46,
+                                                                                                  "bytes":  134536,
                                                                                                   "oldest":  "2026-07-10T15:25:04.0231230Z",
-                                                                                                  "latest":  "2026-07-22T13:50:45.4243405Z"
+                                                                                                  "latest":  "2026-07-22T17:22:12.8650042Z"
                                                                                               }
                                                                                }
                                                                            ],
@@ -52,10 +52,10 @@
                                                                                "path":  "_workspace\\temp",
                                                                                "metric":  {
                                                                                               "exists":  true,
-                                                                                              "files":  102,
-                                                                                              "bytes":  94569,
+                                                                                              "files":  115,
+                                                                                              "bytes":  102321,
                                                                                               "oldest":  "2026-07-09T07:43:24.4961452Z",
-                                                                                              "latest":  "2026-07-22T13:51:04.9691707Z"
+                                                                                              "latest":  "2026-07-22T18:12:18.9428030Z"
                                                                                           }
                                                                            }
                                                                        ],
@@ -97,10 +97,10 @@
                                                                                    "path":  "Astute\\sessions",
                                                                                    "metric":  {
                                                                                                   "exists":  true,
-                                                                                                  "files":  3,
-                                                                                                  "bytes":  3526,
+                                                                                                  "files":  4,
+                                                                                                  "bytes":  4596,
                                                                                                   "oldest":  "2026-06-21T17:18:56.7670315Z",
-                                                                                                  "latest":  "2026-07-20T11:42:05.3298137Z"
+                                                                                                  "latest":  "2026-07-22T15:57:37.6262219Z"
                                                                                               }
                                                                                }
                                                                            ],
@@ -160,10 +160,10 @@
                                                                                    "path":  "BlackFire\\sessions",
                                                                                    "metric":  {
                                                                                                   "exists":  true,
-                                                                                                  "files":  162,
-                                                                                                  "bytes":  563451,
+                                                                                                  "files":  180,
+                                                                                                  "bytes":  648149,
                                                                                                   "oldest":  "2026-06-23T09:19:04.0991484Z",
-                                                                                                  "latest":  "2026-07-22T13:42:48.3305308Z"
+                                                                                                  "latest":  "2026-07-22T18:31:21.0545660Z"
                                                                                               }
                                                                                }
                                                                            ],
@@ -187,10 +187,10 @@
                                                                                "path":  "BlackFire\\temp",
                                                                                "metric":  {
                                                                                               "exists":  true,
-                                                                                              "files":  157,
-                                                                                              "bytes":  21498996,
+                                                                                              "files":  162,
+                                                                                              "bytes":  23581885,
                                                                                               "oldest":  "2026-07-09T19:23:09.9028041Z",
-                                                                                              "latest":  "2026-07-20T11:55:34.8577358Z"
+                                                                                              "latest":  "2026-07-22T15:52:10.1762871Z"
                                                                                           }
                                                                            },
                                                                            {
@@ -209,10 +209,10 @@
                                                                                "path":  "BlackFire\\logs",
                                                                                "metric":  {
                                                                                               "exists":  true,
-                                                                                              "files":  2,
-                                                                                              "bytes":  5092,
+                                                                                              "files":  8,
+                                                                                              "bytes":  5397,
                                                                                               "oldest":  "2026-07-19T17:32:28.1133371Z",
-                                                                                              "latest":  "2026-07-19T17:40:26.8667546Z"
+                                                                                              "latest":  "2026-07-22T15:50:59.9396802Z"
                                                                                           }
                                                                            }
                                                                        ],
@@ -221,10 +221,10 @@
                                                                                   "path":  "BlackFire\\_backups",
                                                                                   "metric":  {
                                                                                                  "exists":  true,
-                                                                                                 "files":  523,
-                                                                                                 "bytes":  43202665,
+                                                                                                 "files":  571,
+                                                                                                 "bytes":  47563014,
                                                                                                  "oldest":  "2026-05-20T18:52:51.5184565Z",
-                                                                                                 "latest":  "2026-07-22T07:37:08.7034771Z"
+                                                                                                 "latest":  "2026-07-22T18:30:17.5139630Z"
                                                                                              }
                                                                               }
                                                                           ]
@@ -350,15 +350,24 @@
                                                                                    "path":  "ilahle-portal\\sessions",
                                                                                    "metric":  {
                                                                                                   "exists":  true,
-                                                                                                  "files":  5,
-                                                                                                  "bytes":  15006,
+                                                                                                  "files":  6,
+                                                                                                  "bytes":  20276,
                                                                                                   "oldest":  "2026-07-10T18:26:45.9533447Z",
-                                                                                                  "latest":  "2026-07-13T21:22:11.9086997Z"
+                                                                                                  "latest":  "2026-07-22T15:58:38.2541498Z"
                                                                                               }
                                                                                }
                                                                            ],
                                                               "artifacts":  [
-
+                                                                                {
+                                                                                    "path":  "ilahle-portal\\artifacts",
+                                                                                    "metric":  {
+                                                                                                   "exists":  true,
+                                                                                                   "files":  9,
+                                                                                                   "bytes":  3896867,
+                                                                                                   "oldest":  "2026-07-22T15:53:19.5972309Z",
+                                                                                                   "latest":  "2026-07-22T15:54:26.9231265Z"
+                                                                                               }
+                                                                                }
                                                                             ],
                                                               "archive":  [
 
@@ -374,10 +383,10 @@
                                                                                   "path":  "ilahle-portal\\_backups",
                                                                                   "metric":  {
                                                                                                  "exists":  true,
-                                                                                                 "files":  49,
-                                                                                                 "bytes":  219287,
-                                                                                                 "oldest":  "2026-07-10T16:24:36.9130675Z",
-                                                                                                 "latest":  "2026-07-12T12:19:10.0621579Z"
+                                                                                                 "files":  61,
+                                                                                                 "bytes":  272173,
+                                                                                                 "oldest":  "2026-07-09T09:25:13.4644596Z",
+                                                                                                 "latest":  "2026-07-22T15:35:36.5854170Z"
                                                                                              }
                                                                               }
                                                                           ]
@@ -395,10 +404,10 @@
                                                                                    "path":  "JS_Resume\\sessions",
                                                                                    "metric":  {
                                                                                                   "exists":  true,
-                                                                                                  "files":  14,
-                                                                                                  "bytes":  23076,
+                                                                                                  "files":  15,
+                                                                                                  "bytes":  24729,
                                                                                                   "oldest":  "2026-06-21T17:18:56.7670315Z",
-                                                                                                  "latest":  "2026-07-21T13:40:59.6679188Z"
+                                                                                                  "latest":  "2026-07-22T15:08:47.2549861Z"
                                                                                               }
                                                                                }
                                                                            ],
@@ -507,10 +516,10 @@
                                                      "path":  "temp",
                                                      "metric":  {
                                                                     "exists":  true,
-                                                                    "files":  2364,
+                                                                    "files":  2365,
                                                                     "bytes":  326841459,
                                                                     "oldest":  "1985-10-26T08:15:00.0000000Z",
-                                                                    "latest":  "2026-07-11T06:47:54.1241868Z"
+                                                                    "latest":  "2026-07-22T16:56:15.7044599Z"
                                                                 }
                                                  },
                                                  {
@@ -571,10 +580,10 @@
                                                           "path":  ".git",
                                                           "metric":  {
                                                                          "exists":  true,
-                                                                         "files":  1627,
-                                                                         "bytes":  1899871400,
+                                                                         "files":  1798,
+                                                                         "bytes":  1900090691,
                                                                          "oldest":  "2026-05-16T04:41:31.9208941Z",
-                                                                         "latest":  "2026-07-22T13:51:01.6584695Z"
+                                                                         "latest":  "2026-07-22T18:20:53.9189231Z"
                                                                      },
                                                           "classification":  "excluded infrastructure/cache"
                                                       },
@@ -604,10 +613,10 @@
                                                           "path":  "mysql-data",
                                                           "metric":  {
                                                                          "exists":  true,
-                                                                         "files":  250,
-                                                                         "bytes":  243132074,
+                                                                         "files":  256,
+                                                                         "bytes":  247490309,
                                                                          "oldest":  "2026-06-20T14:43:43.6563864Z",
-                                                                         "latest":  "2026-07-22T09:59:19.2635126Z"
+                                                                         "latest":  "2026-07-22T18:30:28.1685545Z"
                                                                      },
                                                           "classification":  "excluded infrastructure/cache"
                                                       }

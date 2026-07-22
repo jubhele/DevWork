@@ -1,0 +1,14 @@
+﻿{
+    "provider":  "OpenAICodex",
+    "session_id":  "astute-statement-modal-20260722-001",
+    "log_path":  "C:\\DevWork\\Astute\\sessions\\agent_session_openaicodex_astute-state_20260722_175737.md",
+    "project_status":  "resolved",
+    "project_name":  "Astute",
+    "project_root":  "C:\\DevWork\\Astute",
+    "project_source":  "explicit_user_binding",
+    "binding_version":  1,
+    "binding_updated_at":  "2026-07-22T17:57:37.6307863+02:00",
+    "prompt_count":  0,
+    "created_at":  "2026-07-22T17:57:37.5702898+02:00",
+    "updated_at":  "2026-07-22T17:57:37.6307863+02:00"
+}
