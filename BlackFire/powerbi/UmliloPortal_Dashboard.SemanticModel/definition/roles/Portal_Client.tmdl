@@ -1,9 +1,0 @@
-role Portal_Client
-	modelPermission: read
-
-	tablePermission Clients = Clients[id] IN SELECTCOLUMNS(FILTER(ALL(Users), Users[email] = USERNAME() || Users[username] = USERNAME()), "cid", Users[client_id])
-
-	tablePermission Users = Users[email] = USERNAME() || Users[username] = USERNAME()
-
-	annotation PBI_Id = be2ded08a4d54815b1eee40011e22998
-

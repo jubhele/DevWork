@@ -1,9 +1,0 @@
-role Portal_Operations
-	modelPermission: read
-
-	tablePermission Invoices = FALSE()
-
-	tablePermission Payments = FALSE()
-
-	annotation PBI_Id = d388da4467ba46f4a330dabfa02a6d5c
-

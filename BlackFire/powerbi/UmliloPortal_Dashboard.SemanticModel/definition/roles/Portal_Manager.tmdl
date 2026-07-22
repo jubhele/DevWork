@@ -1,5 +1,0 @@
-role Portal_Manager
-	modelPermission: read
-
-	annotation PBI_Id = b3be00e400bc42afb3808604a4b82b8b
-
