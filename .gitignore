@@ -1,6 +1,7 @@
 # Project subfolders own their own git repos — not tracked by the workspace root repo
 /BlackFire/
 /Astute/
+/ilahle-portal/
 
 # Uploaded files — environment-specific, never in git
 BlackFire/BlackFire Portal/uploads/
