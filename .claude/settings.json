@@ -20,7 +20,8 @@
       "Bash(git push *)",
       "PowerShell(powershell -File c:\\\\DevWork\\\\scripts\\\\governance\\\\constitution-hook.ps1 -Event ProjectBind -RequestedProjectRoot \"c:\\\\DevWork\\\\BlackFire\" -SessionId \"e39c7fca-857\")",
       "Bash(php -l fix_maintenance_task_to_callout_20260722.php)",
-      "Bash(php fix_maintenance_task_to_callout_20260722.php --dry-run)"
+      "Bash(php fix_maintenance_task_to_callout_20260722.php --dry-run)",
+      "Bash(grep -n \"INSERT INTO \\\\`bf_quotes\\\\`\" -A 2 \"c:\\\\DevWork\\\\BlackFire\\\\_backups\\\\blackfm6w9f9_portal_backup_20260716_223410.sql\")"
     ]
   },
   "hooks": {
