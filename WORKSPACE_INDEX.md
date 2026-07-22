@@ -1,8 +1,8 @@
 ﻿# DevWork Workspace Index
 
-Generated: 2026-07-22T13:42:37.7148868Z
+Generated: 2026-07-22T13:51:08.3083619Z
 Schema: 1.0
-Trigger: `BlackFire\sessions\agent_session_openaicodex_codex-blackf_20260722_153636.md`
+Trigger: `_workspace\sessions\agent_session_claude_code_66648f19-118_20260722_075338.md`
 
 This is a discovery map. Canonical sessions and artifacts remain below their owning project roots.
 
@@ -12,7 +12,7 @@ This is a discovery map. Canonical sessions and artifacts remain below their own
 |---------|------|------------|---------:|----------:|--------:|-----:|--------:|-------|
 | _workspace | `_workspace` | No | 42 | 0 | 0 | 102 | 5 | [_workspace](_workspace/ARTIFACT_INDEX.md) |
 | Astute | `Astute` | Yes | 3 | 8 | 0 | 0 | 14 | [astute](Astute/ARTIFACT_INDEX.md) |
-| BlackFire | `BlackFire` | Yes | 161 | 5 | 0 | 173 | 523 | [blackfire](BlackFire/ARTIFACT_INDEX.md) |
+| BlackFire | `BlackFire` | Yes | 162 | 5 | 0 | 173 | 523 | [blackfire](BlackFire/ARTIFACT_INDEX.md) |
 | GovTender | `GovTender` | Yes | 4 | 0 | 0 | 0 | 7 | [govtender](GovTender/ARTIFACT_INDEX.md) |
 | Homolemo In Europe | `Homolemo In Europe` | No | 10 | 0 | 0 | 9 | 6 | [homolemo-in-europe](Homolemo In Europe/ARTIFACT_INDEX.md) |
 | ilahle-portal | `ilahle-portal` | Yes | 5 | 0 | 0 | 0 | 49 | [ilahle-portal](ilahle-portal/ARTIFACT_INDEX.md) |
