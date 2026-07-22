@@ -298,7 +298,7 @@ if ($method === 'PUT') {
             if ((int)$linked_callout['invoice_count'] > 0 && $linked_callout['document_escalation_status'] !== 'approved') {
                 throw new RuntimeException('escalation_required');
             }
-            db_insert(
+            $new_invoice_id = db_insert(
                 "INSERT INTO bf_invoices
                  (ref_id, invoice_no, client_id, client_name, client_email, company_profile_id, amount, due_date, status,
                   quote_ref, quote_id, callout_ref, callout_id, po, invoice_date, sent_by_user_id)
@@ -317,6 +317,15 @@ if ($method === 'PUT') {
                     $po, date('Y-m-d'), (int)$usr['id'],
                 ]
             );
+
+            $quote_items = db_select("SELECT description, qty, unit_price, line_total FROM bf_quote_items WHERE quote_id = ? ORDER BY id", [(int)$quote['id']]);
+            foreach ($quote_items as $qi) {
+                db_exec(
+                    "INSERT INTO bf_invoice_items (invoice_id, description, qty, unit_price, line_total) VALUES (?,?,?,?,?)",
+                    [$new_invoice_id, $qi['description'], $qi['qty'], $qi['unit_price'], $qi['line_total']]
+                );
+            }
+
             record_invoice_cost_of_sales([
                 'ref_id' => $inv_ref,
                 'callout_ref' => $linked_callout['ref_id'],

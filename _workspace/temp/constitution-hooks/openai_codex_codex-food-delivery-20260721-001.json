@@ -1,0 +1,14 @@
+﻿{
+    "provider":  "OpenAI Codex",
+    "session_id":  "codex-food-delivery-20260721-001",
+    "log_path":  "C:\\DevWork\\Homolemo In Europe\\sessions\\agent_session_openai_codex_codex-food-d_20260721_193345.md",
+    "project_status":  "resolved",
+    "project_name":  "Homolemo In Europe",
+    "project_root":  "C:\\DevWork\\Homolemo In Europe",
+    "project_source":  "explicit_user_binding",
+    "binding_version":  1,
+    "binding_updated_at":  "2026-07-21T19:33:45.6351924+02:00",
+    "prompt_count":  4,
+    "created_at":  "2026-07-21T19:33:45.5550781+02:00",
+    "updated_at":  "2026-07-21T20:01:20.0885203+02:00"
+}

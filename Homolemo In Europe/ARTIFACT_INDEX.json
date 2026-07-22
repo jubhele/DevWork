@@ -10,10 +10,10 @@
                                             "path":  "Homolemo In Europe\\sessions",
                                             "metric":  {
                                                            "exists":  true,
-                                                           "files":  9,
-                                                           "bytes":  15583,
+                                                           "files":  10,
+                                                           "bytes":  25709,
                                                            "oldest":  "2026-07-12T09:50:50.0447179Z",
-                                                           "latest":  "2026-07-13T20:44:43.0076921Z"
+                                                           "latest":  "2026-07-21T18:03:48.3929297Z"
                                                        }
                                         }
                                     ],
@@ -28,10 +28,10 @@
                                         "path":  "Homolemo In Europe\\temp",
                                         "metric":  {
                                                        "exists":  true,
-                                                       "files":  2,
-                                                       "bytes":  5697,
+                                                       "files":  9,
+                                                       "bytes":  629316,
                                                        "oldest":  "2026-07-21T10:34:46.0455884Z",
-                                                       "latest":  "2026-07-21T10:43:13.8849636Z"
+                                                       "latest":  "2026-07-21T17:34:43.5195816Z"
                                                    }
                                     }
                                 ],
@@ -43,10 +43,10 @@
                                            "path":  "Homolemo In Europe\\_backups",
                                            "metric":  {
                                                           "exists":  true,
-                                                          "files":  1,
-                                                          "bytes":  8200,
+                                                          "files":  6,
+                                                          "bytes":  31644,
                                                           "oldest":  "2026-07-12T12:07:10.7996550Z",
-                                                          "latest":  "2026-07-12T12:07:10.7996550Z"
+                                                          "latest":  "2026-07-21T17:56:58.5707881Z"
                                                       }
                                        }
                                    ]

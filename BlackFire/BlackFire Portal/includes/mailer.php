@@ -539,18 +539,22 @@ function invoice_pdf_attachment(array $invoice): array {
         '',
     ];
 
-    $items = [];
-    if (function_exists('db_select') && !empty($invoice['quote_id'])) {
+    $items = $invoice['items'] ?? [];
+    if (!$items && function_exists('db_select') && !empty($invoice['id'])) {
+        $items = db_select('SELECT description, qty, unit_price FROM bf_invoice_items WHERE invoice_id=? ORDER BY id', [(int)$invoice['id']]);
+    }
+    if (!$items && function_exists('db_select') && !empty($invoice['quote_id'])) {
+        // Legacy fallback for invoices created before bf_invoice_items existed.
         $items = db_select('SELECT description, qty, unit_price FROM bf_quote_items WHERE quote_id=? ORDER BY id', [(int)$invoice['quote_id']]);
-        if ($items) {
-            $lines[] = 'Line Items:';
-            foreach ($items as $item) {
-                $qty = (float)($item['qty'] ?? 1);
-                $unit = (float)($item['unit_price'] ?? 0);
-                $lines[] = '- ' . ($item['description'] ?? '') . ' | Qty ' . $qty . ' | Unit R ' . number_format($unit, 2) . ' | Total R ' . number_format($qty * $unit, 2);
-            }
-            $lines[] = '';
+    }
+    if ($items) {
+        $lines[] = 'Line Items:';
+        foreach ($items as $item) {
+            $qty = (float)($item['qty'] ?? 1);
+            $unit = (float)($item['unit_price'] ?? 0);
+            $lines[] = '- ' . ($item['description'] ?? '') . ' | Qty ' . $qty . ' | Unit R ' . number_format($unit, 2) . ' | Total R ' . number_format($qty * $unit, 2);
         }
+        $lines[] = '';
     }
     $lines[] = ($settings['subtotal_label'] ?? 'Subtotal') . ': ' . $variables['subtotal'];
     $lines[] = ($settings['vat_label'] ?? 'VAT') . ' (' . $variables['vat_rate'] . '%): ' . $variables['vat'];

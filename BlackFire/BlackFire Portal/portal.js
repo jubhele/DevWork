@@ -408,6 +408,7 @@ document.addEventListener('input', function(e) {
 
 document.addEventListener('change', function(e) {
   const t = e.target;
+  if (t.matches('input[type="date"], input[type="datetime-local"]')) t.blur();
   if (t.id === 'nq-company-profile') { applyCompanyProfileDate('nq-company-profile','nq-valid','quote_valid_days'); return; }
   if (t.id === 'ni-company-profile') { applyCompanyProfileDate('ni-company-profile','ni-due','invoice_due_days'); return; }
   if (t.id === 'inv-filter')       { renderInvoices('', t.value); return; }
@@ -4699,6 +4700,29 @@ function trackerDateInput(value) {
   return value ? String(value).replace(' ', 'T').slice(0, 16) : '';
 }
 
+const TRACKER_WORKDAY_START = '08:00';
+const TRACKER_WORKDAY_END = '17:00';
+
+function trackerDateParts(value, defaultTime) {
+  const normalized = trackerDateInput(value);
+  return {
+    date: normalized ? normalized.slice(0, 10) : '',
+    time: normalized ? normalized.slice(11, 16) : defaultTime,
+  };
+}
+
+function trackerScheduleValue(prefix, defaultTime) {
+  const date = document.getElementById(`${prefix}-date`)?.value || '';
+  const time = document.getElementById(`${prefix}-time`)?.value || defaultTime;
+  return date ? `${date}T${time}` : null;
+}
+
+function closeTrackerRecordAfterSuccess() {
+  if (document.getElementById('tracker-keep-open')?.checked) return false;
+  closeModalDirect();
+  return true;
+}
+
 async function openTrackerRecord(entityType, refId) {
   if (!['task','callout'].includes(entityType)) return;
   const record = entityType === 'task'
@@ -4711,6 +4735,9 @@ async function openTrackerRecord(entityType, refId) {
   const startAt = entityType === 'task' ? record.start_at : record.startAt;
   const endAt = entityType === 'task' ? record.end_at : record.endAt;
   const dueAt = entityType === 'task' ? record.due_at : record.dueAt;
+  const startParts = trackerDateParts(startAt, TRACKER_WORKDAY_START);
+  const endParts = trackerDateParts(endAt, TRACKER_WORKDAY_END);
+  const dueParts = trackerDateParts(dueAt, TRACKER_WORKDAY_END);
 
   const assigneesHtml = (() => {
     if (entityType !== 'task') return '';
@@ -4740,12 +4767,13 @@ async function openTrackerRecord(entityType, refId) {
     <div class="att-ctx"><span class="fw-600">${esc(title)}</span></div>
     ${assigneesHtml}
     ${reassignmentHtml}
+    ${canEdit?`<label class="fs-11 text-muted"><input id="tracker-keep-open" type="checkbox"> Keep this window open after successful changes</label>`:''}
     <div class="form-title mt2">Schedule</div>
     <div class="fgrid">
       <div class="fgroup"><label class="flbl">Created</label><input class="finput" value="${esc(fmtDT(createdAt))}" disabled></div>
-      <div class="fgroup"><label class="flbl">Start Date &amp; Time</label><input class="finput" id="tr-start" type="datetime-local" value="${esc(trackerDateInput(startAt))}" ${canEdit?'':'disabled'}></div>
-      <div class="fgroup"><label class="flbl">End Date &amp; Time</label><input class="finput" id="tr-end" type="datetime-local" value="${esc(trackerDateInput(endAt))}" ${canEdit?'':'disabled'}></div>
-      <div class="fgroup"><label class="flbl">Due Date &amp; Time</label><input class="finput" id="tr-due" type="datetime-local" value="${esc(trackerDateInput(dueAt))}" ${canEdit?'':'disabled'}></div>
+      <div class="fgroup"><label class="flbl">Start Date &amp; Time</label><div class="flex-row gap1"><input class="finput" id="tr-start-date" type="date" value="${esc(startParts.date)}" ${canEdit?'':'disabled'}><input class="finput" id="tr-start-time" type="time" value="${esc(startParts.time)}" ${canEdit?'':'disabled'}></div></div>
+      <div class="fgroup"><label class="flbl">End Date &amp; Time</label><div class="flex-row gap1"><input class="finput" id="tr-end-date" type="date" value="${esc(endParts.date)}" ${canEdit?'':'disabled'}><input class="finput" id="tr-end-time" type="time" value="${esc(endParts.time)}" ${canEdit?'':'disabled'}></div></div>
+      <div class="fgroup"><label class="flbl">Due Date &amp; Time</label><div class="flex-row gap1"><input class="finput" id="tr-due-date" type="date" value="${esc(dueParts.date)}" ${canEdit?'':'disabled'}><input class="finput" id="tr-due-time" type="time" value="${esc(dueParts.time)}" ${canEdit?'':'disabled'}></div></div>
     </div>
     ${canEdit?`<div class="flex-end mt2"><button class="btn btn-p btn-s" data-action="saveTrackerSchedule" data-entity-type="${entityType}" data-id="${esc(refId)}">Save Schedule</button></div>`:''}
     <div class="form-title mt3">Files</div>
@@ -4797,7 +4825,7 @@ async function uploadTrackerFile(entityType, entityRef) {
   if (!r.success) { toast(r.error || 'Upload failed.', 'err'); return; }
   inp.value = '';
   toast('File attached.', 'ok');
-  await loadTrackerFiles(entityType, entityRef, true);
+  if (!closeTrackerRecordAfterSuccess()) await loadTrackerFiles(entityType, entityRef, true);
 }
 
 async function deleteTrackerFile(id, entityType, entityRef) {
@@ -4818,11 +4846,20 @@ async function loadTrackerUpdates(entityType, refId, canEdit) {
 
 async function saveTrackerSchedule(entityType, refId) {
   const endpoint = entityType === 'task' ? 'tasks.php' : 'callouts.php';
-  const payload = { start_at: document.getElementById('tr-start')?.value || null, end_at: document.getElementById('tr-end')?.value || null, due_at: document.getElementById('tr-due')?.value || null };
+  const payload = {
+    start_at: trackerScheduleValue('tr-start', TRACKER_WORKDAY_START),
+    end_at: trackerScheduleValue('tr-end', TRACKER_WORKDAY_END),
+    due_at: trackerScheduleValue('tr-due', TRACKER_WORKDAY_END),
+  };
   const r = await api('PUT', `${endpoint}?id=${encodeURIComponent(refId)}`, payload);
   const msg = document.getElementById('tracker-record-message');
   if (msg) msg.textContent = r.success ? 'Schedule saved and recorded in the audit log.' : (r.error || 'Schedule could not be saved.');
-  if (r.success) { await Promise.all([refreshTasks(), refreshCallouts()]); renderTracker(); }
+  if (r.success) {
+    await Promise.all([refreshTasks(), refreshCallouts()]);
+    renderTracker();
+    toast('Schedule saved.', 'ok');
+    closeTrackerRecordAfterSuccess();
+  }
 }
 
 async function saveTrackerAssignees(refId) {
@@ -4845,6 +4882,7 @@ async function saveTrackerAssignees(refId) {
   await refreshTasks();
   renderTracker();
   toast('Ticket reassigned.', 'ok');
+  closeTrackerRecordAfterSuccess();
 }
 
 async function addTrackerUpdate(entityType, refId) {
@@ -4853,10 +4891,12 @@ async function addTrackerUpdate(entityType, refId) {
   if (!label || !content) { toast('Label and description are required.', 'err'); return; }
   const r = await api('POST', 'tracker_updates.php', { entity_type: entityType, entity_ref: refId, label, content });
   if (!r.success) { toast(r.error || 'Description could not be added.', 'err'); return; }
-  document.getElementById('tr-new-label').value = '';
-  document.getElementById('tr-new-content').value = '';
-  await loadTrackerUpdates(entityType, refId, true);
   toast('Description added and audited.', 'ok');
+  if (!closeTrackerRecordAfterSuccess()) {
+    document.getElementById('tr-new-label').value = '';
+    document.getElementById('tr-new-content').value = '';
+    await loadTrackerUpdates(entityType, refId, true);
+  }
 }
 
 async function saveTrackerUpdate(updateId) {
@@ -4865,6 +4905,7 @@ async function saveTrackerUpdate(updateId) {
   if (!label || !content) { toast('Label and description are required.', 'err'); return; }
   const r = await api('PUT', `tracker_updates.php?id=${updateId}`, { label, content });
   toast(r.success ? 'Description edit saved with revision history.' : (r.error || 'Description could not be saved.'), r.success ? 'ok' : 'err');
+  if (r.success) closeTrackerRecordAfterSuccess();
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -5636,7 +5677,9 @@ function previewInvoice(id){
   const clientLegal=client.legal_name||clientName;
   const multiline=value=>esc(value||'').replace(/\n/g,'<br>');
   const vatRate=Number(co2.vat_rate||15);
-  const subtotal=inv.amount/(1+(vatRate/100));
+  const hasItems=(inv.items||[]).length>0;
+  const itemsSub=hasItems?(inv.items||[]).reduce((s,i)=>s+((i.qty??1)*(i.unit_price??i.unit??0)),0):0;
+  const subtotal=hasItems?itemsSub:inv.amount/(1+(vatRate/100));
   const docStyle=`--doc-primary:${co2.primary_color||'#0A1626'};--doc-accent:${co2.accent_color||'#C2A04A'};--doc-paper:${co2.paper_color||'#F4F0E6'};--doc-font:${co2.body_font||'Instrument Sans, Arial, sans-serif'}`;
   openModal(`Invoice - ${inv.invoiceNo}`,`
     <div class="doc-preview" style="${esc(docStyle)}">
@@ -5655,6 +5698,10 @@ function previewInvoice(id){
         <div class="doc-party"><div class="dml">From</div><strong>${esc(co2.legal_name||coName)}</strong><div class="doc-address">${multiline(co2.address||'')}</div><div>VAT: ${esc(coVat||'—')}</div></div>
         <div class="doc-party"><div class="dml">Bill To</div><strong>${esc(clientLegal)}</strong>${clientName!==clientLegal?`<div>${esc(clientName)}</div>`:''}<div class="doc-address">${multiline(client.invoice_address||'')}</div><div>${esc(client.phone||'')}</div><div>VAT: ${esc(client.vat_number||'—')}</div></div>
       </div>
+      <table class="doc-t">
+        <thead><tr><th>Description</th><th>Qty</th><th>Unit Price</th><th>Total</th></tr></thead>
+        <tbody>${hasItems?(inv.items||[]).map(i=>`<tr><td>${esc(i.description||i.desc)}</td><td>${i.qty}</td><td>${fmt(i.unit_price??i.unit)}</td><td>${fmt((i.qty??1)*(i.unit_price??i.unit??0))}</td></tr>`).join(''):`<tr><td colspan="4" class="text-muted">No line items are attached to this invoice. Totals use the stored invoice amount.</td></tr>`}</tbody>
+      </table>
       <div class="doc-tots w-full">
         <div class="doc-tot-row"><span>Excl. VAT</span><span>${fmt(subtotal)}</span></div>
         <div class="doc-tot-row"><span>VAT (${vatRate}%)</span><span>${fmt(inv.amount-subtotal)}</span></div>

@@ -33,14 +33,27 @@ function stream_pdf_attachment(array $attachment): void {
     exit;
 }
 
+// Attach line items to an invoice row
+function attach_items(array $invoices): array {
+    if (!$invoices) return [];
+    $ids = array_column($invoices, 'id');
+    $placeholders = implode(',', array_fill(0, count($ids), '?'));
+    $items = db_select("SELECT * FROM bf_invoice_items WHERE invoice_id IN ($placeholders) ORDER BY id", $ids);
+    $map = [];
+    foreach ($items as $item) $map[$item['invoice_id']][] = $item;
+    foreach ($invoices as &$inv) $inv['items'] = $map[$inv['id']] ?? [];
+    return $invoices;
+}
+
 // ── GET — List ─────────────────────────────────────────
 if ($method === 'GET' && clean($_GET['action'] ?? '', 30) === 'download_pdf') {
     require_perm('invoice.view');
     if (!$ref_id) json_err('Missing id');
     $inv = db_row("SELECT * FROM bf_invoices WHERE ref_id = ?", [$ref_id]);
     if (!$inv) json_err('Invoice not found', 404);
+    $rows = attach_items([$inv]);
     require_once __DIR__ . '/../includes/mailer.php';
-    stream_pdf_attachment(invoice_pdf_attachment($inv));
+    stream_pdf_attachment(invoice_pdf_attachment($rows[0] ?? $inv));
 }
 
 if ($method === 'GET') {
@@ -75,6 +88,7 @@ if ($method === 'GET') {
           $where ORDER BY i.invoice_date DESC LIMIT {$pg['limit']} OFFSET {$pg['offset']}",
         $params
     );
+    $rows = attach_items($rows);
     json_ok(['data' => $rows, 'total' => (int)$total]);
 }
 
@@ -223,6 +237,15 @@ if ($method === 'POST') {
                 (int)$usr['id'],
             ]
         );
+
+        $quote_items = db_select("SELECT description, qty, unit_price, line_total FROM bf_quote_items WHERE quote_id = ? ORDER BY id", [$quote_id_fk]);
+        foreach ($quote_items as $qi) {
+            db_exec(
+                "INSERT INTO bf_invoice_items (invoice_id, description, qty, unit_price, line_total) VALUES (?,?,?,?,?)",
+                [$id, $qi['description'], $qi['qty'], $qi['unit_price'], $qi['line_total']]
+            );
+        }
+
         record_invoice_cost_of_sales([
             'ref_id' => $ref,
             'callout_ref' => $co_ref_str,
@@ -252,7 +275,8 @@ if ($method === 'POST') {
     }
     audit($usr['username'], 'CREATE', "Invoice $ref created (R" . number_format((float)$b['amount'], 2) . ")");
     $row = db_row("SELECT * FROM bf_invoices WHERE id = ?", [$id]);
-    json_ok(['data' => $row], "Invoice $ref created");
+    $rows = attach_items([$row]);
+    json_ok(['data' => $rows[0]], "Invoice $ref created");
 }
 
 // ── PUT — Update / Mark Paid ───────────────────────────

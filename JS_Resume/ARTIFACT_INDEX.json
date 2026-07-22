@@ -10,10 +10,10 @@
                                             "path":  "JS_Resume\\sessions",
                                             "metric":  {
                                                            "exists":  true,
-                                                           "files":  11,
-                                                           "bytes":  17190,
+                                                           "files":  14,
+                                                           "bytes":  23076,
                                                            "oldest":  "2026-06-21T17:18:56.7670315Z",
-                                                           "latest":  "2026-07-21T12:33:11.0236748Z"
+                                                           "latest":  "2026-07-21T13:40:59.6679188Z"
                                                        }
                                         }
                                     ],

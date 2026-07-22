@@ -1,0 +1,14 @@
+﻿{
+    "provider":  "OpenAICodex",
+    "session_id":  "codex-blackfire-schedule-modal-20260721",
+    "log_path":  "C:\\DevWork\\BlackFire\\sessions\\agent_session_openaicodex_codex-blackf_20260721_205159.md",
+    "project_status":  "resolved",
+    "project_name":  "BlackFire",
+    "project_root":  "C:\\DevWork\\BlackFire",
+    "project_source":  "explicit_user_binding",
+    "binding_version":  1,
+    "binding_updated_at":  "2026-07-21T20:52:00.6024809+02:00",
+    "prompt_count":  1,
+    "created_at":  "2026-07-21T20:51:59.9146184+02:00",
+    "updated_at":  "2026-07-21T21:05:36.9585803+02:00"
+}

@@ -1,7 +1,7 @@
 ﻿{
     "schema_version":  "1.0",
-    "generated_at":  "2026-07-21T12:33:19.8787282Z",
-    "triggered_by":  "JS_Resume\\sessions\\agent_session_openai_codex_codex-js-res_20260721_142300.md",
+    "generated_at":  "2026-07-21T19:05:39.2094758Z",
+    "triggered_by":  "BlackFire\\sessions\\agent_session_openaicodex_codex-blackf_20260721_205159.md",
     "inventory":  {
                       "projects":  [
                                        {
@@ -16,10 +16,10 @@
                                                                                    "path":  "_workspace\\sessions",
                                                                                    "metric":  {
                                                                                                   "exists":  true,
-                                                                                                  "files":  29,
-                                                                                                  "bytes":  70917,
+                                                                                                  "files":  33,
+                                                                                                  "bytes":  82930,
                                                                                                   "oldest":  "2026-07-10T15:25:04.0231230Z",
-                                                                                                  "latest":  "2026-07-21T12:12:49.8488531Z"
+                                                                                                  "latest":  "2026-07-21T13:40:11.5388418Z"
                                                                                               }
                                                                                }
                                                                            ],
@@ -52,10 +52,10 @@
                                                                                "path":  "_workspace\\temp",
                                                                                "metric":  {
                                                                                               "exists":  true,
-                                                                                              "files":  79,
-                                                                                              "bytes":  81149,
+                                                                                              "files":  86,
+                                                                                              "bytes":  85244,
                                                                                               "oldest":  "2026-07-09T07:43:24.4961452Z",
-                                                                                              "latest":  "2026-07-21T12:33:10.7585163Z"
+                                                                                              "latest":  "2026-07-21T19:05:36.9715754Z"
                                                                                           }
                                                                            }
                                                                        ],
@@ -160,10 +160,10 @@
                                                                                    "path":  "BlackFire\\sessions",
                                                                                    "metric":  {
                                                                                                   "exists":  true,
-                                                                                                  "files":  144,
-                                                                                                  "bytes":  492041,
+                                                                                                  "files":  145,
+                                                                                                  "bytes":  496311,
                                                                                                   "oldest":  "2026-06-23T09:19:04.0991484Z",
-                                                                                                  "latest":  "2026-07-21T00:36:25.8529180Z"
+                                                                                                  "latest":  "2026-07-21T19:05:37.0449550Z"
                                                                                               }
                                                                                }
                                                                            ],
@@ -296,10 +296,10 @@
                                                                                    "path":  "Homolemo In Europe\\sessions",
                                                                                    "metric":  {
                                                                                                   "exists":  true,
-                                                                                                  "files":  9,
-                                                                                                  "bytes":  15583,
+                                                                                                  "files":  10,
+                                                                                                  "bytes":  25709,
                                                                                                   "oldest":  "2026-07-12T09:50:50.0447179Z",
-                                                                                                  "latest":  "2026-07-13T20:44:43.0076921Z"
+                                                                                                  "latest":  "2026-07-21T18:03:48.3929297Z"
                                                                                               }
                                                                                }
                                                                            ],
@@ -314,10 +314,10 @@
                                                                                "path":  "Homolemo In Europe\\temp",
                                                                                "metric":  {
                                                                                               "exists":  true,
-                                                                                              "files":  2,
-                                                                                              "bytes":  5697,
+                                                                                              "files":  9,
+                                                                                              "bytes":  629316,
                                                                                               "oldest":  "2026-07-21T10:34:46.0455884Z",
-                                                                                              "latest":  "2026-07-21T10:43:13.8849636Z"
+                                                                                              "latest":  "2026-07-21T17:34:43.5195816Z"
                                                                                           }
                                                                            }
                                                                        ],
@@ -329,10 +329,10 @@
                                                                                   "path":  "Homolemo In Europe\\_backups",
                                                                                   "metric":  {
                                                                                                  "exists":  true,
-                                                                                                 "files":  1,
-                                                                                                 "bytes":  8200,
+                                                                                                 "files":  6,
+                                                                                                 "bytes":  31644,
                                                                                                  "oldest":  "2026-07-12T12:07:10.7996550Z",
-                                                                                                 "latest":  "2026-07-12T12:07:10.7996550Z"
+                                                                                                 "latest":  "2026-07-21T17:56:58.5707881Z"
                                                                                              }
                                                                               }
                                                                           ]
@@ -395,10 +395,10 @@
                                                                                    "path":  "JS_Resume\\sessions",
                                                                                    "metric":  {
                                                                                                   "exists":  true,
-                                                                                                  "files":  11,
-                                                                                                  "bytes":  17190,
+                                                                                                  "files":  14,
+                                                                                                  "bytes":  23076,
                                                                                                   "oldest":  "2026-06-21T17:18:56.7670315Z",
-                                                                                                  "latest":  "2026-07-21T12:33:11.0236748Z"
+                                                                                                  "latest":  "2026-07-21T13:40:59.6679188Z"
                                                                                               }
                                                                                }
                                                                            ],
@@ -517,10 +517,10 @@
                                                      "path":  "_backups",
                                                      "metric":  {
                                                                     "exists":  true,
-                                                                    "files":  88,
-                                                                    "bytes":  2317349,
+                                                                    "files":  90,
+                                                                    "bytes":  2330342,
                                                                     "oldest":  "2026-05-16T05:02:32.9205247Z",
-                                                                    "latest":  "2026-07-21T11:29:55.6151258Z"
+                                                                    "latest":  "2026-07-21T11:37:50.5300864Z"
                                                                 }
                                                  },
                                                  {
@@ -571,10 +571,10 @@
                                                           "path":  ".git",
                                                           "metric":  {
                                                                          "exists":  true,
-                                                                         "files":  1323,
-                                                                         "bytes":  1898482085,
+                                                                         "files":  1441,
+                                                                         "bytes":  1899128234,
                                                                          "oldest":  "2026-05-16T04:41:31.9208941Z",
-                                                                         "latest":  "2026-07-21T12:32:19.0173961Z"
+                                                                         "latest":  "2026-07-21T18:59:55.1940753Z"
                                                                      },
                                                           "classification":  "excluded infrastructure/cache"
                                                       },
