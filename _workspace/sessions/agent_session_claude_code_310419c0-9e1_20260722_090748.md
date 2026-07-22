@@ -11,6 +11,7 @@ Source: explicit_user_binding — bound to BlackFire via ProjectBind after user 
 Reaffirmed: 2026-07-22 — ProjectBind re-run for follow-up task (Send-without-approval gap), same project root, no switch requested
 Reaffirmed: 2026-07-22 — ProjectBind re-run for follow-up task (Download button label normalization), same project root, no switch requested
 Reaffirmed: 2026-07-22 — ProjectBind re-run on user status check ("done?"), same project root, no switch requested
+Reaffirmed: 2026-07-22 — ProjectBind re-run investigating unrelated install/fix_stale_quote_status_20260722.sql the user found open in IDE, same project root, no switch requested
 
 ## Goal
 Bootstrap log for this provider session. Actual work (quote approval status logic gap in
@@ -44,6 +45,10 @@ Active model: Sonnet 5  Status: correct
 - Follow-up: normalized all document-download button labels in BlackFire Portal/portal.js to plain
   "Download" (was PDF / Download PDF / Download to Open in 6 places). Noted umlilo-portal's copy of
   portal.js still has old labels but looks like a stale separate build — flagged to user, not touched.
+- Clarified: install/fix_stale_quote_status_20260722.sql (found open in user's IDE) is an unrelated,
+  pre-existing fix for a different bug (Approved quotes not flipping to Converted post-invoice in
+  api/invoices.php's manual creation path) — not authored by me this session, and not the fix for the
+  Draft+pending-approval quotes. The correct UPDATE for those 3 quotes is still pending user execution.
 
 ## Learnings
 - Confirmed the ProjectBind flow requires -SessionId explicitly when no transcript path is auto-supplied by this provider adapter.
