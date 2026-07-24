@@ -26,6 +26,8 @@ Status: active model is not listed in the workspace trust matrix; proceeding for
 - Resume the all-repository scope on 2026-07-23 and commit BlackFire's editable invoice-PO correction separately from DevWork governance records.
 - On 2026-07-24, use per-command `safe.directory` settings because the managed sandbox runs as `CodexSandboxOffline`; do not stage false `.gstack` deletions caused by inaccessible files.
 - Commit verified BlackFire work locally even though the sandbox network prevents GitHub synchronization, preserving an exact push-ready commit.
+- Replace the multi-repo script's immediate mutation flow with a review-first approval gate: accept all, select repositories, or cancel.
+- Abort the already-running legacy script with Ctrl+C because exiting its pager would allow the old unconfirmed commit flow to continue.
 - Resume the same six-repository scope on 2026-07-24; preserve BlackFire's cross-surface reversal release and ilahle's legal-link visibility fix as separate project commits.
 - Treat the audited document reversal as one atomic BlackFire tri-surface release and preserve all constitution-required source and session backups in the project commit.
 - Keep the approved-to-sent quote feature atomic across PHP, Next.js, Expo, shared packages, RBAC migrations, help, architecture, memory, backups, and regression evidence.
@@ -48,6 +50,9 @@ Status: active model is not listed in the workspace trust matrix; proceeding for
 - Reviewed and verified the BlackFire dashboard/tracker/attachment fix with JavaScript syntax, live browser evidence from the source session, static call-site inspection, accountability reconciliation, and `git diff --check`.
 - Created local BlackFire commit `ca951ee` (`fix: restore tracker and attachment navigation`).
 - Attempted BlackFire fetch and push; both failed because the sandbox cannot connect to `github.com:443`.
+- Investigated the visible terminal stall and confirmed active `git diff --stat` and `less.exe` processes at the script's pre-commit change-estimate step.
+- Updated `commit-all-repos-dynamic.ps1` to include the DevWork root, disable Git paging, fetch and display divergence before mutation, request explicit acceptance, support per-repository selection, rebase safely with autostash, stage deletions, and push existing ahead commits.
+- PowerShell parser validation passed and a full `-DryRun` completed without opening a pager or changing any repository.
 - On 2026-07-24, found new project changes only in BlackFire and ilahle-portal, plus DevWork governance state; all remotes reported zero divergence before commit.
 - Verified BlackFire with PHP/JavaScript syntax, document-reversal regression, monorepo TypeScript, Expo TypeScript, secret scanning, and diff checks.
 - Committed and pushed BlackFire `1062dfe` (`feat: add audited document reversal workflow`).
@@ -70,6 +75,7 @@ Status: active model is not listed in the workspace trust matrix; proceeding for
 | all-repos-sync-002 | uMlawuli | uMlawuli (Codex) | COMPLETED | 1/1 | Rechecked all repositories and synchronized the follow-up PDF masthead correction. |
 | all-repos-sync-003 | uMlawuli | uMlawuli (Codex) | COMPLETED | 1/1 | Reviewed all current files and committed the editable invoice PO correction plus governance state. |
 | all-repos-sync-004 | uMlawuli | uMlawuli (Codex) | COMPLETED | 1/1 | Audited all repos and created the verified local BlackFire commit; GitHub push blocked by sandbox policy. |
+| multi-repo-approval-005 | uMakhi | uMakhi (Codex) | COMPLETED | 1/3 | Replaced the blocking multi-repo workflow with a verified review-and-accept flow. |
 | all-repos-sync-004 | uMlawuli | uMlawuli (Codex) | COMPLETED | 1/1 | Reviewed six repositories and synchronized BlackFire reversal and ilahle terms-link releases. |
 | all-repos-sync-004 | uMlawuli | uMlawuli (Codex) | COMPLETED | 1/1 | Verified and synchronized the audited document reversal release across BlackFire's PHP, web, mobile, contracts, docs, tests, and backups. |
 | all-repos-sync-004 | uMlawuli | uMlawuli (Codex) | COMPLETED | 1/1 | Reviewed and synchronized the tri-surface quote-send feature and workspace indexes. |
@@ -86,6 +92,7 @@ Status: active model is not listed in the workspace trust matrix; proceeding for
 - Focused source regressions provide a fast, reliable gate for small document-rendering corrections when paired with syntax and integration checks.
 - Sequential GitHub fetches can leave the Windows terminal runner temporarily saturated after network timeouts; preserving staged state and retrying after runner recovery avoids data loss.
 - A managed sandbox identity can trigger Git dubious-ownership checks and permission-only false deletions; use command-scoped safe-directory overrides and never stage inaccessible tracked paths.
+- Interactive `git diff --stat` may open `less` and suspend a PowerShell automation script; automation must use `git --no-pager` and must not rely on working-tree status to decide whether an ahead branch needs pushing.
 - Cross-project check-ins need project-specific verification gates: BlackFire required tri-surface types and workflow regression, while ilahle's scoped PHP copy change required syntax and diff validation.
 - High-risk finance workflow commits should be gated by both focused business-rule regressions and cross-surface type/lint checks before synchronization.
 - Cross-surface workflow changes remain safest as one commit when permissions, API contracts, UI actions, help, and regression coverage must move together.
