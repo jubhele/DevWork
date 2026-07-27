@@ -1,0 +1,14 @@
+﻿{
+    "provider":  "OpenAI Codex",
+    "session_id":  "019fa2ac-286",
+    "log_path":  "C:\\DevWork\\BlackFire\\sessions\\agent_session_openai_codex_019fa2ac-286_20260727_130953.md",
+    "project_status":  "resolved",
+    "project_name":  "BlackFire",
+    "project_root":  "C:\\DevWork\\BlackFire",
+    "project_source":  "explicit_user_binding",
+    "binding_version":  1,
+    "binding_updated_at":  "2026-07-27T13:10:00.6187178+02:00",
+    "prompt_count":  1,
+    "created_at":  "2026-07-27T13:09:53.1198759+02:00",
+    "updated_at":  "2026-07-27T13:13:37.1793915+02:00"
+}
