@@ -46,10 +46,10 @@
                                         "path":  "_workspace\\temp",
                                         "metric":  {
                                                        "exists":  true,
-                                                       "files":  173,
-                                                       "bytes":  135844,
+                                                       "files":  175,
+                                                       "bytes":  137038,
                                                        "oldest":  "2026-07-09T07:43:24.4961452Z",
-                                                       "latest":  "2026-07-28T17:17:14.3763311Z"
+                                                       "latest":  "2026-07-28T17:42:03.2077349Z"
                                                    }
                                     }
                                 ],

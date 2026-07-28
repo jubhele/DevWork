@@ -1,0 +1,14 @@
+﻿{
+    "provider":  "Unknown",
+    "session_id":  "codex-blackfire-audit-ownership-20260728",
+    "log_path":  "C:\\DevWork\\BlackFire\\sessions\\agent_session_unknown_codex-blackf_20260728_193652.md",
+    "project_status":  "resolved",
+    "project_name":  "BlackFire",
+    "project_root":  "C:\\DevWork\\BlackFire",
+    "project_source":  "explicit_user_binding",
+    "binding_version":  1,
+    "binding_updated_at":  "2026-07-28T19:36:52.6868764+02:00",
+    "prompt_count":  3,
+    "created_at":  "2026-07-28T19:36:52.6584932+02:00",
+    "updated_at":  "2026-07-28T20:07:15.4527845+02:00"
+}

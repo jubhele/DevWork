@@ -1,7 +1,7 @@
 ﻿{
     "schema_version":  "1.0",
-    "generated_at":  "2026-07-28T17:17:16.6451601Z",
-    "triggered_by":  "BlackFire\\sessions\\agent_session_openai_codex_codex-blackf_20260728_183812.md",
+    "generated_at":  "2026-07-28T17:54:31.3287358Z",
+    "triggered_by":  "BlackFire\\sessions\\agent_session_unknown_codex-blackf_20260728_193652.md",
     "inventory":  {
                       "projects":  [
                                        {
@@ -52,10 +52,10 @@
                                                                                "path":  "_workspace\\temp",
                                                                                "metric":  {
                                                                                               "exists":  true,
-                                                                                              "files":  173,
-                                                                                              "bytes":  135844,
+                                                                                              "files":  175,
+                                                                                              "bytes":  137038,
                                                                                               "oldest":  "2026-07-09T07:43:24.4961452Z",
-                                                                                              "latest":  "2026-07-28T17:17:14.3763311Z"
+                                                                                              "latest":  "2026-07-28T17:42:03.2077349Z"
                                                                                           }
                                                                            }
                                                                        ],
@@ -170,10 +170,10 @@
                                                                                    "path":  "BlackFire\\sessions",
                                                                                    "metric":  {
                                                                                                   "exists":  true,
-                                                                                                  "files":  265,
-                                                                                                  "bytes":  1240250,
+                                                                                                  "files":  270,
+                                                                                                  "bytes":  1254913,
                                                                                                   "oldest":  "2026-06-23T09:19:04.0991484Z",
-                                                                                                  "latest":  "2026-07-28T17:17:14.4096852Z"
+                                                                                                  "latest":  "2026-07-28T17:54:03.5496513Z"
                                                                                               }
                                                                                }
                                                                            ],
@@ -197,10 +197,10 @@
                                                                                "path":  "BlackFire\\temp",
                                                                                "metric":  {
                                                                                               "exists":  true,
-                                                                                              "files":  209,
+                                                                                              "files":  213,
                                                                                               "bytes":  39740011,
                                                                                               "oldest":  "2026-07-09T19:23:09.9028041Z",
-                                                                                              "latest":  "2026-07-28T05:53:50.9144714Z"
+                                                                                              "latest":  "2026-07-28T17:50:21.5033805Z"
                                                                                           }
                                                                            },
                                                                            {
@@ -220,9 +220,9 @@
                                                                                "metric":  {
                                                                                               "exists":  true,
                                                                                               "files":  12,
-                                                                                              "bytes":  6083,
+                                                                                              "bytes":  7123,
                                                                                               "oldest":  "2026-07-19T17:32:28.1133371Z",
-                                                                                              "latest":  "2026-07-27T05:33:17.8839673Z"
+                                                                                              "latest":  "2026-07-27T05:37:50.3162275Z"
                                                                                           }
                                                                            }
                                                                        ],
@@ -590,10 +590,10 @@
                                                           "path":  ".git",
                                                           "metric":  {
                                                                          "exists":  true,
-                                                                         "files":  148,
-                                                                         "bytes":  1893046238,
+                                                                         "files":  163,
+                                                                         "bytes":  1893064451,
                                                                          "oldest":  "2026-05-16T04:41:31.9208941Z",
-                                                                         "latest":  "2026-07-28T16:52:55.4883328Z"
+                                                                         "latest":  "2026-07-28T17:52:52.6440776Z"
                                                                      },
                                                           "classification":  "excluded infrastructure/cache"
                                                       },
@@ -623,10 +623,10 @@
                                                           "path":  "mysql-data",
                                                           "metric":  {
                                                                          "exists":  true,
-                                                                         "files":  275,
-                                                                         "bytes":  259331340,
+                                                                         "files":  249,
+                                                                         "bytes":  256330092,
                                                                          "oldest":  "2026-06-20T14:43:43.6563864Z",
-                                                                         "latest":  "2026-07-28T05:16:03.6294663Z"
+                                                                         "latest":  "2026-07-28T17:51:21.5594731Z"
                                                                      },
                                                           "classification":  "excluded infrastructure/cache"
                                                       }
