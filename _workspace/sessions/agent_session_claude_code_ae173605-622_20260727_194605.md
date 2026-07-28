@@ -15,6 +15,23 @@ Reconfirmed again: 2026-07-28, user screenshotted "Due in 7 Days" and "Overdue I
 Reconfirmed again: 2026-07-28, post attentionCards fix — still c:\DevWork\BlackFire, no rebinding occurred.
 Reconfirmed again: 2026-07-28, user asked to make amountCards clickable with filters. Still c:\DevWork\BlackFire.
 Reconfirmed again: 2026-07-28, post amountCards fix — still c:\DevWork\BlackFire, no rebinding occurred.
+Reconfirmed again: 2026-07-28, user flagged "Active Clients" card was still not clickable. Fixed. Still c:\DevWork\BlackFire.
+Reconfirmed again: 2026-07-28, post Active Clients fix — still c:\DevWork\BlackFire, no rebinding occurred.
+Reconfirmed again: 2026-07-28, user asked to add Phase 3 duration-stat cards to the main dashboard. Still c:\DevWork\BlackFire.
+Reconfirmed again: 2026-07-28, post main-dashboard duration panel addition — still c:\DevWork\BlackFire, no rebinding occurred.
+
+## Phase 3 follow-up — duration stats added to main dashboard — CLOSED
+- User asked for the Callout/Task Duration cards (previously support-dashboard-only) to also appear on the main `p-dashboard`.
+- `refreshAll()` (already called by `p-dashboard`'s render) calls `refreshDashboardAnalytics()`, which already fetches `callout_durations`/`task_durations` from `api/dashboard.php` (Phase 3 work) — no backend change needed.
+- Added `calloutDurations`/`taskDurations` to the `d` object built in `renderDashboard()`, and added a `durationPanel` block to `_dashExecutiveSummary()` reusing the identical two-panel rendering approach already built for `renderSupDashboard()` (avg minutes + sample size + up to 5 recent records each), inserted after the "Approaching Deadlines" panel.
+- QA (gstack browse, `dev-only/qa_browse_login.sh bf_manager`): both panels render on the main dashboard with correct data (Callout Duration avg 18678.2 min / 6 completed, Task Duration avg 14458.2 min / 16 completed — matching the support-dashboard figures exactly, including the negative-duration exclusion from the earlier Phase 3 bugfix), no console errors. Screenshot: `dev-only/qa-screenshots/phase3-duration-main-dashboard.png`.
+- Backed up `portal.js` before this edit per §7a.
+
+## Phase 1 follow-up fix — "Active Clients" card not clickable — CLOSED
+- User caught another gap: "Active Clients" in `countCards` had no `page` at all.
+- `renderClients()` only accepts a `search` param — no active/inactive status filter UI exists on `p-clients` — so this is a plain unfiltered nav, same pattern as "Net Cash Movement"/"Invoiced YTD". Added `page:'p-clients'` to the card definition; no other code changes needed since `countCards`' template already supports plain-nav cards.
+- QA (gstack browse, `dev-only/qa_browse_login.sh bf_manager`): card renders as a button, click navigates to `p-clients`, no console errors. Screenshot: `dev-only/qa-screenshots/phase1-active-clients-card.png`.
+- Backed up `portal.js` before this edit per §7a.
 
 ## Phase 1 follow-up fix — amountCards not clickable — CLOSED
 - User requested "Invoiced YTD", "Outstanding", "Net Cash Movement", and "Quote Pipeline" dashboard cards be made clickable, adding filters where sensible.

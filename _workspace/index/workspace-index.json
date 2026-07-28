@@ -1,7 +1,7 @@
 ﻿{
     "schema_version":  "1.0",
-    "generated_at":  "2026-07-27T22:55:20.7431418Z",
-    "triggered_by":  "manual/full audit",
+    "generated_at":  "2026-07-28T05:55:10.3745879Z",
+    "triggered_by":  "BlackFire\\sessions\\agent_session_openai_codex_codex-blackf_20260728_074802.md",
     "inventory":  {
                       "projects":  [
                                        {
@@ -16,10 +16,10 @@
                                                                                    "path":  "_workspace\\sessions",
                                                                                    "metric":  {
                                                                                                   "exists":  true,
-                                                                                                  "files":  71,
-                                                                                                  "bytes":  273922,
+                                                                                                  "files":  70,
+                                                                                                  "bytes":  272421,
                                                                                                   "oldest":  "2026-07-10T15:25:04.0231230Z",
-                                                                                                  "latest":  "2026-07-27T22:54:18.0825563Z"
+                                                                                                  "latest":  "2026-07-28T05:15:21.9667851Z"
                                                                                               }
                                                                                }
                                                                            ],
@@ -52,10 +52,10 @@
                                                                                "path":  "_workspace\\temp",
                                                                                "metric":  {
                                                                                               "exists":  true,
-                                                                                              "files":  167,
-                                                                                              "bytes":  132179,
+                                                                                              "files":  169,
+                                                                                              "bytes":  133406,
                                                                                               "oldest":  "2026-07-09T07:43:24.4961452Z",
-                                                                                              "latest":  "2026-07-27T22:55:18.5422255Z"
+                                                                                              "latest":  "2026-07-28T05:55:09.3167780Z"
                                                                                           }
                                                                            }
                                                                        ],
@@ -97,14 +97,24 @@
                                                                                    "path":  "Astute\\sessions",
                                                                                    "metric":  {
                                                                                                   "exists":  true,
-                                                                                                  "files":  4,
-                                                                                                  "bytes":  4596,
+                                                                                                  "files":  5,
+                                                                                                  "bytes":  6553,
                                                                                                   "oldest":  "2026-06-21T17:18:56.7670315Z",
-                                                                                                  "latest":  "2026-07-22T15:57:37.6262219Z"
+                                                                                                  "latest":  "2026-07-28T05:47:52.0539065Z"
                                                                                               }
                                                                                }
                                                                            ],
                                                               "artifacts":  [
+                                                                                {
+                                                                                    "path":  "Astute\\artifacts",
+                                                                                    "metric":  {
+                                                                                                   "exists":  true,
+                                                                                                   "files":  0,
+                                                                                                   "bytes":  0,
+                                                                                                   "oldest":  null,
+                                                                                                   "latest":  null
+                                                                                               }
+                                                                                },
                                                                                 {
                                                                                     "path":  "Astute\\exports",
                                                                                     "metric":  {
@@ -139,10 +149,10 @@
                                                                                   "path":  "Astute\\_backups",
                                                                                   "metric":  {
                                                                                                  "exists":  true,
-                                                                                                 "files":  14,
-                                                                                                 "bytes":  20548,
+                                                                                                 "files":  16,
+                                                                                                 "bytes":  22997,
                                                                                                  "oldest":  "2026-06-19T20:58:32.9202488Z",
-                                                                                                 "latest":  "2026-07-20T11:40:51.4283254Z"
+                                                                                                 "latest":  "2026-07-28T05:45:24.4712489Z"
                                                                                              }
                                                                               }
                                                                           ]
@@ -160,10 +170,10 @@
                                                                                    "path":  "BlackFire\\sessions",
                                                                                    "metric":  {
                                                                                                   "exists":  true,
-                                                                                                  "files":  254,
-                                                                                                  "bytes":  1148071,
+                                                                                                  "files":  261,
+                                                                                                  "bytes":  1222927,
                                                                                                   "oldest":  "2026-06-23T09:19:04.0991484Z",
-                                                                                                  "latest":  "2026-07-27T22:51:59.5310661Z"
+                                                                                                  "latest":  "2026-07-28T05:55:09.3419140Z"
                                                                                               }
                                                                                }
                                                                            ],
@@ -172,10 +182,10 @@
                                                                                     "path":  "BlackFire\\artifacts",
                                                                                     "metric":  {
                                                                                                    "exists":  true,
-                                                                                                   "files":  23,
-                                                                                                   "bytes":  1192316,
+                                                                                                   "files":  29,
+                                                                                                   "bytes":  1386261,
                                                                                                    "oldest":  "2026-07-14T23:41:30.4137516Z",
-                                                                                                   "latest":  "2026-07-26T13:47:06.9056928Z"
+                                                                                                   "latest":  "2026-07-28T05:28:51.4078098Z"
                                                                                                }
                                                                                 }
                                                                             ],
@@ -187,10 +197,10 @@
                                                                                "path":  "BlackFire\\temp",
                                                                                "metric":  {
                                                                                               "exists":  true,
-                                                                                              "files":  183,
-                                                                                              "bytes":  26200535,
+                                                                                              "files":  209,
+                                                                                              "bytes":  39740011,
                                                                                               "oldest":  "2026-07-09T19:23:09.9028041Z",
-                                                                                              "latest":  "2026-07-27T05:37:33.4511077Z"
+                                                                                              "latest":  "2026-07-28T05:53:50.9144714Z"
                                                                                           }
                                                                            },
                                                                            {
@@ -221,10 +231,10 @@
                                                                                   "path":  "BlackFire\\_backups",
                                                                                   "metric":  {
                                                                                                  "exists":  true,
-                                                                                                 "files":  582,
-                                                                                                 "bytes":  49232679,
+                                                                                                 "files":  585,
+                                                                                                 "bytes":  49235391,
                                                                                                  "oldest":  "2026-05-20T18:52:51.5184565Z",
-                                                                                                 "latest":  "2026-07-24T04:42:32.7874707Z"
+                                                                                                 "latest":  "2026-07-28T05:49:18.7198214Z"
                                                                                              }
                                                                               }
                                                                           ]
@@ -456,87 +466,6 @@
                                                           }
                                        },
                                        {
-                                           "name":  "Mahlobo",
-                                           "slug":  "mahlobo",
-                                           "root":  "Mahlobo",
-                                           "standalone_repository":  true,
-                                           "artifact_index":  "Mahlobo\\ARTIFACT_INDEX.md",
-                                           "categories":  {
-                                                              "sessions":  [
-                                                                               {
-                                                                                   "path":  "Mahlobo\\sessions",
-                                                                                   "metric":  {
-                                                                                                  "exists":  true,
-                                                                                                  "files":  0,
-                                                                                                  "bytes":  0,
-                                                                                                  "oldest":  null,
-                                                                                                  "latest":  null
-                                                                                              }
-                                                                               }
-                                                                           ],
-                                                              "artifacts":  [
-                                                                                {
-                                                                                    "path":  "Mahlobo\\artifacts",
-                                                                                    "metric":  {
-                                                                                                   "exists":  true,
-                                                                                                   "files":  0,
-                                                                                                   "bytes":  0,
-                                                                                                   "oldest":  null,
-                                                                                                   "latest":  null
-                                                                                               }
-                                                                                }
-                                                                            ],
-                                                              "archive":  [
-                                                                              {
-                                                                                  "path":  "Mahlobo\\archive",
-                                                                                  "metric":  {
-                                                                                                 "exists":  true,
-                                                                                                 "files":  0,
-                                                                                                 "bytes":  0,
-                                                                                                 "oldest":  null,
-                                                                                                 "latest":  null
-                                                                                             }
-                                                                              }
-                                                                          ],
-                                                              "temp":  [
-                                                                           {
-                                                                               "path":  "Mahlobo\\temp",
-                                                                               "metric":  {
-                                                                                              "exists":  true,
-                                                                                              "files":  0,
-                                                                                              "bytes":  0,
-                                                                                              "oldest":  null,
-                                                                                              "latest":  null
-                                                                                          }
-                                                                           }
-                                                                       ],
-                                                              "logs":  [
-                                                                           {
-                                                                               "path":  "Mahlobo\\logs",
-                                                                               "metric":  {
-                                                                                              "exists":  true,
-                                                                                              "files":  0,
-                                                                                              "bytes":  0,
-                                                                                              "oldest":  null,
-                                                                                              "latest":  null
-                                                                                          }
-                                                                           }
-                                                                       ],
-                                                              "backups":  [
-                                                                              {
-                                                                                  "path":  "Mahlobo\\_backups",
-                                                                                  "metric":  {
-                                                                                                 "exists":  true,
-                                                                                                 "files":  0,
-                                                                                                 "bytes":  0,
-                                                                                                 "oldest":  null,
-                                                                                                 "latest":  null
-                                                                                             }
-                                                                              }
-                                                                          ]
-                                                          }
-                                       },
-                                       {
                                            "name":  "umlilo-portal",
                                            "slug":  "umlilo-portal",
                                            "root":  "umlilo-portal",
@@ -661,10 +590,10 @@
                                                           "path":  ".git",
                                                           "metric":  {
                                                                          "exists":  true,
-                                                                         "files":  89,
-                                                                         "bytes":  1892934699,
+                                                                         "files":  136,
+                                                                         "bytes":  1893029204,
                                                                          "oldest":  "2026-05-16T04:41:31.9208941Z",
-                                                                         "latest":  "2026-07-27T22:55:18.1305936Z"
+                                                                         "latest":  "2026-07-28T05:52:50.8341209Z"
                                                                      },
                                                           "classification":  "excluded infrastructure/cache"
                                                       },
@@ -695,9 +624,9 @@
                                                           "metric":  {
                                                                          "exists":  true,
                                                                          "files":  275,
-                                                                         "bytes":  259066750,
+                                                                         "bytes":  259331340,
                                                                          "oldest":  "2026-06-20T14:43:43.6563864Z",
-                                                                         "latest":  "2026-07-27T22:40:40.9175455Z"
+                                                                         "latest":  "2026-07-28T05:16:03.6294663Z"
                                                                      },
                                                           "classification":  "excluded infrastructure/cache"
                                                       }
