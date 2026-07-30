@@ -64,6 +64,7 @@ Active model: Sonnet 5  Status: acceptable per-workspace default; monitor output
 ## Learnings
 - constitution-hook.ps1 ProjectBind rejects nested subfolders like "BlackFire\BlackFire Portal" — must bind to the direct child of c:\DevWork (e.g. "BlackFire") even when the user's actual work is deeper in a subfolder.
 - constitution-hook.ps1 also requires an explicit -SessionId when no provider transcript path is available; pass the harness-provided session UUID.
+- User showed a screenshot of callout CO-150726-0134 (created 2026-07-15, predates this change) still showing old-style Add Quote/Invoice buttons with no visible reversal-scope or split-invoice UI. Confirmed this is expected: (1) that callout predates the new logic, (2) the migration has not been applied to any DB yet (user deferred applying it themselves), so none of the new columns/behavior exist yet anywhere, and (3) the reversal-scope/split-invoice controls live on the Quote/Invoice detail screens, not the callout job-card actions row, so this card was never expected to change appearance.
 
 ## Goal Status
 PENDING
