@@ -1,0 +1,14 @@
+﻿{
+    "provider":  "Claude Code",
+    "session_id":  "6b67fd4f-82a4-490b-ba4d-8dedbb2dae12",
+    "log_path":  "C:\\DevWork\\_workspace\\sessions\\agent_session_claude_code_6b67fd4f-82a_20260730_211952.md",
+    "project_status":  "unresolved",
+    "project_name":  "UNRESOLVED",
+    "project_root":  "",
+    "project_source":  "outside_workspace",
+    "binding_version":  1,
+    "binding_updated_at":  "",
+    "prompt_count":  3,
+    "created_at":  "2026-07-30T21:19:52.4828405+02:00",
+    "updated_at":  "2026-07-30T22:18:28.0647020+02:00"
+}
