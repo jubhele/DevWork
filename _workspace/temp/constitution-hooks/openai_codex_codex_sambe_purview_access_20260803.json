@@ -1,0 +1,14 @@
+﻿{
+    "provider":  "OpenAI Codex",
+    "session_id":  "codex_sambe_purview_access_20260803",
+    "log_path":  "C:\\DevWork\\Sambe\\sessions\\agent_session_openai_codex_codex_sambe__20260803_113134.md",
+    "project_status":  "resolved",
+    "project_name":  "Sambe",
+    "project_root":  "C:\\DevWork\\Sambe",
+    "project_source":  "explicit_user_binding",
+    "binding_version":  1,
+    "binding_updated_at":  "2026-08-03T11:31:41.5396929+02:00",
+    "prompt_count":  4,
+    "created_at":  "2026-08-03T11:31:34.8095472+02:00",
+    "updated_at":  "2026-08-03T12:20:34.9682054+02:00"
+}
