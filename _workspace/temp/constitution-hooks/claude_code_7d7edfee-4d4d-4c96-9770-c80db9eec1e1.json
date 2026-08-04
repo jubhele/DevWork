@@ -1,14 +1,14 @@
 ﻿{
     "provider":  "Claude Code",
     "session_id":  "7d7edfee-4d4d-4c96-9770-c80db9eec1e1",
-    "log_path":  "C:\\DevWork\\_workspace\\sessions\\agent_session_claude_code_7d7edfee-4d4_20260803_102433.md",
-    "project_status":  "unresolved",
-    "project_name":  "UNRESOLVED",
-    "project_root":  "",
-    "project_source":  "outside_workspace",
+    "log_path":  "c:\\DevWork\\_workspace\\sessions\\agent_session_claude_code_7d7edfee-4d4_20260803_102433.md",
+    "project_status":  "resolved",
+    "project_name":  "_workspace",
+    "project_root":  "c:\\DevWork\\_workspace",
+    "project_source":  "explicit_user_binding",
     "binding_version":  1,
-    "binding_updated_at":  "",
-    "prompt_count":  3,
+    "binding_updated_at":  "2026-08-04T10:27:15.4470168+02:00",
+    "prompt_count":  4,
     "created_at":  "2026-08-03T10:24:33.0407569+02:00",
-    "updated_at":  "2026-08-04T08:43:41.5183649+02:00"
+    "updated_at":  "2026-08-04T10:27:15.4470168+02:00"
 }
