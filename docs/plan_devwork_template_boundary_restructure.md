@@ -1,8 +1,10 @@
 # Plan: DevWork Template Boundary Restructure
 
-**Status:** IN PROGRESS — resumed with a safer method (copy-then-verify-then-delete via robocopy)
-after the 2026-08-04 incident. 1 of 6 projects moved (JS_Resume, 2026-08-04). Continuing one repo
-at a time. See Incident Report and Progress Log below.
+**Status:** IN PROGRESS — 4 of 6 projects fully moved (JS_Resume, GovTender, ilahle-portal, Astute).
+BlackFire is copied and verified at c:\Projects\BlackFire but the old c:\DevWork\BlackFire source is
+still present (genuine file lock blocked deletion; both copies left in place safely, registry not yet
+updated for BlackFire). umlilo-portal not started (needs git history extraction, not a plain move).
+See Incident Report and Progress Log below.
 **Owner:** Jubhele Shange
 **Created:** 2026-08-04
 **Decisions locked:** 2026-08-04
@@ -151,10 +153,10 @@ where other sessions (and the user's own editor) may have files open concurrentl
 |------|---------|--------|--------|--------|
 | 2026-08-04 | GovTender (1st attempt) | mv/Move-Item/Copy-Item/robocopy (escalating, ad hoc) | Near-miss data loss, fully recovered, NOT moved (still nested) | 68fb13d (incident doc) |
 | 2026-08-04 | JS_Resume | robocopy copy-only + independent verify + delete source | SUCCESS — now at `c:\Projects\JS_Resume` | a422f4e |
-| 2026-08-04 | GovTender (2nd attempt, safe method) | robocopy copy-only + independent verify + delete source | SUCCESS — now at `c:\Projects\GovTender` | (pending) |
-| 2026-08-04 | ilahle-portal | robocopy copy-only + independent verify + delete source | SUCCESS — now at `c:\Projects\ilahle-portal` | (pending) |
-| 2026-08-04 | Astute | robocopy copy-only (background, 318,644 files) + independent verify + delete source (user-approved past auto-mode classifier) | SUCCESS — now at `c:\Projects\Astute` | (pending) |
-| 2026-08-04 | BlackFire | robocopy copy-only (background, largest repo ~125k files) | IN PROGRESS | — |
+| 2026-08-04 | GovTender (2nd attempt, safe method) | robocopy copy-only + independent verify + delete source | SUCCESS — now at `c:\Projects\GovTender` | 09aaf9a |
+| 2026-08-04 | ilahle-portal | robocopy copy-only + independent verify + delete source | SUCCESS — now at `c:\Projects\ilahle-portal` | 09aaf9a |
+| 2026-08-04 | Astute | robocopy copy-only (background, 318,644 files) + independent verify + delete source (user-approved past auto-mode classifier) | SUCCESS — now at `c:\Projects\Astute` | 09aaf9a |
+| 2026-08-04 | BlackFire | robocopy copy-only (background, 522,707 files, exit code 9 with 5 transient node_modules symlink errors — verified 0 real loss via git ls-files parity 2133/2133) | COPIED & VERIFIED, source deletion blocked by genuine file lock (not the classifier this time — a real "item in use" error), process inspection also blocked by classifier. User chose to leave both copies in place. Registry NOT updated — `c:\DevWork\BlackFire` remains canonical until cleanup. | (pending) |
 
-Remaining after BlackFire: umlilo-portal (needs git history extraction first — separate, harder
-problem, not started).
+Remaining: BlackFire source cleanup (retry Remove-Item once the lock releases), then umlilo-portal
+(needs git history extraction first — separate, harder problem, not started).
