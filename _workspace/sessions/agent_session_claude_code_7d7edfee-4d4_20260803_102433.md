@@ -8,6 +8,7 @@ Project Root: c:\DevWork\_workspace
 ## Project Determination
 Status: resolved
 Source: explicit_user_binding
+Reconfirmed: 2026-08-04 (3) (script fix for commit-all-repos-dynamic.ps1 — same _workspace binding, workspace-wide tooling, no project switch)
 
 ## Goal
 Commit and sync all git repositories under c:\DevWork.
@@ -52,13 +53,21 @@ User reported a routine Git LF/CRLF warning dialog in VS Code (not an actual err
 ## Agent Accountability (update 3)
 | fix-gitattributes-lf-crlf | uMakhi | Claude Code (Sonnet 5) | COMPLETED | 1 | Added .gitattributes to c:\DevWork root, pushed a3aa34b; resolves recurring LF/CRLF warning |
 
+## Resumed 2026-08-04 (3)
+User asked to fix the recurring commit-all-repos-dynamic.ps1 failure on unborn nested repos (Sambe/, temp/project-gate-test/Fresh Project). Backed up script to c:\DevWork\_backups\commit-all-repos-dynamic_backup_20260804_102825.ps1. Added Get-UnbornNestedRepos helper (scans nested .git dirs up to depth 3, flags any where `git rev-parse HEAD` fails = no commits yet). In the commit loop, filtered that list against `git check-ignore` so already-gitignored paths (e.g. anything under temp/) are never passed as explicit exclude pathspecs (git errors if you do), then staged with `git add -A -- . :(exclude)<path>` for any remaining trackable-but-unborn nested repos. Iterated 3 times to fix: (1) unused $ignoreCheck var / PSScriptAnalyzer warning, (2) $_ variable shadowing inside try/catch/ForEach-Object, (3) $ErrorActionPreference=Stop turning git stderr into terminating exceptions before Push-Location cleanup. Verified live: script now skips Sambe and Fresh Project cleanly, commits/pushes everything else in DevWork root. Pushed d8dc235 (script fix + prior JSON binding-state diffs).
+
+## Agent Accountability (update 4)
+| fix-commit-script-unborn-nested-repos | uMakhi | Claude Code (Sonnet 5) | COMPLETED | 3 | Patched commit-all-repos-dynamic.ps1 to skip zero-commit nested repos during git add -A; verified live run; pushed d8dc235 |
+
 ## Blockers / Next Steps
-- Sambe/ still has no initial commit and no remote — needs a decision (standalone commit vs. absorb vs. leave) before it can be included in future workspace-wide sync runs. This is now a recurring manual workaround across 3 sync runs.
+- Sambe/ still has no initial commit and no remote — the script now skips it safely instead of failing, but it still needs a decision (standalone commit vs. absorb vs. leave) to actually get version-controlled.
 
 ## Learnings
-- commit-all-repos-dynamic.ps1 does not handle nested repos with zero commits (embedded gitlink with no commit checked out) — it errors on `git add -A` for the whole root repo, not just the offending path. Consider hardening the script to auto-exclude such paths in future.
+- commit-all-repos-dynamic.ps1 previously could not handle nested repos with zero commits (embedded gitlink with no commit checked out) — it errored on `git add -A` for the whole root repo, not just the offending path. Fixed by detecting unborn-HEAD nested repos and excluding them via pathspec, while skipping the exclude for paths already covered by .gitignore (git errors on explicit ignored-path pathspecs).
+- PowerShell gotcha: `$ErrorActionPreference = 'Stop'` at script scope converts native command stderr into terminating exceptions inside functions — must wrap external git calls expected to "fail" (e.g. probing unborn HEAD) in try/catch, not just check $LASTEXITCODE.
+- PowerShell gotcha: reusing `$_` as a loop variable name inside a nested try/catch under ForEach-Object shadows the pipeline variable in the catch block — capture needed values into a named variable before entering try/catch.
 - Workspace root had no .gitattributes despite mixed-OS line-ending exposure (PowerShell scripts vs. markdown/JSON authored with LF); this should be part of standard new-workspace setup going forward, not a reactive fix.
-- No trust-score divergence observed; routine ops task, Haiku-tier work executed fine on active model.
+- No trust-score divergence observed; routine ops/scripting task, Haiku-tier work executed fine on active model, though the multi-iteration debugging (3 fix passes) suggests Sonnet-tier was appropriate here rather than a pure Tier-1 lookup.
 
 ## Goal Status
 PENDING
