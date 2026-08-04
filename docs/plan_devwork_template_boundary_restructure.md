@@ -1,15 +1,16 @@
 # Plan: DevWork Template Boundary Restructure
 
-**Status:** IN PROGRESS — 4 of 6 projects fully moved (JS_Resume, GovTender, ilahle-portal, Astute).
-BlackFire is copied and verified at c:\Projects\BlackFire but the old c:\DevWork\BlackFire source is
-still present (genuine file lock blocked deletion; both copies left in place safely, registry not yet
-updated for BlackFire). umlilo-portal not started (needs git history extraction, not a plain move).
-See Incident Report and Progress Log below.
+**Status:** COMPLETE — all 5 remaining tracked projects (Astute, BlackFire, GovTender, ilahle-portal,
+JS_Resume) live at c:\Projects\<name>, verified end to end. umlilo-portal's history was extracted
+into a standalone repo but then deleted entirely per explicit user decision (no live files worth
+keeping) rather than kept or pushed to a new remote. c:\DevWork root is now a genuinely clean
+template repo containing no project application code. See Incident Report and Progress Log below.
 **Owner:** Jubhele Shange
 **Created:** 2026-08-04
 **Decisions locked:** 2026-08-04
 **Incident:** 2026-08-04 — see below, resolved with zero data loss
 **Resumed:** 2026-08-04, using the safer method specified in the incident report
+**Completed:** 2026-08-04
 
 ## Problem
 
@@ -156,7 +157,20 @@ where other sessions (and the user's own editor) may have files open concurrentl
 | 2026-08-04 | GovTender (2nd attempt, safe method) | robocopy copy-only + independent verify + delete source | SUCCESS — now at `c:\Projects\GovTender` | 09aaf9a |
 | 2026-08-04 | ilahle-portal | robocopy copy-only + independent verify + delete source | SUCCESS — now at `c:\Projects\ilahle-portal` | 09aaf9a |
 | 2026-08-04 | Astute | robocopy copy-only (background, 318,644 files) + independent verify + delete source (user-approved past auto-mode classifier) | SUCCESS — now at `c:\Projects\Astute` | 09aaf9a |
-| 2026-08-04 | BlackFire | robocopy copy-only (background, 522,707 files, exit code 9 with 5 transient node_modules symlink errors — verified 0 real loss via git ls-files parity 2133/2133) | COPIED & VERIFIED, source deletion blocked by genuine file lock (not the classifier this time — a real "item in use" error), process inspection also blocked by classifier. User chose to leave both copies in place. Registry NOT updated — `c:\DevWork\BlackFire` remains canonical until cleanup. | (pending) |
+| 2026-08-04 | BlackFire | robocopy copy-only (background, 522,707 files, exit code 9 with 5 transient node_modules symlink errors — verified 0 real loss via git ls-files parity 2133/2133) | COPIED & VERIFIED, first deletion attempt blocked by genuine file lock; second attempt (after time passed) blocked by auto-mode classifier instead — user gave final explicit approval, deletion succeeded | 4bfef80 |
+| 2026-08-04 | umlilo-portal | git filter-repo extraction (--path umlilo-portal/) from a disposable DevWork clone into a new standalone repo, reconciled with live disk state (robocopy overlay), 24 total commits | EXTRACTED & VERIFIED (zero source loss confirmed — only 1 harmless auto-generated file differed from live disk after filtering gitignored content), then DELETED ENTIRELY per explicit user decision (no live files worth keeping) rather than pushed to a new GitHub remote | (local only, not committed to DevWork) |
 
-Remaining: BlackFire source cleanup (retry Remove-Item once the lock releases), then umlilo-portal
-(needs git history extraction first — separate, harder problem, not started).
+Restructure complete. c:\DevWork root contains no application code for any of the 6 originally
+nested projects. 5 projects now live at c:\Projects\<name>; umlilo-portal was deliberately not
+preserved per user decision.
+
+## Follow-up items (not yet done)
+
+1. `update-workspace-index.ps1`'s `WORKSPACE_INDEX.md` markdown link generation will render
+   incorrect relative links for these external (non-nested) project roots — needs a fix.
+2. Provider mirrors (`AGENTS.md`, `.github/copilot-instructions.md`, `.cursor/rules/constitution.mdc`)
+   and the architecture guide's §4.2 File System Layout still describe the old nested-only tree.
+3. `WORKSPACE_INDEX.md` should be regenerated once (1) is fixed.
+4. An unrelated top-level `BlackFire Portal` folder (space in the name, no `.git`) still exists
+   directly under `c:\DevWork` — not one of the 6 originally-tracked projects, left untouched as
+   out of scope for this restructure; flagged for the user's awareness.
