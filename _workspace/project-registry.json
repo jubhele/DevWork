@@ -10,8 +10,8 @@
     },
     {
       "name": "BlackFire",
-      "root": "c:\\DevWork\\BlackFire",
-      "status": "nested"
+      "root": "c:\\Projects\\BlackFire",
+      "status": "sibling"
     },
     {
       "name": "GovTender",
