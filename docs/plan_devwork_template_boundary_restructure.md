@@ -169,9 +169,14 @@ preserved per user decision.
 1. ~~`update-workspace-index.ps1`'s `WORKSPACE_INDEX.md` markdown link generation renders incorrect
    links for external (non-nested) project roots~~ — **FIXED 2026-08-04** (`c7fc981`): added
    `Get-MarkdownLinkTarget`, wraps absolute paths in a `file:///` URI; verified against all 5 projects.
-2. Provider mirrors (`AGENTS.md`, `.github/copilot-instructions.md`, `.cursor/rules/constitution.mdc`)
-   and the architecture guide's §4.2 File System Layout still describe the old nested-only tree —
-   **not yet done**.
+2. ~~Provider mirrors and the architecture guide's §4.2 File System Layout still described the old
+   nested-only tree~~ — **FIXED 2026-08-04** (`5e4df3e`): updated `CLAUDE.md`, `AGENTS.md`,
+   `.github/copilot-instructions.md`, `.cursor/rules/constitution.mdc`, all three `.kiro/steering/*.md`
+   files, `.factory/config.yaml`, and the architecture guide §4.2 to describe the sibling-repo layout
+   at `c:\Projects\<name>`. Also cleaned up ~20 dead `BlackFire/BlackFire Portal/*` patterns from
+   `.gitignore` that could never match anything now that BlackFire lives outside DevWork, and
+   consolidated stale "Umlilo Portal" references (that project was absorbed into BlackFire) into a
+   single BlackFire entry across Kiro's `product.md`/`tech.md` and Factory's `config.yaml`.
 3. An unrelated top-level `BlackFire Portal` folder (space in the name, no `.git`) still exists
    directly under `c:\DevWork` — not one of the 6 originally-tracked projects, left untouched as
    out of scope for this restructure; flagged for the user's awareness.
