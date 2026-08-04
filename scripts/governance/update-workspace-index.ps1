@@ -30,7 +30,10 @@ function Get-RelativePath {
     $root = [IO.Path]::GetFullPath($WorkspaceRoot).TrimEnd('\')
     $full = [IO.Path]::GetFullPath($Path)
     if ($full.Equals($root, [StringComparison]::OrdinalIgnoreCase)) { return '.' }
-    return $full.Substring($root.Length).TrimStart('\')
+    if ($full.StartsWith($root + '\', [StringComparison]::OrdinalIgnoreCase)) {
+        return $full.Substring($root.Length).TrimStart('\')
+    }
+    return $full
 }
 
 function Get-DirectoryMetric {
@@ -66,6 +69,23 @@ function Write-AtomicUtf8 {
     return $true
 }
 
+function Get-RegisteredProjectRoots {
+    $registryPath = Join-Path $WorkspaceRoot '_workspace\project-registry.json'
+    if (-not (Test-Path -LiteralPath $registryPath)) { return @() }
+    try {
+        $registry = Get-Content -LiteralPath $registryPath -Raw -Encoding utf8 | ConvertFrom-Json
+    } catch {
+        return @()
+    }
+    $roots = New-Object System.Collections.Generic.List[string]
+    foreach ($project in $registry.projects) {
+        $root = [string]$project.root
+        if ([string]::IsNullOrWhiteSpace($root)) { continue }
+        if (Test-Path -LiteralPath $root -PathType Container) { $roots.Add((Get-Item -LiteralPath $root).FullName) }
+    }
+    return @($roots)
+}
+
 function Get-ProjectRoots {
     $skip = @(
         '.agents', '.claude', '.codex', '.cursor', '.factory', '.git', '.github', '.gstack', '.kiro',
@@ -82,6 +102,7 @@ function Get-ProjectRoots {
         }
         if ($isProject) { $roots.Add($directory.FullName) }
     }
+    foreach ($registeredRoot in Get-RegisteredProjectRoots) { $roots.Add($registeredRoot) }
     $roots.Add((Join-Path $WorkspaceRoot '_workspace'))
     return @($roots | Sort-Object -Unique)
 }
@@ -114,6 +135,7 @@ function Get-ProjectSummary {
         name = $name
         slug = $slug
         root = Get-RelativePath $ProjectRoot
+        full_root = [IO.Path]::GetFullPath($ProjectRoot).TrimEnd('\')
         standalone_repository = (Test-Path -LiteralPath (Join-Path $ProjectRoot '.git'))
         artifact_index = Get-RelativePath (Join-Path $ProjectRoot 'ARTIFACT_INDEX.md')
         categories = $categories
@@ -206,7 +228,7 @@ if (Test-Path -LiteralPath $manifestPath) {
 
 $changed = ($inventoryJson -ne $previousInventoryJson)
 foreach ($project in $projects) {
-    $projectRoot = Join-Path $WorkspaceRoot $project.root
+    $projectRoot = $project.full_root
     $projectMarkdown = Get-ProjectMarkdown $project
     $projectJson = $project | ConvertTo-Json -Depth 12
     if (Write-AtomicUtf8 (Join-Path $projectRoot 'ARTIFACT_INDEX.md') $projectMarkdown) { $changed = $true }

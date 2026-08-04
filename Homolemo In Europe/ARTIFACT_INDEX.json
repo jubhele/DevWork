@@ -2,6 +2,7 @@
     "name":  "Homolemo In Europe",
     "slug":  "homolemo-in-europe",
     "root":  "Homolemo In Europe",
+    "full_root":  "C:\\DevWork\\Homolemo In Europe",
     "standalone_repository":  false,
     "artifact_index":  "Homolemo In Europe\\ARTIFACT_INDEX.md",
     "categories":  {

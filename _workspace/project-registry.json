@@ -1,0 +1,37 @@
+{
+  "$schema_note": "Single source of truth for project root paths. constitution-hook.ps1, initialize-project.ps1, update-workspace-index.ps1, and commit-all-repos-dynamic.ps1 read this instead of assuming projects are nested under DevWork. See docs/plan_devwork_template_boundary_restructure.md.",
+  "version": 1,
+  "updated_at": "2026-08-04T00:00:00+02:00",
+  "projects": [
+    {
+      "name": "Astute",
+      "root": "c:\\DevWork\\Astute",
+      "status": "nested"
+    },
+    {
+      "name": "BlackFire",
+      "root": "c:\\DevWork\\BlackFire",
+      "status": "nested"
+    },
+    {
+      "name": "GovTender",
+      "root": "c:\\DevWork\\GovTender",
+      "status": "nested"
+    },
+    {
+      "name": "ilahle-portal",
+      "root": "c:\\DevWork\\ilahle-portal",
+      "status": "nested"
+    },
+    {
+      "name": "JS_Resume",
+      "root": "c:\\DevWork\\JS_Resume",
+      "status": "nested"
+    },
+    {
+      "name": "umlilo-portal",
+      "root": "c:\\DevWork\\umlilo-portal",
+      "status": "nested"
+    }
+  ]
+}

@@ -24,8 +24,9 @@ if ($reserved -contains $ProjectName.Trim().ToLowerInvariant()) { throw "Reserve
 
 $target = if ([string]::IsNullOrWhiteSpace($ProjectRoot)) { Join-Path $workspace $ProjectName.Trim() } else { $ProjectRoot }
 $target = Get-NormalizedPath $target
-if (-not $target.StartsWith($workspace + '\', [StringComparison]::OrdinalIgnoreCase)) { throw "Project root must stay inside $workspace" }
-if ((Split-Path $target -Parent) -ne $workspace) { throw 'New projects must be direct children of the workspace root.' }
+$isNestedTarget = $target.StartsWith($workspace + '\', [StringComparison]::OrdinalIgnoreCase)
+if ($isNestedTarget -and (Split-Path $target -Parent) -ne $workspace) { throw 'New nested projects must be direct children of the workspace root.' }
+if (-not $isNestedTarget -and [string]::IsNullOrWhiteSpace($ProjectRoot)) { throw "Project root must stay inside $workspace unless -ProjectRoot is explicitly supplied." }
 if ((Split-Path $target -Leaf) -ne $ProjectName.Trim()) { throw 'ProjectName must exactly match the target folder name.' }
 
 $targetBytes = [Text.Encoding]::UTF8.GetBytes($target.ToLowerInvariant())
@@ -101,6 +102,25 @@ try {
         }
     }
 
+    $registryPath = Join-Path $workspace '_workspace\project-registry.json'
+    if (Test-Path -LiteralPath $registryPath) {
+        try {
+            $registry = Get-Content -LiteralPath $registryPath -Raw -Encoding utf8 | ConvertFrom-Json
+            $already = $registry.projects | Where-Object { $_.root.TrimEnd('\').Equals($target, [StringComparison]::OrdinalIgnoreCase) }
+            if (-not $already) {
+                $registry.projects += [pscustomobject]@{
+                    name = $ProjectName.Trim()
+                    root = $target
+                    status = if ($isNestedTarget) { 'nested' } else { 'sibling' }
+                }
+                $registry.updated_at = (Get-Date).ToString('o')
+                $registry | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $registryPath -Encoding utf8
+            }
+        } catch {
+            # Registry update is best-effort; creation must not fail because of it.
+        }
+    }
+
     [pscustomobject]@{
         status = if ($exists) { 'ADOPTED' } else { 'CREATED' }
         project_name = $ProjectName.Trim()
@@ -111,7 +131,8 @@ try {
 } catch {
     if ($stage -and (Test-Path -LiteralPath $stage)) {
         $resolvedStage = Get-NormalizedPath $stage
-        if ($resolvedStage.StartsWith($workspace + '\', [StringComparison]::OrdinalIgnoreCase) -and $resolvedStage -like '*.creating-*') {
+        $stageParent = Split-Path $target -Parent
+        if ($resolvedStage.StartsWith($stageParent + '\', [StringComparison]::OrdinalIgnoreCase) -and $resolvedStage -like '*.creating-*') {
             Remove-Item -LiteralPath $resolvedStage -Recurse -Force
         }
     }

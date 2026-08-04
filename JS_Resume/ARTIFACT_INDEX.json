@@ -2,6 +2,7 @@
     "name":  "JS_Resume",
     "slug":  "js-resume",
     "root":  "JS_Resume",
+    "full_root":  "C:\\DevWork\\JS_Resume",
     "standalone_repository":  true,
     "artifact_index":  "JS_Resume\\ARTIFACT_INDEX.md",
     "categories":  {
@@ -10,10 +11,10 @@
                                             "path":  "JS_Resume\\sessions",
                                             "metric":  {
                                                            "exists":  true,
-                                                           "files":  15,
-                                                           "bytes":  24729,
+                                                           "files":  16,
+                                                           "bytes":  25807,
                                                            "oldest":  "2026-06-21T17:18:56.7670315Z",
-                                                           "latest":  "2026-07-22T15:08:47.2549861Z"
+                                                           "latest":  "2026-08-04T09:00:50.5462873Z"
                                                        }
                                         }
                                     ],

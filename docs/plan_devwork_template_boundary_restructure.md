@@ -1,8 +1,9 @@
 # Plan: DevWork Template Boundary Restructure
 
-**Status:** Draft — not started
+**Status:** Approved — decisions locked, implementation starting
 **Owner:** Jubhele Shange
 **Created:** 2026-08-04
+**Decisions locked:** 2026-08-04
 
 ## Problem
 
@@ -59,16 +60,15 @@ mirrors, `agents/`, `scripts/`, `.env.example`, `_workspace/` control-plane, and
     `.gitignore` / tracked file list no longer needs the exclusions that existed to keep nested repos
     out of DevWork's own git tracking (check current `.gitignore` for `BlackFire/`-style entries).
 
-## Open questions for the user
+## Decisions (locked 2026-08-04)
 
-- Target location: `c:\Projects\<name>`, `c:\DevWork-Projects\<name>`, or something else?
-- Should `design/` (brand tokens) stay centralized in DevWork, or move per-project?
-- Do this as one atomic session, or incrementally (one project repo at a time, verifying hooks/scripts
-  still work before moving the next)?
-- Should the "registered project roots" list live in a new config file (e.g.
-  `_workspace/project-registry.json`) that `constitution-hook.ps1`, `initialize-project.ps1`, and
-  `commit-all-repos-dynamic.ps1` all read from, so there's one place to add/remove a project root
-  instead of updating three scripts every time?
+- **Target location:** `c:\Projects\<name>` (e.g. `c:\Projects\BlackFire`).
+- **`design/` folder:** stays centralized in DevWork (shared reference material, like the
+  constitution — not app code).
+- **Move approach:** incremental, one project repo at a time. Start with the lowest-risk repo
+  (JS_Resume or GovTender), verify the full tooling chain end to end, then repeat.
+- **Project registry:** yes — introduce `_workspace/project-registry.json` as the single source of
+  truth for project root paths. All governance scripts read from it instead of assuming nesting.
 
 ## Suggested approach (once confirmed)
 

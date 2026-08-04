@@ -2,6 +2,7 @@
     "name":  "umlilo-portal",
     "slug":  "umlilo-portal",
     "root":  "umlilo-portal",
+    "full_root":  "C:\\DevWork\\umlilo-portal",
     "standalone_repository":  false,
     "artifact_index":  "umlilo-portal\\ARTIFACT_INDEX.md",
     "categories":  {

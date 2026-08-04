@@ -1,13 +1,14 @@
 ﻿{
     "schema_version":  "1.0",
-    "generated_at":  "2026-08-03T21:30:04.9890416Z",
-    "triggered_by":  "_workspace\\sessions\\agent_session_claude_code_e2aa1eb3-f8d_20260803_232441.md",
+    "generated_at":  "2026-08-04T10:38:12.2340887Z",
+    "triggered_by":  "manual/full audit",
     "inventory":  {
                       "projects":  [
                                        {
                                            "name":  "_workspace",
                                            "slug":  "_workspace",
                                            "root":  "_workspace",
+                                           "full_root":  "C:\\DevWork\\_workspace",
                                            "standalone_repository":  false,
                                            "artifact_index":  "_workspace\\ARTIFACT_INDEX.md",
                                            "categories":  {
@@ -16,10 +17,10 @@
                                                                                    "path":  "_workspace\\sessions",
                                                                                    "metric":  {
                                                                                                   "exists":  true,
-                                                                                                  "files":  92,
-                                                                                                  "bytes":  357464,
+                                                                                                  "files":  94,
+                                                                                                  "bytes":  374639,
                                                                                                   "oldest":  "2026-07-10T15:25:04.0231230Z",
-                                                                                                  "latest":  "2026-08-03T21:30:02.1813875Z"
+                                                                                                  "latest":  "2026-08-04T09:00:28.3863887Z"
                                                                                               }
                                                                                }
                                                                            ],
@@ -52,10 +53,10 @@
                                                                                "path":  "_workspace\\temp",
                                                                                "metric":  {
                                                                                               "exists":  true,
-                                                                                              "files":  203,
-                                                                                              "bytes":  152538,
+                                                                                              "files":  206,
+                                                                                              "bytes":  154321,
                                                                                               "oldest":  "2026-07-09T07:43:24.4961452Z",
-                                                                                              "latest":  "2026-08-03T21:30:02.0808810Z"
+                                                                                              "latest":  "2026-08-04T10:38:00.1739889Z"
                                                                                           }
                                                                            }
                                                                        ],
@@ -89,6 +90,7 @@
                                            "name":  "Astute",
                                            "slug":  "astute",
                                            "root":  "Astute",
+                                           "full_root":  "C:\\DevWork\\Astute",
                                            "standalone_repository":  true,
                                            "artifact_index":  "Astute\\ARTIFACT_INDEX.md",
                                            "categories":  {
@@ -162,6 +164,7 @@
                                            "name":  "BlackFire",
                                            "slug":  "blackfire",
                                            "root":  "BlackFire",
+                                           "full_root":  "C:\\DevWork\\BlackFire",
                                            "standalone_repository":  true,
                                            "artifact_index":  "BlackFire\\ARTIFACT_INDEX.md",
                                            "categories":  {
@@ -170,10 +173,10 @@
                                                                                    "path":  "BlackFire\\sessions",
                                                                                    "metric":  {
                                                                                                   "exists":  true,
-                                                                                                  "files":  288,
-                                                                                                  "bytes":  1336385,
+                                                                                                  "files":  291,
+                                                                                                  "bytes":  1364579,
                                                                                                   "oldest":  "2026-06-23T09:19:04.0991484Z",
-                                                                                                  "latest":  "2026-08-03T21:25:24.0189570Z"
+                                                                                                  "latest":  "2026-08-04T10:36:11.2443364Z"
                                                                                               }
                                                                                }
                                                                            ],
@@ -231,10 +234,10 @@
                                                                                   "path":  "BlackFire\\_backups",
                                                                                   "metric":  {
                                                                                                  "exists":  true,
-                                                                                                 "files":  593,
-                                                                                                 "bytes":  50289528,
+                                                                                                 "files":  594,
+                                                                                                 "bytes":  50826658,
                                                                                                  "oldest":  "2026-05-20T18:52:51.5184565Z",
-                                                                                                 "latest":  "2026-08-03T08:46:44.7759409Z"
+                                                                                                 "latest":  "2026-08-03T22:44:24.0459741Z"
                                                                                              }
                                                                               }
                                                                           ]
@@ -244,6 +247,7 @@
                                            "name":  "GovTender",
                                            "slug":  "govtender",
                                            "root":  "GovTender",
+                                           "full_root":  "C:\\DevWork\\GovTender",
                                            "standalone_repository":  true,
                                            "artifact_index":  "GovTender\\ARTIFACT_INDEX.md",
                                            "categories":  {
@@ -298,6 +302,7 @@
                                            "name":  "Homolemo In Europe",
                                            "slug":  "homolemo-in-europe",
                                            "root":  "Homolemo In Europe",
+                                           "full_root":  "C:\\DevWork\\Homolemo In Europe",
                                            "standalone_repository":  false,
                                            "artifact_index":  "Homolemo In Europe\\ARTIFACT_INDEX.md",
                                            "categories":  {
@@ -352,6 +357,7 @@
                                            "name":  "ilahle-portal",
                                            "slug":  "ilahle-portal",
                                            "root":  "ilahle-portal",
+                                           "full_root":  "C:\\DevWork\\ilahle-portal",
                                            "standalone_repository":  true,
                                            "artifact_index":  "ilahle-portal\\ARTIFACT_INDEX.md",
                                            "categories":  {
@@ -406,6 +412,7 @@
                                            "name":  "JS_Resume",
                                            "slug":  "js-resume",
                                            "root":  "JS_Resume",
+                                           "full_root":  "C:\\DevWork\\JS_Resume",
                                            "standalone_repository":  true,
                                            "artifact_index":  "JS_Resume\\ARTIFACT_INDEX.md",
                                            "categories":  {
@@ -414,10 +421,10 @@
                                                                                    "path":  "JS_Resume\\sessions",
                                                                                    "metric":  {
                                                                                                   "exists":  true,
-                                                                                                  "files":  15,
-                                                                                                  "bytes":  24729,
+                                                                                                  "files":  16,
+                                                                                                  "bytes":  25807,
                                                                                                   "oldest":  "2026-06-21T17:18:56.7670315Z",
-                                                                                                  "latest":  "2026-07-22T15:08:47.2549861Z"
+                                                                                                  "latest":  "2026-08-04T09:00:50.5462873Z"
                                                                                               }
                                                                                }
                                                                            ],
@@ -466,90 +473,10 @@
                                                           }
                                        },
                                        {
-                                           "name":  "Sambe",
-                                           "slug":  "sambe",
-                                           "root":  "Sambe",
-                                           "standalone_repository":  true,
-                                           "artifact_index":  "Sambe\\ARTIFACT_INDEX.md",
-                                           "categories":  {
-                                                              "sessions":  [
-                                                                               {
-                                                                                   "path":  "Sambe\\sessions",
-                                                                                   "metric":  {
-                                                                                                  "exists":  true,
-                                                                                                  "files":  5,
-                                                                                                  "bytes":  15876,
-                                                                                                  "oldest":  "2026-08-03T09:33:08.2833557Z",
-                                                                                                  "latest":  "2026-08-03T10:20:19.7097213Z"
-                                                                                              }
-                                                                               }
-                                                                           ],
-                                                              "artifacts":  [
-                                                                                {
-                                                                                    "path":  "Sambe\\artifacts",
-                                                                                    "metric":  {
-                                                                                                   "exists":  true,
-                                                                                                   "files":  6,
-                                                                                                   "bytes":  1842122,
-                                                                                                   "oldest":  "2026-08-03T09:52:02.6375128Z",
-                                                                                                   "latest":  "2026-08-03T10:15:37.9756895Z"
-                                                                                               }
-                                                                                }
-                                                                            ],
-                                                              "archive":  [
-                                                                              {
-                                                                                  "path":  "Sambe\\archive",
-                                                                                  "metric":  {
-                                                                                                 "exists":  true,
-                                                                                                 "files":  0,
-                                                                                                 "bytes":  0,
-                                                                                                 "oldest":  null,
-                                                                                                 "latest":  null
-                                                                                             }
-                                                                              }
-                                                                          ],
-                                                              "temp":  [
-                                                                           {
-                                                                               "path":  "Sambe\\temp",
-                                                                               "metric":  {
-                                                                                              "exists":  true,
-                                                                                              "files":  256,
-                                                                                              "bytes":  18606465,
-                                                                                              "oldest":  "2026-08-03T09:51:54.8331056Z",
-                                                                                              "latest":  "2026-08-03T10:17:44.8812001Z"
-                                                                                          }
-                                                                           }
-                                                                       ],
-                                                              "logs":  [
-                                                                           {
-                                                                               "path":  "Sambe\\logs",
-                                                                               "metric":  {
-                                                                                              "exists":  true,
-                                                                                              "files":  0,
-                                                                                              "bytes":  0,
-                                                                                              "oldest":  null,
-                                                                                              "latest":  null
-                                                                                          }
-                                                                           }
-                                                                       ],
-                                                              "backups":  [
-                                                                              {
-                                                                                  "path":  "Sambe\\_backups",
-                                                                                  "metric":  {
-                                                                                                 "exists":  true,
-                                                                                                 "files":  1,
-                                                                                                 "bytes":  1070,
-                                                                                                 "oldest":  "2026-08-03T09:31:41.5139195Z",
-                                                                                                 "latest":  "2026-08-03T09:31:41.5139195Z"
-                                                                                             }
-                                                                              }
-                                                                          ]
-                                                          }
-                                       },
-                                       {
                                            "name":  "umlilo-portal",
                                            "slug":  "umlilo-portal",
                                            "root":  "umlilo-portal",
+                                           "full_root":  "C:\\DevWork\\umlilo-portal",
                                            "standalone_repository":  false,
                                            "artifact_index":  "umlilo-portal\\ARTIFACT_INDEX.md",
                                            "categories":  {
@@ -617,10 +544,10 @@
                                                      "path":  "_backups",
                                                      "metric":  {
                                                                     "exists":  true,
-                                                                    "files":  92,
-                                                                    "bytes":  2386843,
+                                                                    "files":  93,
+                                                                    "bytes":  2394591,
                                                                     "oldest":  "2026-05-16T05:02:32.9205247Z",
-                                                                    "latest":  "2026-07-22T05:59:51.3882416Z"
+                                                                    "latest":  "2026-08-04T08:28:25.2805663Z"
                                                                 }
                                                  },
                                                  {
@@ -671,10 +598,10 @@
                                                           "path":  ".git",
                                                           "metric":  {
                                                                          "exists":  true,
-                                                                         "files":  64,
-                                                                         "bytes":  1881402928,
+                                                                         "files":  135,
+                                                                         "bytes":  1881594098,
                                                                          "oldest":  "2026-05-16T04:41:31.9208941Z",
-                                                                         "latest":  "2026-08-03T21:28:10.1563936Z"
+                                                                         "latest":  "2026-08-04T10:35:40.4935608Z"
                                                                      },
                                                           "classification":  "excluded infrastructure/cache"
                                                       },

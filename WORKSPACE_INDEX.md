@@ -1,8 +1,8 @@
 ﻿# DevWork Workspace Index
 
-Generated: 2026-08-03T21:30:04.9890416Z
+Generated: 2026-08-04T10:38:12.2340887Z
 Schema: 1.0
-Trigger: `_workspace\sessions\agent_session_claude_code_e2aa1eb3-f8d_20260803_232441.md`
+Trigger: `manual/full audit`
 
 This is a discovery map. Canonical sessions and artifacts remain below their owning project roots.
 
@@ -10,14 +10,13 @@ This is a discovery map. Canonical sessions and artifacts remain below their own
 
 | Project | Root | Repository | Sessions | Artifacts | Archive | Temp | Backups | Index |
 |---------|------|------------|---------:|----------:|--------:|-----:|--------:|-------|
-| _workspace | `_workspace` | No | 92 | 0 | 0 | 203 | 6 | [_workspace](_workspace/ARTIFACT_INDEX.md) |
+| _workspace | `_workspace` | No | 94 | 0 | 0 | 206 | 6 | [_workspace](_workspace/ARTIFACT_INDEX.md) |
 | Astute | `Astute` | Yes | 5 | 8 | 0 | 0 | 16 | [astute](Astute/ARTIFACT_INDEX.md) |
-| BlackFire | `BlackFire` | Yes | 288 | 41 | 0 | 233 | 593 | [blackfire](BlackFire/ARTIFACT_INDEX.md) |
+| BlackFire | `BlackFire` | Yes | 291 | 41 | 0 | 233 | 594 | [blackfire](BlackFire/ARTIFACT_INDEX.md) |
 | GovTender | `GovTender` | Yes | 4 | 0 | 0 | 0 | 7 | [govtender](GovTender/ARTIFACT_INDEX.md) |
 | Homolemo In Europe | `Homolemo In Europe` | No | 10 | 0 | 0 | 9 | 6 | [homolemo-in-europe](Homolemo In Europe/ARTIFACT_INDEX.md) |
 | ilahle-portal | `ilahle-portal` | Yes | 6 | 9 | 0 | 0 | 63 | [ilahle-portal](ilahle-portal/ARTIFACT_INDEX.md) |
-| JS_Resume | `JS_Resume` | Yes | 15 | 7 | 0 | 0 | 33 | [js-resume](JS_Resume/ARTIFACT_INDEX.md) |
-| Sambe | `Sambe` | Yes | 5 | 6 | 0 | 256 | 1 | [sambe](Sambe/ARTIFACT_INDEX.md) |
+| JS_Resume | `JS_Resume` | Yes | 16 | 7 | 0 | 0 | 33 | [js-resume](JS_Resume/ARTIFACT_INDEX.md) |
 | umlilo-portal | `umlilo-portal` | No | 7 | 0 | 0 | 0 | 207 | [umlilo-portal](umlilo-portal/ARTIFACT_INDEX.md) |
 
 ## Legacy Root Stores Requiring Migration
@@ -26,7 +25,7 @@ This is a discovery map. Canonical sessions and artifacts remain below their own
 |------|------:|----------:|--------|
 | `sessions` | 356 | 3.7 | 2026-07-16T09:35:08.0884474Z |
 | `temp` | 2365 | 311.7 | 2026-07-22T16:56:15.7044599Z |
-| `_backups` | 92 | 2.28 | 2026-07-22T05:59:51.3882416Z |
+| `_backups` | 93 | 2.28 | 2026-08-04T08:28:25.2805663Z |
 | `chatsessions` | 1 | 0 | 2026-05-16T05:18:29.4610462Z |
 | `logs` | 1 | 0 | 2026-06-24T22:39:02.9801990Z |
 

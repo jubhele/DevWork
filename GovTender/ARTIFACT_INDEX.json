@@ -2,6 +2,7 @@
     "name":  "GovTender",
     "slug":  "govtender",
     "root":  "GovTender",
+    "full_root":  "C:\\DevWork\\GovTender",
     "standalone_repository":  true,
     "artifact_index":  "GovTender\\ARTIFACT_INDEX.md",
     "categories":  {

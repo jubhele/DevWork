@@ -8,6 +8,27 @@ param (
 $ErrorActionPreference = 'Stop'
 $excludeDirs = @('node_modules', '.pnpm-store', 'temp', '_backups', '.next', 'dist', 'build', '.venv')
 
+function Get-RegisteredRepositoryPaths {
+    param ([string]$SearchRoot)
+
+    $registryPath = Join-Path $SearchRoot '_workspace\project-registry.json'
+    if (-not (Test-Path -LiteralPath $registryPath)) { return @() }
+    try {
+        $registry = Get-Content -LiteralPath $registryPath -Raw -Encoding utf8 | ConvertFrom-Json
+    } catch {
+        return @()
+    }
+    $paths = New-Object System.Collections.Generic.List[string]
+    foreach ($project in $registry.projects) {
+        $root = [string]$project.root
+        if ([string]::IsNullOrWhiteSpace($root)) { continue }
+        if (Test-Path -LiteralPath (Join-Path $root '.git')) {
+            $paths.Add((Get-Item -LiteralPath $root).FullName)
+        }
+    }
+    return @($paths)
+}
+
 function Get-RepositoryPaths {
     param ([string]$SearchRoot)
 
@@ -27,6 +48,10 @@ function Get-RepositoryPaths {
         ForEach-Object {
             $null = $paths.Add($_.FullName)
         }
+
+    foreach ($registeredPath in (Get-RegisteredRepositoryPaths -SearchRoot $SearchRoot)) {
+        $null = $paths.Add($registeredPath)
+    }
 
     return @($paths | Sort-Object)
 }

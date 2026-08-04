@@ -82,12 +82,37 @@ function Copy-SessionMirror {
     }
 }
 
+function Get-RegisteredProjectRoot {
+    param([string]$Candidate, [string]$Workspace)
+    $registryPath = Join-Path (Join-Path $Workspace '_workspace') 'project-registry.json'
+    if (-not (Test-Path -LiteralPath $registryPath)) { return $null }
+    try {
+        $registry = Get-Content -LiteralPath $registryPath -Raw -Encoding utf8 | ConvertFrom-Json
+    } catch {
+        return $null
+    }
+    foreach ($project in $registry.projects) {
+        $registeredRoot = [string]$project.root
+        if ([string]::IsNullOrWhiteSpace($registeredRoot)) { continue }
+        $normalizedRoot = $registeredRoot.TrimEnd('\')
+        if ($Candidate.Equals($normalizedRoot, [StringComparison]::OrdinalIgnoreCase) -or
+            $Candidate.StartsWith($normalizedRoot + '\', [StringComparison]::OrdinalIgnoreCase)) {
+            return $normalizedRoot
+        }
+    }
+    return $null
+}
+
 function Resolve-ProjectRoot {
     param([string]$WorkingDirectory)
     $workspace = [IO.Path]::GetFullPath($WorkspaceRoot).TrimEnd('\')
     if ([string]::IsNullOrWhiteSpace($WorkingDirectory)) { return [pscustomobject]@{ status = 'unresolved'; root = (Join-Path $workspace '_workspace'); source = 'missing_cwd' } }
     try { $candidate = [IO.Path]::GetFullPath($WorkingDirectory) } catch { return [pscustomobject]@{ status = 'unresolved'; root = (Join-Path $workspace '_workspace'); source = 'invalid_cwd' } }
-    if (-not $candidate.StartsWith($workspace + '\', [StringComparison]::OrdinalIgnoreCase)) { return [pscustomobject]@{ status = 'unresolved'; root = (Join-Path $workspace '_workspace'); source = 'outside_workspace' } }
+    if (-not $candidate.StartsWith($workspace + '\', [StringComparison]::OrdinalIgnoreCase)) {
+        $registeredRoot = Get-RegisteredProjectRoot -Candidate $candidate -Workspace $workspace
+        if ($null -ne $registeredRoot) { return [pscustomobject]@{ status = 'resolved'; root = $registeredRoot; source = 'registry_project_signal' } }
+        return [pscustomobject]@{ status = 'unresolved'; root = (Join-Path $workspace '_workspace'); source = 'outside_workspace' }
+    }
     $relative = $candidate.Substring($workspace.Length).TrimStart('\')
     if ([string]::IsNullOrWhiteSpace($relative)) { return [pscustomobject]@{ status = 'unresolved'; root = (Join-Path $workspace '_workspace'); source = 'workspace_root' } }
     $first = ($relative -split '\\')[0]
@@ -261,7 +286,20 @@ if ($Event -eq 'ProjectBind') {
     $workspaceControl = Join-Path $workspace '_workspace'
     $isControlPlane = $bindingRoot.Equals($workspaceControl, [StringComparison]::OrdinalIgnoreCase)
     $isDirectProject = (Split-Path $bindingRoot -Parent).Equals($workspace, [StringComparison]::OrdinalIgnoreCase)
-    if (-not ($isControlPlane -or $isDirectProject)) { throw 'Project binding must be exact _workspace or a direct child project root.' }
+    $isRegisteredProject = $false
+    $registryPath = Join-Path $workspaceControl 'project-registry.json'
+    if (Test-Path -LiteralPath $registryPath) {
+        try {
+            $registry = Get-Content -LiteralPath $registryPath -Raw -Encoding utf8 | ConvertFrom-Json
+            $isRegisteredProject = [bool]($registry.projects | Where-Object {
+                (Get-Item -LiteralPath $_.root -ErrorAction SilentlyContinue).FullName.TrimEnd('\') -eq $bindingRoot -or
+                $_.root.TrimEnd('\').Equals($bindingRoot, [StringComparison]::OrdinalIgnoreCase)
+            } | Select-Object -First 1)
+        } catch {
+            $isRegisteredProject = $false
+        }
+    }
+    if (-not ($isControlPlane -or $isDirectProject -or $isRegisteredProject)) { throw 'Project binding must be exact _workspace, a direct child project root, or a path listed in _workspace/project-registry.json.' }
     if (-not (Test-Path -LiteralPath $bindingRoot -PathType Container)) { throw "Project root does not exist: $bindingRoot" }
     if (-not $isControlPlane) {
         $signals = @('.git', 'AGENTS.md', 'CLAUDE.md', 'package.json', 'pyproject.toml', 'composer.json', 'README.md')

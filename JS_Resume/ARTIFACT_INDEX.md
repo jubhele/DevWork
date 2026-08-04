@@ -5,7 +5,7 @@ Schema: 1.0
 
 | Kind | Locations | Files | Size (MB) | Latest |
 |------|-----------|------:|----------:|--------|
-| sessions | `JS_Resume\sessions` | 15 | 0.02 | 2026-07-22T15:08:47.2549861Z |
+| sessions | `JS_Resume\sessions` | 16 | 0.02 | 2026-08-04T09:00:50.5462873Z |
 | artifacts | `JS_Resume\artifacts` | 7 | 0.03 | 2026-07-21T12:30:49.6826519Z |
 | archive | Not present | 0 | 0 | - |
 | temp | `JS_Resume\temp` | 0 | 0 | - |
