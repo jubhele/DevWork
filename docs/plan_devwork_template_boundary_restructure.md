@@ -164,13 +164,14 @@ Restructure complete. c:\DevWork root contains no application code for any of th
 nested projects. 5 projects now live at c:\Projects\<name>; umlilo-portal was deliberately not
 preserved per user decision.
 
-## Follow-up items (not yet done)
+## Follow-up items
 
-1. `update-workspace-index.ps1`'s `WORKSPACE_INDEX.md` markdown link generation will render
-   incorrect relative links for these external (non-nested) project roots — needs a fix.
+1. ~~`update-workspace-index.ps1`'s `WORKSPACE_INDEX.md` markdown link generation renders incorrect
+   links for external (non-nested) project roots~~ — **FIXED 2026-08-04** (`c7fc981`): added
+   `Get-MarkdownLinkTarget`, wraps absolute paths in a `file:///` URI; verified against all 5 projects.
 2. Provider mirrors (`AGENTS.md`, `.github/copilot-instructions.md`, `.cursor/rules/constitution.mdc`)
-   and the architecture guide's §4.2 File System Layout still describe the old nested-only tree.
-3. `WORKSPACE_INDEX.md` should be regenerated once (1) is fixed.
-4. An unrelated top-level `BlackFire Portal` folder (space in the name, no `.git`) still exists
+   and the architecture guide's §4.2 File System Layout still describe the old nested-only tree —
+   **not yet done**.
+3. An unrelated top-level `BlackFire Portal` folder (space in the name, no `.git`) still exists
    directly under `c:\DevWork` — not one of the 6 originally-tracked projects, left untouched as
    out of scope for this restructure; flagged for the user's awareness.
