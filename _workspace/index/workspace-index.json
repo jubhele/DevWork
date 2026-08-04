@@ -1,6 +1,6 @@
 ﻿{
     "schema_version":  "1.0",
-    "generated_at":  "2026-08-04T10:38:12.2340887Z",
+    "generated_at":  "2026-08-04T20:47:06.5422097Z",
     "triggered_by":  "manual/full audit",
     "inventory":  {
                       "projects":  [
@@ -17,10 +17,10 @@
                                                                                    "path":  "_workspace\\sessions",
                                                                                    "metric":  {
                                                                                                   "exists":  true,
-                                                                                                  "files":  94,
-                                                                                                  "bytes":  374639,
+                                                                                                  "files":  96,
+                                                                                                  "bytes":  411170,
                                                                                                   "oldest":  "2026-07-10T15:25:04.0231230Z",
-                                                                                                  "latest":  "2026-08-04T09:00:28.3863887Z"
+                                                                                                  "latest":  "2026-08-04T20:42:36.4493981Z"
                                                                                               }
                                                                                }
                                                                            ],
@@ -53,10 +53,10 @@
                                                                                "path":  "_workspace\\temp",
                                                                                "metric":  {
                                                                                               "exists":  true,
-                                                                                              "files":  206,
-                                                                                              "bytes":  154321,
+                                                                                              "files":  208,
+                                                                                              "bytes":  155440,
                                                                                               "oldest":  "2026-07-09T07:43:24.4961452Z",
-                                                                                              "latest":  "2026-08-04T10:38:00.1739889Z"
+                                                                                              "latest":  "2026-08-04T20:46:56.1783404Z"
                                                                                           }
                                                                            }
                                                                        ],
@@ -81,218 +81,6 @@
                                                                                                  "bytes":  12416,
                                                                                                  "oldest":  "2026-07-10T15:09:07.8418567Z",
                                                                                                  "latest":  "2026-07-22T16:58:35.4047030Z"
-                                                                                             }
-                                                                              }
-                                                                          ]
-                                                          }
-                                       },
-                                       {
-                                           "name":  "Astute",
-                                           "slug":  "astute",
-                                           "root":  "Astute",
-                                           "full_root":  "C:\\DevWork\\Astute",
-                                           "standalone_repository":  true,
-                                           "artifact_index":  "Astute\\ARTIFACT_INDEX.md",
-                                           "categories":  {
-                                                              "sessions":  [
-                                                                               {
-                                                                                   "path":  "Astute\\sessions",
-                                                                                   "metric":  {
-                                                                                                  "exists":  true,
-                                                                                                  "files":  5,
-                                                                                                  "bytes":  6553,
-                                                                                                  "oldest":  "2026-06-21T17:18:56.7670315Z",
-                                                                                                  "latest":  "2026-07-28T05:47:52.0539065Z"
-                                                                                              }
-                                                                               }
-                                                                           ],
-                                                              "artifacts":  [
-                                                                                {
-                                                                                    "path":  "Astute\\artifacts",
-                                                                                    "metric":  {
-                                                                                                   "exists":  true,
-                                                                                                   "files":  0,
-                                                                                                   "bytes":  0,
-                                                                                                   "oldest":  null,
-                                                                                                   "latest":  null
-                                                                                               }
-                                                                                },
-                                                                                {
-                                                                                    "path":  "Astute\\exports",
-                                                                                    "metric":  {
-                                                                                                   "exists":  true,
-                                                                                                   "files":  8,
-                                                                                                   "bytes":  1280295,
-                                                                                                   "oldest":  "2026-06-09T19:53:20.2462939Z",
-                                                                                                   "latest":  "2026-06-09T19:53:20.2846135Z"
-                                                                                               }
-                                                                                }
-                                                                            ],
-                                                              "archive":  [
-
-                                                                          ],
-                                                              "temp":  [
-                                                                           {
-                                                                               "path":  "Astute\\temp",
-                                                                               "metric":  {
-                                                                                              "exists":  true,
-                                                                                              "files":  0,
-                                                                                              "bytes":  0,
-                                                                                              "oldest":  null,
-                                                                                              "latest":  null
-                                                                                          }
-                                                                           }
-                                                                       ],
-                                                              "logs":  [
-
-                                                                       ],
-                                                              "backups":  [
-                                                                              {
-                                                                                  "path":  "Astute\\_backups",
-                                                                                  "metric":  {
-                                                                                                 "exists":  true,
-                                                                                                 "files":  16,
-                                                                                                 "bytes":  22997,
-                                                                                                 "oldest":  "2026-06-19T20:58:32.9202488Z",
-                                                                                                 "latest":  "2026-07-28T05:45:24.4712489Z"
-                                                                                             }
-                                                                              }
-                                                                          ]
-                                                          }
-                                       },
-                                       {
-                                           "name":  "BlackFire",
-                                           "slug":  "blackfire",
-                                           "root":  "BlackFire",
-                                           "full_root":  "C:\\DevWork\\BlackFire",
-                                           "standalone_repository":  true,
-                                           "artifact_index":  "BlackFire\\ARTIFACT_INDEX.md",
-                                           "categories":  {
-                                                              "sessions":  [
-                                                                               {
-                                                                                   "path":  "BlackFire\\sessions",
-                                                                                   "metric":  {
-                                                                                                  "exists":  true,
-                                                                                                  "files":  291,
-                                                                                                  "bytes":  1364579,
-                                                                                                  "oldest":  "2026-06-23T09:19:04.0991484Z",
-                                                                                                  "latest":  "2026-08-04T10:36:11.2443364Z"
-                                                                                              }
-                                                                               }
-                                                                           ],
-                                                              "artifacts":  [
-                                                                                {
-                                                                                    "path":  "BlackFire\\artifacts",
-                                                                                    "metric":  {
-                                                                                                   "exists":  true,
-                                                                                                   "files":  41,
-                                                                                                   "bytes":  1782206,
-                                                                                                   "oldest":  "2026-07-14T23:41:30.4137516Z",
-                                                                                                   "latest":  "2026-08-03T09:46:47.5725420Z"
-                                                                                               }
-                                                                                }
-                                                                            ],
-                                                              "archive":  [
-
-                                                                          ],
-                                                              "temp":  [
-                                                                           {
-                                                                               "path":  "BlackFire\\temp",
-                                                                               "metric":  {
-                                                                                              "exists":  true,
-                                                                                              "files":  217,
-                                                                                              "bytes":  39748026,
-                                                                                              "oldest":  "2026-07-09T19:23:09.9028041Z",
-                                                                                              "latest":  "2026-08-03T09:34:03.7448137Z"
-                                                                                          }
-                                                                           },
-                                                                           {
-                                                                               "path":  "BlackFire\\tmp",
-                                                                               "metric":  {
-                                                                                              "exists":  true,
-                                                                                              "files":  16,
-                                                                                              "bytes":  16439756,
-                                                                                              "oldest":  "2026-07-09T03:51:17.4102245Z",
-                                                                                              "latest":  "2026-07-19T23:31:47.7549899Z"
-                                                                                          }
-                                                                           }
-                                                                       ],
-                                                              "logs":  [
-                                                                           {
-                                                                               "path":  "BlackFire\\logs",
-                                                                               "metric":  {
-                                                                                              "exists":  true,
-                                                                                              "files":  17,
-                                                                                              "bytes":  37252,
-                                                                                              "oldest":  "2026-07-19T17:32:28.1133371Z",
-                                                                                              "latest":  "2026-08-03T09:49:39.0921260Z"
-                                                                                          }
-                                                                           }
-                                                                       ],
-                                                              "backups":  [
-                                                                              {
-                                                                                  "path":  "BlackFire\\_backups",
-                                                                                  "metric":  {
-                                                                                                 "exists":  true,
-                                                                                                 "files":  594,
-                                                                                                 "bytes":  50826658,
-                                                                                                 "oldest":  "2026-05-20T18:52:51.5184565Z",
-                                                                                                 "latest":  "2026-08-03T22:44:24.0459741Z"
-                                                                                             }
-                                                                              }
-                                                                          ]
-                                                          }
-                                       },
-                                       {
-                                           "name":  "GovTender",
-                                           "slug":  "govtender",
-                                           "root":  "GovTender",
-                                           "full_root":  "C:\\DevWork\\GovTender",
-                                           "standalone_repository":  true,
-                                           "artifact_index":  "GovTender\\ARTIFACT_INDEX.md",
-                                           "categories":  {
-                                                              "sessions":  [
-                                                                               {
-                                                                                   "path":  "GovTender\\sessions",
-                                                                                   "metric":  {
-                                                                                                  "exists":  true,
-                                                                                                  "files":  4,
-                                                                                                  "bytes":  9321,
-                                                                                                  "oldest":  "2026-06-21T17:18:56.7670315Z",
-                                                                                                  "latest":  "2026-07-10T15:25:04.0231230Z"
-                                                                                              }
-                                                                               }
-                                                                           ],
-                                                              "artifacts":  [
-
-                                                                            ],
-                                                              "archive":  [
-
-                                                                          ],
-                                                              "temp":  [
-                                                                           {
-                                                                               "path":  "GovTender\\temp",
-                                                                               "metric":  {
-                                                                                              "exists":  true,
-                                                                                              "files":  0,
-                                                                                              "bytes":  0,
-                                                                                              "oldest":  null,
-                                                                                              "latest":  null
-                                                                                          }
-                                                                           }
-                                                                       ],
-                                                              "logs":  [
-
-                                                                       ],
-                                                              "backups":  [
-                                                                              {
-                                                                                  "path":  "GovTender\\_backups",
-                                                                                  "metric":  {
-                                                                                                 "exists":  true,
-                                                                                                 "files":  7,
-                                                                                                 "bytes":  23943,
-                                                                                                 "oldest":  "2026-07-08T20:22:53.9970768Z",
-                                                                                                 "latest":  "2026-07-10T15:19:06.4839701Z"
                                                                                              }
                                                                               }
                                                                           ]
@@ -354,16 +142,228 @@
                                                           }
                                        },
                                        {
-                                           "name":  "ilahle-portal",
-                                           "slug":  "ilahle-portal",
-                                           "root":  "ilahle-portal",
-                                           "full_root":  "C:\\DevWork\\ilahle-portal",
+                                           "name":  "Astute",
+                                           "slug":  "astute",
+                                           "root":  "C:\\Projects\\Astute",
+                                           "full_root":  "C:\\Projects\\Astute",
                                            "standalone_repository":  true,
-                                           "artifact_index":  "ilahle-portal\\ARTIFACT_INDEX.md",
+                                           "artifact_index":  "C:\\Projects\\Astute\\ARTIFACT_INDEX.md",
                                            "categories":  {
                                                               "sessions":  [
                                                                                {
-                                                                                   "path":  "ilahle-portal\\sessions",
+                                                                                   "path":  "C:\\Projects\\Astute\\sessions",
+                                                                                   "metric":  {
+                                                                                                  "exists":  true,
+                                                                                                  "files":  5,
+                                                                                                  "bytes":  6553,
+                                                                                                  "oldest":  "2026-06-21T17:18:56.7670315Z",
+                                                                                                  "latest":  "2026-07-28T05:47:52.0539065Z"
+                                                                                              }
+                                                                               }
+                                                                           ],
+                                                              "artifacts":  [
+                                                                                {
+                                                                                    "path":  "C:\\Projects\\Astute\\artifacts",
+                                                                                    "metric":  {
+                                                                                                   "exists":  true,
+                                                                                                   "files":  0,
+                                                                                                   "bytes":  0,
+                                                                                                   "oldest":  null,
+                                                                                                   "latest":  null
+                                                                                               }
+                                                                                },
+                                                                                {
+                                                                                    "path":  "C:\\Projects\\Astute\\exports",
+                                                                                    "metric":  {
+                                                                                                   "exists":  true,
+                                                                                                   "files":  8,
+                                                                                                   "bytes":  1280295,
+                                                                                                   "oldest":  "2026-06-09T19:53:20.2462939Z",
+                                                                                                   "latest":  "2026-06-09T19:53:20.2846135Z"
+                                                                                               }
+                                                                                }
+                                                                            ],
+                                                              "archive":  [
+
+                                                                          ],
+                                                              "temp":  [
+                                                                           {
+                                                                               "path":  "C:\\Projects\\Astute\\temp",
+                                                                               "metric":  {
+                                                                                              "exists":  true,
+                                                                                              "files":  0,
+                                                                                              "bytes":  0,
+                                                                                              "oldest":  null,
+                                                                                              "latest":  null
+                                                                                          }
+                                                                           }
+                                                                       ],
+                                                              "logs":  [
+
+                                                                       ],
+                                                              "backups":  [
+                                                                              {
+                                                                                  "path":  "C:\\Projects\\Astute\\_backups",
+                                                                                  "metric":  {
+                                                                                                 "exists":  true,
+                                                                                                 "files":  16,
+                                                                                                 "bytes":  22997,
+                                                                                                 "oldest":  "2026-06-19T20:58:32.9202488Z",
+                                                                                                 "latest":  "2026-07-28T05:45:24.4712489Z"
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                       },
+                                       {
+                                           "name":  "BlackFire",
+                                           "slug":  "blackfire",
+                                           "root":  "C:\\Projects\\BlackFire",
+                                           "full_root":  "C:\\Projects\\BlackFire",
+                                           "standalone_repository":  true,
+                                           "artifact_index":  "C:\\Projects\\BlackFire\\ARTIFACT_INDEX.md",
+                                           "categories":  {
+                                                              "sessions":  [
+                                                                               {
+                                                                                   "path":  "C:\\Projects\\BlackFire\\sessions",
+                                                                                   "metric":  {
+                                                                                                  "exists":  true,
+                                                                                                  "files":  292,
+                                                                                                  "bytes":  1370087,
+                                                                                                  "oldest":  "2026-06-23T09:19:04.0991484Z",
+                                                                                                  "latest":  "2026-08-04T10:50:45.3377789Z"
+                                                                                              }
+                                                                               }
+                                                                           ],
+                                                              "artifacts":  [
+                                                                                {
+                                                                                    "path":  "C:\\Projects\\BlackFire\\artifacts",
+                                                                                    "metric":  {
+                                                                                                   "exists":  true,
+                                                                                                   "files":  41,
+                                                                                                   "bytes":  1782206,
+                                                                                                   "oldest":  "2026-07-14T23:41:30.4137516Z",
+                                                                                                   "latest":  "2026-08-03T09:46:47.5725420Z"
+                                                                                               }
+                                                                                }
+                                                                            ],
+                                                              "archive":  [
+
+                                                                          ],
+                                                              "temp":  [
+                                                                           {
+                                                                               "path":  "C:\\Projects\\BlackFire\\temp",
+                                                                               "metric":  {
+                                                                                              "exists":  true,
+                                                                                              "files":  217,
+                                                                                              "bytes":  39748666,
+                                                                                              "oldest":  "2026-07-09T19:23:09.9028041Z",
+                                                                                              "latest":  "2026-08-03T09:34:03.7448137Z"
+                                                                                          }
+                                                                           },
+                                                                           {
+                                                                               "path":  "C:\\Projects\\BlackFire\\tmp",
+                                                                               "metric":  {
+                                                                                              "exists":  true,
+                                                                                              "files":  16,
+                                                                                              "bytes":  16439756,
+                                                                                              "oldest":  "2026-07-09T03:51:17.4102245Z",
+                                                                                              "latest":  "2026-07-19T23:31:47.7549899Z"
+                                                                                          }
+                                                                           }
+                                                                       ],
+                                                              "logs":  [
+                                                                           {
+                                                                               "path":  "C:\\Projects\\BlackFire\\logs",
+                                                                               "metric":  {
+                                                                                              "exists":  true,
+                                                                                              "files":  17,
+                                                                                              "bytes":  37252,
+                                                                                              "oldest":  "2026-07-19T17:32:28.1133371Z",
+                                                                                              "latest":  "2026-08-03T09:49:39.0921260Z"
+                                                                                          }
+                                                                           }
+                                                                       ],
+                                                              "backups":  [
+                                                                              {
+                                                                                  "path":  "C:\\Projects\\BlackFire\\_backups",
+                                                                                  "metric":  {
+                                                                                                 "exists":  true,
+                                                                                                 "files":  594,
+                                                                                                 "bytes":  50826658,
+                                                                                                 "oldest":  "2026-05-20T18:52:51.5184565Z",
+                                                                                                 "latest":  "2026-08-03T22:44:24.0459741Z"
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                       },
+                                       {
+                                           "name":  "GovTender",
+                                           "slug":  "govtender",
+                                           "root":  "C:\\Projects\\GovTender",
+                                           "full_root":  "C:\\Projects\\GovTender",
+                                           "standalone_repository":  true,
+                                           "artifact_index":  "C:\\Projects\\GovTender\\ARTIFACT_INDEX.md",
+                                           "categories":  {
+                                                              "sessions":  [
+                                                                               {
+                                                                                   "path":  "C:\\Projects\\GovTender\\sessions",
+                                                                                   "metric":  {
+                                                                                                  "exists":  true,
+                                                                                                  "files":  4,
+                                                                                                  "bytes":  9321,
+                                                                                                  "oldest":  "2026-06-21T17:18:56.7690693Z",
+                                                                                                  "latest":  "2026-08-04T19:30:57.8665247Z"
+                                                                                              }
+                                                                               }
+                                                                           ],
+                                                              "artifacts":  [
+
+                                                                            ],
+                                                              "archive":  [
+
+                                                                          ],
+                                                              "temp":  [
+                                                                           {
+                                                                               "path":  "C:\\Projects\\GovTender\\temp",
+                                                                               "metric":  {
+                                                                                              "exists":  true,
+                                                                                              "files":  0,
+                                                                                              "bytes":  0,
+                                                                                              "oldest":  null,
+                                                                                              "latest":  null
+                                                                                          }
+                                                                           }
+                                                                       ],
+                                                              "logs":  [
+
+                                                                       ],
+                                                              "backups":  [
+                                                                              {
+                                                                                  "path":  "C:\\Projects\\GovTender\\_backups",
+                                                                                  "metric":  {
+                                                                                                 "exists":  true,
+                                                                                                 "files":  7,
+                                                                                                 "bytes":  23943,
+                                                                                                 "oldest":  "2026-08-04T19:30:57.8545184Z",
+                                                                                                 "latest":  "2026-08-04T19:30:57.8665247Z"
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                       },
+                                       {
+                                           "name":  "ilahle-portal",
+                                           "slug":  "ilahle-portal",
+                                           "root":  "C:\\Projects\\ilahle-portal",
+                                           "full_root":  "C:\\Projects\\ilahle-portal",
+                                           "standalone_repository":  true,
+                                           "artifact_index":  "C:\\Projects\\ilahle-portal\\ARTIFACT_INDEX.md",
+                                           "categories":  {
+                                                              "sessions":  [
+                                                                               {
+                                                                                   "path":  "C:\\Projects\\ilahle-portal\\sessions",
                                                                                    "metric":  {
                                                                                                   "exists":  true,
                                                                                                   "files":  6,
@@ -375,7 +375,7 @@
                                                                            ],
                                                               "artifacts":  [
                                                                                 {
-                                                                                    "path":  "ilahle-portal\\artifacts",
+                                                                                    "path":  "C:\\Projects\\ilahle-portal\\artifacts",
                                                                                     "metric":  {
                                                                                                    "exists":  true,
                                                                                                    "files":  9,
@@ -396,7 +396,7 @@
                                                                        ],
                                                               "backups":  [
                                                                               {
-                                                                                  "path":  "ilahle-portal\\_backups",
+                                                                                  "path":  "C:\\Projects\\ilahle-portal\\_backups",
                                                                                   "metric":  {
                                                                                                  "exists":  true,
                                                                                                  "files":  63,
@@ -411,26 +411,26 @@
                                        {
                                            "name":  "JS_Resume",
                                            "slug":  "js-resume",
-                                           "root":  "JS_Resume",
-                                           "full_root":  "C:\\DevWork\\JS_Resume",
+                                           "root":  "C:\\Projects\\JS_Resume",
+                                           "full_root":  "C:\\Projects\\JS_Resume",
                                            "standalone_repository":  true,
-                                           "artifact_index":  "JS_Resume\\ARTIFACT_INDEX.md",
+                                           "artifact_index":  "C:\\Projects\\JS_Resume\\ARTIFACT_INDEX.md",
                                            "categories":  {
                                                               "sessions":  [
                                                                                {
-                                                                                   "path":  "JS_Resume\\sessions",
+                                                                                   "path":  "C:\\Projects\\JS_Resume\\sessions",
                                                                                    "metric":  {
                                                                                                   "exists":  true,
-                                                                                                  "files":  16,
-                                                                                                  "bytes":  25807,
+                                                                                                  "files":  15,
+                                                                                                  "bytes":  24729,
                                                                                                   "oldest":  "2026-06-21T17:18:56.7670315Z",
-                                                                                                  "latest":  "2026-08-04T09:00:50.5462873Z"
+                                                                                                  "latest":  "2026-07-22T15:08:47.2549861Z"
                                                                                               }
                                                                                }
                                                                            ],
                                                               "artifacts":  [
                                                                                 {
-                                                                                    "path":  "JS_Resume\\artifacts",
+                                                                                    "path":  "C:\\Projects\\JS_Resume\\artifacts",
                                                                                     "metric":  {
                                                                                                    "exists":  true,
                                                                                                    "files":  7,
@@ -445,7 +445,7 @@
                                                                           ],
                                                               "temp":  [
                                                                            {
-                                                                               "path":  "JS_Resume\\temp",
+                                                                               "path":  "C:\\Projects\\JS_Resume\\temp",
                                                                                "metric":  {
                                                                                               "exists":  true,
                                                                                               "files":  0,
@@ -460,59 +460,13 @@
                                                                        ],
                                                               "backups":  [
                                                                               {
-                                                                                  "path":  "JS_Resume\\_backups",
+                                                                                  "path":  "C:\\Projects\\JS_Resume\\_backups",
                                                                                   "metric":  {
                                                                                                  "exists":  true,
                                                                                                  "files":  33,
                                                                                                  "bytes":  4814828,
                                                                                                  "oldest":  "2026-06-12T05:21:52.7880768Z",
                                                                                                  "latest":  "2026-07-10T15:19:06.4839701Z"
-                                                                                             }
-                                                                              }
-                                                                          ]
-                                                          }
-                                       },
-                                       {
-                                           "name":  "umlilo-portal",
-                                           "slug":  "umlilo-portal",
-                                           "root":  "umlilo-portal",
-                                           "full_root":  "C:\\DevWork\\umlilo-portal",
-                                           "standalone_repository":  false,
-                                           "artifact_index":  "umlilo-portal\\ARTIFACT_INDEX.md",
-                                           "categories":  {
-                                                              "sessions":  [
-                                                                               {
-                                                                                   "path":  "umlilo-portal\\sessions",
-                                                                                   "metric":  {
-                                                                                                  "exists":  true,
-                                                                                                  "files":  7,
-                                                                                                  "bytes":  9607,
-                                                                                                  "oldest":  "2026-06-09T15:21:22.0783194Z",
-                                                                                                  "latest":  "2026-07-19T15:06:18.6651850Z"
-                                                                                              }
-                                                                               }
-                                                                           ],
-                                                              "artifacts":  [
-
-                                                                            ],
-                                                              "archive":  [
-
-                                                                          ],
-                                                              "temp":  [
-
-                                                                       ],
-                                                              "logs":  [
-
-                                                                       ],
-                                                              "backups":  [
-                                                                              {
-                                                                                  "path":  "umlilo-portal\\_backups",
-                                                                                  "metric":  {
-                                                                                                 "exists":  true,
-                                                                                                 "files":  207,
-                                                                                                 "bytes":  973752,
-                                                                                                 "oldest":  "2026-05-30T02:25:27.2869675Z",
-                                                                                                 "latest":  "2026-07-10T15:19:06.4750076Z"
                                                                                              }
                                                                               }
                                                                           ]
@@ -544,10 +498,10 @@
                                                      "path":  "_backups",
                                                      "metric":  {
                                                                     "exists":  true,
-                                                                    "files":  93,
-                                                                    "bytes":  2394591,
+                                                                    "files":  94,
+                                                                    "bytes":  2404032,
                                                                     "oldest":  "2026-05-16T05:02:32.9205247Z",
-                                                                    "latest":  "2026-08-04T08:28:25.2805663Z"
+                                                                    "latest":  "2026-08-04T10:39:02.1809087Z"
                                                                 }
                                                  },
                                                  {
@@ -598,10 +552,10 @@
                                                           "path":  ".git",
                                                           "metric":  {
                                                                          "exists":  true,
-                                                                         "files":  135,
-                                                                         "bytes":  1881594098,
+                                                                         "files":  252,
+                                                                         "bytes":  1881813703,
                                                                          "oldest":  "2026-05-16T04:41:31.9208941Z",
-                                                                         "latest":  "2026-08-04T10:35:40.4935608Z"
+                                                                         "latest":  "2026-08-04T20:45:09.9376482Z"
                                                                      },
                                                           "classification":  "excluded infrastructure/cache"
                                                       },
@@ -609,10 +563,10 @@
                                                           "path":  ".venv",
                                                           "metric":  {
                                                                          "exists":  true,
-                                                                         "files":  5135,
-                                                                         "bytes":  130137565,
+                                                                         "files":  5148,
+                                                                         "bytes":  130766974,
                                                                          "oldest":  "2026-05-14T20:36:10.0318877Z",
-                                                                         "latest":  "2026-08-03T09:52:46.8297592Z"
+                                                                         "latest":  "2026-08-04T20:31:06.9849117Z"
                                                                      },
                                                           "classification":  "excluded infrastructure/cache"
                                                       },
@@ -632,7 +586,7 @@
                                                           "metric":  {
                                                                          "exists":  true,
                                                                          "files":  240,
-                                                                         "bytes":  247085271,
+                                                                         "bytes":  247086146,
                                                                          "oldest":  "2026-06-20T14:43:43.6563864Z",
                                                                          "latest":  "2026-08-03T09:49:39.0289351Z"
                                                                      },

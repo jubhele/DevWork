@@ -11,10 +11,10 @@
                                             "path":  "_workspace\\sessions",
                                             "metric":  {
                                                            "exists":  true,
-                                                           "files":  94,
-                                                           "bytes":  374639,
+                                                           "files":  96,
+                                                           "bytes":  411170,
                                                            "oldest":  "2026-07-10T15:25:04.0231230Z",
-                                                           "latest":  "2026-08-04T09:00:28.3863887Z"
+                                                           "latest":  "2026-08-04T20:42:36.4493981Z"
                                                        }
                                         }
                                     ],
@@ -47,10 +47,10 @@
                                         "path":  "_workspace\\temp",
                                         "metric":  {
                                                        "exists":  true,
-                                                       "files":  206,
-                                                       "bytes":  154321,
+                                                       "files":  208,
+                                                       "bytes":  155440,
                                                        "oldest":  "2026-07-09T07:43:24.4961452Z",
-                                                       "latest":  "2026-08-04T10:38:00.1739889Z"
+                                                       "latest":  "2026-08-04T20:46:56.1783404Z"
                                                    }
                                     }
                                 ],

@@ -36,6 +36,14 @@ function Get-RelativePath {
     return $full
 }
 
+function Get-MarkdownLinkTarget {
+    param([string]$DisplayPath)
+    if ([IO.Path]::IsPathRooted($DisplayPath) -and $DisplayPath -match '^[A-Za-z]:\\') {
+        return 'file:///' + ($DisplayPath -replace '\\', '/')
+    }
+    return ($DisplayPath -replace '\\', '/')
+}
+
 function Get-DirectoryMetric {
     param([string]$Path)
     if (-not (Test-Path -LiteralPath $Path -PathType Container)) {
@@ -266,7 +274,7 @@ if ($changed) {
         $tempTotals = Get-CategoryTotals $project.categories.temp
         $backupTotals = Get-CategoryTotals $project.categories.backups
         $repo = if ($project.standalone_repository) { 'Yes' } else { 'No' }
-        $lines.Add('| ' + $project.name + ' | `' + $project.root + '` | ' + $repo + ' | ' + $sessionTotals.files + ' | ' + $artifactTotals.files + ' | ' + $archiveTotals.files + ' | ' + $tempTotals.files + ' | ' + $backupTotals.files + ' | [' + $project.slug + '](' + ($project.artifact_index -replace '\\','/') + ') |')
+        $lines.Add('| ' + $project.name + ' | `' + $project.root + '` | ' + $repo + ' | ' + $sessionTotals.files + ' | ' + $artifactTotals.files + ' | ' + $archiveTotals.files + ' | ' + $tempTotals.files + ' | ' + $backupTotals.files + ' | [' + $project.slug + '](' + (Get-MarkdownLinkTarget $project.artifact_index) + ') |')
     }
     $lines.Add('')
     $lines.Add('## Legacy Root Stores Requiring Migration')
