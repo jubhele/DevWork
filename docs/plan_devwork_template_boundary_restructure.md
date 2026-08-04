@@ -1,9 +1,12 @@
 # Plan: DevWork Template Boundary Restructure
 
-**Status:** Approved — decisions locked, implementation starting
+**Status:** PAUSED — registry/scripts implemented (steps 1-3 done and verified), physical moves
+halted after a near-miss data-loss incident on 2026-08-04 (see Incident Report below). Do not attempt
+further physical moves until the move method itself is fixed.
 **Owner:** Jubhele Shange
 **Created:** 2026-08-04
 **Decisions locked:** 2026-08-04
+**Incident:** 2026-08-04 — see below
 
 ## Problem
 
@@ -93,3 +96,50 @@ mirrors, `agents/`, `scripts/`, `.env.example`, `_workspace/` control-plane, and
 - This plan does not change any project's internal structure, git history, or remote.
 - This plan does not change the constitution's rules themselves — only where projects physically live
   relative to DevWork and how the tooling discovers them.
+
+## Incident Report — 2026-08-04: GovTender near-miss data loss during first move attempt
+
+**What happened:** Attempting to move `GovTender`, `ilahle-portal`, `JS_Resume`, `Astute` to
+`c:\Projects\<name>` in one batch (`mv` in a loop), the first `mv` failed with "Permission denied."
+Follow-up diagnosis wrongly suspected an ACL/sandbox permission problem (ruled out — a plain file
+write to `c:\Projects` succeeded, and an empty test directory moved fine). The real cause: a locked
+file inside `GovTender` (multiple VS Code processes and another concurrent agent session had files
+open in these repos — confirmed via `Get-Process`). Escalating through `mv` → PowerShell `Move-Item`
+→ `Copy-Item -Recurse` → `robocopy`, several of these partially executed before failing:
+`Copy-Item -Recurse` (without a trailing `\*`) created a nested `GovTender\GovTender\` duplicate at
+the destination; a later `robocopy` run (without realizing the destination already had leftover
+`.git` content, and racing the same lock) left `c:\DevWork\GovTender\.git` completely empty (no HEAD,
+refs, or objects) and deleted 11 root-level files (`CLAUDE.md`, `AGENTS.md`, `Dockerfile`,
+`.gitignore`, `.env.example`, `.cursor/rules/constitution.mdc`, `ARTIFACT_INDEX.{md,json}`,
+`docker-compose*.yml`, `pyproject.toml`) from the live working tree, while leaving all subfolder
+content (`api/`, `crawler/`, `web/`, etc.) untouched.
+
+**Recovery:** GovTender's GitHub remote (`jubhele/GovTender.git`) was unaffected (confirmed via
+`git ls-remote`). Re-cloned it to a scratch folder, verified it matched expected state, then restored
+`c:\DevWork\GovTender\.git` from the clean clone and `git checkout HEAD --` the 11 missing files.
+27 local-only (gitignored) `_backups/` files that existed only on disk were preserved separately
+before touching anything and restored afterward. Final state: `git status` clean, correct remote,
+correct history at HEAD — fully recovered, zero data lost. The other four project repos (Astute,
+BlackFire, ilahle-portal, JS_Resume) were confirmed healthy and untouched throughout. No project was
+actually relocated; `c:\Projects\` was left empty and the registry still shows all projects `nested`.
+
+**Root cause:** Using `mv`/`Move-Item`/`Copy-Item`/`robocopy` ad hoc, without first confirming no
+process holds an open handle on any file in the source tree, against a live multi-agent workspace
+where other sessions (and the user's own editor) may have files open concurrently at any time.
+
+**Required changes before retrying any physical move:**
+1. Before moving a project, check for and require the user to close any editor windows / running
+   processes with that project open (or use a file-lock-detection tool to confirm no handles are
+   open) — do not proceed on a "Permission denied" by escalating to more aggressive copy tools.
+2. Use `robocopy <source> <dest> /E /R:2 /W:2` (no `/MOVE`, no `/MIR`) to copy first, verify file
+   counts and `git status`/`git log` health in the destination copy, and only delete the source after
+   the destination is independently confirmed intact — never move-then-verify.
+3. Never reuse a destination path that a previous failed attempt already wrote into without first
+   inspecting and clearing it (the `Copy-Item` nesting bug went undetected because the next attempt
+   copied on top of stale partial content).
+4. Move one project at a time, not in a loop — a loop hides which specific repo failed and encourages
+   plowing through a "Permission denied" instead of stopping to diagnose it.
+5. This session's independent agents/processes touching the same repos concurrently (evidenced by
+   commits appearing mid-session from an unrelated session ID) is itself a hazard for any filesystem
+   restructuring — prefer doing physical moves when no other agent session is known to be active
+   against the same repos.
