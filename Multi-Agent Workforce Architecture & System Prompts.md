@@ -24,6 +24,7 @@ cost-optimized, and self-documenting digital workforce of named, role-separated 
 - **Think before coding.** Every agent must state its assumptions explicitly before implementing. If multiple valid interpretations exist, surface them — never pick silently. If the task is unclear, name the confusion and ask. Do not assume and run. (See §15.)
 - **Surgical changes.** Agents touch only what the task requires. Do not improve adjacent code, fix unrelated style, or remove pre-existing dead code unless asked. Every changed line must trace directly to the submitted task. (See §15.)
 - **Goal-driven execution.** Transform vague instructions into verifiable success criteria before starting. For multi-step tasks, output an explicit plan with a verify check per step. Weak criteria require constant clarification; strong criteria allow autonomous looping. (See §15.)
+- **DevWork is the template, not an app.** The `DevWork` repository is the empty container that carries workspace architecture — this document, the constitution, provider mirrors, agent system prompts, hooks, and shared scripts/config. It holds no project application code, no project CI/CD, and no project build pipeline. Any project (BlackFire, Astute, umlilo-portal, or a future repo) that discovers something architecturally generic — a rule, a hook fix, a convention, a governance pattern — promotes that discovery up into `DevWork` (see §9.8) so every current and future project inherits it from one common source.
 
 ### 1.2 Architecture Diagram
 
@@ -1717,6 +1718,52 @@ Root loose-file review also identified project/runtime candidates (`portal.php`,
 root worker/bootstrap scripts, queue state, and ambiguous `delete`/`stop` sentinels). They must remain
 in place until their runtime references and owners are verified, then move to the owning project or
 shared control-plane folder and be represented only by links in `WORKSPACE_INDEX.md`.
+
+### 9.8 DevWork as the Empty Container — Template Boundary and Promotion Protocol (MANDATORY)
+
+#### The boundary
+
+`DevWork` (the workspace root repo) is the **template**, not a project. It is the one common place
+every other repo starts from and stays synchronized with. Concretely, `DevWork` root may contain:
+
+- this architecture guide and the provider-specific constitution mirrors (`CLAUDE.md`, `AGENTS.md`,
+  `.github/copilot-instructions.md`, `.cursor/rules/constitution.mdc`, `.kiro/steering/*`, `.factory/config.yaml`)
+- `agents/` system prompts, `scripts/governance/` hooks, and other shared tooling
+- `.env.example` (template only — no real secrets)
+- `WORKSPACE_INDEX.md`, `MEMORY.md` index, and the `_workspace/` control-plane tree
+- generic, repo-agnostic automation such as `commit-all-repos-dynamic.ps1`
+
+`DevWork` root must **not** contain: application source code, a project's `package.json` /
+`pnpm-workspace.yaml` build graph, project-specific CI/CD that builds or deploys a named project
+(e.g. a workflow with `working-directory: BlackFire`), or any project's business logic. If a CI
+workflow lives in `.github/workflows/` at the DevWork root, it must validate the template itself
+(constitution/hook syntax, mirror consistency, script correctness) — never a specific project's app.
+Each project repo (BlackFire, Astute, umlilo-portal, GovTender, JS_Resume, future repos) owns and runs
+its own CI/CD entirely inside its own repo.
+
+#### The promotion protocol
+
+When work in a project repo surfaces something architecturally generic — a new mandatory rule, a hook
+bug fix, a session-log schema change, a new provider mirror, a cost-tier adjustment, a governance
+pattern — that discovery must be promoted up into `DevWork` in the same session or the next one, not
+left stranded in the project repo:
+
+1. Identify the generic kernel of the fix, separated from anything project-specific (secrets, brand
+   tokens, project file paths).
+2. Apply the generic version to this architecture guide (the relevant numbered section) and to
+   `CLAUDE.md` / `AGENTS.md` / the other provider mirrors, following the same update procedure as §9.3.
+3. If the fix was a script (e.g. `scripts/governance/constitution-hook.ps1`,
+   `commit-all-repos-dynamic.ps1`), the canonical copy lives in DevWork root or `scripts/`; project
+   repos may vendor a copy but DevWork is the source of truth to sync from.
+4. Run the §9.4 workspace inspection so the promoted change reaches every other bound project, and
+   note the promotion in the session log's Decisions/Work Done sections.
+5. A discovery that is genuinely project-specific (a BlackFire PHP quirk, an Astute brand token, a
+   Next.js version note scoped to one repo) stays local — see §9.4 step 5 for the classification rule
+   (`Required update` / `Local override` / `Candidate upstream improvement` / `Do not upstream`).
+
+This is the same directional flow §9.4 already describes for "candidate upstream improvements" found
+during a guide-copy event — §9.8 makes it a standing rule that applies continuously, not only when the
+guide is being re-copied into a project.
 
 ---
 

@@ -4,6 +4,13 @@
 > (Claude Code, GitHub Copilot, OpenAI Codex, Cursor, Google Antigravity, Kiro, Factory Droid, etc.).
 > Provider-specific instructions never override this document.
 
+> **DevWork is the template, not an app.** This repo is the empty container that carries workspace
+> architecture — this constitution, provider mirrors, agent prompts, hooks, and shared scripts. It
+> holds no project application code, no project build pipeline, and no project-specific CI/CD. Any
+> architecturally generic discovery made in a project repo (BlackFire, Astute, umlilo-portal, etc.)
+> must be promoted up into this repo so every project inherits it from one common source. Full rule:
+> `Multi-Agent Workforce Architecture & System Prompts.md §9.8`.
+
 ---
 
 ## 1. Session Logging (MANDATORY)
@@ -232,6 +239,21 @@ When the constitution or multi-agent architecture is copied into a repo or updat
 3. Preserve stricter project-specific overrides.
 4. If the inspection reveals a generic improvement, update the architecture guide so future repos receive it.
 5. Re-copy the updated guide into the target repo and rerun the mirror audit.
+
+### 6.2 Promotion Protocol — Project Discovery → DevWork Template (MANDATORY)
+
+This runs continuously, not only during a guide-copy event (contrast with §6.1). Whenever work in
+BlackFire, Astute, umlilo-portal, GovTender, JS_Resume, or any other project repo surfaces something
+architecturally generic — a new mandatory rule, a hook fix, a session-log schema change, a governance
+pattern, a shared script fix — promote it into `DevWork` in the same or next session:
+1. Separate the generic kernel from anything project-specific (secrets, brand tokens, project paths).
+2. Apply the generic version to `Multi-Agent Workforce Architecture & System Prompts.md` and to this
+   constitution plus the other provider mirrors.
+3. If the fix is a shared script, DevWork holds the canonical copy; project repos vendor from it.
+4. Run the §6.1 inspection so the change reaches every other bound project.
+5. Log the promotion under Decisions/Work Done in the session log.
+
+Full rule and classification table: `Multi-Agent Workforce Architecture & System Prompts.md §9.8`.
 
 ---
 
