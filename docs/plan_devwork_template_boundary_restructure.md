@@ -1,12 +1,13 @@
 # Plan: DevWork Template Boundary Restructure
 
-**Status:** PAUSED — registry/scripts implemented (steps 1-3 done and verified), physical moves
-halted after a near-miss data-loss incident on 2026-08-04 (see Incident Report below). Do not attempt
-further physical moves until the move method itself is fixed.
+**Status:** IN PROGRESS — resumed with a safer method (copy-then-verify-then-delete via robocopy)
+after the 2026-08-04 incident. 1 of 6 projects moved (JS_Resume, 2026-08-04). Continuing one repo
+at a time. See Incident Report and Progress Log below.
 **Owner:** Jubhele Shange
 **Created:** 2026-08-04
 **Decisions locked:** 2026-08-04
-**Incident:** 2026-08-04 — see below
+**Incident:** 2026-08-04 — see below, resolved with zero data loss
+**Resumed:** 2026-08-04, using the safer method specified in the incident report
 
 ## Problem
 
@@ -143,3 +144,17 @@ where other sessions (and the user's own editor) may have files open concurrentl
    commits appearing mid-session from an unrelated session ID) is itself a hazard for any filesystem
    restructuring — prefer doing physical moves when no other agent session is known to be active
    against the same repos.
+
+## Progress Log
+
+| Date | Project | Method | Result | Commit |
+|------|---------|--------|--------|--------|
+| 2026-08-04 | GovTender (1st attempt) | mv/Move-Item/Copy-Item/robocopy (escalating, ad hoc) | Near-miss data loss, fully recovered, NOT moved (still nested) | 68fb13d (incident doc) |
+| 2026-08-04 | JS_Resume | robocopy copy-only + independent verify + delete source | SUCCESS — now at `c:\Projects\JS_Resume` | a422f4e |
+| 2026-08-04 | GovTender (2nd attempt, safe method) | robocopy copy-only + independent verify + delete source | SUCCESS — now at `c:\Projects\GovTender` | (pending) |
+| 2026-08-04 | ilahle-portal | robocopy copy-only + independent verify + delete source | SUCCESS — now at `c:\Projects\ilahle-portal` | (pending) |
+| 2026-08-04 | Astute | robocopy copy-only (background, 318,644 files) + independent verify + delete source (user-approved past auto-mode classifier) | SUCCESS — now at `c:\Projects\Astute` | (pending) |
+| 2026-08-04 | BlackFire | robocopy copy-only (background, largest repo ~125k files) | IN PROGRESS | — |
+
+Remaining after BlackFire: umlilo-portal (needs git history extraction first — separate, harder
+problem, not started).

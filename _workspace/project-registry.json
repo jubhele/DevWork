@@ -5,8 +5,8 @@
   "projects": [
     {
       "name": "Astute",
-      "root": "c:\\DevWork\\Astute",
-      "status": "nested"
+      "root": "c:\\Projects\\Astute",
+      "status": "sibling"
     },
     {
       "name": "BlackFire",
@@ -15,13 +15,13 @@
     },
     {
       "name": "GovTender",
-      "root": "c:\\DevWork\\GovTender",
-      "status": "nested"
+      "root": "c:\\Projects\\GovTender",
+      "status": "sibling"
     },
     {
       "name": "ilahle-portal",
-      "root": "c:\\DevWork\\ilahle-portal",
-      "status": "nested"
+      "root": "c:\\Projects\\ilahle-portal",
+      "status": "sibling"
     },
     {
       "name": "JS_Resume",
