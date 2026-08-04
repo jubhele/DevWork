@@ -31,6 +31,32 @@ function Get-RepositoryPaths {
     return @($paths | Sort-Object)
 }
 
+function Get-UnbornNestedRepos {
+    param ([string]$RepositoryPath)
+
+    $unborn = New-Object System.Collections.Generic.List[string]
+    Get-ChildItem -LiteralPath $RepositoryPath -Directory -Recurse -Depth 3 -ErrorAction SilentlyContinue |
+        Where-Object { Test-Path -LiteralPath (Join-Path $_.FullName '.git') } |
+        ForEach-Object {
+            $nestedFullName = $_.FullName
+            $relative = $nestedFullName.Substring($RepositoryPath.Length).TrimStart('\') -replace '\\', '/'
+            Push-Location $nestedFullName
+            try {
+                $null = git rev-parse HEAD 2>$null
+                if (-not $?) {
+                    $unborn.Add($relative)
+                }
+            }
+            catch {
+                $unborn.Add($relative)
+            }
+            finally {
+                Pop-Location
+            }
+        }
+    return @($unborn)
+}
+
 function Get-Divergence {
     param ([string]$Upstream)
 
@@ -212,7 +238,24 @@ foreach ($plan in $actionablePlans | Where-Object { $_.Selected }) {
 
         $currentStatus = @(git status --porcelain=v1)
         if ($currentStatus.Count -gt 0) {
-            git add -A
+            $unbornNested = Get-UnbornNestedRepos -RepositoryPath $plan.Path
+            if ($unbornNested.Count -gt 0) {
+                foreach ($skipped in $unbornNested) {
+                    Write-Host "Skipping nested repository with no commits yet: $skipped" -ForegroundColor Yellow
+                }
+                $trackableUnborn = $unbornNested | Where-Object {
+                    git check-ignore -q -- $_ 2>$null | Out-Null
+                    $LASTEXITCODE -ne 0
+                }
+                if ($trackableUnborn.Count -gt 0) {
+                    $pathspecs = @('.') + ($trackableUnborn | ForEach-Object { ":(exclude)$_" })
+                    git add -A -- @pathspecs
+                } else {
+                    git add -A
+                }
+            } else {
+                git add -A
+            }
             if ($LASTEXITCODE -ne 0) {
                 Write-Host "Staging failed." -ForegroundColor Red
                 continue
