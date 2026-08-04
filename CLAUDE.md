@@ -104,8 +104,15 @@ Rules:
 
 ## 3. Workspace Structure
 
+`DevWork` (this repo) is the template/control-plane only. Project repos are **siblings**, not
+children — they live under `c:\Projects\<name>`, each with its own independent git repo and remote.
+`_workspace/project-registry.json` is the single source of truth for project root paths; governance
+scripts (`constitution-hook.ps1`, `initialize-project.ps1`, `update-workspace-index.ps1`,
+`commit-all-repos-dynamic.ps1`) read it instead of assuming nesting. Full history and rationale:
+`docs/plan_devwork_template_boundary_restructure.md`.
+
 ```
-c:\DevWork\
+c:\DevWork\                     ← Template / control-plane only — no project application code
 ├── CLAUDE.md                   ← This constitution (Claude Code)
 ├── AGENTS.md                   ← Mirror for OpenAI Codex + Google Antigravity
 ├── .github/
@@ -116,8 +123,9 @@ c:\DevWork\
 ├── .gitignore
 ├── .env                        ← Secrets (NOT in repo — in .gitignore)
 ├── .env.example                ← Template with all keys, empty values (IN repo)
-├── sessions/                   ← Session logs (all providers)
-├── chatsessions/               ← Legacy Copilot transcript archive
+├── _workspace/                 ← Control-plane: sessions, indexes, project-registry.json
+├── sessions/                   ← Session logs (cross-project / control-plane work)
+├── chatsessions/                ← Legacy Copilot transcript archive
 ├── agents/                     ← Multi-agent workforce definitions
 │   ├── sibali_system_prompt.md       ← uSibali (Accountant) — cost governance
 │   ├── mlawuli_system_prompt.md      ← uMlawuli (Controller) — supervisor
@@ -127,11 +135,11 @@ c:\DevWork\
 │   ├── umbheki_system_prompt.md      ← uMbheki (Watcher) — UX/UI QA & visual regression
 │   ├── umlindi_system_prompt.md      ← uMlindi (Guardian) — governance & compliance
 │   └── sebenza_agents.md             ← All 8 Sebenza agent definitions
-├── design/                     ← uMdwebi's domain — brand tokens, design exports
+├── design/                     ← uMdwebi's domain — brand tokens, design exports (centralized here
+│   │                              even though the projects they describe live outside DevWork)
 │   ├── blackfire/
 │   │   ├── brand_tokens.md         ← BlackFire color, typography, logo specs
 │   │   └── exports/                ← Claude.ai, Canva, Figma exports
-│   ├── umlilo/                     ← Umlilo portal brand
 │   └── imports/                    ← Cross-project design imports
 ├── .claude/
 │   └── skills/gstack/          ← gstack multi-agent toolkit
@@ -139,8 +147,14 @@ c:\DevWork\
 │   ├── skills/                 ← individual skill directories (each with SKILL.md)
 │   ├── index.json              ← full skill index with framework mappings
 │   └── mappings/               ← MITRE ATT&CK, NIST CSF, D3FEND, ATLAS, AI RMF, F3 cross-refs
-├── BlackFire/                  ← BlackFire / AECI project
-└── Astute/                     ← Astute project
+└── scripts/governance/         ← constitution-hook.ps1, initialize-project.ps1, etc.
+
+c:\Projects\                    ← Sibling root — every project repo lives here, each with its own .git
+├── Astute\
+├── BlackFire\
+├── GovTender\
+├── ilahle-portal\
+└── JS_Resume\
 ```
 
 ---
@@ -436,12 +450,15 @@ Any hit is a CRITICAL governance violation. Move the value to `.env` immediately
 
 ## 9. Projects in This Workspace
 
+Project repos live at `c:\Projects\<name>`, each its own independent git repo — see §3 and
+`_workspace/project-registry.json` for the authoritative list and paths.
+
 ### BlackFire / AECI
 Security company proposals and portal. See `memory/project_blackfire_aeci.md`.
-Generator: `c:\DevWork\BlackFire\generate_docs.ps1`
+Root: `c:\Projects\BlackFire\`. Generator: `c:\Projects\BlackFire\generate_docs.ps1`
 
 ### Astute
-Separate project. See `Astute/` directory.
+Separate project. Root: `c:\Projects\Astute\`.
 
 ---
 

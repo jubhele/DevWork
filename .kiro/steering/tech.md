@@ -10,11 +10,11 @@ inclusion: always
 - **Hosting**: Afrihost (shared)
 - **Auth**: Session-based (PHP)
 
-## Umlilo Portal
-- **Framework**: Next.js (web) + Expo (mobile) — monorepo
+## BlackFire Web/Mobile (formerly "Umlilo Portal")
+- **Framework**: Next.js (web) + Expo (mobile) — monorepo, consolidated into `c:\Projects\BlackFire\`
 - **Package manager**: pnpm
 - **Deployment**: Vercel (web)
-- **Backend**: PHP (Afrihost, shared with BlackFire)
+- **Backend**: PHP (Afrihost, shared with BlackFire portal)
 
 ## Document Generation
 - **Runtime**: PowerShell 5.1 only (COM automation, requires Windows)

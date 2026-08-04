@@ -1,6 +1,6 @@
 ﻿{
     "schema_version":  "1.0",
-    "generated_at":  "2026-08-04T20:47:06.5422097Z",
+    "generated_at":  "2026-08-04T21:01:32.6522347Z",
     "triggered_by":  "manual/full audit",
     "inventory":  {
                       "projects":  [
@@ -18,9 +18,9 @@
                                                                                    "metric":  {
                                                                                                   "exists":  true,
                                                                                                   "files":  96,
-                                                                                                  "bytes":  411170,
+                                                                                                  "bytes":  412431,
                                                                                                   "oldest":  "2026-07-10T15:25:04.0231230Z",
-                                                                                                  "latest":  "2026-08-04T20:42:36.4493981Z"
+                                                                                                  "latest":  "2026-08-04T20:48:03.5307244Z"
                                                                                               }
                                                                                }
                                                                            ],
@@ -56,7 +56,7 @@
                                                                                               "files":  208,
                                                                                               "bytes":  155440,
                                                                                               "oldest":  "2026-07-09T07:43:24.4961452Z",
-                                                                                              "latest":  "2026-08-04T20:46:56.1783404Z"
+                                                                                              "latest":  "2026-08-04T21:01:25.1093854Z"
                                                                                           }
                                                                            }
                                                                        ],
@@ -498,10 +498,10 @@
                                                      "path":  "_backups",
                                                      "metric":  {
                                                                     "exists":  true,
-                                                                    "files":  94,
-                                                                    "bytes":  2404032,
+                                                                    "files":  97,
+                                                                    "bytes":  2454122,
                                                                     "oldest":  "2026-05-16T05:02:32.9205247Z",
-                                                                    "latest":  "2026-08-04T10:39:02.1809087Z"
+                                                                    "latest":  "2026-08-04T21:00:34.9541943Z"
                                                                 }
                                                  },
                                                  {
@@ -552,10 +552,10 @@
                                                           "path":  ".git",
                                                           "metric":  {
                                                                          "exists":  true,
-                                                                         "files":  252,
-                                                                         "bytes":  1881813703,
+                                                                         "files":  276,
+                                                                         "bytes":  1881875684,
                                                                          "oldest":  "2026-05-16T04:41:31.9208941Z",
-                                                                         "latest":  "2026-08-04T20:45:09.9376482Z"
+                                                                         "latest":  "2026-08-04T21:00:18.2183810Z"
                                                                      },
                                                           "classification":  "excluded infrastructure/cache"
                                                       },

@@ -980,9 +980,15 @@ Create this structure in the new workspace:
 ```
 
 `projects/` is illustrative. Existing workspaces may keep named repositories directly below the
+workspace root, or — when the workspace root is itself a template/control-plane repo (see §9.8) —
+as **sibling** repositories at a separate root (e.g. `c:\Projects\<name>` alongside `c:\DevWork\`),
+each with its own independent `.git`. In the sibling layout, `_workspace/project-registry.json`
+becomes the single source of truth mapping project names to their actual root paths, and governance
+scripts (`constitution-hook.ps1`, `initialize-project.ps1`, `update-workspace-index.ps1`,
+`commit-all-repos-dynamic.ps1`) read that registry instead of assuming projects are nested under the
 workspace root. The invariant is ownership, not one physical parent name: every project artifact
 must live below its owning project root, while genuinely cross-project control-plane material lives
-below `_workspace/`. See §9.7.
+below `_workspace/`. See §9.7 and §9.8.
 
 #### Portable Repository Rule
 

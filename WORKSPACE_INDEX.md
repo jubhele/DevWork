@@ -1,6 +1,6 @@
 ﻿# DevWork Workspace Index
 
-Generated: 2026-08-04T20:47:06.5422097Z
+Generated: 2026-08-04T21:01:32.6522347Z
 Schema: 1.0
 Trigger: `manual/full audit`
 
@@ -24,7 +24,7 @@ This is a discovery map. Canonical sessions and artifacts remain below their own
 |------|------:|----------:|--------|
 | `sessions` | 356 | 3.7 | 2026-07-16T09:35:08.0884474Z |
 | `temp` | 2365 | 311.7 | 2026-07-22T16:56:15.7044599Z |
-| `_backups` | 94 | 2.29 | 2026-08-04T10:39:02.1809087Z |
+| `_backups` | 97 | 2.34 | 2026-08-04T21:00:34.9541943Z |
 | `chatsessions` | 1 | 0 | 2026-05-16T05:18:29.4610462Z |
 | `logs` | 1 | 0 | 2026-06-24T22:39:02.9801990Z |
 

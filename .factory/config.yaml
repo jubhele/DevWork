@@ -8,17 +8,19 @@ workspace:
   session_logs: project-local      # <project>/sessions; _workspace/sessions for cross-project work
   memory: C:/Users/Jughele Shange/.claude/projects/c--DevWork/memory/MEMORY.md
 
+# Project repos are siblings at c:\Projects\<name>, each its own independent git repo — not
+# nested under DevWork. Authoritative list: _workspace/project-registry.json.
 projects:
   - name: blackfire-portal
-    path: BlackFire/BlackFire Portal
+    path: C:/Projects/BlackFire/BlackFire Portal
     language: php
     description: Security company client portal (PHP/MySQL)
-  - name: umlilo-portal
-    path: umlilo-portal
+  - name: blackfire-web-mobile
+    path: C:/Projects/BlackFire/apps
     language: typescript
-    description: Next.js + Expo monorepo (multi-tenant SaaS)
+    description: Next.js + Expo monorepo (formerly "Umlilo Portal", consolidated into BlackFire)
   - name: blackfire-docs
-    path: BlackFire/Clients/AECI
+    path: C:/Projects/BlackFire/Clients/AECI
     language: powershell
     description: Proposal document generation via COM automation
 
@@ -43,7 +45,6 @@ rules:
       - .env
       - "*.env"
       - chatsessions/
-      - "BlackFire/BlackFire Portal/install/blackfire_aeci_seed.sql"
   - session_log_required: true        # write sessions/<topic>_YYYYMMDD_HHmmss.md
   - project_local_artifacts_required: true # full custody/index contract: architecture guide §9.7
   - workspace_root_index: WORKSPACE_INDEX.md

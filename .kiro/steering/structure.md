@@ -4,8 +4,12 @@ inclusion: always
 
 # DevWork — Project Structure
 
+DevWork (this repo) is the template/control-plane only — no project application code lives here.
+Project repos are siblings at `c:\Projects\<name>`, each its own independent git repo. Authoritative
+list: `_workspace/project-registry.json`.
+
 ```
-c:\DevWork\
+c:\DevWork\                          ← Template / control-plane only
 ├── CLAUDE.md                        ← Workspace constitution (authoritative)
 ├── AGENTS.md                        ← Mirror for Codex / Antigravity / Kiro / Factory
 ├── .github/copilot-instructions.md  ← Mirror for GitHub Copilot
@@ -15,19 +19,24 @@ c:\DevWork\
 ├── .gitignore
 ├── .env                             ← Secrets (NOT in repo)
 ├── .env.example                     ← Key template (in repo)
-├── sessions/                        ← Session logs (all providers)
+├── _workspace/                      ← Control-plane: sessions, indexes, project-registry.json
+├── sessions/                        ← Session logs (cross-project / control-plane work)
 ├── agents/                          ← Multi-agent system prompts
 │   ├── sibali_system_prompt.md
 │   ├── mlawuli_system_prompt.md
 │   ├── sebenza_agents.md
 │   └── ...
-├── design/blackfire/brand_tokens.md
-├── BlackFire/                       ← BlackFire / AECI project
-│   ├── BlackFire Portal/            ← PHP portal
-│   ├── Clients/AECI/                ← Proposal files
+└── design/blackfire/brand_tokens.md ← Centralized here even though projects live outside DevWork
+
+c:\Projects\                         ← Sibling root — every project repo, each its own .git
+├── BlackFire\                       ← BlackFire / AECI project
+│   ├── BlackFire Portal\            ← PHP portal
+│   ├── Clients\AECI\                ← Proposal files
 │   └── generate_docs.ps1
-├── umlilo-portal/                   ← Next.js + Expo monorepo (submodule)
-└── Astute/                          ← Astute project
+├── Astute\
+├── GovTender\
+├── ilahle-portal\
+└── JS_Resume\
 ```
 
 ## Folder Conventions

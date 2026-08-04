@@ -135,8 +135,15 @@ When the constitution or multi-agent architecture is copied into a repo or updat
 
 ## Projects
 
-- **BlackFire / AECI**: `c:\DevWork\BlackFire\` — security proposals + portal
-- **Astute**: `c:\DevWork\Astute\`
+DevWork (this repo) is the template/control-plane only — no project application code lives here.
+Project repos are siblings at `c:\Projects\<name>`, each its own independent git repo. Authoritative
+list: `_workspace/project-registry.json`.
+
+- **BlackFire / AECI**: `c:\Projects\BlackFire\` — security proposals + portal
+- **Astute**: `c:\Projects\Astute\`
+- **GovTender**: `c:\Projects\GovTender\`
+- **ilahle-portal**: `c:\Projects\ilahle-portal\`
+- **JS_Resume**: `c:\Projects\JS_Resume\`
 
 ## Secrets & Environment Variables
 

@@ -1,13 +1,8 @@
-# Project subfolders own their own git repos — not tracked by the workspace root repo
-/BlackFire/
-/Astute/
-/ilahle-portal/
-/GovTender/
-/JS_Resume/
-/umlilo-portal/
-
-# Uploaded files — environment-specific, never in git
-BlackFire/BlackFire Portal/uploads/
+# Project subfolders no longer exist under DevWork — they live as sibling repos at c:\Projects\.
+# These stale exclusion patterns from the pre-restructure nested layout are kept only for the
+# unrelated legacy "BlackFire Portal" folder (space in name, no .git) that still sits at DevWork
+# root and predates the BlackFire project repo entirely — see
+# docs/plan_devwork_template_boundary_restructure.md for the restructure history.
 
 # Sensitive data — never commit
 .env
@@ -16,15 +11,6 @@ BlackFire/BlackFire Portal/uploads/
 *.key
 chatsessions/*.jsonl
 sessions/system_chatsessions/*.jsonl
-BlackFire/BlackFire Portal/install/blackfire_aeci_seed.sql
-BlackFire/BlackFire Portal/install/generate_bcrypt_hashes.*
-BlackFire/BlackFire Portal/error_log
-BlackFire/BlackFire Portal/test_connection.php
-BlackFire/BlackFire Portal/zzcheck.php
-BlackFire/BlackFire Portal/.env
-BlackFire/BlackFire Portal/api/.env
-BlackFire/BlackFire Portal/api/error_log
-BlackFire/BlackFire Portal/blackfire_secrets.php
 *.env.local
 config.local.*
 
@@ -33,12 +19,6 @@ config.local.*
 
 # Root-level backup folder
 /_backups/
-
-# Portal snapshot folder (large local backup, not source)
-BlackFire/BlackFire Portal - 25052026/
-
-# Install PDFs with embedded credentials
-BlackFire/BlackFire Portal/install/Bhekani2026!.pdf
 
 # Scratch/test artifacts
 **/test_*.docx
@@ -73,27 +53,9 @@ next-env.d.ts
 
 # Windows PowerShell
 *.ps1.bak
-BlackFire/BlackFire Portal/start-local.ps1
-BlackFire/BlackFire Portal/router.php
-BlackFire/BlackFire Portal/encrypt_secrets.php
-BlackFire/BlackFire Portal/DEPLOY_CHECKLIST.md
-BlackFire/BlackFire Portal/dev-only/
-BlackFire/BlackFire Portal/api/_archive/ 
-
-# Test data and destructive/utility SQL — not for production
-BlackFire/BlackFire Portal/install/blackfire_testdata_part1.sql
-BlackFire/BlackFire Portal/install/blackfire_testdata_part2.sql
-BlackFire/BlackFire Portal/install/blackfire_testdata_part3.sql
-BlackFire/BlackFire Portal/install/safety_seed_astute.sql
-BlackFire/BlackFire Portal/install/safety_attachments_seed.sql
-BlackFire/BlackFire Portal/install/drop_safety_file_users.sql
-BlackFire/BlackFire Portal/install/drop_seed_backups.sql
-BlackFire/BlackFire Portal/install/deduplicate_all_tables.sql
 
 # gstack temp
 /tmp/gstack-*
-BlackFire/BlackFire Portal/dev-only.zip
-BlackFire/BlackFire Portal/install/bhekani_bo_2026-05-29.pdf
 
 # Local runtime data — never commit
 /.pnpm-store/
@@ -103,6 +65,3 @@ OllamaSetup.exe
 *.exe
 *.zip
 *.bin
-BlackFire/BlackFire Portal/install/
-BlackFire/BlackFire Portal/tests/
-BlackFire/BlackFire Portal/dev-only/
