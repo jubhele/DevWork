@@ -2,12 +2,12 @@
 Date: 2026-08-03
 Provider: Unknown
 Model: Unknown
-Project: _workspace
-Project Root: c:\DevWork\_workspace
+Project: UNRESOLVED
+Project Root: UNRESOLVED
 
 ## Project Determination
-Status: resolved
-Source: explicit_user_binding
+Status: unresolved
+Source: missing_cwd
 
 ## Goal
 Initialize a constitution-compliant agent session; replace this sentence with the concrete user goal on the first prompt before substantive work.
@@ -34,6 +34,3 @@ Pending first-prompt uSibali classification; the agent must fill this before sub
 
 ## Goal Status
 PENDING
-
-
-

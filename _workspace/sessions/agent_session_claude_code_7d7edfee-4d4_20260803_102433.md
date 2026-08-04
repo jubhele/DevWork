@@ -8,6 +8,7 @@ Project Root: c:\DevWork\_workspace
 ## Project Determination
 Status: resolved
 Source: explicit_user_binding (genuine cross-project control-plane work: commit/sync all repos)
+Reconfirmed: 2026-08-03 (second sync/commit run in this session — same _workspace binding still applies, no project switch)
 
 ## Goal
 Commit and sync all git repositories under c:\DevWork.
@@ -34,10 +35,17 @@ Active model: Sonnet 5  Status: over-powered (acceptable for routine ops task)
 |---------|---------------|--------------|--------|------------|------|
 | commit-sync-all-repos | uMakhi | Claude Code (Sonnet 5) | COMPLETED | 1 | Ran commit-all-repos-dynamic.ps1 -Yes; DevWork root and BlackFire pushed, others clean |
 
+## Resumed 2026-08-03
+Second sync/commit run. commit-all-repos-dynamic.ps1 -Yes failed to stage the root repo because Sambe/ is a newly created nested repo (from a same-day ProjectCreate) with no commits — git refuses to `add -A` an uncommitted embedded repo. User chose to skip Sambe for this run. Staged and committed everything else in the DevWork root repo manually (WORKSPACE_INDEX.md, _workspace/ session logs, constitution-hook temp files, project-lock file, sync-multi-agent-doc.ps1), pushed 59c2931. Astute, BlackFire, GovTender, ilahle-portal, JS_Resume already clean.
+
+## Agent Accountability (update)
+| commit-sync-all-repos-2 | uMakhi | Claude Code (Sonnet 5) | COMPLETED | 1 | Manual staged commit excluding Sambe/ (uncommitted nested repo); pushed 59c2931 |
+
 ## Blockers / Next Steps
-- None. All repos synced successfully.
+- Sambe/ still has no initial commit and no remote — needs a decision (standalone commit vs. absorb vs. leave) before it can be included in future workspace-wide sync runs.
 
 ## Learnings
+- commit-all-repos-dynamic.ps1 does not handle nested repos with zero commits (embedded gitlink with no commit checked out) — it errors on `git add -A` for the whole root repo, not just the offending path. Consider hardening the script to auto-exclude such paths in future.
 - No trust-score divergence observed; routine ops task, Haiku-tier work executed fine on active model.
 
 ## Goal Status
