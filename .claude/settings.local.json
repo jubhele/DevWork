@@ -156,7 +156,7 @@
       "Bash(php -l \"c:/DevWork/BlackFire/BlackFire Portal/api/task_users.php\")",
       "Bash(php -l \"c:/DevWork/BlackFire/BlackFire Portal/api/dashboard.php\")",
       "Bash(php -l \"c:/DevWork/BlackFire/BlackFire Portal/api/invoices.php\")",
-      "Bash(powershell -File \"c:\\\\DevWork\\\\scripts\\\\governance\\\\constitution-hook.ps1\" -Event ProjectBind -RequestedProjectRoot \"c:\\\\DevWork\\\\BlackFire\" -SessionId \"310419c0-9e1a-4679-93ac-33da80c3baf4\")",
+      "Bash(powershell -File \"c:\\\\DevWork\\\\scripts\\\\governance\\\\constitution-hook.ps1\" -HookEvent ProjectBind -RequestedProjectRoot \"c:\\\\DevWork\\\\BlackFire\" -SessionId \"310419c0-9e1a-4679-93ac-33da80c3baf4\")",
       "PowerShell(. 'C:\\\\DevWork\\\\commit-all-repos-dynamic.ps1' -DryRun)",
       "Bash(php -l api/invoices.php)",
       "Bash(php -l api/quotes.php)",

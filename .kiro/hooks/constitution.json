@@ -6,7 +6,7 @@
       "trigger": "SessionStart",
       "action": {
         "type": "command",
-        "command": "powershell.exe -NonInteractive -ExecutionPolicy Bypass -File \"C:\\DevWork\\scripts\\governance\\constitution-hook.ps1\" -Event SessionStart -Provider Kiro"
+        "command": "powershell.exe -NonInteractive -ExecutionPolicy Bypass -File \"C:\\DevWork\\scripts\\governance\\constitution-hook.ps1\" -HookEvent SessionStart -Provider Kiro"
       },
       "timeout": 15,
       "enabled": true
@@ -16,7 +16,7 @@
       "trigger": "UserPromptSubmit",
       "action": {
         "type": "command",
-        "command": "powershell.exe -NonInteractive -ExecutionPolicy Bypass -File \"C:\\DevWork\\scripts\\governance\\constitution-hook.ps1\" -Event UserPromptSubmit -Provider Kiro"
+        "command": "powershell.exe -NonInteractive -ExecutionPolicy Bypass -File \"C:\\DevWork\\scripts\\governance\\constitution-hook.ps1\" -HookEvent UserPromptSubmit -Provider Kiro"
       },
       "timeout": 10,
       "enabled": true
@@ -27,7 +27,7 @@
       "matcher": "fs_write|write|edit|create",
       "action": {
         "type": "command",
-        "command": "powershell.exe -NonInteractive -ExecutionPolicy Bypass -File \"C:\\DevWork\\scripts\\governance\\constitution-hook.ps1\" -Event PreChange -Provider Kiro"
+        "command": "powershell.exe -NonInteractive -ExecutionPolicy Bypass -File \"C:\\DevWork\\scripts\\governance\\constitution-hook.ps1\" -HookEvent PreChange -Provider Kiro"
       },
       "timeout": 10,
       "enabled": true
@@ -38,7 +38,7 @@
       "matcher": "fs_write|write|edit|create",
       "action": {
         "type": "command",
-        "command": "powershell.exe -NonInteractive -ExecutionPolicy Bypass -File \"C:\\DevWork\\scripts\\governance\\constitution-hook.ps1\" -Event PostChange -Provider Kiro"
+        "command": "powershell.exe -NonInteractive -ExecutionPolicy Bypass -File \"C:\\DevWork\\scripts\\governance\\constitution-hook.ps1\" -HookEvent PostChange -Provider Kiro"
       },
       "timeout": 10,
       "enabled": true
@@ -48,7 +48,7 @@
       "trigger": "Stop",
       "action": {
         "type": "command",
-        "command": "powershell.exe -NonInteractive -ExecutionPolicy Bypass -File \"C:\\DevWork\\scripts\\governance\\constitution-hook.ps1\" -Event Stop -Provider Kiro"
+        "command": "powershell.exe -NonInteractive -ExecutionPolicy Bypass -File \"C:\\DevWork\\scripts\\governance\\constitution-hook.ps1\" -HookEvent Stop -Provider Kiro"
       },
       "timeout": 10,
       "enabled": true

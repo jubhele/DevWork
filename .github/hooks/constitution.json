@@ -4,21 +4,21 @@
     "sessionStart": [
       {
         "type": "command",
-        "powershell": "powershell.exe -NonInteractive -ExecutionPolicy Bypass -File \"C:\\DevWork\\scripts\\governance\\constitution-hook.ps1\" -Event SessionStart -Provider \"GitHub Copilot\"",
+        "powershell": "powershell.exe -NonInteractive -ExecutionPolicy Bypass -File \"C:\\DevWork\\scripts\\governance\\constitution-hook.ps1\" -HookEvent SessionStart -Provider \"GitHub Copilot\"",
         "timeoutSec": 15
       }
     ],
     "userPromptSubmitted": [
       {
         "type": "command",
-        "powershell": "powershell.exe -NonInteractive -ExecutionPolicy Bypass -File \"C:\\DevWork\\scripts\\governance\\constitution-hook.ps1\" -Event UserPromptSubmit -Provider \"GitHub Copilot\"",
+        "powershell": "powershell.exe -NonInteractive -ExecutionPolicy Bypass -File \"C:\\DevWork\\scripts\\governance\\constitution-hook.ps1\" -HookEvent UserPromptSubmit -Provider \"GitHub Copilot\"",
         "timeoutSec": 10
       }
     ],
     "sessionEnd": [
       {
         "type": "command",
-        "powershell": "powershell.exe -NonInteractive -ExecutionPolicy Bypass -File \"C:\\DevWork\\scripts\\governance\\constitution-hook.ps1\" -Event SessionEnd -Provider \"GitHub Copilot\"",
+        "powershell": "powershell.exe -NonInteractive -ExecutionPolicy Bypass -File \"C:\\DevWork\\scripts\\governance\\constitution-hook.ps1\" -HookEvent SessionEnd -Provider \"GitHub Copilot\"",
         "timeoutSec": 15
       }
     ]

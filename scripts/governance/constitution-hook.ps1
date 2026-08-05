@@ -1,6 +1,6 @@
 param(
     [ValidateSet('SessionStart', 'UserPromptSubmit', 'ProjectBind', 'ProjectCreate', 'PreChange', 'PostChange', 'Stop', 'SessionEnd', 'PreInvocation')]
-    [string]$Event = 'UserPromptSubmit',
+    [string]$HookEvent = 'UserPromptSubmit',
     [string]$Provider = 'Unknown',
     [string]$Model = 'Unknown',
     [string]$WorkspaceRoot = 'C:\DevWork',
@@ -129,11 +129,11 @@ $inputObject = Get-HookInput
 $nativeEvent = Get-InputValue $inputObject @('hook_event_name', 'eventName', 'event_name')
 if (-not [string]::IsNullOrWhiteSpace($nativeEvent)) {
     switch -Regex ($nativeEvent) {
-        '^(sessionStart|SessionStart|agentSpawn)$' { $Event = 'SessionStart' }
-        '^(userPromptSubmitted|userPromptSubmit|UserPromptSubmit|beforeSubmitPrompt)$' { $Event = 'UserPromptSubmit' }
-        '^(PreInvocation|preInvocation)$' { $Event = 'PreInvocation' }
-        '^(sessionEnd|SessionEnd)$' { $Event = 'SessionEnd' }
-        '^(stop|Stop|agentStop)$' { $Event = 'Stop' }
+        '^(sessionStart|SessionStart|agentSpawn)$' { $HookEvent = 'SessionStart' }
+        '^(userPromptSubmitted|userPromptSubmit|UserPromptSubmit|beforeSubmitPrompt)$' { $HookEvent = 'UserPromptSubmit' }
+        '^(PreInvocation|preInvocation)$' { $HookEvent = 'PreInvocation' }
+        '^(sessionEnd|SessionEnd)$' { $HookEvent = 'SessionEnd' }
+        '^(stop|Stop|agentStop)$' { $HookEvent = 'Stop' }
     }
 }
 
@@ -206,8 +206,8 @@ if ($null -ne $state -and $state.PSObject.Properties['project_status'] -and $sta
 }
 $projectDrift = -not [string]::IsNullOrWhiteSpace($cwdProjectRoot) -and $projectStatus -eq 'resolved' -and -not $cwdProjectRoot.Equals($projectRoot, [StringComparison]::OrdinalIgnoreCase)
 
-if ($null -eq $state -and ($Event -eq 'Stop' -or $Event -eq 'SessionEnd' -or $Event -eq 'PreChange' -or $Event -eq 'PostChange')) {
-    Write-Error "No state mapping exists for $Provider session $nativeSessionId; refusing to create a session from $Event."
+if ($null -eq $state -and ($HookEvent -eq 'Stop' -or $HookEvent -eq 'SessionEnd' -or $HookEvent -eq 'PreChange' -or $HookEvent -eq 'PostChange')) {
+    Write-Error "No state mapping exists for $Provider session $nativeSessionId; refusing to create a session from $HookEvent."
     exit 1
 }
 
@@ -271,15 +271,15 @@ PENDING
     }
 }
 
-if ($Event -eq 'ProjectCreate') {
+if ($HookEvent -eq 'ProjectCreate') {
     if ([string]::IsNullOrWhiteSpace($ProjectName)) { throw 'ProjectCreate requires -ProjectName.' }
     $initializer = Join-Path $WorkspaceRoot 'scripts\governance\initialize-project.ps1'
     $created = & $initializer -ProjectName $ProjectName -WorkspaceRoot $WorkspaceRoot | Select-Object -Last 1 | ConvertFrom-Json
     $RequestedProjectRoot = [string]$created.project_root
-    $Event = 'ProjectBind'
+    $HookEvent = 'ProjectBind'
 }
 
-if ($Event -eq 'ProjectBind') {
+if ($HookEvent -eq 'ProjectBind') {
     if ([string]::IsNullOrWhiteSpace($RequestedProjectRoot)) { throw 'ProjectBind requires -RequestedProjectRoot.' }
     $bindingRoot = [IO.Path]::GetFullPath($RequestedProjectRoot).TrimEnd('\')
     $workspace = [IO.Path]::GetFullPath($WorkspaceRoot).TrimEnd('\')
@@ -337,7 +337,7 @@ if ($Event -eq 'ProjectBind') {
 $logPath = [string]$state.log_path
 if (-not (Test-Path -LiteralPath $logPath)) { throw "Mapped session log missing: $logPath" }
 
-if ($Event -eq 'UserPromptSubmit' -or $Event -eq 'PreInvocation') {
+if ($HookEvent -eq 'UserPromptSubmit' -or $HookEvent -eq 'PreInvocation') {
     $state.prompt_count = [int]$state.prompt_count + 1
 }
 $state.updated_at = (Get-Date).ToString('o')
@@ -349,7 +349,7 @@ $content = Get-Content -LiteralPath $logPath -Raw -Encoding utf8
 $missingSections = @(Test-RequiredSections $content)
 if ($missingSections.Count -gt 0) { throw ('Session log is missing mandatory sections: ' + ($missingSections -join ', ')) }
 
-if ($Event -eq 'PreChange') {
+if ($HookEvent -eq 'PreChange') {
     if (-not $state.PSObject.Properties['project_status'] -or $state.project_status -ne 'resolved') {
         [Console]::Error.WriteLine('Project is unresolved. Ask the user to select an existing project, create a new named project, or explicitly choose _workspace control-plane scope.')
         exit 2
@@ -414,7 +414,7 @@ if ($Event -eq 'PreChange') {
     }
 }
 
-if ($Event -eq 'Stop') {
+if ($HookEvent -eq 'Stop') {
     $stopAlreadyActive = Get-InputValue $inputObject @('stop_hook_active', 'stopHookActive')
     $incomplete = @()
     if (-not $state.PSObject.Properties['project_status'] -or $state.project_status -ne 'resolved') { $incomplete += 'Project Determination' }
@@ -429,7 +429,7 @@ if ($Event -eq 'Stop') {
     }
 }
 
-$isClosingEvent = ($Event -eq 'SessionEnd' -or ($Event -eq 'Stop' -and $content -match '(?m)^## Goal Status\s*\r?\nACHIEVED\s*$'))
+$isClosingEvent = ($HookEvent -eq 'SessionEnd' -or ($HookEvent -eq 'Stop' -and $content -match '(?m)^## Goal Status\s*\r?\nACHIEVED\s*$'))
 $indexFailure = $null
 if ($isClosingEvent) {
     $alreadyEnded = $content -match '(?m)^_Session ended:'
@@ -464,7 +464,7 @@ if ($isClosingEvent) {
     }
 }
 
-if ($Event -eq 'SessionStart' -or $Event -eq 'PreInvocation' -or $Event -eq 'PostChange' -or $Event -eq 'Stop' -or $Event -eq 'SessionEnd') {
+if ($HookEvent -eq 'SessionStart' -or $HookEvent -eq 'PreInvocation' -or $HookEvent -eq 'PostChange' -or $HookEvent -eq 'Stop' -or $HookEvent -eq 'SessionEnd') {
     Copy-SessionMirror $logPath
 }
 
@@ -476,7 +476,7 @@ $relativeLog = if ($logPath.StartsWith($normalizedWorkspaceForLog + '\', [String
 } else {
     $logPath
 }
-if ($Event -eq 'SessionStart' -or $Event -eq 'UserPromptSubmit' -or $Event -eq 'PreInvocation') {
+if ($HookEvent -eq 'SessionStart' -or $HookEvent -eq 'UserPromptSubmit' -or $HookEvent -eq 'PreInvocation') {
     if (-not $state.PSObject.Properties['project_status'] -or $state.project_status -ne 'resolved') {
         Write-Output "[constitution-hook] PROJECT UNRESOLVED. Before substantive work, ask the user: Which existing project does this belong to, is it a new named project, or is it genuine _workspace control-plane work? Then bind with ProjectBind or create with ProjectCreate. Exact bootstrap log: $relativeLog."
     } elseif ($projectDrift) {
@@ -484,7 +484,7 @@ if ($Event -eq 'SessionStart' -or $Event -eq 'UserPromptSubmit' -or $Event -eq '
     } else {
         Write-Output "[constitution-hook] ACTIVE. Project: $($state.project_name). Exact log: $relativeLog. Before substantive work: read CLAUDE.md and MEMORY.md; replace the Goal placeholder; run uSibali tier/model clearance; route through uMlawuli; record task IDs and accountability; back up existing files before edits; update Decisions, Work Done, Blockers, and Learnings; keep Goal Status PENDING until explicit user confirmation. This reminder applies to this prompt."
     }
-} elseif ($Event -eq 'PostChange') {
+} elseif ($HookEvent -eq 'PostChange') {
     Write-Output "[constitution-hook] Change recorded. Update Work Done and verify the timestamped backup for every modified existing file. Exact log: $relativeLog."
 }
 
