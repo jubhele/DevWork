@@ -193,6 +193,19 @@ User said "remove it," referring to the unrelated legacy "BlackFire Portal" fold
 ## Learnings (additional)
 - Not every "leftover folder from a restructure" carries the same risk as the repos being actively moved — a 2-file, no-.git scratch folder can be safely deleted directly after a quick content check, without needing the copy-then-verify-then-delete ceremony reserved for real git repos with history to protect.
 
+## Resumed 2026-08-05 (2) — Found and extracted a 4th missed project: Homolemo In Europe
+User asked "Homolemo In Europe?" — investigated and found a 4th project (Amu's football career project, per memory) that was missed during the original restructure: 46 files tracked directly in DevWork's own git history, no independent .git, same pattern umlilo-portal was in before extraction. User chose the same treatment as the other 5 projects (extract and move), not the delete-it treatment umlilo-portal got. Extraction went cleanly on the first attempt this time (unlike umlilo-portal's empty-HEAD complication) since this folder still existed at DevWork's current HEAD when I ran filter-repo: git filter-repo --path "Homolemo In Europe/" --path-rename produced a healthy 9-commit history with a populated 46-file working tree immediately. Verified exact 46/46 file match against live disk (excluding _backups/, which is gitignored workspace-wide) before copying to c:\Projects\Homolemo In Europe. Robocopied live disk state on top (74/74 files, 0 mismatch) to capture the gitignored _backups/ content, set local git identity, committed the reconciled state (28 files, all additions). Removed the original from DevWork — clean deletion, no lock issues this time. Updated registry, verified via commit-all-repos-dynamic.ps1 -DryRun (6 repos now discovered, Homolemo In Europe's "no upstream configured" error is expected/correct since it has no remote yet). Regenerated WORKSPACE_INDEX.md and noticed the file:// link for this project rendered with a raw unencoded space (file:///C:/Projects/Homolemo In Europe/...), which doesn't reliably resolve — fixed Get-MarkdownLinkTarget to percent-encode spaces, verified the regenerated link now reads %20. Committed and pushed both the extraction (2a149f6) and the space-encoding fix (1aec736).
+
+## Agent Accountability (update 16)
+| extract-homolemo-in-europe | uMakhi | Claude Code (Sonnet 5) | COMPLETED | 1 | Extracted Homolemo In Europe's real git history (9 commits, 46 files) from DevWork, reconciled with live disk, created standalone repo at c:\Projects\Homolemo In Europe; pushed 2a149f6 |
+| fix-markdown-link-space-encoding | uMakhi | Claude Code (Sonnet 5) | COMPLETED | 1 | Fixed Get-MarkdownLinkTarget to percent-encode spaces in file:// URIs, caught by Homolemo In Europe's space-containing folder name; pushed 1aec736 |
+
+## Blockers / Next Steps
+- All 6 project repos now correctly relocated to c:\Projects\<name>: Astute, BlackFire, GovTender, Homolemo In Europe, ilahle-portal, JS_Resume. umlilo-portal remains deliberately deleted per earlier user decision.
+- Worth a final sweep of c:\DevWork root for any other folders matching the "tracked in DevWork's own history, no independent .git, project-shaped scaffold" pattern before considering the template-boundary migration fully closed — this session found two such folders (umlilo-portal, Homolemo In Europe) that weren't in the original registry scan, so there could be more.
+- Homolemo In Europe has no GitHub remote yet (same situation umlilo-portal was in before its deletion) — user has not yet been asked whether to create one; flagging for a future session rather than assuming.
+- Sambe/ no longer exists on disk — removed from the registry earlier this session; if this was unintentional the user should say so, otherwise no further action needed.
+
 ## Goal Status
 PENDING
 
