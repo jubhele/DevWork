@@ -39,9 +39,9 @@ function Get-RelativePath {
 function Get-MarkdownLinkTarget {
     param([string]$DisplayPath)
     if ([IO.Path]::IsPathRooted($DisplayPath) -and $DisplayPath -match '^[A-Za-z]:\\') {
-        return 'file:///' + ($DisplayPath -replace '\\', '/')
+        return 'file:///' + ($DisplayPath -replace '\\', '/' -replace ' ', '%20')
     }
-    return ($DisplayPath -replace '\\', '/')
+    return ($DisplayPath -replace '\\', '/' -replace ' ', '%20')
 }
 
 function Get-DirectoryMetric {
