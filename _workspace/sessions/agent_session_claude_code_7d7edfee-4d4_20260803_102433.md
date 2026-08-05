@@ -179,6 +179,20 @@ User said "fix it" again, referring to the remaining follow-up item: provider mi
 - "Provider mirrors" for a workspace constitution is a longer list than the four usually top-of-mind (CLAUDE.md/AGENTS.md/Copilot/Cursor) — Kiro's steering/*.md files and Factory's config.yaml both had their own independent path references and both were stale in ways the other mirrors weren't (Kiro still described a whole separate "Umlilo Portal" project that had actually been absorbed into BlackFire months prior); a full mirror-consistency pass needs to check every provider file listed in the constitution's own §10, not just the most commonly edited ones.
 - Cleaning up dead .gitignore patterns after a structural move is worth doing, not just cosmetic — stale patterns referencing paths that can never exist again are silent debt that makes the file harder to trust when someone next needs to add a real exclusion; always verify the cleanup doesn't surface previously-hidden tracked files before committing.
 
+## Resumed 2026-08-05 — Removed the legacy BlackFire Portal scratch folder
+User said "remove it," referring to the unrelated legacy "BlackFire Portal" folder (space in name, no .git) flagged at the end of the previous entry. Investigated before deleting: only 2 files total (identical 445-byte _tmp_php_diag.php diagnostic scripts, one at root and one under api/, same content/timestamp), no .git, trivial PHP environment-check script with no secrets or real logic. Removed via Remove-Item — succeeded cleanly (small folder, no lock issues this time). Discovered the two files were actually tracked in DevWork's own git history (predated the earlier .gitignore cleanup, which only matched the nested BlackFire/BlackFire Portal/* path pattern, not this loose root-level folder with a space) — committed the deletion as a real, intentional change rather than leaving it as an untracked-removal. Pushed 608b65b.
+
+## Agent Accountability (update 15)
+| remove-legacy-blackfire-portal-folder | uMakhi | Claude Code (Sonnet 5) | COMPLETED | 1 | Investigated and removed the legacy "BlackFire Portal" scratch folder (2 trivial diagnostic files, no .git); pushed 608b65b |
+
+## Blockers / Next Steps
+- Filesystem restructure COMPLETE. All 5 remaining tracked projects (Astute, BlackFire, GovTender, ilahle-portal, JS_Resume) live at c:\Projects\<name>, verified working end to end. umlilo-portal was deliberately removed entirely per user decision.
+- All known follow-up items from the restructure are now resolved: WORKSPACE_INDEX.md links fixed, provider mirrors updated, legacy BlackFire Portal folder removed. No known outstanding work from this session.
+- Sambe/ no longer exists on disk — removed from the registry earlier this session; if this was unintentional the user should say so, otherwise no further action needed.
+
+## Learnings (additional)
+- Not every "leftover folder from a restructure" carries the same risk as the repos being actively moved — a 2-file, no-.git scratch folder can be safely deleted directly after a quick content check, without needing the copy-then-verify-then-delete ceremony reserved for real git repos with history to protect.
+
 ## Goal Status
 PENDING
 
