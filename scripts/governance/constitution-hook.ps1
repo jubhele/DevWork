@@ -375,7 +375,7 @@ if ($Event -eq 'PreChange') {
         $fullCandidate = [IO.Path]::GetFullPath($candidate)
         $workspace = [IO.Path]::GetFullPath($WorkspaceRoot).TrimEnd('\')
         $relativeCandidate = $fullCandidate.Substring($workspace.Length).TrimStart('\')
-        $firstSegment = ($relativeCandidate -split '\')[0]
+        $firstSegment = ($relativeCandidate -split '\\')[0]
         $controlPlaneRoots = @('.agents', '.claude', '.codex', '.cursor', '.factory', '.github', '.kiro', '.vscode', '_workspace', 'agents', 'scripts', 'design')
         $controlPlaneFiles = @('CLAUDE.md', 'AGENTS.md', 'Multi-Agent Workforce Architecture & System Prompts.md', 'WORKSPACE_INDEX.md', 'agent-v3.ps1', 'bootstrap-agent.ps1')
         if (-not ($controlPlaneRoots -contains $firstSegment -or $controlPlaneFiles -contains $relativeCandidate)) {
@@ -469,7 +469,12 @@ if ($Event -eq 'SessionStart' -or $Event -eq 'PreInvocation' -or $Event -eq 'Pos
 
 if ($indexFailure) { throw $indexFailure }
 
-$relativeLog = $logPath.Substring($WorkspaceRoot.Length).TrimStart('\')
+$normalizedWorkspaceForLog = [IO.Path]::GetFullPath($WorkspaceRoot).TrimEnd('\')
+$relativeLog = if ($logPath.StartsWith($normalizedWorkspaceForLog + '\', [StringComparison]::OrdinalIgnoreCase)) {
+    $logPath.Substring($normalizedWorkspaceForLog.Length).TrimStart('\')
+} else {
+    $logPath
+}
 if ($Event -eq 'SessionStart' -or $Event -eq 'UserPromptSubmit' -or $Event -eq 'PreInvocation') {
     if (-not $state.PSObject.Properties['project_status'] -or $state.project_status -ne 'resolved') {
         Write-Output "[constitution-hook] PROJECT UNRESOLVED. Before substantive work, ask the user: Which existing project does this belong to, is it a new named project, or is it genuine _workspace control-plane work? Then bind with ProjectBind or create with ProjectCreate. Exact bootstrap log: $relativeLog."
