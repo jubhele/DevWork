@@ -292,7 +292,8 @@ if ($Event -eq 'ProjectBind') {
         try {
             $registry = Get-Content -LiteralPath $registryPath -Raw -Encoding utf8 | ConvertFrom-Json
             $isRegisteredProject = [bool]($registry.projects | Where-Object {
-                (Get-Item -LiteralPath $_.root -ErrorAction SilentlyContinue).FullName.TrimEnd('\') -eq $bindingRoot -or
+                $registeredItem = Get-Item -LiteralPath $_.root -ErrorAction SilentlyContinue
+                ($null -ne $registeredItem -and $registeredItem.FullName.TrimEnd('\') -eq $bindingRoot) -or
                 $_.root.TrimEnd('\').Equals($bindingRoot, [StringComparison]::OrdinalIgnoreCase)
             } | Select-Object -First 1)
         } catch {
