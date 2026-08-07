@@ -1,0 +1,14 @@
+﻿{
+    "provider":  "GitHub Copilot",
+    "session_id":  "7d372938-0ea1-4040-bf6a-8a0cfa0e7400",
+    "log_path":  "C:\\DevWork\\_workspace\\sessions\\agent_session_github_copilot_7d372938-0ea_20260807_100216.md",
+    "project_status":  "unresolved",
+    "project_name":  "UNRESOLVED",
+    "project_root":  "",
+    "project_source":  "outside_workspace",
+    "binding_version":  1,
+    "binding_updated_at":  "",
+    "prompt_count":  4,
+    "created_at":  "2026-08-07T10:02:16.2112193+02:00",
+    "updated_at":  "2026-08-07T11:12:15.5422754+02:00"
+}
