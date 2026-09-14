@@ -1,6 +1,6 @@
 ﻿# DevWork Workspace Index
 
-Generated: 2026-09-14T20:02:00.4574890Z
+Generated: 2026-09-14T20:19:47.9231009Z
 Schema: 1.0
 Trigger: `c:\Projects\BlackFire\sessions\blackfire_finance_integrity_repair_20260914_212745.md`
 
@@ -12,7 +12,7 @@ This is a discovery map. Canonical sessions and artifacts remain below their own
 |---------|------|------------|---------:|----------:|--------:|-----:|--------:|-------|
 | _workspace | `_workspace` | No | 106 | 0 | 0 | 233 | 6 | [_workspace](_workspace/ARTIFACT_INDEX.md) |
 | Astute | `C:\Projects\Astute` | Yes | 5 | 8 | 0 | 0 | 16 | [astute](file:///C:/Projects/Astute/ARTIFACT_INDEX.md) |
-| BlackFire | `C:\Projects\BlackFire` | Yes | 378 | 54 | 0 | 404 | 613 | [blackfire](file:///C:/Projects/BlackFire/ARTIFACT_INDEX.md) |
+| BlackFire | `C:\Projects\BlackFire` | Yes | 380 | 54 | 0 | 404 | 613 | [blackfire](file:///C:/Projects/BlackFire/ARTIFACT_INDEX.md) |
 | GovTender | `C:\Projects\GovTender` | Yes | 4 | 0 | 0 | 0 | 7 | [govtender](file:///C:/Projects/GovTender/ARTIFACT_INDEX.md) |
 | Homolemo In Europe | `C:\Projects\Homolemo In Europe` | Yes | 11 | 0 | 0 | 9 | 6 | [homolemo-in-europe](file:///C:/Projects/Homolemo%20In%20Europe/ARTIFACT_INDEX.md) |
 | ilahle-portal | `C:\Projects\ilahle-portal` | Yes | 7 | 9 | 0 | 0 | 63 | [ilahle-portal](file:///C:/Projects/ilahle-portal/ARTIFACT_INDEX.md) |

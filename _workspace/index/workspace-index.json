@@ -1,6 +1,6 @@
 ﻿{
     "schema_version":  "1.0",
-    "generated_at":  "2026-09-14T20:02:00.4574890Z",
+    "generated_at":  "2026-09-14T20:19:47.9231009Z",
     "triggered_by":  "c:\\Projects\\BlackFire\\sessions\\blackfire_finance_integrity_repair_20260914_212745.md",
     "inventory":  {
                       "projects":  [
@@ -56,7 +56,7 @@
                                                                                               "files":  233,
                                                                                               "bytes":  1074531,
                                                                                               "oldest":  "2026-05-22T02:56:46.2853814Z",
-                                                                                              "latest":  "2026-09-14T19:59:07.0240840Z"
+                                                                                              "latest":  "2026-09-14T20:18:48.4809649Z"
                                                                                           }
                                                                            }
                                                                        ],
@@ -173,10 +173,10 @@
                                                                                    "path":  "C:\\Projects\\BlackFire\\sessions",
                                                                                    "metric":  {
                                                                                                   "exists":  true,
-                                                                                                  "files":  378,
-                                                                                                  "bytes":  1759326,
+                                                                                                  "files":  380,
+                                                                                                  "bytes":  1775416,
                                                                                                   "oldest":  "2026-06-23T09:19:04.0991484Z",
-                                                                                                  "latest":  "2026-09-14T20:01:49.2389188Z"
+                                                                                                  "latest":  "2026-09-14T20:19:42.6015065Z"
                                                                                               }
                                                                                }
                                                                            ],
@@ -547,10 +547,10 @@
                                                           "path":  ".git",
                                                           "metric":  {
                                                                          "exists":  true,
-                                                                         "files":  576,
-                                                                         "bytes":  1882482384,
+                                                                         "files":  587,
+                                                                         "bytes":  1882500742,
                                                                          "oldest":  "2026-05-16T04:41:31.9208941Z",
-                                                                         "latest":  "2026-09-14T20:00:14.5008404Z"
+                                                                         "latest":  "2026-09-14T20:17:26.6121086Z"
                                                                      },
                                                           "classification":  "excluded infrastructure/cache"
                                                       },
