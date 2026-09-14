@@ -1,6 +1,6 @@
 ﻿{
     "schema_version":  "1.0",
-    "generated_at":  "2026-09-14T19:37:30.0794317Z",
+    "generated_at":  "2026-09-14T20:02:00.4574890Z",
     "triggered_by":  "c:\\Projects\\BlackFire\\sessions\\blackfire_finance_integrity_repair_20260914_212745.md",
     "inventory":  {
                       "projects":  [
@@ -56,7 +56,7 @@
                                                                                               "files":  233,
                                                                                               "bytes":  1074531,
                                                                                               "oldest":  "2026-05-22T02:56:46.2853814Z",
-                                                                                              "latest":  "2026-09-14T19:36:03.8237028Z"
+                                                                                              "latest":  "2026-09-14T19:59:07.0240840Z"
                                                                                           }
                                                                            }
                                                                        ],
@@ -174,9 +174,9 @@
                                                                                    "metric":  {
                                                                                                   "exists":  true,
                                                                                                   "files":  378,
-                                                                                                  "bytes":  1758747,
+                                                                                                  "bytes":  1759326,
                                                                                                   "oldest":  "2026-06-23T09:19:04.0991484Z",
-                                                                                                  "latest":  "2026-09-14T19:37:21.8324299Z"
+                                                                                                  "latest":  "2026-09-14T20:01:49.2389188Z"
                                                                                               }
                                                                                }
                                                                            ],
@@ -203,7 +203,7 @@
                                                                                               "files":  242,
                                                                                               "bytes":  40134893,
                                                                                               "oldest":  "2026-07-09T19:23:09.9028041Z",
-                                                                                              "latest":  "2026-09-14T19:36:41.7105537Z"
+                                                                                              "latest":  "2026-09-14T19:38:20.2813528Z"
                                                                                           }
                                                                            },
                                                                            {
@@ -547,10 +547,10 @@
                                                           "path":  ".git",
                                                           "metric":  {
                                                                          "exists":  true,
-                                                                         "files":  565,
-                                                                         "bytes":  1882464036,
+                                                                         "files":  576,
+                                                                         "bytes":  1882482384,
                                                                          "oldest":  "2026-05-16T04:41:31.9208941Z",
-                                                                         "latest":  "2026-09-14T19:34:54.4243372Z"
+                                                                         "latest":  "2026-09-14T20:00:14.5008404Z"
                                                                      },
                                                           "classification":  "excluded infrastructure/cache"
                                                       },

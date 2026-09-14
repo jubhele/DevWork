@@ -1,6 +1,6 @@
 ﻿# DevWork Workspace Index
 
-Generated: 2026-09-14T19:37:30.0794317Z
+Generated: 2026-09-14T20:02:00.4574890Z
 Schema: 1.0
 Trigger: `c:\Projects\BlackFire\sessions\blackfire_finance_integrity_repair_20260914_212745.md`
 
