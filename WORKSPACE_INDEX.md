@@ -1,8 +1,8 @@
 ﻿# DevWork Workspace Index
 
-Generated: 2026-09-14T20:19:47.9231009Z
+Generated: 2026-09-20T20:16:49.5920774Z
 Schema: 1.0
-Trigger: `c:\Projects\BlackFire\sessions\blackfire_finance_integrity_repair_20260914_212745.md`
+Trigger: `sessions\blackfire_callout_status_fix_20260920_221646.md`
 
 This is a discovery map. Canonical sessions and artifacts remain below their owning project roots.
 
@@ -10,9 +10,9 @@ This is a discovery map. Canonical sessions and artifacts remain below their own
 
 | Project | Root | Repository | Sessions | Artifacts | Archive | Temp | Backups | Index |
 |---------|------|------------|---------:|----------:|--------:|-----:|--------:|-------|
-| _workspace | `_workspace` | No | 106 | 0 | 0 | 233 | 6 | [_workspace](_workspace/ARTIFACT_INDEX.md) |
+| _workspace | `_workspace` | No | 114 | 0 | 0 | 241 | 6 | [_workspace](_workspace/ARTIFACT_INDEX.md) |
 | Astute | `C:\Projects\Astute` | Yes | 5 | 8 | 0 | 0 | 16 | [astute](file:///C:/Projects/Astute/ARTIFACT_INDEX.md) |
-| BlackFire | `C:\Projects\BlackFire` | Yes | 380 | 54 | 0 | 404 | 613 | [blackfire](file:///C:/Projects/BlackFire/ARTIFACT_INDEX.md) |
+| BlackFire | `C:\Projects\BlackFire` | Yes | 402 | 54 | 0 | 419 | 613 | [blackfire](file:///C:/Projects/BlackFire/ARTIFACT_INDEX.md) |
 | GovTender | `C:\Projects\GovTender` | Yes | 4 | 0 | 0 | 0 | 7 | [govtender](file:///C:/Projects/GovTender/ARTIFACT_INDEX.md) |
 | Homolemo In Europe | `C:\Projects\Homolemo In Europe` | Yes | 11 | 0 | 0 | 9 | 6 | [homolemo-in-europe](file:///C:/Projects/Homolemo%20In%20Europe/ARTIFACT_INDEX.md) |
 | ilahle-portal | `C:\Projects\ilahle-portal` | Yes | 7 | 9 | 0 | 0 | 63 | [ilahle-portal](file:///C:/Projects/ilahle-portal/ARTIFACT_INDEX.md) |
@@ -22,7 +22,7 @@ This is a discovery map. Canonical sessions and artifacts remain below their own
 
 | Path | Files | Size (MB) | Latest |
 |------|------:|----------:|--------|
-| `sessions` | 357 | 3.7 | 2026-08-12T09:55:10.2538629Z |
+| `sessions` | 358 | 3.7 | 2026-09-20T20:16:46.5734664Z |
 | `temp` | 2365 | 311.7 | 2026-07-22T16:56:15.7044599Z |
 | `_backups` | 97 | 2.34 | 2026-08-04T21:00:34.9541943Z |
 | `chatsessions` | 1 | 0 | 2026-05-16T05:18:29.4610462Z |

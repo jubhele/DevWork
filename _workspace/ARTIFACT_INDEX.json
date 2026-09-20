@@ -2,7 +2,7 @@
     "name":  "_workspace",
     "slug":  "_workspace",
     "root":  "_workspace",
-    "full_root":  "c:\\DevWork\\_workspace",
+    "full_root":  "C:\\DevWork\\_workspace",
     "standalone_repository":  false,
     "artifact_index":  "_workspace\\ARTIFACT_INDEX.md",
     "categories":  {
@@ -11,10 +11,10 @@
                                             "path":  "_workspace\\sessions",
                                             "metric":  {
                                                            "exists":  true,
-                                                           "files":  106,
-                                                           "bytes":  431929,
+                                                           "files":  114,
+                                                           "bytes":  440441,
                                                            "oldest":  "2026-07-10T15:25:04.0231230Z",
-                                                           "latest":  "2026-09-14T17:44:11.7557613Z"
+                                                           "latest":  "2026-09-20T20:07:29.5409059Z"
                                                        }
                                         }
                                     ],
@@ -47,10 +47,10 @@
                                         "path":  "_workspace\\temp",
                                         "metric":  {
                                                        "exists":  true,
-                                                       "files":  233,
-                                                       "bytes":  1074531,
+                                                       "files":  241,
+                                                       "bytes":  1079053,
                                                        "oldest":  "2026-05-22T02:56:46.2853814Z",
-                                                       "latest":  "2026-09-14T20:18:48.4809649Z"
+                                                       "latest":  "2026-09-20T20:11:43.4395778Z"
                                                    }
                                     }
                                 ],
