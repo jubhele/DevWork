@@ -11,10 +11,10 @@
                                             "path":  "_workspace\\sessions",
                                             "metric":  {
                                                            "exists":  true,
-                                                           "files":  114,
-                                                           "bytes":  440441,
+                                                           "files":  115,
+                                                           "bytes":  441505,
                                                            "oldest":  "2026-07-10T15:25:04.0231230Z",
-                                                           "latest":  "2026-09-20T20:07:29.5409059Z"
+                                                           "latest":  "2026-09-21T12:37:16.6281311Z"
                                                        }
                                         }
                                     ],
@@ -47,10 +47,10 @@
                                         "path":  "_workspace\\temp",
                                         "metric":  {
                                                        "exists":  true,
-                                                       "files":  241,
-                                                       "bytes":  1079053,
+                                                       "files":  243,
+                                                       "bytes":  1080240,
                                                        "oldest":  "2026-05-22T02:56:46.2853814Z",
-                                                       "latest":  "2026-09-20T20:11:43.4395778Z"
+                                                       "latest":  "2026-10-02T08:26:02.1082644Z"
                                                    }
                                     }
                                 ],
@@ -71,10 +71,10 @@
                                            "path":  "_workspace\\_backups",
                                            "metric":  {
                                                           "exists":  true,
-                                                          "files":  6,
-                                                          "bytes":  12416,
+                                                          "files":  18,
+                                                          "bytes":  248830,
                                                           "oldest":  "2026-07-10T15:09:07.8418567Z",
-                                                          "latest":  "2026-07-22T16:58:35.4047030Z"
+                                                          "latest":  "2026-10-02T08:17:42.2453386Z"
                                                       }
                                        }
                                    ]
