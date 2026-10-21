@@ -1,8 +1,8 @@
 ﻿# DevWork Workspace Index
 
-Generated: 2026-10-02T08:27:00.6024790Z
+Generated: 2026-10-21T17:10:04.5452115Z
 Schema: 1.0
-Trigger: `C:\Projects\BlackFire\sessions\agent_session_github_copilot_eb80e048-488_20261002_083213.md`
+Trigger: `C:\Projects\BlackFire\sessions\agent_session_github_copilot_ba6919e0-3e0_20261021_163330.md`
 
 This is a discovery map. Canonical sessions and artifacts remain below their owning project roots.
 
@@ -10,9 +10,9 @@ This is a discovery map. Canonical sessions and artifacts remain below their own
 
 | Project | Root | Repository | Sessions | Artifacts | Archive | Temp | Backups | Index |
 |---------|------|------------|---------:|----------:|--------:|-----:|--------:|-------|
-| _workspace | `_workspace` | No | 115 | 0 | 0 | 243 | 18 | [_workspace](_workspace/ARTIFACT_INDEX.md) |
+| _workspace | `_workspace` | No | 122 | 0 | 0 | 253 | 18 | [_workspace](_workspace/ARTIFACT_INDEX.md) |
 | Astute | `C:\Projects\Astute` | Yes | 5 | 8 | 0 | 0 | 24 | [astute](file:///C:/Projects/Astute/ARTIFACT_INDEX.md) |
-| BlackFire | `C:\Projects\BlackFire` | Yes | 456 | 302 | 0 | 432 | 634 | [blackfire](file:///C:/Projects/BlackFire/ARTIFACT_INDEX.md) |
+| BlackFire | `C:\Projects\BlackFire` | Yes | 525 | 72 | 0 | 472 | 637 | [blackfire](file:///C:/Projects/BlackFire/ARTIFACT_INDEX.md) |
 | GovTender | `C:\Projects\GovTender` | Yes | 4 | 0 | 0 | 0 | 15 | [govtender](file:///C:/Projects/GovTender/ARTIFACT_INDEX.md) |
 | Homolemo In Europe | `C:\Projects\Homolemo In Europe` | Yes | 11 | 0 | 0 | 9 | 14 | [homolemo-in-europe](file:///C:/Projects/Homolemo%20In%20Europe/ARTIFACT_INDEX.md) |
 | ilahle-portal | `C:\Projects\ilahle-portal` | Yes | 7 | 9 | 0 | 0 | 71 | [ilahle-portal](file:///C:/Projects/ilahle-portal/ARTIFACT_INDEX.md) |
@@ -24,7 +24,7 @@ This is a discovery map. Canonical sessions and artifacts remain below their own
 |------|------:|----------:|--------|
 | `sessions` | 358 | 3.7 | 2026-09-20T20:16:49.6812663Z |
 | `temp` | 2365 | 311.7 | 2026-07-22T16:56:15.7044599Z |
-| `_backups` | 101 | 2.35 | 2026-10-02T08:17:42.3189094Z |
+| `_backups` | 3790 | 361 | 2026-10-13T18:55:04.6712233Z |
 | `chatsessions` | 1 | 0 | 2026-05-16T05:18:29.4610462Z |
 | `logs` | 1 | 0 | 2026-06-24T22:39:02.9801990Z |
 
