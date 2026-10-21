@@ -70,15 +70,14 @@ function Copy-SessionMirror {
     $projectRoot = Split-Path (Split-Path $LogPath -Parent) -Parent
     $projectSlug = Get-SafeName (Split-Path $projectRoot -Leaf)
     $mirrorRoot = 'G:\My Drive\JS\Agentic AI\sessions'
+    if (-not (Test-Path -LiteralPath $mirrorRoot)) { return }
     $mirrorDir = Join-Path $mirrorRoot $projectSlug
-    if (Test-Path -LiteralPath $mirrorRoot) {
-        New-Item -ItemType Directory -Path $mirrorDir -Force | Out-Null
-        $destination = Join-Path $mirrorDir ((Split-Path $LogPath -Leaf) + '.tbl.bk')
-        try {
-            Copy-Item -LiteralPath $LogPath -Destination $destination -Force
-        } catch {
-            Write-Warning "Session mirror unavailable: $($_.Exception.Message)"
-        }
+    New-Item -ItemType Directory -Path $mirrorDir -Force | Out-Null
+    $destination = Join-Path $mirrorDir ((Split-Path $LogPath -Leaf) + '.tbl.bk')
+    try {
+        Copy-Item -LiteralPath $LogPath -Destination $destination -Force
+    } catch {
+        Write-Warning "Session mirror unavailable: $($_.Exception.Message)"
     }
 }
 
@@ -350,6 +349,21 @@ $missingSections = @(Test-RequiredSections $content)
 if ($missingSections.Count -gt 0) { throw ('Session log is missing mandatory sections: ' + ($missingSections -join ', ')) }
 
 if ($HookEvent -eq 'PreChange') {
+    $toolInput = if ($null -ne $inputObject) { $inputObject.PSObject.Properties['tool_input'].Value } else { $null }
+    $targetPath = Get-InputValue $toolInput @('file_path', 'filePath', 'path')
+    $candidate = $null
+    if (-not [string]::IsNullOrWhiteSpace($targetPath)) {
+        try {
+            if ([IO.Path]::IsPathRooted($targetPath)) {
+                $candidate = [IO.Path]::GetFullPath($targetPath)
+            } else {
+                $workingDirectory = Get-InputValue $inputObject @('cwd', 'working_directory', 'workingDirectory')
+                if ([string]::IsNullOrWhiteSpace($workingDirectory)) { throw 'Relative mutation path has no working directory.' }
+                $candidate = [IO.Path]::GetFullPath((Join-Path $workingDirectory $targetPath))
+            }
+            if ($candidate.Equals([IO.Path]::GetFullPath($logPath), [StringComparison]::OrdinalIgnoreCase)) { exit 0 }
+        } catch { $candidate = $null }
+    }
     if (-not $state.PSObject.Properties['project_status'] -or $state.project_status -ne 'resolved') {
         [Console]::Error.WriteLine('Project is unresolved. Ask the user to select an existing project, create a new named project, or explicitly choose _workspace control-plane scope.')
         exit 2
@@ -357,15 +371,6 @@ if ($HookEvent -eq 'PreChange') {
     if ($projectDrift) {
         [Console]::Error.WriteLine("Project context changed from $projectRoot to $cwdProjectRoot. Ask the user whether to switch projects or start a new session.")
         exit 2
-    }
-    $toolInput = if ($null -ne $inputObject) { $inputObject.PSObject.Properties['tool_input'].Value } else { $null }
-    $targetPath = Get-InputValue $toolInput @('file_path', 'filePath', 'path')
-    if (-not [string]::IsNullOrWhiteSpace($targetPath)) {
-        try {
-            $candidate = [IO.Path]::GetFullPath((Join-Path ([string](Get-InputValue $inputObject @('cwd'))) $targetPath))
-            if ([IO.Path]::IsPathRooted($targetPath)) { $candidate = [IO.Path]::GetFullPath($targetPath) }
-            if ($candidate.Equals([IO.Path]::GetFullPath($logPath), [StringComparison]::OrdinalIgnoreCase)) { exit 0 }
-        } catch { $candidate = $null }
     }
     if (-not $candidate) {
         [Console]::Error.WriteLine('Mutation target path is missing or unparseable; refusing to fail open.')

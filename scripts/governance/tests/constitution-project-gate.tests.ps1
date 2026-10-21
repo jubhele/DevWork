@@ -54,15 +54,19 @@ try {
     Assert-True ($state.project_status -eq 'unresolved') 'Unresolved state was not persisted.'
     Assert-True ($state.log_path -like "$fixture\_workspace\sessions\*") 'Bootstrap log is not under _workspace sessions.'
 
+    $logPayload = [pscustomobject]@{ session_id = 'existing-project'; cwd = $fixture; tool_input = [pscustomobject]@{ file_path = $state.log_path } } | ConvertTo-Json -Compress
+    $logMutation = Invoke-HookProcess $logPayload ('-HookEvent PreChange -Provider GateTest -WorkspaceRoot "' + $fixture + '"')
+    Assert-True ($logMutation.exit_code -eq 0) ('Exact bootstrap session log was blocked while project determination is unresolved: ' + $logMutation.stderr)
+
     $mutationPayload = [pscustomobject]@{ session_id = 'existing-project'; cwd = $fixture; tool_input = [pscustomobject]@{ file_path = (Join-Path $fixture 'blocked.txt') } } | ConvertTo-Json -Compress
-    $unresolvedMutation = Invoke-HookProcess $mutationPayload ('-Event PreChange -Provider GateTest -WorkspaceRoot "' + $fixture + '"')
+    $unresolvedMutation = Invoke-HookProcess $mutationPayload ('-HookEvent PreChange -Provider GateTest -WorkspaceRoot "' + $fixture + '"')
     Assert-True ($unresolvedMutation.exit_code -eq 2) 'Unresolved mutation was not blocked.'
 
     $bindPayload = [pscustomobject]@{ session_id = 'existing-project'; cwd = $fixture } | ConvertTo-Json -Compress
-    $invalidBind = Invoke-HookProcess $bindPayload ('-Event ProjectBind -Provider GateTest -WorkspaceRoot "' + $fixture + '" -RequestedProjectRoot "' + (Join-Path $fixture 'scripts') + '"')
+    $invalidBind = Invoke-HookProcess $bindPayload ('-HookEvent ProjectBind -Provider GateTest -WorkspaceRoot "' + $fixture + '" -RequestedProjectRoot "' + (Join-Path $fixture 'scripts') + '"')
     Assert-True ($invalidBind.exit_code -ne 0) 'Invalid support-directory binding was accepted.'
 
-    $validBind = Invoke-HookProcess $bindPayload ('-Event ProjectBind -Provider GateTest -WorkspaceRoot "' + $fixture + '" -RequestedProjectRoot "' + $knownProject + '"')
+    $validBind = Invoke-HookProcess $bindPayload ('-HookEvent ProjectBind -Provider GateTest -WorkspaceRoot "' + $fixture + '" -RequestedProjectRoot "' + $knownProject + '"')
     Assert-True ($validBind.exit_code -eq 0) ('Valid project binding failed: ' + $validBind.stderr)
     $boundState = Get-Content -LiteralPath $statePath -Raw | ConvertFrom-Json
     Assert-True ($boundState.project_status -eq 'resolved' -and $boundState.project_root -eq $knownProject) 'Project state binding failed.'
@@ -71,7 +75,7 @@ try {
     $newStartPayload = [pscustomobject]@{ hook_event_name = 'SessionStart'; session_id = 'new-project'; cwd = $fixture; model = 'test' } | ConvertTo-Json -Compress
     $null = Invoke-HookProcess $newStartPayload ('-Provider GateTest -WorkspaceRoot "' + $fixture + '"')
     $newPayload = [pscustomobject]@{ session_id = 'new-project'; cwd = $fixture } | ConvertTo-Json -Compress
-    $created = Invoke-HookProcess $newPayload ('-Event ProjectCreate -Provider GateTest -WorkspaceRoot "' + $fixture + '" -ProjectName "Fresh Project"')
+    $created = Invoke-HookProcess $newPayload ('-HookEvent ProjectCreate -Provider GateTest -WorkspaceRoot "' + $fixture + '" -ProjectName "Fresh Project"')
     Assert-True ($created.exit_code -eq 0) ('ProjectCreate failed: ' + $created.stderr)
     $freshRoot = Join-Path $fixture 'Fresh Project'
     foreach ($relative in @('.git', 'sessions', 'artifacts\drafts', 'artifacts\generated', 'artifacts\reports', 'archive', 'temp', 'logs', '_backups', 'docs', 'README.md', '.gitignore')) {
@@ -81,10 +85,10 @@ try {
     $outsideTarget = Join-Path $fixture 'outside.txt'
     Copy-Item (Join-Path $workspace 'CLAUDE.md') $outsideTarget
     $crossPayload = [pscustomobject]@{ session_id = 'existing-project'; cwd = $knownProject; tool_input = [pscustomobject]@{ file_path = $outsideTarget } } | ConvertTo-Json -Compress
-    $crossMutation = Invoke-HookProcess $crossPayload ('-Event PreChange -Provider GateTest -WorkspaceRoot "' + $fixture + '"')
+    $crossMutation = Invoke-HookProcess $crossPayload ('-HookEvent PreChange -Provider GateTest -WorkspaceRoot "' + $fixture + '"')
     Assert-True ($crossMutation.exit_code -eq 2) 'Cross-project mutation was not blocked.'
 
-    [pscustomobject]@{ status = 'PASS'; tests = 7; fixture = $fixture } | ConvertTo-Json -Compress
+    [pscustomobject]@{ status = 'PASS'; tests = 8; fixture = $fixture } | ConvertTo-Json -Compress
 } finally {
     if (Test-Path -LiteralPath $fixture) {
         $resolved = [IO.Path]::GetFullPath($fixture)
