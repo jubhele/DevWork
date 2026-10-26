@@ -1,7 +1,7 @@
 ﻿{
     "schema_version":  "1.0",
-    "generated_at":  "2026-10-21T21:23:47.2293253Z",
-    "triggered_by":  "C:\\Projects\\BlackFire\\sessions\\agent_session_github_copilot_ba6919e0-3e0_20261021_163330.md",
+    "generated_at":  "2026-10-26T20:00:52.3178999Z",
+    "triggered_by":  "_workspace\\sessions\\agent_session_github_copilot_737a156a-8ae_20261026_215757.md",
     "inventory":  {
                       "projects":  [
                                        {
@@ -17,10 +17,10 @@
                                                                                    "path":  "_workspace\\sessions",
                                                                                    "metric":  {
                                                                                                   "exists":  true,
-                                                                                                  "files":  122,
-                                                                                                  "bytes":  449261,
+                                                                                                  "files":  130,
+                                                                                                  "bytes":  460843,
                                                                                                   "oldest":  "2026-07-10T15:25:04.0231230Z",
-                                                                                                  "latest":  "2026-10-21T04:30:33.6643290Z"
+                                                                                                  "latest":  "2026-10-26T20:00:13.2048698Z"
                                                                                               }
                                                                                }
                                                                            ],
@@ -53,10 +53,10 @@
                                                                                "path":  "_workspace\\temp",
                                                                                "metric":  {
                                                                                               "exists":  true,
-                                                                                              "files":  253,
-                                                                                              "bytes":  1086162,
+                                                                                              "files":  262,
+                                                                                              "bytes":  1091266,
                                                                                               "oldest":  "2026-05-22T02:56:46.2853814Z",
-                                                                                              "latest":  "2026-10-21T21:23:43.8156310Z"
+                                                                                              "latest":  "2026-10-26T20:00:50.4517370Z"
                                                                                           }
                                                                            }
                                                                        ],
@@ -173,10 +173,10 @@
                                                                                    "path":  "C:\\Projects\\BlackFire\\sessions",
                                                                                    "metric":  {
                                                                                                   "exists":  true,
-                                                                                                  "files":  525,
-                                                                                                  "bytes":  2295713,
+                                                                                                  "files":  526,
+                                                                                                  "bytes":  2296813,
                                                                                                   "oldest":  "2026-06-23T09:19:04.0991484Z",
-                                                                                                  "latest":  "2026-10-21T18:52:10.8244973Z"
+                                                                                                  "latest":  "2026-10-26T20:00:46.0576837Z"
                                                                                               }
                                                                                }
                                                                            ],
@@ -489,9 +489,9 @@
                                                      "metric":  {
                                                                     "exists":  true,
                                                                     "files":  2365,
-                                                                    "bytes":  326841459,
+                                                                    "bytes":  326841571,
                                                                     "oldest":  "1985-10-26T08:15:00.0000000Z",
-                                                                    "latest":  "2026-07-22T16:56:15.7044599Z"
+                                                                    "latest":  "2026-10-26T12:14:07.3252700Z"
                                                                 }
                                                  },
                                                  {
@@ -547,10 +547,10 @@
                                                           "path":  ".git",
                                                           "metric":  {
                                                                          "exists":  true,
-                                                                         "files":  528,
-                                                                         "bytes":  1882268025,
+                                                                         "files":  109,
+                                                                         "bytes":  1881809582,
                                                                          "oldest":  "2026-05-16T04:41:31.9208941Z",
-                                                                         "latest":  "2026-10-21T21:23:10.3368532Z"
+                                                                         "latest":  "2026-10-26T20:00:08.0307779Z"
                                                                      },
                                                           "classification":  "excluded infrastructure/cache"
                                                       },
